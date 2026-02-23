@@ -211,8 +211,8 @@ return $default(_that.id,_that.name,_that.phoneNumber,_that.token);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _UserEntity implements UserEntity {
-  const _UserEntity({required this.id, required this.name, required this.phoneNumber, required this.token});
+class _UserEntity extends UserEntity {
+  const _UserEntity({required this.id, required this.name, required this.phoneNumber, required this.token}): super._();
   factory _UserEntity.fromJson(Map<String, dynamic> json) => _$UserEntityFromJson(json);
 
 @override final  String id;
