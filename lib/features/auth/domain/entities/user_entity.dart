@@ -1,19 +1,27 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class UserEntity {
+  final String id;
+  final String name;
+  final String phoneNumber;
+  final String token;
 
-part 'user_entity.freezed.dart';
-part 'user_entity.g.dart';
+  UserEntity({
+    required this.id,
+    required this.name,
+    required this.phoneNumber,
+    required this.token,
+  });
+}
 
-@freezed
-class UserEntity with _$UserEntity {
-  const UserEntity._();
+class UserResponseEntity {
+  final String id;
+  final String name;
+  final String phoneNumber;
+  final String token;
 
-  const factory UserEntity({
-    required String id,
-    required String name,
-    required String phoneNumber,
-    required String token,
-  }) = _UserEntity;
-
-  factory UserEntity.fromJson(Map<String, dynamic> json) =>
-      _$UserEntityFromJson(json);
+  UserResponseEntity({
+    required this.id,
+    required this.name,
+    required this.phoneNumber,
+    required this.token,
+  });
 }
