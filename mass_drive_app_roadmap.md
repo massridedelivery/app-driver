@@ -13,11 +13,11 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Goal:** Allow drivers to register, log in securely, and set up their profile and vehicle documents.
 
 ### Features
-1. **Splash Screen:** Initial app load, checking auth state and routing.
-2. **Authentication:** Login/Signup via Phone Number & OTP (or Email).
-3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
-4. **Profile Management:** Viewing and editing driver details.
-5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.
+- [ ] 1. **Splash Screen:** Initial app load, checking auth state and routing.
+- [ ] 2. **Authentication:** Login/Signup via Phone Number & OTP (or Email).
+- [ ] 3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
+- [ ] 4. **Profile Management:** Viewing and editing driver details.
+- [ ] 5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.
 
 ### Current Project Mapping
 - `lib/features/splash_screen/`: **[Code Present]** Handles initial load and routing.
@@ -36,11 +36,11 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Goal:** Provide the primary interface where drivers spend most of their time waiting for jobs.
 
 ### Features
-1. **Interactive Map:** Displaying current location using Google Maps.
-2. **Online/Offline Toggle:** Driver availability status management.
-3. **Real-time Location Updates:** Sending driver coordinates to the backend continuously.
-4. **Job Dispatch Listener:** Listening for incoming ride requests via WebSockets or Firebase Realtime Database.
-5. **Incoming Job UI:** A bottom sheet or modal showing pickup/dropoff, estimated fare, and a timer to accept/decline.
+- [ ] 1. **Interactive Map:** Displaying current location using Google Maps.
+- [ ] 2. **Online/Offline Toggle:** Driver availability status management.
+- [ ] 3. **Real-time Location Updates:** Sending driver coordinates to the backend continuously.
+- [ ] 4. **Job Dispatch Listener:** Listening for incoming ride requests via WebSockets or Firebase Realtime Database.
+- [ ] 5. **Incoming Job UI:** A bottom sheet or modal showing pickup/dropoff, estimated fare, and a timer to accept/decline.
 
 ### Current Project Mapping
 - `lib/features/home/`: **[Code Present]** The main map interface and online/offline toggle.
@@ -56,11 +56,11 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Goal:** Handle the end-to-end trip lifecycle once a driver accepts a job.
 
 ### Features
-1. **Routing and Navigation:** Drawing polyline routes from Driver -> Pickup -> Dropoff.
-2. **Trip Status Updates:** Changing status (Arrived at Pickup, Passenger Onboard, En-route to Dropoff, Arrived).
-3. **Fare Calculation:** Showing final fare, waiting time fees, and toll charges (if applicable).
-4. **Payment Collection:** Cash collection UI or digital payment confirmation.
-5. **Cancellation & Dispute:** UI to cancel the job logically with reasons.
+- [ ] 1. **Routing and Navigation:** Drawing polyline routes from Driver -> Pickup -> Dropoff.
+- [ ] 2. **Trip Status Updates:** Changing status (Arrived at Pickup, Passenger Onboard, En-route to Dropoff, Arrived).
+- [ ] 3. **Fare Calculation:** Showing final fare, waiting time fees, and toll charges (if applicable).
+- [ ] 4. **Payment Collection:** Cash collection UI or digital payment confirmation.
+- [ ] 5. **Cancellation & Dispute:** UI to cancel the job logically with reasons.
 
 ### Current Project Mapping
 - `lib/features/job_live/`: **[Code Present]** Handles the active job view and actions.
@@ -75,10 +75,10 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Goal:** Provide transparency on daily/weekly earnings and ride history.
 
 ### Features
-1. **Earnings Dashboard (Income):** High-level view of today's, this week's, and total earnings.
-2. **Cash Wallet / Credit Wallet:** Managing top-ups for driver commissions and viewing balance.
-3. **Job History:** List of all completed, cancelled, or missed jobs.
-4. **Job Detail View:** Viewing precise fare breakdown, route taken, and timestamps of a past trip.
+- [ ] 1. **Earnings Dashboard (Income):** High-level view of today's, this week's, and total earnings.
+- [ ] 2. **Cash Wallet / Credit Wallet:** Managing top-ups for driver commissions and viewing balance.
+- [ ] 3. **Job History:** List of all completed, cancelled, or missed jobs.
+- [ ] 4. **Job Detail View:** Viewing precise fare breakdown, route taken, and timestamps of a past trip.
 
 ### Current Project Mapping
 - `lib/features/income/`: **[Code Present]** Earnings overview.
@@ -95,10 +95,10 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Goal:** Complete the ecosystem by adding essential secondary features.
 
 ### Features
-1. **In-App Chat / Calling:** Communication with the passenger without revealing personal phone numbers.
-2. **Notifications & Announcements:** Broadcast messages from admin to drivers (e.g., incentives).
-3. **Ratings & Feedback:** Viewing passenger reviews and driver rating.
-4. **Settings/Support:** App settings, languge selection (using `easy_localization`), terms of service, and help center.
+- [ ] 1. **In-App Chat / Calling:** Communication with the passenger without revealing personal phone numbers.
+- [ ] 2. **Notifications & Announcements:** Broadcast messages from admin to drivers (e.g., incentives).
+- [ ] 3. **Ratings & Feedback:** Viewing passenger reviews and driver rating.
+- [ ] 4. **Settings/Support:** App settings, languge selection (using `easy_localization`), terms of service, and help center.
 
 ### Current Project Mapping
 - `lib/features/setting/` & `lib/features/settings/`: **[Code Present]** Settings menus.
@@ -120,3 +120,9 @@ According to your `lib/features/` and `pubspec.yaml`, you have **successfully es
 **Immediate Recommended Actions:**
 1. Deep-dive into completing the **Phase 1** Auth Flow with actual backend endpoints using `Dio`.
 2. Move to **Phase 2** by displaying the driver's live location on the Map in `home_screen.dart` and setting up the online/offline toggle connection.
+
+---
+
+## 🔄 Development Workflow Protocol
+- At the completion of each major feature or phase, the checklist `- [ ]` will be updated to `- [x]`.
+- A `git add .` and `git commit -m "..."` will be performed to maintain version history accurately.
