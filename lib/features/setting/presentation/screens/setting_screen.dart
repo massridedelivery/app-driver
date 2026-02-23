@@ -41,12 +41,8 @@ class SettingScreen extends ConsumerWidget {
             SectionHeader(
               title: "ออกจากระบบ",
               textColor: AppColors.semanticErrorBgHigh,
-              onTap: () async {
+              onTap: () {
                 _showLogoutDialog(context, ref);
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) {
-                  context.go(AppRoutes.loginNamedPage);
-                }
               },
             ),
           ],
@@ -56,10 +52,10 @@ class SettingScreen extends ConsumerWidget {
   }
 }
 
-void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
   showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
+    context: parentContext,
+    builder: (dialogContext) => AlertDialog(
       backgroundColor: const Color(0xFF1A1A1A),
       title: Text(
         "คุณต้องการออกจากระบบ?",
@@ -75,7 +71,7 @@ void _showLogoutDialog(BuildContext context, WidgetRef ref) {
               color: AppColors.semanticGrayNeutralFgLowOnWhite,
             ),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(dialogContext),
         ),
         TextButton(
           child: Text(
@@ -85,9 +81,10 @@ void _showLogoutDialog(BuildContext context, WidgetRef ref) {
             ),
           ),
           onPressed: () async {
+            Navigator.pop(dialogContext); // ปิด popup ก่อน
             await ref.read(authControllerProvider.notifier).logout();
-            if (context.mounted) {
-              context.go(AppRoutes.loginNamedPage);
+            if (parentContext.mounted) {
+              parentContext.go(AppRoutes.loginNamedPage);
             }
           },
         ),
