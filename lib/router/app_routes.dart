@@ -7,6 +7,8 @@ import 'package:massdrive/features/income/presentation/screens/income_screen.dar
 import 'package:massdrive/features/main/screens/splash_screen.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
+import 'package:massdrive/features/auth/presentation/screens/login_screen.dart';
+import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 
 class AppRouter {
@@ -22,6 +24,18 @@ class AppRouter {
         path: AppRoutes.splashNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SplashScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.loginNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: LoginScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.otpNamedPage,
+        pageBuilder: (context, state) {
+          final phone = state.extra as String? ?? '';
+          return NoTransitionPage(child: OtpScreen(phoneNumber: phone));
+        },
       ),
       GoRoute(
         path: AppRoutes.homeNamedPage,

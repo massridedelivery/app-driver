@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'login_controller.dart';
+part of 'otp_controller.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,52 +9,52 @@ part of 'login_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(LoginController)
-const loginControllerProvider = LoginControllerProvider._();
+@ProviderFor(OtpController)
+const otpControllerProvider = OtpControllerProvider._();
 
-final class LoginControllerProvider
-    extends $NotifierProvider<LoginController, LoginState> {
-  const LoginControllerProvider._()
+final class OtpControllerProvider
+    extends $NotifierProvider<OtpController, OtpState> {
+  const OtpControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'loginControllerProvider',
+        name: r'otpControllerProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$loginControllerHash();
+  String debugGetCreateSourceHash() => _$otpControllerHash();
 
   @$internal
   @override
-  LoginController create() => LoginController();
+  OtpController create() => OtpController();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(LoginState value) {
+  Override overrideWithValue(OtpState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<LoginState>(value),
+      providerOverride: $SyncValueProvider<OtpState>(value),
     );
   }
 }
 
-String _$loginControllerHash() => r'f05ea7b38ce0d24005bd90089f4c8300033f7d60';
+String _$otpControllerHash() => r'64c6e3f405631892286719347b4dd11cc3d7b249';
 
-abstract class _$LoginController extends $Notifier<LoginState> {
-  LoginState build();
+abstract class _$OtpController extends $Notifier<OtpState> {
+  OtpState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<LoginState, LoginState>;
+    final ref = this.ref as $Ref<OtpState, OtpState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<LoginState, LoginState>,
-              LoginState,
+              AnyNotifier<OtpState, OtpState>,
+              OtpState,
               Object?,
               Object?
             >;

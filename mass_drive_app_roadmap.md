@@ -11,10 +11,11 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 
 ## 🛠 Phase 1: Foundation, Onboarding & Authentication
 **Goal:** Allow drivers to register, log in securely, and set up their profile and vehicle documents.
+*(Note: As the real API is not yet available, all network integrations in this phase will use **Mock APIs**).*
 
 ### Features
-- [ ] 1. **Splash Screen:** Initial app load, checking auth state and routing.
-- [ ] 2. **Authentication:** Login/Signup via Phone Number & OTP (or Email).
+- [x] 1. **Splash Screen:** Initial app load, checking auth state and routing.
+- [x] 2. **Authentication:** Login/Signup via Phone Number & OTP (or Email).
 - [ ] 3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
 - [ ] 4. **Profile Management:** Viewing and editing driver details.
 - [ ] 5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.
@@ -27,8 +28,9 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 - `lib/features/service_type/`: **[Code Present]** Allows driver to select service category.
 
 **Next Steps exactly in Phase 1:**
-- Ensure robust validation for document uploads.
-- Complete API integration for OTP validation.
+- [x] Scaffold the Mock API service for Authentication.
+- [x] Complete Mock API integration for OTP request and validation.
+- [ ] Ensure robust validation for document uploads.
 
 ---
 

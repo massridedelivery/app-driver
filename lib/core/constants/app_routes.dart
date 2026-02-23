@@ -5,6 +5,8 @@ import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 class AppRoutes {
   static const root = '/';
   static const splashNamedPage = '/splash';
+  static const loginNamedPage = '/login';
+  static const otpNamedPage = '/otp_screen';
   static const homeNamedPage = '/home';
   static const homeDetailsNamedPage = 'details';
   static const incomeNamedPage = '/home';

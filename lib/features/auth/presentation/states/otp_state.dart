@@ -1,22 +1,21 @@
-class LoginState {
-  final String phoneNumber;
+class OtpState {
+  final String otpCode;
   final bool isLoading;
   final String? errorMessage;
 
-  const LoginState({
-    this.phoneNumber = '',
+  const OtpState({
+    this.otpCode = '',
     this.isLoading = false,
     this.errorMessage,
   });
 
-  LoginState copyWith({
-    String? phoneNumber,
+  OtpState copyWith({
+    String? otpCode,
     bool? isLoading,
     String? errorMessage,
   }) {
-    // We want to allow null for errorMessage to clear it
-    return LoginState(
-      phoneNumber: phoneNumber ?? this.phoneNumber,
+    return OtpState(
+      otpCode: otpCode ?? this.otpCode,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage != null ? (errorMessage.isEmpty ? null : errorMessage) : this.errorMessage,
     );
