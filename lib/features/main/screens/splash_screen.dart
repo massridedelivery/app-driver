@@ -5,6 +5,7 @@ import 'package:lottie/lottie.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/main/controllers/splash_controller.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
@@ -16,7 +17,12 @@ class SplashScreen extends ConsumerWidget {
     splashAsync.when(
       data: (_) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go(AppRoutes.homeNamedPage);
+          final isLogin = ref.read(authControllerProvider).valueOrNull?.isLogin ?? false;
+          if (isLogin) {
+            context.go(AppRoutes.homeNamedPage);
+          } else {
+            context.go(AppRoutes.loginNamedPage);
+          }
         });
       },
       loading: () {},

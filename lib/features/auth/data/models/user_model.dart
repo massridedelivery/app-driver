@@ -2,16 +2,11 @@ import 'package:massdrive/features/auth/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
   UserModel({
-    required String id,
-    required String name,
-    required String phoneNumber,
-    required String token,
-  }) : super(
-          id: id,
-          name: name,
-          phoneNumber: phoneNumber,
-          token: token,
-        );
+    required super.id,
+    required super.name,
+    required super.phoneNumber,
+    required super.token,
+  });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -23,11 +18,6 @@ class UserModel extends UserEntity {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'phoneNumber': phoneNumber,
-      'token': token,
-    };
+    return {'id': id, 'name': name, 'phoneNumber': phoneNumber, 'token': token};
   }
 }
