@@ -5,11 +5,15 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 
-class SettingScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+
+class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: CommonAppBar(titleText: 'การตั้งค่า', showLeftIcon: true),
       body: Container(
@@ -37,7 +41,12 @@ class SettingScreen extends StatelessWidget {
             SectionHeader(
               title: "ออกจากระบบ",
               textColor: AppColors.semanticErrorBgHigh,
-              onTap: () => {},
+              onTap: () async {
+                await ref.read(authControllerProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go(AppRoutes.loginNamedPage);
+                }
+              },
             ),
           ],
         ),

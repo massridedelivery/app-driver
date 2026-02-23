@@ -22,6 +22,8 @@ import 'package:massdrive/features/auth/domain/repositories/auth_repository.dart
     as _i600;
 import 'package:massdrive/features/auth/domain/usecase/login_with_phone_usecase.dart'
     as _i621;
+import 'package:massdrive/features/auth/domain/usecase/logout_usecase.dart'
+    as _i693;
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart'
     as _i244;
 
@@ -39,6 +41,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i621.LoginWithPhoneUseCase>(
       () => _i621.LoginWithPhoneUseCase(gh<_i600.AuthRepository>()),
+    );
+    gh.lazySingleton<_i693.LogoutUseCase>(
+      () => _i693.LogoutUseCase(gh<_i600.AuthRepository>()),
     );
     gh.lazySingleton<_i244.VerifyOtpUseCase>(
       () => _i244.VerifyOtpUseCase(gh<_i600.AuthRepository>()),

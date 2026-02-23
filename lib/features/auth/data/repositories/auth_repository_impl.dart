@@ -28,4 +28,10 @@ class AuthRepositoryImpl implements AuthRepository {
     
     return user;
   }
+
+  @override
+  Future<void> logout() async {
+    final secureStorage = SecureStorageManager();
+    await secureStorage.delete(SecureStorageKey.accessToken);
+  }
 }
