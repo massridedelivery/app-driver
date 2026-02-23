@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
@@ -41,10 +42,15 @@ class LoginScreen extends ConsumerWidget {
               onPressed: state.isLoading
                   ? null
                   : () async {
+                      debugPrint('Login button pressed');
                       final success = await controller.loginWithPhone();
+                      debugPrint('loginWithPhone returned: $success, mounted: ${context.mounted}');
                       if (success && context.mounted) {
+                        debugPrint('Navigating to otp screen');
                         // Pass the phone number to OTP screen
                         context.push('/otp_screen', extra: state.phoneNumber);
+                      } else {
+                        debugPrint('Navigation failed. condition met: false');
                       }
                     },
               style: ElevatedButton.styleFrom(
