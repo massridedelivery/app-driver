@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/core/navigation/app_navigator.dart';
-import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -42,6 +42,7 @@ class SettingScreen extends ConsumerWidget {
               title: "ออกจากระบบ",
               textColor: AppColors.semanticErrorBgHigh,
               onTap: () async {
+                _showLogoutDialog(context, ref);
                 await ref.read(authControllerProvider.notifier).logout();
                 if (context.mounted) {
                   context.go(AppRoutes.loginNamedPage);
@@ -53,6 +54,46 @@ class SettingScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: const Color(0xFF1A1A1A),
+      title: Text(
+        "คุณต้องการออกจากระบบ?",
+        style: AppTypography.caption3.copyWith(
+          color: AppColors.semanticGrayNeutralBgWhite,
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: Text(
+            "ยกเลิก",
+            style: AppTypography.caption3.copyWith(
+              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+            ),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        TextButton(
+          child: Text(
+            "ออกจากระบบ",
+            style: AppTypography.caption3.copyWith(
+              color: AppColors.semanticErrorFgHigh,
+            ),
+          ),
+          onPressed: () async {
+            await ref.read(authControllerProvider.notifier).logout();
+            if (context.mounted) {
+              context.go(AppRoutes.loginNamedPage);
+            }
+          },
+        ),
+      ],
+    ),
+  );
 }
 
 class SectionHeader extends StatelessWidget {
