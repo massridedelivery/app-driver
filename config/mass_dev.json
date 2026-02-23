@@ -1,0 +1,17 @@
+{
+    "APP_NAME": "NocNoc DEV",
+    "APP_PACKAGE_NAME": "com.nocnoc.app",
+    "APP_PACKAGE_NAME_SUFFIX": ".dev",
+    "APP_ANDROID_FIREBASE_API_KEY": "AIzaSyCQU4untaiWq5CKkf_7CEpHy_yhN9v1L5E",
+    "APP_ANDROID_FIREBASE_APP_ID": "1:237911282104:android:41bbd40ae8fa03c07e3f4d",
+    "APP_ANDROID_FIREBASE_MSG_SENDER_ID": "237911282104",
+    "APP_ANDROID_FIREBASE_PROJECT_ID": "rp-nocnoc-dev",
+    "APP_ANDROID_FIREBASE_STORAGE_BUCKET": "rp-nocnoc-dev.firebasestorage.app",
+    "APP_IOS_FIREBASE_API_KEY": "AIzaSyC5n0TtuqFVPxcmAnGGYfeqviOMXuEKipk",
+    "APP_IOS_FIREBASE_APP_ID": "1:237911282104:ios:6250f2fa6430252f7e3f4d",
+    "APP_IOS_FIREBASE_MSG_SENDER_ID": "237911282104",
+    "APP_IOS_FIREBASE_PROJECT_ID": "rp-nocnoc-dev",
+    "APP_IOS_FIREBASE_STORAGE_BUCKET": "rp-nocnoc-dev.firebasestorage.app",
+    "APP_IOS_FIREBASE_BUNDLE_ID": "com.nocnoc.app.dev",
+    "OMISE_API_KEY": "pkey_test_65andwpqo35fgm6klwu"
+}

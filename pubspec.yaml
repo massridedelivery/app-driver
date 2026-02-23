@@ -1,0 +1,124 @@
+name: massdrive
+description: "Mass Drive App"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  easy_localization: ^3.0.5
+  flutter_dotenv: ^6.0.0
+  flutter_html: ^3.0.0
+  intl: ^0.20.2
+  fluttertoast: ^9.0.0
+  permission_handler: ^12.0.1
+
+  equatable: ^2.0.5
+  flutter_bloc: ^8.1.1
+
+  google_maps_flutter: ^2.6.0
+
+  # Image
+  image_picker: ^1.1.2
+
+  # OTP, Password TextField
+  pinput: ^5.0.2
+
+  # Video
+  video_player: ^2.9.1
+
+  # Slider
+  carousel_slider: ^5.1.1
+
+  # WebView
+  webview_flutter: ^4.0.0
+  webview_flutter_web: ^0.2.2
+  url_launcher: ^6.3.0
+  # State Management
+  flutter_riverpod: ^3.0.0-dev.17
+  riverpod_annotation: ^3.0.0-dev.17
+
+  # Navigation
+  go_router: ^16.2.1
+
+  # API Calls (HTTP Client)
+  dio: ^5.4.0
+  jwt_decoder: ^2.0.1
+  get_it: ^8.2.0
+  hive_ce: ^2.13.2
+  hive_ce_flutter: ^2.1.0
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  lottie: ^3.3.1
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.2.4
+  cupertino_icons: ^1.0.8
+  flutter_launcher_icons: ^0.14.4
+  easy_refresh: ^3.4.0
+  common_utils: ^2.1.0
+  flutter_svg: ^2.2.0
+  responsive_sizer: ^3.3.1
+  json_annotation: ^4.9.0
+  get_storage: ^2.1.1
+  device_info_plus: ^11.5.0
+  package_info_plus: ^8.3.1
+  riverpod_generator: ^3.0.0-dev.17
+  injectable: ^2.5.1
+  injectable_generator: ^2.6.2
+  flutter_slidable: ^4.0.1
+  firebase_core: ^4.1.0
+  firebase_remote_config: ^6.1.2
+  talker_dio_logger: ^5.0.0
+  talker_flutter: ^5.0.0
+  shake: ^3.0.0
+  loading_animation_widget: ^1.3.0
+  custom_refresh_indicator: ^4.0.1
+  collection: ^1.19.1
+  firebase_crashlytics: ^5.0.5
+  firebase_analytics: ^12.0.4
+  barcode_widget: ^2.0.4
+  screen_brightness: ^0.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.7
+  hive_ce_generator: ^1.9.3
+  json_serializable: ^6.9.0
+  mockito: ^5.4.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/fonts/
+    - assets/images/
+    - assets/images/icons/
+    - assets/locales/
+    - assets/animations/
+
+  fonts:
+    - family: Ibm
+      fonts:
+        - asset: assets/fonts/ibm_regular.ttf
+        - asset: assets/fonts/ibm_medium.ttf
+          weight: 500
+        - asset: assets/fonts/ibm_bold.ttf
+          weight: 700
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins_regular.ttf
+        - asset: assets/fonts/poppins_medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins_bold.ttf
+          weight: 700
