@@ -17,7 +17,7 @@ class SplashScreen extends ConsumerWidget {
     splashAsync.when(
       data: (_) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final isLogin = ref.read(authControllerProvider).valueOrNull?.isLogin ?? false;
+          final isLogin = ref.read(authControllerProvider).value?.isLogin ?? false;
           if (isLogin) {
             context.go(AppRoutes.homeNamedPage);
           } else {
