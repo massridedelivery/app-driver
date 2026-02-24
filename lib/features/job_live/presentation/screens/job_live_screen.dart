@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:massdrive/core/services/socket_service.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 
 enum JobLiveState {
   headingToPickup,
@@ -67,13 +66,16 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;
 
-    if (_currentState == JobLiveState.headingToPickup || _currentState == JobLiveState.arrivedAtPickup) {
+    if (_currentState == JobLiveState.headingToPickup ||
+        _currentState == JobLiveState.arrivedAtPickup) {
       target = pickupLatLng;
       markers.add(
         Marker(
           markerId: const MarkerId('pickup'),
           position: pickupLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
         ),
       );
     } else {
@@ -88,10 +90,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     }
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: target,
-        zoom: 16,
-      ),
+      initialCameraPosition: CameraPosition(target: target, zoom: 16),
       markers: markers,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: false,
@@ -201,7 +200,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   Widget _buildTripHeader() {
     String headerText = "";
     Color headerColor = AppColors.semanticSuccessBgHigh;
-    
+
     switch (_currentState) {
       case JobLiveState.headingToPickup:
         headerText = "1. กำลังไปรับผู้โดยสาร";
@@ -249,14 +248,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         const SizedBox(height: 8),
         Text(
           "เซเว่น อีเลฟเว่น พหลโยธิน ซอย 8\nถนนพหลโยธิน พญาไท กรุงเทพ 10400",
-          style: AppTypography.body2.copyWith(
+          style: AppTypography.caption3.copyWith(
             color: Colors.white70,
             height: 1.4,
           ),
         ),
         const SizedBox(height: 12),
         Text(
-          "฿39 • GrabPay",
+          "฿39 • เงินสด หรือ สแกนจ่าย",
           style: AppTypography.heading6.copyWith(
             color: AppColors.semanticGrayNeutralFgWhite,
           ),
@@ -326,7 +325,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               _currentState = JobLiveState.completed;
               // Re-connect the socket so it waits for the next job
               ref.read(socketServiceProvider).connect();
-              
+
               // Add a slight delay before auto navigating back, or let the user tap "กลับสู่หน้าหลัก"
               Future.delayed(const Duration(seconds: 1), () {
                 if (mounted) context.go('/');
