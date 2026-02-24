@@ -9,7 +9,6 @@ enum JobLiveState {
   headingToPickup,
   arrivedAtPickup,
   headingToDropoff,
-  completed,
 }
 
 class JobLiveScreen extends ConsumerStatefulWidget {
@@ -212,10 +211,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         headerText = "3. กำลังไปส่งผู้โดยสาร";
         headerColor = AppColors.semanticSuccessBgHigh;
         break;
-      case JobLiveState.completed:
-        headerText = "4. เสร็จสิ้นการเดินทาง";
-        headerColor = AppColors.semanticGrayNeutralFgWhite.withOpacity(0.5);
-        break;
     }
 
     return Column(
@@ -315,10 +310,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         buttonText = "ส่งผู้โดยสาร";
         buttonColor = AppColors.semanticSuccessBgHigh;
         break;
-      case JobLiveState.completed:
-        buttonText = "กลับสู่หน้าหลัก";
-        buttonColor = AppColors.semanticGrayNeutralFgWhite.withOpacity(0.2);
-        break;
     }
 
     return GestureDetector(
@@ -332,11 +323,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               _currentState = JobLiveState.headingToDropoff;
               break;
             case JobLiveState.headingToDropoff:
-              _currentState = JobLiveState.completed;
-              // Let user tap "ส่งผู้โดยสาร"
-              break;
-            case JobLiveState.completed:
-              // Push to Payment Screen
               context.push('/payment');
               break;
           }

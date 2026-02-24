@@ -4,6 +4,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -24,7 +25,7 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  PaymentMethod _currentMethod = PaymentMethod.cash;
+  PaymentMethod? _currentMethod;
 
   final TextEditingController _tollController = TextEditingController();
   final TextEditingController _othersController = TextEditingController();
@@ -32,7 +33,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   double get _tolls => double.tryParse(_tollController.text) ?? 0.0;
   double get _others => double.tryParse(_othersController.text) ?? 0.0;
 
-  double get _totalFare => widget.baseFare + widget.appFee + _tolls + _others;
+  double get _baseFare =>
+      ref.read(incomingJobControllerProvider).currentJob?.netIncome ??
+      widget.baseFare;
+
+  double get _totalFare => _baseFare + widget.appFee + _tolls + _others;
 
   @override
   void dispose() {
@@ -42,6 +47,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   void _onConfirmPayment() {
+    ref.read(incomingJobControllerProvider.notifier).dismissModal();
     // Reconnect socket for next job
     ref.read(socketServiceProvider).connect();
     // Return to home
@@ -50,6 +56,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final jobState = ref.watch(incomingJobControllerProvider);
+    final job = jobState.currentJob;
+    final paymentMethodStr = job?.paymentMethod ?? 'cash';
+    
+    _currentMethod ??= (paymentMethodStr.toLowerCase().contains('qr') || paymentMethodStr.toLowerCase().contains('promptpay'))
+        ? PaymentMethod.qr
+        : PaymentMethod.cash;
+
     return Scaffold(
       backgroundColor: const Color(0xFF104A33), // Dark green background from mockup
       appBar: AppBar(
@@ -154,7 +168,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 24),
 
           // Breakdown
-          _buildBreakdownRow("ค่าโดยสารตายตัว", widget.baseFare),
+          _buildBreakdownRow("ค่าโดยสารตายตัว", _baseFare),
           const SizedBox(height: 16),
           _buildBreakdownRow("ค่าธรรมเนียมการใช้แอปฯ", widget.appFee),
           const SizedBox(height: 16),

@@ -20,7 +20,7 @@ class IncomingJobController extends _$IncomingJobController {
 
   void acceptJob() {
     // TODO: Send acceptance through socket API
-    state = state.copyWith(isModalVisible: false, currentJob: null);
+    state = state.copyWith(isModalVisible: false);
   }
 
   void declineJob() {
