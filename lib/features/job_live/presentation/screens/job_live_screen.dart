@@ -3,6 +3,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_spacing.dart';
+import 'package:massdrive/core/constants/app_typography.dart';
 
 enum JobLiveState {
   headingToPickup,
@@ -42,7 +45,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(
         children: [
           _buildMap(),
@@ -109,7 +112,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF121212),
+            color: AppColors.semanticGrayNeutralFgMidOnBlack,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: ListView(
@@ -143,15 +146,13 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.85),
+          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.9),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Text(
+        child: Text(
           "570 ม.",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+          style: AppTypography.heading4.copyWith(
+            color: AppColors.semanticGrayNeutralFgWhite,
           ),
         ),
       ),
@@ -177,10 +178,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       width: 52,
       height: 52,
       decoration: const BoxDecoration(
-        color: Color(0xFF1C1C1E),
+        color: AppColors.semanticGrayNeutralFgHigh,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: Colors.white),
+      child: Icon(icon, color: AppColors.semanticGrayNeutralFgWhite),
     );
   }
 
@@ -190,7 +191,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: Colors.grey[700],
+          color: Colors.white24,
           borderRadius: BorderRadius.circular(10),
         ),
       ),
@@ -199,7 +200,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   Widget _buildTripHeader() {
     String headerText = "";
-    Color headerColor = Colors.green;
+    Color headerColor = AppColors.semanticSuccessBgHigh;
     
     switch (_currentState) {
       case JobLiveState.headingToPickup:
@@ -207,15 +208,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         break;
       case JobLiveState.arrivedAtPickup:
         headerText = "2. รอผู้โดยสาร";
-        headerColor = Colors.orange;
+        headerColor = AppColors.semanticWarningBgHigh;
         break;
       case JobLiveState.headingToDropoff:
         headerText = "3. กำลังไปส่งผู้โดยสาร";
-        headerColor = Colors.blue;
+        headerColor = AppColors.semanticSupportBlueBgHigh;
         break;
       case JobLiveState.completed:
         headerText = "4. เสร็จสิ้นการเดินทาง";
-        headerColor = Colors.grey;
+        headerColor = AppColors.semanticGrayNeutralFgWhite.withOpacity(0.5);
         break;
     }
 
@@ -224,16 +225,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       children: [
         Text(
           headerText,
-          style: TextStyle(
-            color: headerColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTypography.heading5.copyWith(color: headerColor),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           "Saver Bike",
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          style: AppTypography.body2.copyWith(color: Colors.white70),
         ),
       ],
     );
@@ -242,25 +239,27 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   Widget _buildPassengerInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           "Prim Winurach",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          style: AppTypography.heading4.copyWith(
+            color: AppColors.semanticGrayNeutralFgWhite,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          "เซเว่น อีเลฟเว่น พหลโยธิน ซอย 8\n"
-          "ถนนพหลโยธิน พญาไท กรุงเทพ 10400",
-          style: TextStyle(color: Colors.white60, fontSize: 14),
+          "เซเว่น อีเลฟเว่น พหลโยธิน ซอย 8\nถนนพหลโยธิน พญาไท กรุงเทพ 10400",
+          style: AppTypography.body2.copyWith(
+            color: Colors.white70,
+            height: 1.4,
+          ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Text(
           "฿39 • GrabPay",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          style: AppTypography.heading6.copyWith(
+            color: AppColors.semanticGrayNeutralFgWhite,
+          ),
         ),
       ],
     );
@@ -285,7 +284,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: AppTypography.caption4.copyWith(color: Colors.white70),
         ),
       ],
     );
@@ -293,7 +292,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   Widget _buildArrivedButton() {
     String buttonText = "";
-    Color buttonColor = Colors.green;
+    Color buttonColor = AppColors.semanticSuccessBgHigh;
 
     switch (_currentState) {
       case JobLiveState.headingToPickup:
@@ -301,15 +300,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         break;
       case JobLiveState.arrivedAtPickup:
         buttonText = "เริ่มเดินทาง";
-        buttonColor = Colors.blue;
+        buttonColor = AppColors.semanticSupportBlueBgHigh;
         break;
       case JobLiveState.headingToDropoff:
         buttonText = "เสร็จสิ้น";
-        buttonColor = Colors.redAccent;
+        buttonColor = AppColors.semanticSupportRedBgHigh;
         break;
       case JobLiveState.completed:
         buttonText = "กลับสู่หน้าหลัก";
-        buttonColor = Colors.grey;
+        buttonColor = AppColors.semanticGrayNeutralFgWhite.withOpacity(0.2);
         break;
     }
 
@@ -350,10 +349,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         alignment: Alignment.center,
         child: Text(
           buttonText,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          style: AppTypography.heading5.copyWith(
+            color: AppColors.semanticGrayNeutralFgWhite,
           ),
         ),
       ),
