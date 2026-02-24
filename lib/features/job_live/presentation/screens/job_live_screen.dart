@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/core/services/socket_service.dart';
 
 enum JobLiveState {
   headingToPickup,
@@ -207,11 +206,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         break;
       case JobLiveState.arrivedAtPickup:
         headerText = "2. รอผู้โดยสาร";
-        headerColor = AppColors.semanticWarningBgHigh;
+        headerColor = AppColors.foundationOrange600;
         break;
       case JobLiveState.headingToDropoff:
         headerText = "3. กำลังไปส่งผู้โดยสาร";
-        headerColor = AppColors.semanticSupportBlueBgHigh;
+        headerColor = AppColors.semanticSuccessBgHigh;
         break;
       case JobLiveState.completed:
         headerText = "4. เสร็จสิ้นการเดินทาง";
@@ -254,11 +253,22 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          "฿39 • เงินสด หรือ สแกนจ่าย",
-          style: AppTypography.heading6.copyWith(
-            color: AppColors.semanticGrayNeutralFgWhite,
-          ),
+        Row(
+          children: [
+            Text(
+              "฿39",
+              style: AppTypography.heading3.copyWith(
+                color: AppColors.semanticGrayNeutralFgWhite,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              "เงินสด",
+              style: AppTypography.heading6.copyWith(
+                color: AppColors.semanticGrayNeutralFgWhite,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -299,11 +309,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         break;
       case JobLiveState.arrivedAtPickup:
         buttonText = "เริ่มเดินทาง";
-        buttonColor = AppColors.semanticSupportBlueBgHigh;
+        buttonColor = AppColors.semanticSuccessBgHigh;
         break;
       case JobLiveState.headingToDropoff:
-        buttonText = "เสร็จสิ้น";
-        buttonColor = AppColors.semanticSupportRedBgHigh;
+        buttonText = "ส่งผู้โดยสาร";
+        buttonColor = AppColors.semanticSuccessBgHigh;
         break;
       case JobLiveState.completed:
         buttonText = "กลับสู่หน้าหลัก";
@@ -323,17 +333,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               break;
             case JobLiveState.headingToDropoff:
               _currentState = JobLiveState.completed;
-              // Re-connect the socket so it waits for the next job
-              ref.read(socketServiceProvider).connect();
-
-              // Add a slight delay before auto navigating back, or let the user tap "กลับสู่หน้าหลัก"
-              Future.delayed(const Duration(seconds: 1), () {
-                if (mounted) context.go('/');
-              });
+              // Let user tap "ส่งผู้โดยสาร"
               break;
             case JobLiveState.completed:
-              ref.read(socketServiceProvider).connect();
-              context.go('/');
+              // Push to Payment Screen
+              context.push('/payment');
               break;
           }
         });

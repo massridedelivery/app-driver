@@ -12,6 +12,7 @@ import 'package:massdrive/features/auth/presentation/screens/login_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
+import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -78,6 +79,11 @@ class AppRouter {
         path: '/job-live',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: JobLiveScreen()),
+      ),
+      GoRoute(
+        path: '/payment',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: PaymentScreen()),
       ),
     ],
     errorBuilder: (context, state) => const HomeScreen(),
