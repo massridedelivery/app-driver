@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 
-class JobLiveScreen extends StatefulWidget {
+enum JobLiveState {
+  headingToPickup,
+  arrivedAtPickup,
+  headingToDropoff,
+  completed,
+}
+
+class JobLiveScreen extends ConsumerStatefulWidget {
   const JobLiveScreen({super.key});
 
   @override
-  State<JobLiveScreen> createState() => _JobLiveScreenState();
+  ConsumerState<JobLiveScreen> createState() => _JobLiveScreenState();
 }
 
-class _JobLiveScreenState extends State<JobLiveScreen> {
+class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
@@ -17,6 +27,7 @@ class _JobLiveScreenState extends State<JobLiveScreen> {
   final double _maxSize = 0.85;
 
   double _currentSize = 0.45;
+  JobLiveState _currentState = JobLiveState.headingToPickup;
 
   @override
   void initState() {
@@ -47,11 +58,38 @@ class _JobLiveScreenState extends State<JobLiveScreen> {
   /// MAP
   /// =========================
   Widget _buildMap() {
-    return const GoogleMap(
+    final LatLng pickupLatLng = const LatLng(13.7815, 100.5435);
+    final LatLng dropoffLatLng = const LatLng(13.7900, 100.5500);
+
+    Set<Marker> markers = {};
+    LatLng target = pickupLatLng;
+
+    if (_currentState == JobLiveState.headingToPickup || _currentState == JobLiveState.arrivedAtPickup) {
+      target = pickupLatLng;
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: pickupLatLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        ),
+      );
+    } else {
+      target = dropoffLatLng;
+      markers.add(
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: dropoffLatLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+
+    return GoogleMap(
       initialCameraPosition: CameraPosition(
-        target: LatLng(13.7815, 100.5435),
+        target: target,
         zoom: 16,
       ),
+      markers: markers,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: false,
       compassEnabled: false,
@@ -160,19 +198,40 @@ class _JobLiveScreenState extends State<JobLiveScreen> {
   }
 
   Widget _buildTripHeader() {
+    String headerText = "";
+    Color headerColor = Colors.green;
+    
+    switch (_currentState) {
+      case JobLiveState.headingToPickup:
+        headerText = "1. กำลังไปรับผู้โดยสาร";
+        break;
+      case JobLiveState.arrivedAtPickup:
+        headerText = "2. รอผู้โดยสาร";
+        headerColor = Colors.orange;
+        break;
+      case JobLiveState.headingToDropoff:
+        headerText = "3. กำลังไปส่งผู้โดยสาร";
+        headerColor = Colors.blue;
+        break;
+      case JobLiveState.completed:
+        headerText = "4. เสร็จสิ้นการเดินทาง";
+        headerColor = Colors.grey;
+        break;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
-          "1. รับผู้โดยสาร",
+          headerText,
           style: TextStyle(
-            color: Colors.green,
+            color: headerColor,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: 4),
-        Text(
+        const SizedBox(height: 4),
+        const Text(
           "Saver Bike",
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
@@ -233,20 +292,69 @@ class _JobLiveScreenState extends State<JobLiveScreen> {
   }
 
   Widget _buildArrivedButton() {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.green,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        "ถึงแล้ว",
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+    String buttonText = "";
+    Color buttonColor = Colors.green;
+
+    switch (_currentState) {
+      case JobLiveState.headingToPickup:
+        buttonText = "ถึงแล้ว";
+        break;
+      case JobLiveState.arrivedAtPickup:
+        buttonText = "เริ่มเดินทาง";
+        buttonColor = Colors.blue;
+        break;
+      case JobLiveState.headingToDropoff:
+        buttonText = "เสร็จสิ้น";
+        buttonColor = Colors.redAccent;
+        break;
+      case JobLiveState.completed:
+        buttonText = "กลับสู่หน้าหลัก";
+        buttonColor = Colors.grey;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          switch (_currentState) {
+            case JobLiveState.headingToPickup:
+              _currentState = JobLiveState.arrivedAtPickup;
+              break;
+            case JobLiveState.arrivedAtPickup:
+              _currentState = JobLiveState.headingToDropoff;
+              break;
+            case JobLiveState.headingToDropoff:
+              _currentState = JobLiveState.completed;
+              // Re-connect the socket so it waits for the next job
+              ref.read(socketServiceProvider).connect();
+              
+              // Add a slight delay before auto navigating back, or let the user tap "กลับสู่หน้าหลัก"
+              Future.delayed(const Duration(seconds: 1), () {
+                if (mounted) context.go('/');
+              });
+              break;
+            case JobLiveState.completed:
+              ref.read(socketServiceProvider).connect();
+              context.go('/');
+              break;
+          }
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
+          color: buttonColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          buttonText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

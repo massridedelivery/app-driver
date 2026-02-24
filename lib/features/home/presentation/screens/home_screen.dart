@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
-import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
+import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
+import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin {
   late DraggableScrollableController _sheetController;
+  GoogleMapController? _mapController;
 
   double _sheetSize = 0.35;
   bool isOnline = false;
@@ -40,6 +45,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(incomingJobControllerProvider, (previous, next) {
+      if (next.isModalVisible &&
+          next.currentJob != null &&
+          (previous?.isModalVisible != true)) {
+        // Push the new standalone screen
+        context.push('/incoming-job');
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(children: [_buildMap(), _buildBottomSheet()]),
@@ -49,9 +63,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ================= MAP =================
 
   Widget _buildMap() {
-    return const SizedBox.expand(
+    return SizedBox.expand(
       child: GoogleMap(
-        initialCameraPosition: CameraPosition(
+        onMapCreated: (controller) => _mapController = controller,
+        initialCameraPosition: const CameraPosition(
           target: LatLng(13.7563, 100.5018),
           zoom: 14,
         ),
@@ -124,10 +139,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildOnlineButton() {
     return GestureDetector(
       onTap: () {
-        AppNavigator.push(context, const JobLiveScreen());
         setState(() {
           isOnline = !isOnline;
         });
+
+        // Simulation: If online, trigger a fake job after 2.5s
+        if (isOnline) {
+          Future.delayed(const Duration(milliseconds: 2500), () {
+            if (mounted && isOnline) {
+              ref
+                  .read(incomingJobControllerProvider.notifier)
+                  .receiveJob(
+                    const IncomingJobModel(
+                      jobId: 'JOB_123',
+                      pickupAddress: 'Katsuya (คัตสึยะ) หมูทอด',
+                      pickupAddressDetail:
+                          '4 4 / 1-4 / 2 4 / 4, แขวง ปทุมวัน, เขต ปทุมวัน, Central World, ห้อง เลข',
+                      dropoffAddress: 'Katsuya (คัตสึยะ) หมูทอด',
+                      dropoffAddressDetail:
+                          '388 สยามสแควร์วัน ห้องเลขที่ SS 4011 ชั้นที่ 4 ถนนพระราม 1 แขวงปทุมวัน เขต',
+                      netIncome: 37.0,
+                      paymentMethod: 'เงินสด',
+                      points: 18,
+                      serviceType: 'GrabExpress (Bike) - Bag',
+                      itemSummary: 'รายการ 1',
+                      pickupDistanceKm: 0.39,
+                      dropoffDistanceKm: 5.78,
+                      pickupLat: 13.7563,
+                      pickupLng: 100.5018,
+                      dropoffLat: 13.7663,
+                      dropoffLng: 100.5188,
+                      timeoutSeconds: 15,
+                    ),
+                  );
+            }
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),

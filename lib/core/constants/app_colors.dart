@@ -215,6 +215,7 @@ class AppColors {
   static const Color semanticGrayNeutralFgMidOnWhite = Color(0xFF6A6E83);
   static const Color semanticGrayNeutralFgLowOnGray = Color(0xFF6A6E83);
   static const Color semanticGrayNeutralFgMidOnGray = Color(0xFF3F414E);
+  static const Color semanticGrayNeutralFgMidOnBlack = Color(0xFF20202E);
   static const Color semanticGrayNeutralFgHigh = Color(0xFF1B1D22);
   static const Color semanticGrayNeutralBgWhite = Color(0xFFFFFFFF);
   static const Color semanticGrayNeutralBgLightgray = Color(0xFFF8F8F9);

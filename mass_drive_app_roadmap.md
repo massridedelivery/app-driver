@@ -19,6 +19,8 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 - [ ] 3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
 - [ ] 4. **Profile Management:** Viewing and editing driver details.
 - [ ] 5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.
+- [ ] 6. **Job Dispatch Listener:** Listening for incoming ride requests via WebSockets (`web_socket_channel`).
+- [ ] 7. **Incoming Job UI:** A bottom sheet or modal showing pickup/dropoff, estimated distance, and a timer to accept/decline.
 
 ### Current Project Mapping
 - `lib/features/splash_screen/`: **[Code Present]** Handles initial load and routing.
@@ -37,19 +39,16 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 ## 🗺 Phase 2: Core Driver Interface & Map Integration
 **Goal:** Provide the primary interface where drivers spend most of their time waiting for jobs.
 
-### Features
 - [ ] 1. **Interactive Map:** Displaying current location using Google Maps.
 - [ ] 2. **Online/Offline Toggle:** Driver availability status management.
 - [ ] 3. **Real-time Location Updates:** Sending driver coordinates to the backend continuously.
-- [ ] 4. **Job Dispatch Listener:** Listening for incoming ride requests via WebSockets or Firebase Realtime Database.
-- [ ] 5. **Incoming Job UI:** A bottom sheet or modal showing pickup/dropoff, estimated fare, and a timer to accept/decline.
 
 ### Current Project Mapping
 - `lib/features/home/`: **[Code Present]** The main map interface and online/offline toggle.
 - `dependencies`: `google_maps_flutter`, `firebase_core` are already in `pubspec.yaml`.
 
 **Next Steps exactly in Phase 2:**
-- Implement the "Incoming Job" pop-up UI with a countdown timer.
+- Combine the map interface with the online/offline state.
 - Ensure background location tracking is configured and robust (requires background execution permissions).
 
 ---

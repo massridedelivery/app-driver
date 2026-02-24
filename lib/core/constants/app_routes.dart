@@ -23,6 +23,7 @@ class AppRoutes {
   static const historyDetailDetailsNamedPage = 'details';
   static const settingNamedPage = '/setting';
   static const settingDetailsNamedPage = 'details';
+  static const incomingJobNamedPage = '/incoming-job';
 
   static Widget errorWidget(BuildContext context, GoRouterState state) =>
       const HomeScreen();
