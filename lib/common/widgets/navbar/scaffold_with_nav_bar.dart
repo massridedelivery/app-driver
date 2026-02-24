@@ -15,6 +15,9 @@ import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/managers/deeplink_manager.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/router/app_routes.dart';
 
 class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   const ScaffoldWithNavBar({required this.navigationShell, super.key});
@@ -150,6 +153,12 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
         deepLinkManager.handleLink(.internal, AppRoutes.settingsPath, .push);
         break;
       case .authentication:
+        final authValue = ref.read(authControllerProvider).value;
+        if (authValue?.isLogin == true) {
+          _showDialogLogout();
+        } else {
+          context.push(AppRoutes.loginNamedPage);
+        }
         break;
     }
   }
@@ -218,6 +227,10 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
             text: tr('logout.logout_button'),
             onPressed: () async {
               context.pop();
+              await ref.read(authControllerProvider.notifier).logout();
+              if (context.mounted) {
+                AppNavigator.go(context, AppRoutes.loginNamedPage);
+              }
             },
           ),
         ],

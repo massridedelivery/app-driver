@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/enum/links.dart';
-import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/router/app_routes.dart';
 
 enum NavigationMethod { go, push, pushReplacement }
 
@@ -109,7 +109,7 @@ class DeeplinkManager {
   }
 
   void _handleMethod(String path, NavigationMethod method, {Object? extra}) {
-    final router = getIt<GoRouter>();
+    final router = AppRouter.router;
     switch (method) {
       case NavigationMethod.go:
         router.go(path, extra: extra);
@@ -125,7 +125,7 @@ class DeeplinkManager {
 
   void _openExternal(String url, Object? extra) {
     final String title = (extra as String?) ?? '';
-    getIt<GoRouter>().pushNamed(
+    AppRouter.router.pushNamed(
       AppRoutes.webViewName,
       extra: (url: url, title: title),
     );

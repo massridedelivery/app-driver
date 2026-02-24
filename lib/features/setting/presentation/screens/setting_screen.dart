@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -80,11 +79,13 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
               color: AppColors.semanticErrorFgHigh,
             ),
           ),
-          onPressed: () async {
+          onPressed: () {
             Navigator.pop(dialogContext); // ปิด popup ก่อน
-            await ref.read(authControllerProvider.notifier).logout();
+            ref.read(authControllerProvider.notifier).logout();
+
             if (parentContext.mounted) {
-              parentContext.go(AppRoutes.loginNamedPage);
+              AppNavigator.pop(parentContext); // ปิดหน้า setting
+              AppNavigator.go(parentContext, AppRoutes.loginNamedPage);
             }
           },
         ),

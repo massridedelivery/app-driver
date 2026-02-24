@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -12,7 +13,7 @@ class LoginScreen extends ConsumerWidget {
     final state = ref.watch(loginControllerProvider);
     final controller = ref.read(loginControllerProvider.notifier);
 
-    final bool isPhoneValid = state.phoneNumber.length >= 9;
+    final bool isPhoneValid = state.phoneNumber.length > 9;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -24,7 +25,7 @@ class LoginScreen extends ConsumerWidget {
             children: [
               // Logo text
               RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -33,19 +34,27 @@ class LoginScreen extends ConsumerWidget {
                   // Assuming default or specific sans font is fine
                   children: [
                     TextSpan(
-                      text: 'Rid',
-                      style: TextStyle(
+                      text: 'M',
+                      style: AppTypography.heading1.copyWith(
                         color: AppColors.semanticGrayNeutralFgHigh,
                       ),
                     ),
                     TextSpan(
-                      text: 'er',
-                      style: TextStyle(color: AppColors.semanticSuccessBgHigh),
+                      text: 'ass',
+                      style: AppTypography.heading2.copyWith(
+                        color: AppColors.foundationOrange600,
+                      ),
                     ),
                     TextSpan(
-                      text: ' CAB',
-                      style: TextStyle(
+                      text: ' D',
+                      style: AppTypography.heading1.copyWith(
                         color: AppColors.semanticGrayNeutralFgHigh,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'rive',
+                      style: AppTypography.heading2.copyWith(
+                        color: AppColors.foundationOrange600,
                       ),
                     ),
                   ],
@@ -54,22 +63,19 @@ class LoginScreen extends ConsumerWidget {
               const SizedBox(height: 48),
 
               // Title
-              const Text(
-                'Sign in',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+              Text(
+                'กรอกเบอร์โทรศัพท์ที่เคยสมัครไว้',
+                style: AppTypography.heading3.copyWith(
                   color: AppColors.semanticGrayNeutralFgHigh,
                 ),
               ),
               const SizedBox(height: 8),
 
               // Subtitle
-              const Text(
-                'Please add your phone number',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.semanticGrayNeutralFgMidOnWhite,
+              Text(
+                'โปรดเพิ่มหมายเลขโทรศัพท์ของคุณ',
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralFgHigh,
                 ),
               ),
               const SizedBox(height: 32),
@@ -89,20 +95,30 @@ class LoginScreen extends ConsumerWidget {
                 ),
                 child: TextField(
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  buildCounter:
+                      (
+                        BuildContext context, {
+                        int? currentLength,
+                        int? maxLength,
+                        bool? isFocused,
+                      }) => null,
                   style: const TextStyle(
                     color: AppColors.semanticGrayNeutralFgHigh,
                     fontSize: 16,
                   ),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(
-                      Icons.phone,
+                      Icons.phone_sharp,
                       color: AppColors.semanticGrayNeutralFgHigh,
                     ),
                     hintText: 'เบอร์โทรศัพท์',
-                    hintStyle: const TextStyle(
+                    hintStyle: AppTypography.caption3.copyWith(
                       color: AppColors.semanticGrayNeutralFgLowOnWhite,
                     ),
-                    errorText: state.errorMessage.isEmpty ? null : state.errorMessage,
+                    errorText: state.errorMessage?.isEmpty == true
+                        ? null
+                        : state.errorMessage,
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(vertical: 18),
@@ -144,10 +160,8 @@ class LoginScreen extends ConsumerWidget {
                   onPressed: (state.isLoading || !isPhoneValid)
                       ? null
                       : () async {
-                          debugPrint('Login button pressed');
                           final success = await controller.loginWithPhone();
                           if (success && context.mounted) {
-                            debugPrint('Navigating to otp screen');
                             context.push(
                               '/otp_screen',
                               extra: state.phoneNumber,
@@ -175,12 +189,10 @@ class LoginScreen extends ConsumerWidget {
                           ),
                         )
                       : Text(
-                          'Get verify code',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          'รับรหัสยืนยัน',
+                          style: AppTypography.caption3.copyWith(
                             color: isPhoneValid
-                                ? Colors.white
+                                ? AppColors.semanticGrayNeutralFgWhite
                                 : AppColors.semanticDisabledFgOnWhite,
                           ),
                         ),

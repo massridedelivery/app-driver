@@ -11,6 +11,7 @@ import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/app_util.dart';
 import 'package:massdrive/features/settings/domain/entities/language_entity.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/settings/presentation/screens/settings_screen.dart';
 import 'package:massdrive/features/settings/presentation/state/localization_state.dart';
 
@@ -300,7 +301,7 @@ class _BottomMenu extends ConsumerWidget {
     });
     final versionName = AppUtil.getPackageInfo().version;
     final buildNumber = AppUtil.getPackageInfo().buildNumber;
-    bool isLogin = false;
+    final isLogin = ref.watch(authControllerProvider).value?.isLogin ?? false;
     final authButtonTitle = tr(
       isLogin ? 'hamburger.logout_button' : 'login.login_create_button',
     );
