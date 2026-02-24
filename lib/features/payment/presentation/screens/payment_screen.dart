@@ -48,7 +48,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   void _onConfirmPayment() {
     ref.read(incomingJobControllerProvider.notifier).dismissModal();
-    // Reconnect socket for next job
+    // Reconnect socket for next job (force disconnect first)
+    ref.read(socketServiceProvider).disconnect();
     ref.read(socketServiceProvider).connect();
     // Return to home
     context.go('/');
