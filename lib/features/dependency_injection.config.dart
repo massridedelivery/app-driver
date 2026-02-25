@@ -16,8 +16,8 @@ import 'package:massdrive/features/auth/data/repositories/auth_repository_impl.d
     as _i48;
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart'
     as _i540;
-import 'package:massdrive/features/auth/data/sources/mock_auth_api_service.dart'
-    as _i633;
+import 'package:massdrive/features/auth/data/sources/auth_api_service_impl.dart'
+    as _i425;
 import 'package:massdrive/features/auth/domain/repositories/auth_repository.dart'
     as _i600;
 import 'package:massdrive/features/auth/domain/usecase/login_with_email_usecase.dart'
@@ -37,7 +37,7 @@ extension GetItInjectableX on _i174.GetIt {
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     gh.singleton<_i822.DeeplinkManager>(() => _i822.DeeplinkManager());
-    gh.lazySingleton<_i540.AuthApiService>(() => _i633.MockAuthApiService());
+    gh.lazySingleton<_i540.AuthApiService>(() => _i425.AuthApiServiceImpl());
     gh.lazySingleton<_i600.AuthRepository>(
       () => _i48.AuthRepositoryImpl(gh<_i540.AuthApiService>()),
     );

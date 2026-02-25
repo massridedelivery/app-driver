@@ -7,14 +7,18 @@ abstract class Endpoints {
   static const defaultAddress = '/v1/users/addresses/default';
 
   // MARK: Auth
-  static const otpPhoneRequest = '/v1/auth/request-otp-phone';
+  static const otpPhoneRequest = '/api/auth/otp/send';
+  static const phoneVerify = '/api/auth/otp/verify';
+  static const login = '/api/auth/login';
+  
+  // MARK: Driver profile
+  static const driverProfile = '/api/driver/profile';
+  
   static const phoneRegister = '/v1/auth/register-phone';
   static const phoneLogin = '/v1/auth/login-phone';
-  static const phoneVerify = '/v1/auth/verify-phone';
   static const phoneSelfVerify = '/v1/auth/self-verify-phone';
   static const phoneEdit = '/v1/auth/edit-phone-number';
   static const phoneChangePassword = '/v1/auth/change-password-phone';
-  static const login = '/v1/auth/login';
   static const logout = '/v1/auth/logout';
   static const refreshToken = '/v1/auth/refresh';
 
