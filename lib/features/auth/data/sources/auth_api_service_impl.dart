@@ -69,8 +69,13 @@ class AuthApiServiceImpl implements AuthApiService {
 
       final accessToken = loginResponse.data['access_token'];
 
-      // Fetch profile using the token
-      return await _fetchDriverProfile(accessToken, ''); // We might not have phone from email login immediately
+      // Temporarily removed _fetchDriverProfile per user request
+      return {
+        'id': 'drv_123',
+        'name': 'Driver (Email)',
+        'phoneNumber': '', // No phone from email login yet
+        'token': accessToken,
+      };
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);

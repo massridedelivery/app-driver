@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/features/auth/domain/usecase/login_with_email_usecase.dart';
 import 'package:massdrive/features/auth/presentation/states/email_login_state.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -34,6 +35,10 @@ class EmailLoginController extends _$EmailLoginController {
     try {
       final loginUseCase = getIt<LoginWithEmailUseCase>();
       await loginUseCase.execute(state.email, state.password);
+      
+      // Refresh AuthController to update global auth state (like Phone Login does)
+      ref.read(authControllerProvider.notifier).refresh();
+
       state = state.copyWith(isLoading: false);
       return true; // Navigate to Home
     } catch (e) {
