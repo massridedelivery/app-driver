@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
-import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
@@ -12,7 +11,7 @@ class AuthApiServiceImpl implements AuthApiService {
 
   AuthApiServiceImpl() {
     _dio = Dio(BaseOptions(
-      baseUrl: EnvironmentConfig.apiUrl,
+      baseUrl: 'https://driver-api.nutchaphut.dev',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},
