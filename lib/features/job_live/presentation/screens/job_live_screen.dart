@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
 enum JobLiveState {
   headingToPickup,
@@ -22,6 +25,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
+  StreamSubscription? _socketSub;
+
   final double _minSize = 0.12;
   final double _initialSize = 0.45;
   final double _maxSize = 0.85;
@@ -37,6 +42,31 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         _currentSize = _sheetController.size;
       });
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
+        if (!mounted) return;
+        if (msg.type == 'job_status') {
+          final jobId = msg.data['job_id'];
+          final status = msg.data['status'];
+          final currentJobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
+          
+          if (currentJobId == jobId && status == 'CANCELLED') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('ผู้โดยสารยกเลิกงานนี้แล้ว')),
+            );
+            context.go('/home');
+          }
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _socketSub?.cancel();
+    _sheetController.dispose();
+    super.dispose();
   }
 
   @override
@@ -314,15 +344,21 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
     return GestureDetector(
       onTap: () {
+        final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
+        final socket = ref.read(socketServiceProvider);
+        
         setState(() {
           switch (_currentState) {
             case JobLiveState.headingToPickup:
               _currentState = JobLiveState.arrivedAtPickup;
+              if (jobId != null) socket.updateJobStatus(jobId, 'ARRIVED_AT_PICKUP');
               break;
             case JobLiveState.arrivedAtPickup:
               _currentState = JobLiveState.headingToDropoff;
+              if (jobId != null) socket.updateJobStatus(jobId, 'PICKED_UP');
               break;
             case JobLiveState.headingToDropoff:
+              if (jobId != null) socket.updateJobStatus(jobId, 'COMPLETED');
               context.push('/payment');
               break;
           }

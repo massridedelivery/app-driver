@@ -21,7 +21,7 @@ final class SocketServiceProvider
         argument: null,
         retry: null,
         name: r'socketServiceProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -48,4 +48,4 @@ final class SocketServiceProvider
   }
 }
 
-String _$socketServiceHash() => r'26202a2cda302a276897a9a446efb8cc96e573ca';
+String _$socketServiceHash() => r'33b5497f59100da222188afb189c119ee53a1025';

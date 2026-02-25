@@ -12,11 +12,74 @@ import 'package:massdrive/features/profile/presentation/screens/profile_screen.d
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 
-class OnlineStatus extends Notifier<bool> {
-  @override
-  bool build() => false;
+import 'dart:async';
+import 'package:geolocator/geolocator.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 
-  void setStatus(bool value) => state = value;
+class OnlineStatus extends Notifier<bool> {
+  StreamSubscription<Position>? _positionStreamSubscription;
+
+  @override
+  bool build() {
+    ref.onDispose(() {
+      _positionStreamSubscription?.cancel();
+    });
+    return false;
+  }
+
+  Future<void> setStatus(bool value) async {
+    if (value == state) return;
+
+    final socketService = ref.read(socketServiceProvider);
+
+    if (value) {
+      // Check location permissions before going online
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return; // You might want to show a dialog here
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied || 
+            permission == LocationPermission.deniedForever) {
+          return;
+        }
+      }
+      
+      // Connect WebSocket
+      await socketService.connect();
+      
+      // Send initial location
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        socketService.sendLocationUpdate(position.latitude, position.longitude);
+      } catch (e) {
+        debugPrint('Home Screen Initial Location Error: $e');
+      }
+
+      // Start stream
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, // Only send if moved 10 meters
+        ),
+      ).listen((Position position) {
+        if (ref.read(socketServiceProvider).isConnected) {
+          socketService.sendLocationUpdate(position.latitude, position.longitude);
+        }
+      });
+      
+      state = true;
+    } else {
+      // Go offline
+      await _positionStreamSubscription?.cancel();
+      _positionStreamSubscription = null;
+      socketService.disconnect();
+      state = false;
+    }
+  }
 }
 
 final onlineStatusProvider = NotifierProvider<OnlineStatus, bool>(

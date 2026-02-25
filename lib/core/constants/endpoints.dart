@@ -5,6 +5,9 @@ abstract class Endpoints {
   static const checkoutValidate = '/v1/checkout/validate';
   static const createOrder = '/v1/orders/create-order';
   static const defaultAddress = '/v1/users/addresses/default';
+  
+  // MARK: WebSockets
+  static const websocketPath = '/ws';
 
   // MARK: Auth
   static const otpPhoneRequest = '/auth/otp/send';

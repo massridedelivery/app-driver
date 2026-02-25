@@ -15,14 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$IncomingJobModel {
 
- String get jobId; String get pickupAddress; String get dropoffAddress; String get pickupAddressDetail;// Added for new UI
- String get dropoffAddressDetail;// Added for new UI
- double get pickupDistanceKm; double get dropoffDistanceKm; double get pickupLat; double get pickupLng; double get dropoffLat; double get dropoffLng; double get netIncome;// Added for new UI
- String get paymentMethod;// Added for new UI
- int get points;// Added for new UI
- String get serviceType;// Added for new UI
- String get itemSummary;// Added for new UI
- int get timeoutSeconds;
+@JsonKey(name: 'job_id') String get jobId;@JsonKey(name: 'pickup_address') String get pickupAddress;@JsonKey(name: 'dropoff_address') String get dropoffAddress;@JsonKey(name: 'pickup_address_detail') String get pickupAddressDetail;@JsonKey(name: 'dropoff_address_detail') String get dropoffAddressDetail;@JsonKey(name: 'pickup_distance_km') double get pickupDistanceKm;@JsonKey(name: 'dropoff_distance_km') double get dropoffDistanceKm;@JsonKey(name: 'pickup_lat') double get pickupLat;@JsonKey(name: 'pickup_lng') double get pickupLng;@JsonKey(name: 'dropoff_lat') double get dropoffLat;@JsonKey(name: 'dropoff_lng') double get dropoffLng;@JsonKey(name: 'net_income') double get netIncome;@JsonKey(name: 'payment_method') String get paymentMethod;@JsonKey(name: 'points') int get points;@JsonKey(name: 'service_type') String get serviceType;@JsonKey(name: 'item_summary') String get itemSummary;@JsonKey(name: 'timeout_seconds') int get timeoutSeconds;
 /// Create a copy of IncomingJobModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -55,7 +48,7 @@ abstract mixin class $IncomingJobModelCopyWith<$Res>  {
   factory $IncomingJobModelCopyWith(IncomingJobModel value, $Res Function(IncomingJobModel) _then) = _$IncomingJobModelCopyWithImpl;
 @useResult
 $Res call({
- String jobId, String pickupAddress, String dropoffAddress, String pickupAddressDetail, String dropoffAddressDetail, double pickupDistanceKm, double dropoffDistanceKm, double pickupLat, double pickupLng, double dropoffLat, double dropoffLng, double netIncome, String paymentMethod, int points, String serviceType, String itemSummary, int timeoutSeconds
+@JsonKey(name: 'job_id') String jobId,@JsonKey(name: 'pickup_address') String pickupAddress,@JsonKey(name: 'dropoff_address') String dropoffAddress,@JsonKey(name: 'pickup_address_detail') String pickupAddressDetail,@JsonKey(name: 'dropoff_address_detail') String dropoffAddressDetail,@JsonKey(name: 'pickup_distance_km') double pickupDistanceKm,@JsonKey(name: 'dropoff_distance_km') double dropoffDistanceKm,@JsonKey(name: 'pickup_lat') double pickupLat,@JsonKey(name: 'pickup_lng') double pickupLng,@JsonKey(name: 'dropoff_lat') double dropoffLat,@JsonKey(name: 'dropoff_lng') double dropoffLng,@JsonKey(name: 'net_income') double netIncome,@JsonKey(name: 'payment_method') String paymentMethod,@JsonKey(name: 'points') int points,@JsonKey(name: 'service_type') String serviceType,@JsonKey(name: 'item_summary') String itemSummary,@JsonKey(name: 'timeout_seconds') int timeoutSeconds
 });
 
 
@@ -173,7 +166,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String jobId,  String pickupAddress,  String dropoffAddress,  String pickupAddressDetail,  String dropoffAddressDetail,  double pickupDistanceKm,  double dropoffDistanceKm,  double pickupLat,  double pickupLng,  double dropoffLat,  double dropoffLng,  double netIncome,  String paymentMethod,  int points,  String serviceType,  String itemSummary,  int timeoutSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'job_id')  String jobId, @JsonKey(name: 'pickup_address')  String pickupAddress, @JsonKey(name: 'dropoff_address')  String dropoffAddress, @JsonKey(name: 'pickup_address_detail')  String pickupAddressDetail, @JsonKey(name: 'dropoff_address_detail')  String dropoffAddressDetail, @JsonKey(name: 'pickup_distance_km')  double pickupDistanceKm, @JsonKey(name: 'dropoff_distance_km')  double dropoffDistanceKm, @JsonKey(name: 'pickup_lat')  double pickupLat, @JsonKey(name: 'pickup_lng')  double pickupLng, @JsonKey(name: 'dropoff_lat')  double dropoffLat, @JsonKey(name: 'dropoff_lng')  double dropoffLng, @JsonKey(name: 'net_income')  double netIncome, @JsonKey(name: 'payment_method')  String paymentMethod, @JsonKey(name: 'points')  int points, @JsonKey(name: 'service_type')  String serviceType, @JsonKey(name: 'item_summary')  String itemSummary, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _IncomingJobModel() when $default != null:
 return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.pickupAddressDetail,_that.dropoffAddressDetail,_that.pickupDistanceKm,_that.dropoffDistanceKm,_that.pickupLat,_that.pickupLng,_that.dropoffLat,_that.dropoffLng,_that.netIncome,_that.paymentMethod,_that.points,_that.serviceType,_that.itemSummary,_that.timeoutSeconds);case _:
@@ -194,7 +187,7 @@ return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.picku
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String jobId,  String pickupAddress,  String dropoffAddress,  String pickupAddressDetail,  String dropoffAddressDetail,  double pickupDistanceKm,  double dropoffDistanceKm,  double pickupLat,  double pickupLng,  double dropoffLat,  double dropoffLng,  double netIncome,  String paymentMethod,  int points,  String serviceType,  String itemSummary,  int timeoutSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'job_id')  String jobId, @JsonKey(name: 'pickup_address')  String pickupAddress, @JsonKey(name: 'dropoff_address')  String dropoffAddress, @JsonKey(name: 'pickup_address_detail')  String pickupAddressDetail, @JsonKey(name: 'dropoff_address_detail')  String dropoffAddressDetail, @JsonKey(name: 'pickup_distance_km')  double pickupDistanceKm, @JsonKey(name: 'dropoff_distance_km')  double dropoffDistanceKm, @JsonKey(name: 'pickup_lat')  double pickupLat, @JsonKey(name: 'pickup_lng')  double pickupLng, @JsonKey(name: 'dropoff_lat')  double dropoffLat, @JsonKey(name: 'dropoff_lng')  double dropoffLng, @JsonKey(name: 'net_income')  double netIncome, @JsonKey(name: 'payment_method')  String paymentMethod, @JsonKey(name: 'points')  int points, @JsonKey(name: 'service_type')  String serviceType, @JsonKey(name: 'item_summary')  String itemSummary, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds)  $default,) {final _that = this;
 switch (_that) {
 case _IncomingJobModel():
 return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.pickupAddressDetail,_that.dropoffAddressDetail,_that.pickupDistanceKm,_that.dropoffDistanceKm,_that.pickupLat,_that.pickupLng,_that.dropoffLat,_that.dropoffLng,_that.netIncome,_that.paymentMethod,_that.points,_that.serviceType,_that.itemSummary,_that.timeoutSeconds);}
@@ -211,7 +204,7 @@ return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.picku
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String jobId,  String pickupAddress,  String dropoffAddress,  String pickupAddressDetail,  String dropoffAddressDetail,  double pickupDistanceKm,  double dropoffDistanceKm,  double pickupLat,  double pickupLng,  double dropoffLat,  double dropoffLng,  double netIncome,  String paymentMethod,  int points,  String serviceType,  String itemSummary,  int timeoutSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'job_id')  String jobId, @JsonKey(name: 'pickup_address')  String pickupAddress, @JsonKey(name: 'dropoff_address')  String dropoffAddress, @JsonKey(name: 'pickup_address_detail')  String pickupAddressDetail, @JsonKey(name: 'dropoff_address_detail')  String dropoffAddressDetail, @JsonKey(name: 'pickup_distance_km')  double pickupDistanceKm, @JsonKey(name: 'dropoff_distance_km')  double dropoffDistanceKm, @JsonKey(name: 'pickup_lat')  double pickupLat, @JsonKey(name: 'pickup_lng')  double pickupLng, @JsonKey(name: 'dropoff_lat')  double dropoffLat, @JsonKey(name: 'dropoff_lng')  double dropoffLng, @JsonKey(name: 'net_income')  double netIncome, @JsonKey(name: 'payment_method')  String paymentMethod, @JsonKey(name: 'points')  int points, @JsonKey(name: 'service_type')  String serviceType, @JsonKey(name: 'item_summary')  String itemSummary, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds)?  $default,) {final _that = this;
 switch (_that) {
 case _IncomingJobModel() when $default != null:
 return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.pickupAddressDetail,_that.dropoffAddressDetail,_that.pickupDistanceKm,_that.dropoffDistanceKm,_that.pickupLat,_that.pickupLng,_that.dropoffLat,_that.dropoffLng,_that.netIncome,_that.paymentMethod,_that.points,_that.serviceType,_that.itemSummary,_that.timeoutSeconds);case _:
@@ -226,33 +219,26 @@ return $default(_that.jobId,_that.pickupAddress,_that.dropoffAddress,_that.picku
 @JsonSerializable()
 
 class _IncomingJobModel extends IncomingJobModel {
-  const _IncomingJobModel({required this.jobId, required this.pickupAddress, required this.dropoffAddress, required this.pickupAddressDetail, required this.dropoffAddressDetail, required this.pickupDistanceKm, required this.dropoffDistanceKm, required this.pickupLat, required this.pickupLng, required this.dropoffLat, required this.dropoffLng, required this.netIncome, required this.paymentMethod, required this.points, required this.serviceType, required this.itemSummary, required this.timeoutSeconds}): super._();
+  const _IncomingJobModel({@JsonKey(name: 'job_id') required this.jobId, @JsonKey(name: 'pickup_address') required this.pickupAddress, @JsonKey(name: 'dropoff_address') required this.dropoffAddress, @JsonKey(name: 'pickup_address_detail') required this.pickupAddressDetail, @JsonKey(name: 'dropoff_address_detail') required this.dropoffAddressDetail, @JsonKey(name: 'pickup_distance_km') required this.pickupDistanceKm, @JsonKey(name: 'dropoff_distance_km') required this.dropoffDistanceKm, @JsonKey(name: 'pickup_lat') required this.pickupLat, @JsonKey(name: 'pickup_lng') required this.pickupLng, @JsonKey(name: 'dropoff_lat') required this.dropoffLat, @JsonKey(name: 'dropoff_lng') required this.dropoffLng, @JsonKey(name: 'net_income') required this.netIncome, @JsonKey(name: 'payment_method') required this.paymentMethod, @JsonKey(name: 'points') required this.points, @JsonKey(name: 'service_type') required this.serviceType, @JsonKey(name: 'item_summary') required this.itemSummary, @JsonKey(name: 'timeout_seconds') required this.timeoutSeconds}): super._();
   factory _IncomingJobModel.fromJson(Map<String, dynamic> json) => _$IncomingJobModelFromJson(json);
 
-@override final  String jobId;
-@override final  String pickupAddress;
-@override final  String dropoffAddress;
-@override final  String pickupAddressDetail;
-// Added for new UI
-@override final  String dropoffAddressDetail;
-// Added for new UI
-@override final  double pickupDistanceKm;
-@override final  double dropoffDistanceKm;
-@override final  double pickupLat;
-@override final  double pickupLng;
-@override final  double dropoffLat;
-@override final  double dropoffLng;
-@override final  double netIncome;
-// Added for new UI
-@override final  String paymentMethod;
-// Added for new UI
-@override final  int points;
-// Added for new UI
-@override final  String serviceType;
-// Added for new UI
-@override final  String itemSummary;
-// Added for new UI
-@override final  int timeoutSeconds;
+@override@JsonKey(name: 'job_id') final  String jobId;
+@override@JsonKey(name: 'pickup_address') final  String pickupAddress;
+@override@JsonKey(name: 'dropoff_address') final  String dropoffAddress;
+@override@JsonKey(name: 'pickup_address_detail') final  String pickupAddressDetail;
+@override@JsonKey(name: 'dropoff_address_detail') final  String dropoffAddressDetail;
+@override@JsonKey(name: 'pickup_distance_km') final  double pickupDistanceKm;
+@override@JsonKey(name: 'dropoff_distance_km') final  double dropoffDistanceKm;
+@override@JsonKey(name: 'pickup_lat') final  double pickupLat;
+@override@JsonKey(name: 'pickup_lng') final  double pickupLng;
+@override@JsonKey(name: 'dropoff_lat') final  double dropoffLat;
+@override@JsonKey(name: 'dropoff_lng') final  double dropoffLng;
+@override@JsonKey(name: 'net_income') final  double netIncome;
+@override@JsonKey(name: 'payment_method') final  String paymentMethod;
+@override@JsonKey(name: 'points') final  int points;
+@override@JsonKey(name: 'service_type') final  String serviceType;
+@override@JsonKey(name: 'item_summary') final  String itemSummary;
+@override@JsonKey(name: 'timeout_seconds') final  int timeoutSeconds;
 
 /// Create a copy of IncomingJobModel
 /// with the given fields replaced by the non-null parameter values.
@@ -287,7 +273,7 @@ abstract mixin class _$IncomingJobModelCopyWith<$Res> implements $IncomingJobMod
   factory _$IncomingJobModelCopyWith(_IncomingJobModel value, $Res Function(_IncomingJobModel) _then) = __$IncomingJobModelCopyWithImpl;
 @override @useResult
 $Res call({
- String jobId, String pickupAddress, String dropoffAddress, String pickupAddressDetail, String dropoffAddressDetail, double pickupDistanceKm, double dropoffDistanceKm, double pickupLat, double pickupLng, double dropoffLat, double dropoffLng, double netIncome, String paymentMethod, int points, String serviceType, String itemSummary, int timeoutSeconds
+@JsonKey(name: 'job_id') String jobId,@JsonKey(name: 'pickup_address') String pickupAddress,@JsonKey(name: 'dropoff_address') String dropoffAddress,@JsonKey(name: 'pickup_address_detail') String pickupAddressDetail,@JsonKey(name: 'dropoff_address_detail') String dropoffAddressDetail,@JsonKey(name: 'pickup_distance_km') double pickupDistanceKm,@JsonKey(name: 'dropoff_distance_km') double dropoffDistanceKm,@JsonKey(name: 'pickup_lat') double pickupLat,@JsonKey(name: 'pickup_lng') double pickupLng,@JsonKey(name: 'dropoff_lat') double dropoffLat,@JsonKey(name: 'dropoff_lng') double dropoffLng,@JsonKey(name: 'net_income') double netIncome,@JsonKey(name: 'payment_method') String paymentMethod,@JsonKey(name: 'points') int points,@JsonKey(name: 'service_type') String serviceType,@JsonKey(name: 'item_summary') String itemSummary,@JsonKey(name: 'timeout_seconds') int timeoutSeconds
 });
 
 

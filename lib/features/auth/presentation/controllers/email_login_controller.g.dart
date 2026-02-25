@@ -42,7 +42,7 @@ final class EmailLoginControllerProvider
 }
 
 String _$emailLoginControllerHash() =>
-    r'a7985adfa174be35d3b8808064261cc8ada4a455';
+    r'51601e73870424c41cf60a70106e8a6ce08364d3';
 
 abstract class _$EmailLoginController extends $Notifier<EmailLoginState> {
   EmailLoginState build();
