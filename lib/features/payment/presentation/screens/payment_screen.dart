@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
 enum PaymentMethod { cash, qr }
@@ -31,6 +32,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   final TextEditingController _othersController = TextEditingController();
 
   double get _tolls => double.tryParse(_tollController.text) ?? 0.0;
+
   double get _others => double.tryParse(_othersController.text) ?? 0.0;
 
   double get _baseFare =>
@@ -48,8 +50,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   void _onConfirmPayment() {
     ref.read(incomingJobControllerProvider.notifier).dismissModal();
+
     // Reconnect socket for next job (force disconnect first)
     ref.read(socketServiceProvider).disconnect();
+
+    // Set to online state
+    ref.read(onlineStatusProvider.notifier).setStatus(true);
+
     ref.read(socketServiceProvider).connect();
     // Return to home
     context.go('/');
@@ -60,13 +67,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final jobState = ref.watch(incomingJobControllerProvider);
     final job = jobState.currentJob;
     final paymentMethodStr = job?.paymentMethod ?? 'cash';
-    
-    _currentMethod ??= (paymentMethodStr.toLowerCase().contains('qr') || paymentMethodStr.toLowerCase().contains('promptpay'))
+
+    _currentMethod ??=
+        (paymentMethodStr.toLowerCase().contains('qr') ||
+            paymentMethodStr.toLowerCase().contains('promptpay'))
         ? PaymentMethod.qr
         : PaymentMethod.cash;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF104A33), // Dark green background from mockup
+      backgroundColor: AppColors.foundationGreen900,
+      // Dark green background from mockup
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -75,7 +85,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          "การชำระเงินสำหรับ ${widget.passengerName}",
+          "รายการชำระเงินของ ${widget.passengerName}",
           style: AppTypography.heading6.copyWith(color: Colors.white),
         ),
         centerTitle: true,
@@ -93,13 +103,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, right: 4.0),
-                        child: Text(
-                          "฿",
-                          style: AppTypography.heading5.copyWith(color: Colors.white),
-                        ),
-                      ),
                       Text(
                         _totalFare.toStringAsFixed(0),
                         style: const TextStyle(
@@ -112,14 +115,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _currentMethod == PaymentMethod.cash ? "เก็บเงินสด" : "สแกนจ่าย",
+                    _currentMethod == PaymentMethod.cash
+                        ? "เก็บเงินสด"
+                        : "สแกนจ่าย",
                     style: AppTypography.heading6.copyWith(color: Colors.white),
                   ),
                 ],
               ),
             ),
           ),
-          
+
           // Bottom Sheet Content
           Expanded(
             flex: 5,
@@ -129,8 +134,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 color: Color(0xFF1E1E1E), // Dark grey panel
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: _currentMethod == PaymentMethod.cash 
-                  ? _buildCashContent() 
+              child: _currentMethod == PaymentMethod.cash
+                  ? _buildCashContent()
                   : _buildQRContent(),
             ),
           ),
@@ -157,7 +162,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Buttons
           Row(
             children: [
@@ -173,12 +178,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 16),
           _buildBreakdownRow("ค่าธรรมเนียมการใช้แอปฯ", widget.appFee),
           const SizedBox(height: 16),
-          _buildInputRow("ค่าทางด่วน", "โปรดตรวจสอบความถูกต้องของจำนวนเงิน", _tollController),
-          const SizedBox(height: 16),
-          _buildInputRow("อื่นๆ", null, _othersController),
-          
+
+          // _buildInputRow(
+          //   "ค่าทางด่วน",
+          //   "โปรดตรวจสอบความถูกต้องของจำนวนเงิน",
+          //   _tollController,
+          // ),
+          // const SizedBox(height: 16),
+          // _buildInputRow("อื่นๆ", null, _othersController),
           const Divider(color: Colors.white12, height: 40),
-          
+
           // Total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,14 +200,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white12,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       "เงินสด",
-                      style: AppTypography.caption4.copyWith(color: Colors.white),
+                      style: AppTypography.caption4.copyWith(
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -209,9 +223,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // Confirm Button
           GestureDetector(
             onTap: _onConfirmPayment,
@@ -219,33 +233,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.semanticSuccessBgHigh,
+                color: AppColors.foundationGreen700,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Stack(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward,
-                          color: AppColors.semanticSuccessBgHigh,
-                        ),
-                      ),
-                    ),
-                  ),
                   Center(
                     child: Text(
                       "ยืนยันการชำระเงิน",
-                      style: AppTypography.heading5.copyWith(color: Colors.white),
+                      style: AppTypography.heading5.copyWith(
+                        color: AppColors.semanticGrayNeutralBgWhite,
+                      ),
                     ),
                   ),
                 ],
@@ -272,7 +270,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -292,23 +290,25 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // QR Image Placeholder (In real app, load network or generate bits)
           Container(
             width: 200,
             height: 200,
             color: Colors.white,
-            child: const Center(child: Icon(Icons.qr_code, size: 100, color: Colors.black)),
+            child: const Center(
+              child: Icon(Icons.qr_code, size: 100, color: Colors.black),
+            ),
           ),
-          
+
           const SizedBox(height: 20),
           Text(
             "Expires in 598",
             style: AppTypography.body2.copyWith(color: Colors.white70),
           ),
-          
+
           const Spacer(),
-          
+
           GestureDetector(
             onTap: () {
               setState(() {
@@ -345,10 +345,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            text,
-            style: AppTypography.body2.copyWith(color: Colors.white),
-          ),
+          Text(text, style: AppTypography.body2.copyWith(color: Colors.white)),
           const SizedBox(width: 4),
           const Icon(Icons.add, color: Colors.white, size: 16),
         ],
@@ -360,10 +357,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: AppTypography.body1.copyWith(color: Colors.white),
-        ),
+        Text(title, style: AppTypography.body1.copyWith(color: Colors.white)),
         Text(
           value.toStringAsFixed(0),
           style: AppTypography.body1.copyWith(color: Colors.white),
@@ -372,7 +366,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildInputRow(String title, String? subtitle, TextEditingController controller) {
+  Widget _buildInputRow(
+    String title,
+    String? subtitle,
+    TextEditingController controller,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +388,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 subtitle,
                 style: AppTypography.caption4.copyWith(color: Colors.white54),
               ),
-            ]
+            ],
           ],
         ),
         Container(

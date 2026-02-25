@@ -12,6 +12,17 @@ import 'package:massdrive/features/profile/presentation/screens/profile_screen.d
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 
+class OnlineStatus extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setStatus(bool value) => state = value;
+}
+
+final onlineStatusProvider = NotifierProvider<OnlineStatus, bool>(
+  () => OnlineStatus(),
+);
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -25,7 +36,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   GoogleMapController? _mapController;
 
   double _sheetSize = 0.35;
-  bool isOnline = false;
 
   final double _minSize = 0.25;
   final double _maxSize = 0.85;
@@ -137,16 +147,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildOnlineButton() {
+    final isOnline = ref.watch(onlineStatusProvider);
     return GestureDetector(
       onTap: () {
-        setState(() {
-          isOnline = !isOnline;
-        });
+        final current = ref.read(onlineStatusProvider);
+        final newValue = !current;
+        ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
         // Simulation: If online, trigger a fake job after 2.5s
-        if (isOnline) {
+        print(
+          'newValue --> $newValue : $mounted : ${ref.read(onlineStatusProvider)}',
+        );
+        if (newValue) {
           Future.delayed(const Duration(milliseconds: 2500), () {
-            if (mounted && isOnline) {
+            if (mounted && ref.read(onlineStatusProvider)) {
               ref
                   .read(incomingJobControllerProvider.notifier)
                   .receiveJob(
@@ -221,6 +235,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ================= STATUS CARD =================
 
   Widget _buildStatusCard() {
+    final isOnline = ref.watch(onlineStatusProvider);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(

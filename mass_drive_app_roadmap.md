@@ -15,7 +15,7 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 
 ### Features
 - [x] 1. **Splash Screen:** Initial app load, checking auth state and routing.
-- [x] 2. **Authentication:** Login/Signup via Phone Number & OTP (or Email).
+- [x] 2. **Authentication:** Login/Signup via Phone Number & OTP, and feature **Login with Email**.
 - [ ] 3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
 - [ ] 4. **Profile Management:** Viewing and editing driver details.
 - [ ] 5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.

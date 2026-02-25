@@ -20,6 +20,8 @@ import 'package:massdrive/features/auth/data/sources/mock_auth_api_service.dart'
     as _i633;
 import 'package:massdrive/features/auth/domain/repositories/auth_repository.dart'
     as _i600;
+import 'package:massdrive/features/auth/domain/usecase/login_with_email_usecase.dart'
+    as _i568;
 import 'package:massdrive/features/auth/domain/usecase/login_with_phone_usecase.dart'
     as _i621;
 import 'package:massdrive/features/auth/domain/usecase/logout_usecase.dart'
@@ -47,6 +49,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i244.VerifyOtpUseCase>(
       () => _i244.VerifyOtpUseCase(gh<_i600.AuthRepository>()),
+    );
+    gh.factory<_i568.LoginWithEmailUseCase>(
+      () => _i568.LoginWithEmailUseCase(gh<_i600.AuthRepository>()),
     );
     return this;
   }

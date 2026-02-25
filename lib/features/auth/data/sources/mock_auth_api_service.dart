@@ -28,4 +28,21 @@ class MockAuthApiService implements AuthApiService {
       throw Exception('Invalid OTP format. Try 123456');
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> loginWithEmail(String email, String password) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (email == 'test@test.com' && password == 'password') {
+      return {
+        'id': 'drv_654321',
+        'name': 'Somsri Driver (Email)',
+        'phoneNumber': '0800000000',
+        'token': 'mock_jwt_token_email_login_123',
+      };
+    } else {
+      throw Exception('Invalid email or password. Try test@test.com / password');
+    }
+  }
 }

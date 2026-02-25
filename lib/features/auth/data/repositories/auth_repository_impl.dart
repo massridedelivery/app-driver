@@ -34,4 +34,16 @@ class AuthRepositoryImpl implements AuthRepository {
     final secureStorage = SecureStorageManager();
     await secureStorage.delete(SecureStorageKey.accessToken);
   }
+
+  @override
+  Future<UserEntity> loginWithEmail(String email, String password) async {
+    final response = await _apiService.loginWithEmail(email, password);
+    final user = UserModel.fromJson(response);
+    
+    // Store token securely
+    final secureStorage = SecureStorageManager();
+    await secureStorage.write(SecureStorageKey.accessToken, user.token);
+    
+    return user;
+  }
 }
