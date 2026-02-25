@@ -45,7 +45,7 @@ extension ResponseDataExtension on ResponseData {
 class ApiManager {
   factory ApiManager(Ref ref) => ApiManager._internal(ref);
 
-  String baseUrl = EnvironmentConfig.apiUrl;
+  String baseUrl = 'https://driver-api.nutchaphut.dev';
   final dio = dio_client.Dio();
   final box = GetStorage();
   final _secureStorage = SecureStorageManager();

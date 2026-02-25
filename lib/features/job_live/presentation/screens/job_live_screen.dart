@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,11 +9,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
-enum JobLiveState {
-  headingToPickup,
-  arrivedAtPickup,
-  headingToDropoff,
-}
+enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
 class JobLiveScreen extends ConsumerStatefulWidget {
   const JobLiveScreen({super.key});
@@ -47,10 +44,13 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
         if (msg.type == 'job_status') {
-          final jobId = msg.data['job_id'];
-          final status = msg.data['status'];
-          final currentJobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
-          
+          final jobId = msg.data?['job_id'];
+          final status = msg.data?['status'];
+          final currentJobId = ref
+              .read(incomingJobControllerProvider)
+              .currentJob
+              ?.jobId;
+
           if (currentJobId == jobId && status == 'CANCELLED') {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('ผู้โดยสารยกเลิกงานนี้แล้ว')),
@@ -88,8 +88,16 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// MAP
   /// =========================
   Widget _buildMap() {
-    final LatLng pickupLatLng = const LatLng(13.7815, 100.5435);
-    final LatLng dropoffLatLng = const LatLng(13.7900, 100.5500);
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
+    
+    // Fallback to Bangkok if no job (shouldn't happen on this screen)
+    final LatLng pickupLatLng = currentJob != null 
+        ? LatLng(currentJob.pickupLat, currentJob.pickupLng)
+        : const LatLng(13.7563, 100.5018);
+        
+    final LatLng dropoffLatLng = currentJob != null 
+        ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
+        : const LatLng(13.7563, 100.5018);
 
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;
@@ -226,6 +234,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   Widget _buildTripHeader() {
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     String headerText = "";
     Color headerColor = AppColors.semanticSuccessBgHigh;
 
@@ -252,7 +261,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          "Saver Bike",
+          currentJob?.serviceType ?? "Saver Bike",
           style: AppTypography.body2.copyWith(color: Colors.white70),
         ),
       ],
@@ -260,18 +269,22 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   Widget _buildPassengerInfo() {
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Prim Winurach",
+          currentJob?.passengerName ?? "Passenger",
           style: AppTypography.heading4.copyWith(
             color: AppColors.semanticGrayNeutralFgWhite,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          "เซเว่น อีเลฟเว่น พหลโยธิน ซอย 8\nถนนพหลโยธิน พญาไท กรุงเทพ 10400",
+          _currentState == JobLiveState.headingToPickup ||
+                  _currentState == JobLiveState.arrivedAtPickup
+              ? (currentJob?.pickupAddress ?? "Pickup Address")
+              : (currentJob?.dropoffAddress ?? "Dropoff Address"),
           style: AppTypography.caption3.copyWith(
             color: Colors.white70,
             height: 1.4,
@@ -281,14 +294,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         Row(
           children: [
             Text(
-              "฿39",
+              "฿${currentJob?.netIncome.toInt() ?? 0}",
               style: AppTypography.heading3.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),
             ),
             const SizedBox(width: 12),
             Text(
-              "เงินสด",
+              currentJob?.paymentMethod ?? "เงินสด",
               style: AppTypography.heading6.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),
@@ -346,12 +359,13 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       onTap: () {
         final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
         final socket = ref.read(socketServiceProvider);
-        
+
         setState(() {
           switch (_currentState) {
             case JobLiveState.headingToPickup:
               _currentState = JobLiveState.arrivedAtPickup;
-              if (jobId != null) socket.updateJobStatus(jobId, 'ARRIVED_AT_PICKUP');
+              if (jobId != null)
+                socket.updateJobStatus(jobId, 'ARRIVED_AT_PICKUP');
               break;
             case JobLiveState.arrivedAtPickup:
               _currentState = JobLiveState.headingToDropoff;

@@ -20,7 +20,7 @@ final class IncomingJobControllerProvider
         argument: null,
         retry: null,
         name: r'incomingJobControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -42,7 +42,7 @@ final class IncomingJobControllerProvider
 }
 
 String _$incomingJobControllerHash() =>
-    r'9728e332bc98911d7bfad26d15b281f411e4ec4e';
+    r'9e52ca8c0a87f488da166d9b02f18732e131f12f';
 
 abstract class _$IncomingJobController extends $Notifier<IncomingJobState> {
   IncomingJobState build();

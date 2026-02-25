@@ -18,6 +18,24 @@ class HomeApiService {
     );
     return response;
   }
+
+  Future<ResponseData> goOnline() async {
+    final response = await _apiManager.fetchApi(
+      endPoint: Endpoints.driverOnline,
+      method: 'POST',
+      feature: 'POST: driver online',
+    );
+    return response;
+  }
+
+  Future<ResponseData> goOffline() async {
+    final response = await _apiManager.fetchApi(
+      endPoint: Endpoints.driverOffline,
+      method: 'POST',
+      feature: 'POST: driver offline',
+    );
+    return response;
+  }
 }
 
 @riverpod

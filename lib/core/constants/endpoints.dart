@@ -16,6 +16,8 @@ abstract class Endpoints {
 
   // MARK: Driver profile
   static const driverProfile = '/api/driver/profile';
+  static const driverOnline = '/api/driver/online';
+  static const driverOffline = '/api/driver/offline';
 
   static const phoneRegister = '/v1/auth/register-phone';
   static const phoneLogin = '/v1/auth/login-phone';

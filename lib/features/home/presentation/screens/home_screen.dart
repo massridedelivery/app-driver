@@ -1,23 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
-import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
+import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
-
-import 'dart:async';
-import 'package:geolocator/geolocator.dart';
-import 'package:massdrive/core/services/socket_service.dart';
 
 class OnlineStatus extends Notifier<bool> {
   StreamSubscription<Position>? _positionStreamSubscription;
+  
+  // Default Bangkok center for emulator testing
+  static const double defaultLat = 13.7563;
+  static const double defaultLng = 100.5018;
 
   @override
   bool build() {
@@ -40,42 +44,67 @@ class OnlineStatus extends Notifier<bool> {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied || 
+        if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
           return;
         }
       }
-      
+
+      // Set Online via API first (required by Backend to receive jobs/allow connection)
+      try {
+        await ref.read(homeApiServiceProvider).goOnline();
+      } catch (e) {
+        debugPrint('Go Online API Error: $e');
+      }
+
       // Connect WebSocket
       await socketService.connect();
-      
+
       // Send initial location
       try {
-        final position = await Geolocator.getCurrentPosition(
+        Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
         );
+        
         socketService.sendLocationUpdate(position.latitude, position.longitude);
+        
+        // Center map on real location
+        final controller = ref.read(mapControllerProvider);
+        controller?.animateCamera(
+          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+        );
       } catch (e) {
         debugPrint('Home Screen Initial Location Error: $e');
       }
 
       // Start stream
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // Only send if moved 10 meters
-        ),
-      ).listen((Position position) {
-        if (ref.read(socketServiceProvider).isConnected) {
-          socketService.sendLocationUpdate(position.latitude, position.longitude);
-        }
-      });
-      
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10, // Only send if moved 10 meters
+            ),
+          ).listen((Position position) {
+            if (ref.read(socketServiceProvider).isConnected) {
+              socketService.sendLocationUpdate(
+                position.latitude,
+                position.longitude,
+              );
+            }
+          });
+
       state = true;
     } else {
       // Go offline
       await _positionStreamSubscription?.cancel();
       _positionStreamSubscription = null;
+      
+      try {
+        await ref.read(homeApiServiceProvider).goOffline();
+      } catch (e) {
+        debugPrint('Go Offline API Error: $e');
+      }
+
       socketService.disconnect();
       state = false;
     }
@@ -84,6 +113,19 @@ class OnlineStatus extends Notifier<bool> {
 
 final onlineStatusProvider = NotifierProvider<OnlineStatus, bool>(
   () => OnlineStatus(),
+);
+
+class MapController extends Notifier<GoogleMapController?> {
+  @override
+  GoogleMapController? build() => null;
+
+  void setController(GoogleMapController? controller) {
+    state = controller;
+  }
+}
+
+final mapControllerProvider = NotifierProvider<MapController, GoogleMapController?>(
+  () => MapController(),
 );
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -138,9 +180,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildMap() {
     return SizedBox.expand(
       child: GoogleMap(
-        onMapCreated: (controller) => _mapController = controller,
+        onMapCreated: (controller) {
+          _mapController = controller;
+          ref.read(mapControllerProvider.notifier).setController(controller);
+        },
         initialCameraPosition: const CameraPosition(
-          target: LatLng(13.7563, 100.5018),
+          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
           zoom: 14,
         ),
         myLocationEnabled: true,
@@ -212,45 +257,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildOnlineButton() {
     final isOnline = ref.watch(onlineStatusProvider);
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         final current = ref.read(onlineStatusProvider);
         final newValue = !current;
-        ref.read(onlineStatusProvider.notifier).setStatus(newValue);
+        await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
-        // Simulation: If online, trigger a fake job after 2.5s
-        print(
-          'newValue --> $newValue : $mounted : ${ref.read(onlineStatusProvider)}',
-        );
-        if (newValue) {
-          Future.delayed(const Duration(milliseconds: 2500), () {
-            if (mounted && ref.read(onlineStatusProvider)) {
-              ref
-                  .read(incomingJobControllerProvider.notifier)
-                  .receiveJob(
-                    const IncomingJobModel(
-                      jobId: 'JOB_123',
-                      pickupAddress: 'Katsuya (คัตสึยะ) หมูทอด',
-                      pickupAddressDetail:
-                          '4 4 / 1-4 / 2 4 / 4, แขวง ปทุมวัน, เขต ปทุมวัน, Central World, ห้อง เลข',
-                      dropoffAddress: 'Katsuya (คัตสึยะ) หมูทอด',
-                      dropoffAddressDetail:
-                          '388 สยามสแควร์วัน ห้องเลขที่ SS 4011 ชั้นที่ 4 ถนนพระราม 1 แขวงปทุมวัน เขต',
-                      netIncome: 37.0,
-                      paymentMethod: 'เงินสด',
-                      points: 18,
-                      serviceType: 'GrabExpress (Bike) - Bag',
-                      itemSummary: 'รายการ 1',
-                      pickupDistanceKm: 0.39,
-                      dropoffDistanceKm: 5.78,
-                      pickupLat: 13.7563,
-                      pickupLng: 100.5018,
-                      dropoffLat: 13.7663,
-                      dropoffLng: 100.5188,
-                      timeoutSeconds: 15,
-                    ),
-                  );
-            }
-          });
+        if (mounted && newValue && ref.read(onlineStatusProvider)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('เชื่อมต่อ WebSocket สำเร็จ พร้อมรับงานแล้ว'),
+              backgroundColor: AppColors.semanticSuccessBgHigh,
+            ),
+          );
         }
       },
       child: AnimatedContainer(

@@ -30,6 +30,8 @@
 		<string>Main</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
         <string>This app needs location access</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>This app needs location access to track your drive.</string>
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>

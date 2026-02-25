@@ -85,7 +85,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          "รายการชำระเงินของ ${widget.passengerName}",
+          "รายการชำระเงินของ ${job?.passengerName ?? widget.passengerName}",
           style: AppTypography.heading6.copyWith(color: Colors.white),
         ),
         centerTitle: true,

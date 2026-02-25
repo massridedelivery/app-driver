@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -35,17 +34,15 @@ class SocketService {
   bool get isConnected => _channel != null;
 
   String _buildWebSocketUrl(String token) {
-    var baseUrl = EnvironmentConfig.apiUrl;
-    // Replace http/https with ws/wss
-    baseUrl = baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+    // Hardcoding production URL to match AuthApiServiceImpl and avoid EnvironmentConfig issues
+    const baseUrl = 'wss://driver-api.nutchaphut.dev';
     
-    // In case apiUrl is just a domain like 'https://driver-api.nutchaphut.dev'
-    if (!baseUrl.startsWith('ws')) {
-      baseUrl = 'wss://$baseUrl';
-    }
+    // Ensure token is clean of whitespace/newlines
+    final cleanToken = token.trim();
     
-    // E.g., wss://driver-api.nutchaphut.dev/ws?token=ABC
-    return '$baseUrl${Endpoints.websocketPath}?token=$token';
+    // Build full URL and ensure NO trailing characters
+    final url = '$baseUrl${Endpoints.websocketPath}?token=$cleanToken';
+    return url;
   }
 
   Future<void> connect() async {
@@ -54,8 +51,13 @@ class SocketService {
     _reconnectTimer?.cancel();
 
     try {
+      debugPrint('SocketService: Starting connection steps...');
+      
       final secureStorage = SecureStorageManager();
+      debugPrint('SocketService: SecureStorageManager instance created.');
+      
       final token = await secureStorage.read(SecureStorageKey.accessToken);
+      debugPrint('SocketService: Token read result: ${token != null ? "Found" : "Not Found"}');
       
       if (token == null || token.isEmpty) {
         debugPrint('SocketService: No access token found. Cannot connect.');
@@ -66,17 +68,27 @@ class SocketService {
       debugPrint('SocketService: Connecting to $url');
       
       _channel = WebSocketChannel.connect(Uri.parse(url));
-      _reconnectAttempts = 0; // Reset on successful init
-      _startHeartbeat();
+      debugPrint('SocketService: WebSocketChannel.connect called.');
       
+      // Wait for connection to be ready before logging success
+      _channel!.ready.then((_) {
+        debugPrint('✅ SocketService: Connected successfully to the backend.');
+        _reconnectAttempts = 0;
+        _startHeartbeat();
+      }).catchError((e) {
+        debugPrint('❌ SocketService: Connection failed: $e');
+        _handleDisconnect();
+      });
+
       _subscription = _channel!.stream.listen(
         (data) {
+          debugPrint('📥 SocketService Received Data: $data');
           try {
             final jsonMap = jsonDecode(data.toString());
             final message = SocketMessageModel.fromJson(jsonMap);
             _messageController.add(message);
           } catch (e) {
-            debugPrint('SocketService Parse Error: $e - Data: $data');
+            debugPrint('⚠️ SocketService Parse Error: $e - Data: $data');
           }
         },
         onError: (error) {
@@ -97,6 +109,7 @@ class SocketService {
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      debugPrint('💓 SocketService: Sending Heartbeat Ping');
       sendMessage('ping');
     });
   }
@@ -119,7 +132,7 @@ class SocketService {
 
   void sendMessage(String type, [Map<String, dynamic>? data]) {
     if (_channel != null) {
-      final payload = {
+      final Map<String, dynamic> payload = {
         'type': type,
         if (data != null) 'data': data,
       };
