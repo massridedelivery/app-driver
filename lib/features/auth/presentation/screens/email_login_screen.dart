@@ -199,6 +199,19 @@ class EmailLoginScreen extends ConsumerWidget {
                         ),
                 ),
               ),
+              const SizedBox(height: 16),
+              
+              // Register Link
+              TextButton(
+                onPressed: () => context.push(AppRoutes.registerNamedPage),
+                child: Text(
+                  'ไม่มีบัญชี? ลงทะเบียนที่นี่',
+                  style: AppTypography.caption3.copyWith(
+                    color: AppColors.semanticGrayNeutralFgHigh,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

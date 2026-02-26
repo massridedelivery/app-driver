@@ -77,7 +77,7 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 
 ### Features
 - [ ] 1. **Earnings Dashboard (Income):** High-level view of today's, this week's, and total earnings.
-- [ ] 2. **Cash Wallet / Credit Wallet:** Managing top-ups for driver commissions and viewing balance.
+- [/] 2. **Cash Wallet / Credit Wallet:** Managing top-ups for driver commissions and viewing balance. (Creating Cash/Credit Wallet Screens)
 - [ ] 3. **Job History:** List of all completed, cancelled, or missed jobs.
 - [ ] 4. **Job Detail View:** Viewing precise fare breakdown, route taken, and timestamps of a past trip.
 

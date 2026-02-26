@@ -13,6 +13,7 @@ abstract class Endpoints {
   static const otpPhoneRequest = '/auth/otp/send';
   static const phoneVerify = '/auth/otp/verify';
   static const login = '/auth/login';
+  static const register = '/auth/register';
 
   // MARK: Driver profile
   static const driverProfile = '/api/driver/profile';
@@ -26,6 +27,9 @@ abstract class Endpoints {
   static const phoneChangePassword = '/v1/auth/change-password-phone';
   static const logout = '/v1/auth/logout';
   static const refreshToken = '/v1/auth/refresh';
+
+  // MARK: Wallet
+  static const walletType = '/driver/wallet/type';
 
   // MARK: Me
   static const me = '/v1/me';

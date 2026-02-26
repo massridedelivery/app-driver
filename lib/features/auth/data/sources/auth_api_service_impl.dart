@@ -4,6 +4,7 @@ import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
+import 'package:massdrive/features/auth/data/models/register_request_model.dart';
 
 @LazySingleton(as: AuthApiService)
 class AuthApiServiceImpl implements AuthApiService {
@@ -81,6 +82,28 @@ class AuthApiServiceImpl implements AuthApiService {
         throw Exception(e.response?.data['error']);
       }
       throw Exception('Failed to login with email');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> register(RegisterRequestModel request) async {
+    try {
+      final response = await _dio.post(Endpoints.register, data: request.toJson());
+
+      final accessToken = response.data['access_token'];
+
+      // Temporarily return user data structuring until backend provides profile from registration or another endpoint is hit
+      return {
+        'id': 'drv_new_123',
+        'name': request.fullName,
+        'phoneNumber': request.phone,
+        'token': accessToken,
+      };
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response?.data['error'] != null) {
+        throw Exception(e.response?.data['error']);
+      }
+      throw Exception('Failed to register');
     }
   }
 

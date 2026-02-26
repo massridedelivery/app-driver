@@ -11,9 +11,12 @@ import 'package:massdrive/features/service_type/presentation/screens/service_typ
 import 'package:massdrive/features/auth/presentation/screens/login_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/email_login_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
+import 'package:massdrive/features/auth/presentation/screens/register_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
 import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -40,6 +43,11 @@ class AppRouter {
             const NoTransitionPage(child: EmailLoginScreen()),
       ),
       GoRoute(
+        path: AppRoutes.registerNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: RegisterScreen()),
+      ),
+      GoRoute(
         path: AppRoutes.otpNamedPage,
         pageBuilder: (context, state) {
           final phone = state.extra as String? ?? '';
@@ -55,6 +63,16 @@ class AppRouter {
         path: AppRoutes.incomeNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: IncomeScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.cashWalletNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CashWalletScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.creditWalletNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CreditWalletScreen()),
       ),
       GoRoute(
         path: AppRoutes.profileNamedPage,

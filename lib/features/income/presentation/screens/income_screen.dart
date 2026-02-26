@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/completed_trips_tile.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/earnings_section.dart';
 
@@ -40,19 +43,21 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
               mainAxisSpacing: 16,
               crossAxisSpacing: 18,
               childAspectRatio: 1.2,
-              children: const [
+              children: [
                 WalletGridItem(
                   icon: Icons.attach_money,
                   iconBgColor: AppColors.foundationOrange700,
                   title: 'กระเป๋าเงินสด',
-                  amount: '฿ 0',
+                  amount: '฿ 100',
+                  onTap: () => context.push(AppRoutes.cashWalletNamedPage),
                 ),
                 WalletGridItem(
                   icon: Icons.work,
                   iconBgColor: AppColors.semanticGrayNeutralBgWhite,
                   iconColor: AppColors.foundationOrange700,
                   title: 'กระเป๋าเครดิต',
-                  amount: '฿ 167',
+                  amount: '฿ 200',
+                  onTap: () => context.push(AppRoutes.creditWalletNamedPage),
                 ),
               ],
             ),
@@ -70,16 +75,6 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
     );
   }
-
-  Widget _buildLoading() {
-    return SizedBox(
-      width: 100,
-      child: Container(
-        color: AppColors.semanticGrayNeutralBgLightgray,
-        child: const Center(child: BaseWaveDotsIndicator()),
-      ),
-    );
-  }
 }
 
 class WalletGridItem extends StatelessWidget {
@@ -88,6 +83,7 @@ class WalletGridItem extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String amount;
+  final VoidCallback onTap;
 
   const WalletGridItem({
     super.key,
@@ -96,13 +92,14 @@ class WalletGridItem extends StatelessWidget {
     this.iconColor = AppColors.semanticGrayNeutralBgWhite,
     required this.title,
     required this.amount,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

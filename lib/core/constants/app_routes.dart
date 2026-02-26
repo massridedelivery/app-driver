@@ -7,6 +7,7 @@ class AppRoutes {
   static const splashNamedPage = '/splash';
   static const loginNamedPage = '/login';
   static const emailLoginNamedPage = '/email-login';
+  static const registerNamedPage = '/register';
   static const otpNamedPage = '/otp_screen';
   static const homeNamedPage = '/home';
   static const homeDetailsNamedPage = 'details';
@@ -22,6 +23,8 @@ class AppRoutes {
   static const historyDetailsNamedPage = 'details';
   static const historyDetailNamedPage = '/history_detail';
   static const historyDetailDetailsNamedPage = 'details';
+  static const cashWalletNamedPage = '/cash-wallet';
+  static const creditWalletNamedPage = '/credit-wallet';
   static const settingNamedPage = '/setting';
   static const settingDetailsNamedPage = 'details';
   static const incomingJobNamedPage = '/incoming-job';
@@ -35,6 +38,7 @@ class AppRoutes {
   static const splashPath = '/splash';
   static const onboardingPath = '/onboarding';
   static const loginPath = '/login';
+  static const registerPath = '/register';
 
   // =========================
   // Shell
@@ -62,6 +66,7 @@ class AppRoutes {
   static const splashName = 'splash';
   static const onboardingName = 'onboarding';
   static const loginName = 'login';
+  static const registerName = 'register';
 
   static const shellName = 'shell';
 
@@ -74,4 +79,6 @@ class AppRoutes {
   static const webViewName = 'webview';
   static const checkoutName = 'checkout';
   static const talkerName = 'debug_talker';
+  static const cashWalletName = 'cash_wallet';
+  static const creditWalletName = 'credit_wallet';
 }
