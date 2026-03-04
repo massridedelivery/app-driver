@@ -93,7 +93,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
               child: Container(
                 height: 150,
                 decoration: BoxDecoration(
-                  color: AppColors.semanticGrayNeutralBgDefault,
+                  color: AppColors.semanticGrayNeutralBgLightgray,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.semanticGrayNeutralBorderLightgray),
                 ),
@@ -105,9 +105,9 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.photo_library, size: 40, color: AppColors.semanticGrayNeutralFgLow),
+                          const Icon(Icons.photo_library, size: 40, color: AppColors.semanticGrayNeutralFgLowOnWhite),
                           const SizedBox(height: 8),
-                          Text('แตะเพื่อเลือกรูปภาพจากคลัง', style: AppTypography.caption2.copyWith(color: AppColors.semanticGrayNeutralFgLow)),
+                          Text('แตะเพื่อเลือกรูปภาพจากคลัง', style: AppTypography.caption2.copyWith(color: AppColors.semanticGrayNeutralFgLowOnWhite)),
                         ],
                       ),
               ),
@@ -123,7 +123,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                 ),
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('บันทึก', style: AppTypography.subtitle1.copyWith(color: Colors.white)),
+                    : Text('บันทึก', style: AppTypography.label1.copyWith(color: Colors.white)),
               ),
             ),
           ],
@@ -141,10 +141,10 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
         TextFormField(
           controller: controller,
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: AppTypography.subtitle2,
+          style: AppTypography.label2,
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.semanticGrayNeutralBgDefault,
+            fillColor: AppColors.semanticGrayNeutralBgLightgray,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
           validator: (value) => (value == null || value.trim().isEmpty) ? 'กรุณากรอกข้อมูล' : null,

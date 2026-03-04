@@ -128,7 +128,7 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                         ),
                         child: Text(
                           'ดำเนินการต่อ',
-                          style: AppTypography.subtitle1.copyWith(
+                          style: AppTypography.label1.copyWith(
                             color: state.isAllStepsExceptConsentCompleted
                                 ? Colors.white
                                 : AppColors.semanticDisabledFgOnWhite,
@@ -156,7 +156,7 @@ class RegistrationChecklistScreen extends ConsumerWidget {
       child: ListTile(
         title: Text(
           title,
-          style: AppTypography.subtitle2.copyWith(
+          style: AppTypography.label2.copyWith(
             color: AppColors.semanticGrayNeutralFgHigh,
           ),
         ),

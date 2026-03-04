@@ -90,7 +90,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                 },
                 title: Text(
                   'ข้าพเจ้ายินยอมตามเงื่อนไขดังกล่าว',
-                  style: AppTypography.subtitle2.copyWith(color: AppColors.semanticGrayNeutralFgHigh),
+                  style: AppTypography.label2.copyWith(color: AppColors.semanticGrayNeutralFgHigh),
                 ),
                 activeColor: AppColors.foundationOrange600,
                 controlAffinity: ListTileControlAffinity.leading,
@@ -109,7 +109,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                 ),
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('ส่งแบบฟอร์มลงทะเบียน', style: AppTypography.subtitle1.copyWith(
+                    : Text('ส่งแบบฟอร์มลงทะเบียน', style: AppTypography.label1.copyWith(
                         color: _isConsentChecked ? Colors.white : AppColors.semanticDisabledFgOnWhite)),
               ),
             ),

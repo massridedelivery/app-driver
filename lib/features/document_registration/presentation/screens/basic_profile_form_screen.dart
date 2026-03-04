@@ -85,7 +85,7 @@ class _BasicProfileFormScreenState extends ConsumerState<BasicProfileFormScreen>
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         'บันทึก',
-                        style: AppTypography.subtitle1.copyWith(color: Colors.white),
+                        style: AppTypography.label1.copyWith(color: Colors.white),
                       ),
               ),
             ),
@@ -104,10 +104,10 @@ class _BasicProfileFormScreenState extends ConsumerState<BasicProfileFormScreen>
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: AppTypography.subtitle2,
+          style: AppTypography.label2,
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.semanticGrayNeutralBgDefault,
+            fillColor: AppColors.semanticGrayNeutralBgLightgray,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

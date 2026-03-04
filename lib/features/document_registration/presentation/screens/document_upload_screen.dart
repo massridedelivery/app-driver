@@ -70,7 +70,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
               child: Container(
                 height: 250,
                 decoration: BoxDecoration(
-                  color: AppColors.semanticGrayNeutralBgDefault,
+                  color: AppColors.semanticGrayNeutralBgLightgray,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.semanticGrayNeutralBorderLightgray),
                 ),
@@ -82,9 +82,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.cloud_upload_outlined, size: 64, color: AppColors.semanticGrayNeutralFgLow),
+                          const Icon(Icons.cloud_upload_outlined, size: 64, color: AppColors.semanticGrayNeutralFgLowOnWhite),
                           const SizedBox(height: 16),
-                          Text('แตะเพื่ออัปโหลดรูปภาพ', style: AppTypography.subtitle2.copyWith(color: AppColors.semanticGrayNeutralFgLow)),
+                          Text('แตะเพื่ออัปโหลดรูปภาพ', style: AppTypography.label2.copyWith(color: AppColors.semanticGrayNeutralFgLowOnWhite)),
                         ],
                       ),
               ),
@@ -93,7 +93,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
             OutlinedButton.icon(
               onPressed: () => _pickImage(ImageSource.camera),
               icon: const Icon(Icons.camera_alt, color: AppColors.semanticGrayNeutralFgHigh),
-              label: Text('ถ่ายรูป', style: AppTypography.subtitle2.copyWith(color: AppColors.semanticGrayNeutralFgHigh)),
+              label: Text('ถ่ายรูป', style: AppTypography.label2.copyWith(color: AppColors.semanticGrayNeutralFgHigh)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 side: const BorderSide(color: AppColors.semanticGrayNeutralFgHigh),
@@ -111,7 +111,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                 ),
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('บันทึก', style: AppTypography.subtitle1.copyWith(color: Colors.white)),
+                    : Text('บันทึก', style: AppTypography.label1.copyWith(color: Colors.white)),
               ),
             ),
           ],
