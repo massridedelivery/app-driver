@@ -32,7 +32,143 @@ To build a scalable, real-time driver application similar to Grab Driver. The ap
 **Next Steps exactly in Phase 1:**
 - [x] Scaffold the Mock API service for Authentication.
 - [x] Complete Mock API integration for OTP request and validation.
+- [ ] Plan and implement the Motorcycle Driver Registration Flow (Grab Clone).
 - [ ] Ensure robust validation for document uploads.
+
+---
+
+### 📄 Driver Document Registration Flow (Motorcycle - Grab Clone)
+
+**Flow Steps (แยก Feature ตามขั้นตอน):**
+1. **Personal Information Profile (ข้อมูลส่วนตัว):**
+   - **Feature:** Basic Profile Setup.
+   - **Fields:** First Name, Last Name, Email, Emergency Contact.
+2. **Profile Photo (รูปถ่ายโปรไฟล์):**
+   - **Feature:** Driver Selfie Upload.
+   - **Fields:** Selfie looking straight, clear background.
+3. **National ID Card (บัตรประชาชน):**
+   - **Feature:** ID Verification.
+   - **Fields:** Front side of the ID card.
+4. **Driving License (ใบขับขี่):**
+   - **Feature:** License Verification.
+   - **Fields:** Front side of the motorcycle driving license.
+5. **Vehicle Information & Document (ข้อมูลรถ และ สมุดคู่มือจดทะเบียนรถ):**
+   - **Feature:** Vehicle Details Setup.
+   - **Fields:** Brand, Model, Year, License Plate, Image of Green Book page.
+6. **Vehicle Photo (รูปถ่ายตัวรถ):**
+   - **Feature:** Vehicle Physical Verification.
+   - **Fields:** Photo showing the vehicle's front and license plate clearly.
+7. **Compulsory Motor Insurance (พ.ร.บ. รถจักรยานยนต์):**
+   - **Feature:** Insurance Verification.
+   - **Fields:** Image of the Por Ror Bor or Tax badge.
+8. **Bank Account Details (ข้อมูลบัญชีธนาคาร):**
+   - **Feature:** Payout Account Setup.
+   - **Fields:** Bank Name, Account Name, Account Number, Passbook image.
+9. **Criminal Background Check Consent (หนังสือยินยอมการตรวจประวัติอาชญากรรม):**
+   - **Feature:** Legal Consent.
+   - **Fields:** Checkbox/Signature for consent.
+
+**APIs & Mock Data Details:**
+
+**1. Update Basic Profile API**
+- **Endpoint:** `POST /api/v1/driver/profile`
+- **Request Body:**
+  ```json
+  {
+    "firstName": "Somchai",
+    "lastName": "Jaidee",
+    "email": "somchai@example.com",
+    "emergencyContact": "0812345678"
+  }
+  ```
+- **Response (200 OK):**
+  ```json
+  {
+    "message": "Profile saved successfully",
+    "status": "pending_documents"
+  }
+  ```
+
+**2. Universal Document Upload API (Reusable for all images)**
+- **Endpoint:** `POST /api/v1/driver/documents/upload`
+- **Content-Type:** `multipart/form-data`
+- **Payload:** 
+  - `file`: (Image File)
+  - `type`: String Enum (`"profile_photo"`, `"id_card"`, `"driving_license"`, `"vehicle_registration"`, `"vehicle_photo"`, `"insurance"`, `"bank_passbook"`)
+- **Response (200 OK):** 
+  ```json
+  {
+    "documentId": "doc_12345",
+    "url": "https://mock-storage.com/documents/doc_12345.jpg",
+    "type": "id_card",
+    "status": "uploaded"
+  }
+  ```
+
+**3. Submit Vehicle Details API**
+- **Endpoint:** `POST /api/v1/driver/vehicle`
+- **Request Body:** 
+  ```json
+  {
+    "vehicleType": "motorcycle",
+    "brand": "Honda",
+    "model": "Click 160",
+    "year": 2023,
+    "licensePlate": "1กข 1234"
+  }
+  ```
+- **Response (200 OK):** 
+  ```json
+  {
+    "message": "Vehicle details saved"
+  }
+  ```
+
+**4. Submit Bank Account Details API**
+- **Endpoint:** `POST /api/v1/driver/bank-account`
+- **Request Body:** 
+  ```json
+  {
+    "bankName": "Kasikornbank",
+    "accountName": "Somchai Jaidee",
+    "accountNumber": "123-4-56789-0"
+  }
+  ```
+- **Response (200 OK):** 
+  ```json
+  {
+    "message": "Bank details saved"
+  }
+  ```
+
+**5. Submit Consent & Final Review API**
+- **Endpoint:** `POST /api/v1/driver/documents/submit`
+- **Request Body:** 
+  ```json
+  {
+    "driverId": "drv_123",
+    "criminalCheckConsent": true
+  }
+  ```
+- **Response (200 OK):** 
+  ```json
+  {
+    "message": "All documents submitted for review",
+    "status": "in_review"
+  }
+  ```
+
+**6. Check Registration Status API (Polling/Init)**
+- **Endpoint:** `GET /api/v1/driver/status`
+- **Response (200 OK):** 
+  ```json
+  {
+    "status": "in_review",
+    "rejectedReasons": [],
+    "missingDocuments": []
+  }
+  ```
+  *(Status Enum: `pending`, `in_review`, `approved`, `rejected`)*
 
 ---
 
