@@ -18,6 +18,7 @@ import 'package:massdrive/features/setting/presentation/screens/setting_screen.d
 
 class OnlineStatus extends Notifier<bool> {
   StreamSubscription<Position>? _positionStreamSubscription;
+  Timer? _fallbackTimer;
 
   // Default Bangkok center for emulator testing
   static const double defaultLat = 13.7563;
@@ -41,6 +42,7 @@ class OnlineStatus extends Notifier<bool> {
 
     ref.onDispose(() {
       _positionStreamSubscription?.cancel();
+      _fallbackTimer?.cancel();
     });
     return false;
   }
@@ -122,18 +124,41 @@ class OnlineStatus extends Notifier<bool> {
       // Send initial location - only after successful connection
       await _sendInitialLocation();
 
-      // Start stream
+      // Start location stream with optimized settings
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // Only send if moved 10 meters
+          distanceFilter: 10, // Send update if moved 10 meters
         ),
       ).listen((Position position) {
         if (ref.read(socketServiceProvider).isConnected) {
+          debugPrint('OnlineStatus: Moving - Sending location_update (${position.latitude}, ${position.longitude})');
           socketService.sendLocationUpdate(
             position.latitude,
             position.longitude,
           );
+        }
+      });
+
+      // Periodic Fallback: Send update every 30 seconds even if stationary
+      _fallbackTimer?.cancel();
+      _fallbackTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+        if (!state) {
+          timer.cancel();
+          return;
+        }
+
+        try {
+          final socketService = ref.read(socketServiceProvider);
+          if (socketService.isConnected) {
+            Position position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+            );
+            debugPrint('OnlineStatus: Stationary - Sending periodic fallback location_update');
+            socketService.sendLocationUpdate(position.latitude, position.longitude);
+          }
+        } catch (e) {
+          debugPrint('OnlineStatus Fallback Update Error: $e');
         }
       });
 
@@ -142,6 +167,8 @@ class OnlineStatus extends Notifier<bool> {
       // Go offline
       await _positionStreamSubscription?.cancel();
       _positionStreamSubscription = null;
+      _fallbackTimer?.cancel();
+      _fallbackTimer = null;
 
       try {
         await ref.read(homeApiServiceProvider).goOffline();
