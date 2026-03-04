@@ -30,10 +30,10 @@ class AppUtil {
 
   static PackageInfo getPackageInfo() {
     return PackageInfo(
-      appName: _appName!,
-      packageName: _packageName!,
-      version: _version!,
-      buildNumber: _buildNumber!,
+      appName: _appName ?? 'MassDrive',
+      packageName: _packageName ?? 'com.massdrive.app',
+      version: _version ?? '1.0.0',
+      buildNumber: _buildNumber ?? '1',
     );
   }
 }

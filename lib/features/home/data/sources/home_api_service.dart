@@ -36,6 +36,15 @@ class HomeApiService {
     );
     return response;
   }
+
+  Future<ResponseData> fetchDriverStatus() async {
+    final response = await _apiManager.fetchApi(
+      endPoint: Endpoints.driverStatus,
+      method: 'GET',
+      feature: 'GET: driver status',
+    );
+    return response;
+  }
 }
 
 @riverpod

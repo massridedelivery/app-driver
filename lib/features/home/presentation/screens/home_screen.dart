@@ -9,29 +9,81 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
-import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 
 class OnlineStatus extends Notifier<bool> {
   StreamSubscription<Position>? _positionStreamSubscription;
-  
+
   // Default Bangkok center for emulator testing
   static const double defaultLat = 13.7563;
   static const double defaultLng = 100.5018;
 
   @override
   bool build() {
+    ref.listen(socketServiceProvider.select((s) => s.onConnectionStatus), (
+      previous,
+      next,
+    ) {
+      next.listen((connected) {
+        if (connected && state) {
+          debugPrint(
+            'OnlineStatus: Connection successful and driver is online. Sending location_update.',
+          );
+          _sendInitialLocation();
+        }
+      });
+    });
+
     ref.onDispose(() {
       _positionStreamSubscription?.cancel();
     });
     return false;
   }
 
-  Future<void> setStatus(bool value) async {
+  Future<void> _sendInitialLocation() async {
+    try {
+      final socketService = ref.read(socketServiceProvider);
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (socketService.isConnected) {
+        socketService.sendLocationUpdate(position.latitude, position.longitude);
+
+        // Center map on real location
+        final controller = ref.read(mapControllerProvider);
+        controller?.animateCamera(
+          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+        );
+      }
+    } catch (e) {
+      debugPrint('OnlineStatus Initial Location Error: $e');
+    }
+  }
+
+  Future<void> initStatus() async {
+    try {
+      final res = await ref.read(homeApiServiceProvider).fetchDriverStatus();
+      if (res.isSuccessful && res.data != null) {
+        final status = res.data['status'];
+        if (status == 'online') {
+          // If already online, skip the goOnline API call
+          await setStatus(true, skipApiCall: true);
+        } else {
+          await setStatus(false);
+        }
+      }
+    } catch (e) {
+      debugPrint('Fetch Driver Status Error: $e');
+    }
+  }
+
+  Future<void> setStatus(bool value, {bool skipApiCall = false}) async {
     if (value == state) return;
 
     final socketService = ref.read(socketServiceProvider);
@@ -51,54 +103,46 @@ class OnlineStatus extends Notifier<bool> {
       }
 
       // Set Online via API first (required by Backend to receive jobs/allow connection)
-      try {
-        await ref.read(homeApiServiceProvider).goOnline();
-      } catch (e) {
-        debugPrint('Go Online API Error: $e');
+      // Skip if already online according to /api/driver/status
+      if (!skipApiCall) {
+        try {
+          final res = await ref.read(homeApiServiceProvider).goOnline();
+          if (!res.isSuccessful) {
+            throw Exception('Failed to go online');
+          }
+        } catch (e) {
+          debugPrint('Go Online API Error: $e');
+          rethrow;
+        }
       }
 
-      // Connect WebSocket
+      // Connect WebSocket and wait for it to be ready
       await socketService.connect();
 
-      // Send initial location
-      try {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        
-        socketService.sendLocationUpdate(position.latitude, position.longitude);
-        
-        // Center map on real location
-        final controller = ref.read(mapControllerProvider);
-        controller?.animateCamera(
-          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
-        );
-      } catch (e) {
-        debugPrint('Home Screen Initial Location Error: $e');
-      }
+      // Send initial location - only after successful connection
+      await _sendInitialLocation();
 
       // Start stream
-      _positionStreamSubscription =
-          Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              distanceFilter: 10, // Only send if moved 10 meters
-            ),
-          ).listen((Position position) {
-            if (ref.read(socketServiceProvider).isConnected) {
-              socketService.sendLocationUpdate(
-                position.latitude,
-                position.longitude,
-              );
-            }
-          });
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, // Only send if moved 10 meters
+        ),
+      ).listen((Position position) {
+        if (ref.read(socketServiceProvider).isConnected) {
+          socketService.sendLocationUpdate(
+            position.latitude,
+            position.longitude,
+          );
+        }
+      });
 
       state = true;
     } else {
       // Go offline
       await _positionStreamSubscription?.cancel();
       _positionStreamSubscription = null;
-      
+
       try {
         await ref.read(homeApiServiceProvider).goOffline();
       } catch (e) {
@@ -124,9 +168,10 @@ class MapController extends Notifier<GoogleMapController?> {
   }
 }
 
-final mapControllerProvider = NotifierProvider<MapController, GoogleMapController?>(
-  () => MapController(),
-);
+final mapControllerProvider =
+    NotifierProvider<MapController, GoogleMapController?>(
+      () => MapController(),
+    );
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -156,18 +201,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _sheetSize = _sheetController.size;
       });
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(onlineStatusProvider.notifier).initStatus();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(incomingJobControllerProvider, (previous, next) {
-      if (next.isModalVisible &&
-          next.currentJob != null &&
-          (previous?.isModalVisible != true)) {
-        // Push the new standalone screen
-        context.push('/incoming-job');
-      }
-    });
+    // Ensure IncomingJobController is initialized early to catch WebSocket messages
+    ref.watch(incomingJobControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
@@ -260,15 +303,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       onTap: () async {
         final current = ref.read(onlineStatusProvider);
         final newValue = !current;
-        await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
-        if (mounted && newValue && ref.read(onlineStatusProvider)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('เชื่อมต่อ WebSocket สำเร็จ พร้อมรับงานแล้ว'),
-              backgroundColor: AppColors.semanticSuccessBgHigh,
-            ),
-          );
+        try {
+          await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
+
+          if (mounted && newValue && ref.read(onlineStatusProvider)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('เชื่อมต่อ WebSocket สำเร็จ พร้อมรับงานแล้ว'),
+                backgroundColor: AppColors.semanticSuccessBgHigh,
+              ),
+            );
+          }
+        } catch (e) {
+          print('error : $e');
+          if (mounted && newValue) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง'),
+                backgroundColor: AppColors.semanticErrorBgHigh,
+              ),
+            );
+          }
         }
       },
       child: AnimatedContainer(

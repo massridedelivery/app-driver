@@ -30,6 +30,12 @@ import 'package:massdrive/features/auth/domain/usecase/register_usecase.dart'
     as _i444;
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart'
     as _i244;
+import 'package:massdrive/features/document_registration/data/repositories/document_registration_repository_impl.dart'
+    as _i749;
+import 'package:massdrive/features/document_registration/data/sources/mock_document_registration_api.dart'
+    as _i583;
+import 'package:massdrive/features/document_registration/domain/repositories/document_registration_repository.dart'
+    as _i84;
 import 'package:massdrive/features/income/data/repositories/wallet_repository_impl.dart'
     as _i524;
 import 'package:massdrive/features/income/data/sources/wallet_api_service.dart'
@@ -49,7 +55,15 @@ extension GetItInjectableX on _i174.GetIt {
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     gh.singleton<_i822.DeeplinkManager>(() => _i822.DeeplinkManager());
+    gh.lazySingleton<_i583.MockDocumentRegistrationApi>(
+      () => _i583.MockDocumentRegistrationApi(),
+    );
     gh.lazySingleton<_i540.AuthApiService>(() => _i425.AuthApiServiceImpl());
+    gh.lazySingleton<_i84.DocumentRegistrationRepository>(
+      () => _i749.DocumentRegistrationRepositoryImpl(
+        gh<_i583.MockDocumentRegistrationApi>(),
+      ),
+    );
     gh.lazySingleton<_i1030.WalletApiService>(
       () => _i119.WalletApiServiceImpl(),
     );

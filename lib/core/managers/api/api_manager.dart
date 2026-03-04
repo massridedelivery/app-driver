@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:dio/dio.dart' as dio_client;
 import 'package:dio/io.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_constants.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -45,7 +45,7 @@ extension ResponseDataExtension on ResponseData {
 class ApiManager {
   factory ApiManager(Ref ref) => ApiManager._internal(ref);
 
-  String baseUrl = 'https://driver-api.nutchaphut.dev';
+  String baseUrl = 'https://driver-api-dev.nutchaphut.dev';
   final dio = dio_client.Dio();
   final box = GetStorage();
   final _secureStorage = SecureStorageManager();
@@ -90,13 +90,19 @@ class ApiManager {
 
     dio.options.headers.clear();
     dio.options.headers['content-type'] = contentType ?? 'application/json';
-    dio.options.headers['app-version'] = await Device.getAppVersion();
-    dio.options.headers['device-models'] = Device.isAndroid ? 'Android' : 'iOS';
-    dio.options.headers['os-device'] = await Device.getOSVersion();
     dio.options.headers['platform-id'] = 2;
 
     if (languageCode != null) {
       dio.options.headers['content-language'] = languageCode;
+    }
+
+    try {
+      dio.options.headers['app-version'] = await Device.getAppVersion();
+      dio.options.headers['device-models'] =
+          Device.isAndroid ? 'Android' : 'iOS';
+      dio.options.headers['os-device'] = await Device.getOSVersion();
+    } catch (e) {
+      debugPrint('ApiManager Header Error: $e');
     }
 
     try {

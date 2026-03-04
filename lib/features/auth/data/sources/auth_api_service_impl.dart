@@ -3,20 +3,22 @@ import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
-import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
 import 'package:massdrive/features/auth/data/models/register_request_model.dart';
+import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
 
 @LazySingleton(as: AuthApiService)
 class AuthApiServiceImpl implements AuthApiService {
   late final Dio _dio;
 
   AuthApiServiceImpl() {
-    _dio = Dio(BaseOptions(
-      baseUrl: 'https://driver-api.nutchaphut.dev',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://driver-api-dev.nutchaphut.dev',
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
     _dio.interceptors.add(
       AppDioLoggerInterceptor(LoggerManager.instance.talker),
     );
@@ -25,10 +27,10 @@ class AuthApiServiceImpl implements AuthApiService {
   @override
   Future<void> requestOtp(String phone) async {
     try {
-      await _dio.post(Endpoints.otpPhoneRequest, data: {
-        'phone': phone,
-        'role': 'driver',
-      });
+      await _dio.post(
+        Endpoints.otpPhoneRequest,
+        data: {'phone': phone, 'role': 'driver'},
+      );
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
@@ -40,12 +42,15 @@ class AuthApiServiceImpl implements AuthApiService {
   @override
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
     try {
-      final verifyResponse = await _dio.post(Endpoints.phoneVerify, data: {
-        'phone': phone,
-        'code': otp,
-        'role': 'driver',
-        'full_name': 'New Driver', // Used if first time login
-      });
+      final verifyResponse = await _dio.post(
+        Endpoints.phoneVerify,
+        data: {
+          'phone': phone,
+          'code': otp,
+          'role': 'driver',
+          'full_name': 'New Driver', // Used if first time login
+        },
+      );
 
       final accessToken = verifyResponse.data['access_token'];
 
@@ -61,12 +66,14 @@ class AuthApiServiceImpl implements AuthApiService {
 
   @override
   Future<Map<String, dynamic>> loginWithEmail(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     try {
-      final loginResponse = await _dio.post(Endpoints.login, data: {
-        'email': email,
-        'password': password,
-      });
+      final loginResponse = await _dio.post(
+        Endpoints.login,
+        data: {'email': email, 'password': password},
+      );
 
       final accessToken = loginResponse.data['access_token'];
 
@@ -88,7 +95,10 @@ class AuthApiServiceImpl implements AuthApiService {
   @override
   Future<Map<String, dynamic>> register(RegisterRequestModel request) async {
     try {
-      final response = await _dio.post(Endpoints.register, data: request.toJson());
+      final response = await _dio.post(
+        Endpoints.register,
+        data: request.toJson(),
+      );
 
       final accessToken = response.data['access_token'];
 
@@ -108,7 +118,9 @@ class AuthApiServiceImpl implements AuthApiService {
   }
 
   Future<Map<String, dynamic>> _fetchDriverProfile(
-      String accessToken, String fallbackPhone) async {
+    String accessToken,
+    String fallbackPhone,
+  ) async {
     try {
       final profileResponse = await _dio.get(
         Endpoints.driverProfile,

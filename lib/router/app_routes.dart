@@ -18,6 +18,14 @@ import 'package:massdrive/features/payment/presentation/screens/payment_screen.d
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 
+import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/basic_profile_form_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/document_upload_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/vehicle_info_form_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
+
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -108,6 +116,43 @@ class AppRouter {
         path: '/payment',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: PaymentScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationChecklistNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: RegistrationChecklistScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationProfileNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: BasicProfileFormScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationUploadNamedPage,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return NoTransitionPage(
+            child: DocumentUploadScreen(
+              type: extra['type'] as DocumentType? ?? DocumentType.profilePhoto,
+              title: extra['title'] as String? ?? 'Upload',
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationVehicleNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: VehicleInfoFormScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationBankNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: BankAccountFormScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.documentRegistrationConsentNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ConsentScreen()),
       ),
     ],
     errorBuilder: (context, state) => const HomeScreen(),

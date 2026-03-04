@@ -1,11 +1,13 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:massdrive/core/services/socket_service.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/states/incoming_job_state.dart';
 import 'package:massdrive/router/app_routes.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'incoming_job_controller.g.dart';
 
@@ -16,39 +18,51 @@ class IncomingJobController extends _$IncomingJobController {
   @override
   IncomingJobState build() {
     final socket = ref.watch(socketServiceProvider);
-    
+
     _socketSubscription?.cancel();
     _socketSubscription = socket.messages.listen((msg) {
       debugPrint('IncomingJobController Received Message: type=${msg.type}');
-      
+
       if (msg.type == 'job_offer') {
-        debugPrint('IncomingJobController: Detected job_offer! Checking data...');
+        debugPrint('IncomingJobController: 📥 RECEIVED job_offer message');
         try {
           // Priority: raw['job'], data['job'], data, raw
-          final jobData = msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
-          
+          final jobData =
+              msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
+          debugPrint('IncomingJobController: Job Data extracted: $jobData');
+
           if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
-             final job = IncomingJobModel.fromJson(jobData);
-             debugPrint('IncomingJobController: Job parsed. ID=${job.jobId}. Status: PENDING');
-             receiveJob(job);
-             
-             // Automatically navigate to the Incoming Job screen
-             debugPrint('IncomingJobController: Navigating to ${AppRoutes.incomingJobNamedPage}');
-             AppRouter.router.push(AppRoutes.incomingJobNamedPage);
+            final job = IncomingJobModel.fromJson(jobData);
+            debugPrint(
+              'IncomingJobController: ✅ Job parsed successfully. ID=${job.jobId}',
+            );
+
+            receiveJob(job);
+
+            // Automatically navigate to the Incoming Job screen
+            debugPrint(
+              'IncomingJobController: 🚀 Navigating using .go() to ${AppRoutes.incomingJobNamedPage}',
+            );
+            AppRouter.router.go(AppRoutes.incomingJobNamedPage);
           } else {
-             debugPrint('IncomingJobController: job_offer data invalid or missing id. Data: $jobData');
+            debugPrint(
+              'IncomingJobController: ⚠️ job_offer data invalid or missing id. Data: $jobData',
+            );
           }
         } catch (e) {
-          debugPrint('IncomingJobController Parse Error (job_offer): $e');
+          debugPrint('IncomingJobController: ❌ Parse Error (job_offer): $e');
         }
       } else if (msg.type == 'job_accepted') {
         // Notification that the job is confirmed to us
         try {
-          final jobData = msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
+          final jobData =
+              msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
           if (jobData is Map<String, dynamic>) {
             final job = IncomingJobModel.fromJson(jobData);
             state = state.copyWith(currentJob: job);
-            debugPrint('IncomingJobController: Job officially accepted: ${job.jobId}');
+            debugPrint(
+              'IncomingJobController: Job officially accepted: ${job.jobId}',
+            );
           }
         } catch (e) {
           debugPrint('IncomingJobController Parse Error (job_accepted): $e');
@@ -56,9 +70,11 @@ class IncomingJobController extends _$IncomingJobController {
       } else if (msg.type == 'job_status') {
         final jobId = msg.raw['job_id'] ?? msg.data?['job_id'];
         final status = msg.raw['status'] ?? msg.data?['status'];
-        
-        debugPrint('IncomingJobController Status Change: job=$jobId, status=$status');
-        
+
+        debugPrint(
+          'IncomingJobController Status Change: job=$jobId, status=$status',
+        );
+
         if (state.currentJob?.jobId == jobId && status == 'CANCELLED') {
           dismissModal();
         }
@@ -73,16 +89,14 @@ class IncomingJobController extends _$IncomingJobController {
   }
 
   void receiveJob(IncomingJobModel job) {
-    state = state.copyWith(
-      currentJob: job,
-      isModalVisible: true,
-    );
+    state = state.copyWith(currentJob: job, isModalVisible: true);
   }
 
   void acceptJob() {
     final job = state.currentJob;
     if (job != null) {
       ref.read(socketServiceProvider).acceptJob(job.jobId);
+      _sendLocationUpdate();
     }
     state = state.copyWith(isModalVisible: false);
   }
@@ -91,11 +105,30 @@ class IncomingJobController extends _$IncomingJobController {
     final job = state.currentJob;
     if (job != null) {
       ref.read(socketServiceProvider).rejectJob(job.jobId);
+      _sendLocationUpdate();
     }
     state = state.copyWith(isModalVisible: false, currentJob: null);
   }
 
   void dismissModal() {
     state = state.copyWith(isModalVisible: false, currentJob: null);
+    _sendLocationUpdate();
+  }
+
+  Future<void> _sendLocationUpdate() async {
+    try {
+      final socketService = ref.read(socketServiceProvider);
+      if (socketService.isConnected) {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        socketService.sendLocationUpdate(position.latitude, position.longitude);
+        debugPrint(
+          'IncomingJobController: Sent location_update after job flow',
+        );
+      }
+    } catch (e) {
+      debugPrint('IncomingJobController: Error sending location update: $e');
+    }
   }
 }

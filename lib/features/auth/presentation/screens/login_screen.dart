@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -164,7 +164,7 @@ class LoginScreen extends ConsumerWidget {
                           final success = await controller.loginWithPhone();
                           if (success && context.mounted) {
                             context.push(
-                              '/otp_screen',
+                              AppRoutes.otpNamedPage,
                               extra: state.phoneNumber,
                             );
                           }
@@ -200,7 +200,7 @@ class LoginScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Email Login Button
               TextButton(
                 onPressed: () => context.push(AppRoutes.emailLoginNamedPage),

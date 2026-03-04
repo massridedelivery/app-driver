@@ -29,6 +29,13 @@ class AppRoutes {
   static const settingDetailsNamedPage = 'details';
   static const incomingJobNamedPage = '/incoming-job';
 
+  static const documentRegistrationChecklistNamedPage = '/document-registration';
+  static const documentRegistrationProfileNamedPage = '/document-registration/basic-profile';
+  static const documentRegistrationUploadNamedPage = '/document-registration/upload-document';
+  static const documentRegistrationVehicleNamedPage = '/document-registration/vehicle-info';
+  static const documentRegistrationBankNamedPage = '/document-registration/bank-account';
+  static const documentRegistrationConsentNamedPage = '/document-registration/consent';
+
   static Widget errorWidget(BuildContext context, GoRouterState state) =>
       const HomeScreen();
 
