@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -125,24 +124,29 @@ class OnlineStatus extends Notifier<bool> {
       await _sendInitialLocation();
 
       // Start location stream with optimized settings
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // Send update if moved 10 meters
-        ),
-      ).listen((Position position) {
-        if (ref.read(socketServiceProvider).isConnected) {
-          debugPrint('OnlineStatus: Moving - Sending location_update (${position.latitude}, ${position.longitude})');
-          socketService.sendLocationUpdate(
-            position.latitude,
-            position.longitude,
-          );
-        }
-      });
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10, // Send update if moved 10 meters
+            ),
+          ).listen((Position position) {
+            if (ref.read(socketServiceProvider).isConnected) {
+              debugPrint(
+                'OnlineStatus: Moving - Sending location_update (${position.latitude}, ${position.longitude})',
+              );
+              socketService.sendLocationUpdate(
+                position.latitude,
+                position.longitude,
+              );
+            }
+          });
 
       // Periodic Fallback: Send update every 30 seconds even if stationary
       _fallbackTimer?.cancel();
-      _fallbackTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      _fallbackTimer = Timer.periodic(const Duration(seconds: 30), (
+        timer,
+      ) async {
         if (!state) {
           timer.cancel();
           return;
@@ -154,8 +158,13 @@ class OnlineStatus extends Notifier<bool> {
             Position position = await Geolocator.getCurrentPosition(
               desiredAccuracy: LocationAccuracy.high,
             );
-            debugPrint('OnlineStatus: Stationary - Sending periodic fallback location_update');
-            socketService.sendLocationUpdate(position.latitude, position.longitude);
+            debugPrint(
+              'OnlineStatus: Stationary - Sending periodic fallback location_update',
+            );
+            socketService.sendLocationUpdate(
+              position.latitude,
+              position.longitude,
+            );
           }
         } catch (e) {
           debugPrint('OnlineStatus Fallback Update Error: $e');
@@ -337,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           if (mounted && newValue && ref.read(onlineStatusProvider)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('เชื่อมต่อ WebSocket สำเร็จ พร้อมรับงานแล้ว'),
+                content: Text('พร้อมรับงานแล้ว'),
                 backgroundColor: AppColors.semanticSuccessBgHigh,
               ),
             );

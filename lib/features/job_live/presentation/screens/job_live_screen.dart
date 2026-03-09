@@ -89,13 +89,13 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// =========================
   Widget _buildMap() {
     final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
-    
+
     // Fallback to Bangkok if no job (shouldn't happen on this screen)
-    final LatLng pickupLatLng = currentJob != null 
+    final LatLng pickupLatLng = currentJob != null
         ? LatLng(currentJob.pickupLat, currentJob.pickupLng)
         : const LatLng(13.7563, 100.5018);
-        
-    final LatLng dropoffLatLng = currentJob != null 
+
+    final LatLng dropoffLatLng = currentJob != null
         ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
         : const LatLng(13.7563, 100.5018);
 
@@ -169,10 +169,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       },
     );
   }
-
-  /// =========================
-  /// UI COMPONENTS (เหมือนของเดิม)
-  /// =========================
 
   Widget _buildTopDistanceBadge() {
     return Positioned(

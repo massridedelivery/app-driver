@@ -115,7 +115,7 @@ class SocketService {
 
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       debugPrint('💓 SocketService: Sending Heartbeat Ping');
       sendMessage('ping');
     });
