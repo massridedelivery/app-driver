@@ -6,7 +6,7 @@ import '../models/vehicle_info.dart';
 
 abstract class DocumentRegistrationRepository {
   Future<void> updateProfile(DriverProfileInfo info);
-  Future<String> uploadDocument(File file, DocumentType type);
+  Future<String> uploadDocument(File file, DocumentType type, {String purpose = 'driver_document'});
   Future<void> submitVehicleDetails(VehicleInfo info);
   Future<void> submitBankDetails(BankAccountInfo info);
   Future<void> submitFinalConsent(String driverId, bool criminalCheckConsent);

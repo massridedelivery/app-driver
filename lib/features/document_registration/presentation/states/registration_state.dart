@@ -1,29 +1,48 @@
+import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
+import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
+import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
+
 import '../../domain/models/registration_status.dart';
 
 class RegistrationState {
   final bool isLoading;
   final String? errorMessage;
-  
+
   // Step 1
   final bool isProfileComplete;
+
   // Step 2
   final bool isProfilePhotoComplete;
+
   // Step 3
   final bool isIdCardComplete;
+
   // Step 4
   final bool isDrivingLicenseComplete;
+
   // Step 5
   final bool isVehicleInfoComplete;
+
   // Step 6
   final bool isVehiclePhotoComplete;
+
   // Step 7
   final bool isInsuranceComplete;
+
   // Step 8
   final bool isBankAccountComplete;
+
   // Step 9
   final bool isConsentGiven;
 
+  final KycTier? selectedTier;
   final RegistrationStateStatus overallStatus;
+
+  // Persisted Form Data
+  final DriverProfileInfo? profileInfo;
+  final VehicleInfo? vehicleInfo;
+  final BankAccountInfo? bankAccountInfo;
+  final Map<DocumentType, String> uploadedDocuments;
 
   const RegistrationState({
     this.isLoading = false,
@@ -37,18 +56,41 @@ class RegistrationState {
     this.isInsuranceComplete = false,
     this.isBankAccountComplete = false,
     this.isConsentGiven = false,
+    this.selectedTier,
     this.overallStatus = RegistrationStateStatus.pending,
+    this.profileInfo,
+    this.vehicleInfo,
+    this.bankAccountInfo,
+    this.uploadedDocuments = const {},
   });
 
-  bool get isAllStepsExceptConsentCompleted =>
-      isProfileComplete &&
-      isProfilePhotoComplete &&
-      isIdCardComplete &&
-      isDrivingLicenseComplete &&
-      isVehicleInfoComplete &&
-      isVehiclePhotoComplete &&
-      isInsuranceComplete &&
-      isBankAccountComplete;
+  bool get isAllStepsExceptConsentCompleted {
+    if (selectedTier == null) return false;
+
+    // Core always required
+    if (!isProfileComplete ||
+        !isIdCardComplete ||
+        !isBankAccountComplete ||
+        !isProfilePhotoComplete) {
+      return false;
+    }
+
+    // Tier specific requirements
+    if (selectedTier == KycTier.food) {
+      return isDrivingLicenseComplete;
+    } else if (selectedTier == KycTier.ride) {
+      return isDrivingLicenseComplete &&
+          isVehicleInfoComplete &&
+          isVehiclePhotoComplete &&
+          isInsuranceComplete;
+    } else {
+      // BOTH
+      return isDrivingLicenseComplete &&
+          isVehicleInfoComplete &&
+          isVehiclePhotoComplete &&
+          isInsuranceComplete;
+    }
+  }
 
   RegistrationState copyWith({
     bool? isLoading,
@@ -62,21 +104,36 @@ class RegistrationState {
     bool? isInsuranceComplete,
     bool? isBankAccountComplete,
     bool? isConsentGiven,
+    KycTier? selectedTier,
     RegistrationStateStatus? overallStatus,
+    DriverProfileInfo? profileInfo,
+    VehicleInfo? vehicleInfo,
+    BankAccountInfo? bankAccountInfo,
+    Map<DocumentType, String>? uploadedDocuments,
   }) {
     return RegistrationState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
-      isProfilePhotoComplete: isProfilePhotoComplete ?? this.isProfilePhotoComplete,
+      isProfilePhotoComplete:
+          isProfilePhotoComplete ?? this.isProfilePhotoComplete,
       isIdCardComplete: isIdCardComplete ?? this.isIdCardComplete,
-      isDrivingLicenseComplete: isDrivingLicenseComplete ?? this.isDrivingLicenseComplete,
-      isVehicleInfoComplete: isVehicleInfoComplete ?? this.isVehicleInfoComplete,
-      isVehiclePhotoComplete: isVehiclePhotoComplete ?? this.isVehiclePhotoComplete,
+      isDrivingLicenseComplete:
+          isDrivingLicenseComplete ?? this.isDrivingLicenseComplete,
+      isVehicleInfoComplete:
+          isVehicleInfoComplete ?? this.isVehicleInfoComplete,
+      isVehiclePhotoComplete:
+          isVehiclePhotoComplete ?? this.isVehiclePhotoComplete,
       isInsuranceComplete: isInsuranceComplete ?? this.isInsuranceComplete,
-      isBankAccountComplete: isBankAccountComplete ?? this.isBankAccountComplete,
+      isBankAccountComplete:
+          isBankAccountComplete ?? this.isBankAccountComplete,
       isConsentGiven: isConsentGiven ?? this.isConsentGiven,
+      selectedTier: selectedTier ?? this.selectedTier,
       overallStatus: overallStatus ?? this.overallStatus,
+      profileInfo: profileInfo ?? this.profileInfo,
+      vehicleInfo: vehicleInfo ?? this.vehicleInfo,
+      bankAccountInfo: bankAccountInfo ?? this.bankAccountInfo,
+      uploadedDocuments: uploadedDocuments ?? this.uploadedDocuments,
     );
   }
 }

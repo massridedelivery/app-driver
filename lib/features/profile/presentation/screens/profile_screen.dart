@@ -9,6 +9,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/utils/app_util.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
+import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(profileControllerProvider);
+    final profile = profileState.profile;
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
       body: Container(
@@ -46,20 +51,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       children: [
                         const SizedBox(height: 16),
 
-                        _ProfileHeader(
-                          onTap: () {
-                            AppNavigator.push(
-                              context,
-                              const EditProfileScreen(),
-                            );
-                          },
-                        ),
+                        if (profileState.isLoading)
+                          Center(child: _buildLoading())
+                        else if (profile != null) ...[
+                          _ProfileHeader(
+                            profile: profile,
+                            onTap: () {
+                              AppNavigator.push(
+                                context,
+                                const EditProfileScreen(),
+                              );
+                            },
+                          ),
 
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                        const _WeeklyOverviewCard(),
+                          _WeeklyOverviewCard(profile: profile),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 32),
+                        ],
 
                         Text(
                           'บัญชีของฉัน',
@@ -106,8 +116,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
 class _ProfileHeader extends StatelessWidget {
   final VoidCallback onTap;
+  final DriverProfileEntity profile;
 
-  const _ProfileHeader({required this.onTap});
+  const _ProfileHeader({required this.onTap, required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +144,7 @@ class _ProfileHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "(MB) ธนนันต์ อนุรักษ์ศิลปกุล",
+                      profile.fullName,
                       style: AppTypography.caption3.copyWith(
                         color: AppColors.semanticGrayNeutralBgWhite,
                       ),
@@ -148,7 +159,7 @@ class _ProfileHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          "5.0",
+                          profile.rating.toStringAsFixed(1),
                           style: AppTypography.caption4.copyWith(
                             color: AppColors.semanticGrayNeutralBgWhite,
                           ),
@@ -169,7 +180,9 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _WeeklyOverviewCard extends StatelessWidget {
-  const _WeeklyOverviewCard();
+  final DriverProfileEntity profile;
+
+  const _WeeklyOverviewCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -198,9 +211,9 @@ class _WeeklyOverviewCard extends StatelessWidget {
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: const [
-              _StatItem(value: "0.0%", label: "เปอร์เซ็นต์รับ"),
-              _StatItem(value: "0.0%", label: "เปอร์เซ็นต์ยกเลิก"),
+            children: [
+              _StatItem(value: "\${profile.acceptanceRate.toStringAsFixed(1)}%", label: "เปอร์เซ็นต์รับ"),
+              _StatItem(value: "\${profile.cancellationRate.toStringAsFixed(1)}%", label: "เปอร์เซ็นต์ยกเลิก"),
             ],
           ),
         ],

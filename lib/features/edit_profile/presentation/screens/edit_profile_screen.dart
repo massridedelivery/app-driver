@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/core/utils/toast_util.dart';
 
-class EditProfileScreen extends StatelessWidget {
+class EditProfileScreen extends ConsumerWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(profileControllerProvider);
+    final profile = profileState.profile;
+
+    if (profile == null) {
+      return Scaffold(
+        appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
+        backgroundColor: const Color(0xFF0F0F0F),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
       backgroundColor: const Color(0xFF0F0F0F),
@@ -15,22 +28,22 @@ class EditProfileScreen extends StatelessWidget {
         color: AppColors.semanticGrayNeutralFgHigh,
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: const [
-            SizedBox(height: 12),
+          children: [
+            const SizedBox(height: 12),
 
             _SectionHeader(title: "ข้อมูลส่วนตัว"),
 
             _ProfileImageTile(),
 
-            _InfoTile(title: "ชื่อ", value: "(GB) ธนนันต์ อนุรักษ์ศิลปกุล"),
+            _InfoTile(title: "ชื่อ", value: profile.fullName),
 
             _InfoTile(
               title: "หมายเลขโทรศัพท์มือถือ",
-              value: "+66 892616445",
+              value: profile.phone ?? "ยังไม่ได้กรอกข้อมูล",
               showArrow: true,
             ),
 
-            _InfoTile(title: "ที่อยู่อีเมล", value: "bankzapse@gmail.com"),
+            _InfoTile(title: "ที่อยู่อีเมล", value: profile.userId),
 
             _InfoTile(
               title: "รายชื่อผู้ติดต่อฉุกเฉิน",
@@ -53,19 +66,26 @@ class EditProfileScreen extends StatelessWidget {
 
             _SectionHeader(title: "ข้อมูลของยานพาหนะ"),
 
-            _VehicleTile(
-              plate: "8กส418",
-              vehicle: "YAMAHA GRAND FILANO",
-              isPrimary: true,
-            ),
+            if (profile.vehiclePlate != null && profile.vehicleModel != null)
+              _VehicleTile(
+                plate: profile.vehiclePlate!,
+                vehicle: profile.vehicleModel!,
+                isPrimary: true,
+                onTap: () {
+                  _showUpdateVehicleSheet(context, ref, profile.vehiclePlate!, profile.vehicleModel!);
+                },
+              )
+            else
+              _VehicleTile(
+                plate: "ไม่มีข้อมูล",
+                vehicle: "กรุณาเพิ่มยานพาหนะ",
+                hasWarning: true,
+                onTap: () {
+                  _showUpdateVehicleSheet(context, ref, "", "");
+                },
+              ),
 
-            _VehicleTile(
-              plate: "5ขง 933",
-              vehicle: "HONDA CLICK",
-              hasWarning: true,
-            ),
-
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
 
             _SectionHeader(title: "เอกสาร"),
 
@@ -83,6 +103,80 @@ class EditProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showUpdateVehicleSheet(BuildContext context, WidgetRef ref, String currentPlate, String currentModel) {
+    final plateController = TextEditingController(text: currentPlate);
+    final modelController = TextEditingController(text: currentModel);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E2F38),
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "อัปเดตข้อมูลยานพาหนะ",
+                style: AppTypography.heading3.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: plateController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "ป้ายทะเบียน",
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: modelController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "รุ่น/ยี่ห้อ (เช่น HONDA CLICK)",
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.foundationOrange600,
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final success = await ref.read(profileControllerProvider.notifier).updateVehicleDetails({
+                      "vehicle_plate": plateController.text,
+                      "vehicle_model": modelController.text,
+                    });
+                    if (success) {
+                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
+                    } else {
+                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
+                    }
+                  },
+                  child: const Text("บันทึก"),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -181,12 +275,14 @@ class _VehicleTile extends StatelessWidget {
   final String vehicle;
   final bool isPrimary;
   final bool hasWarning;
+  final VoidCallback? onTap;
 
   const _VehicleTile({
     required this.plate,
     required this.vehicle,
     this.isPrimary = false,
     this.hasWarning = false,
+    this.onTap,
   });
 
   @override
@@ -216,6 +312,7 @@ class _VehicleTile extends StatelessWidget {
                   Icons.chevron_right,
                   color: AppColors.semanticGrayNeutralFgLowOnGray,
                 ),
+          onTap: onTap,
         ),
         const Divider(color: Colors.white12, height: 1),
       ],

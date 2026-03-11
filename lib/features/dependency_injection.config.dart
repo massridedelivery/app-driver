@@ -9,6 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:massdrive/core/managers/deeplink_manager.dart' as _i822;
@@ -30,8 +31,11 @@ import 'package:massdrive/features/auth/domain/usecase/register_usecase.dart'
     as _i444;
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart'
     as _i244;
+import 'package:massdrive/features/dependency_injection.dart' as _i330;
 import 'package:massdrive/features/document_registration/data/repositories/document_registration_repository_impl.dart'
     as _i749;
+import 'package:massdrive/features/document_registration/data/sources/document_registration_api.dart'
+    as _i639;
 import 'package:massdrive/features/document_registration/data/sources/mock_document_registration_api.dart'
     as _i583;
 import 'package:massdrive/features/document_registration/domain/repositories/document_registration_repository.dart'
@@ -46,6 +50,14 @@ import 'package:massdrive/features/income/domain/repositories/wallet_repository.
     as _i424;
 import 'package:massdrive/features/income/domain/usecase/get_wallet_type_usecase.dart'
     as _i189;
+import 'package:massdrive/features/profile/data/repositories/profile_repository_impl.dart'
+    as _i448;
+import 'package:massdrive/features/profile/data/sources/mock_profile_api_service.dart'
+    as _i589;
+import 'package:massdrive/features/profile/data/sources/profile_api_service.dart'
+    as _i190;
+import 'package:massdrive/features/profile/domain/repositories/profile_repository.dart'
+    as _i610;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -54,24 +66,42 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final networkModule = _$NetworkModule();
     gh.singleton<_i822.DeeplinkManager>(() => _i822.DeeplinkManager());
+    gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i583.MockDocumentRegistrationApi>(
       () => _i583.MockDocumentRegistrationApi(),
     );
-    gh.lazySingleton<_i540.AuthApiService>(() => _i425.AuthApiServiceImpl());
-    gh.lazySingleton<_i84.DocumentRegistrationRepository>(
-      () => _i749.DocumentRegistrationRepositoryImpl(
-        gh<_i583.MockDocumentRegistrationApi>(),
-      ),
+    gh.lazySingleton<_i589.MockProfileApiService>(
+      () => _i589.MockProfileApiService(),
     );
+    gh.lazySingleton<_i190.ProfileApiService>(
+      () => _i190.ProfileApiServiceImpl(),
+    );
+    gh.lazySingleton<_i540.AuthApiService>(() => _i425.AuthApiServiceImpl());
     gh.lazySingleton<_i1030.WalletApiService>(
       () => _i119.WalletApiServiceImpl(),
+    );
+    gh.lazySingleton<_i639.DocumentRegistrationApi>(
+      () => _i639.DocumentRegistrationApi(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i84.DocumentRegistrationRepository>(
+      () => _i749.DocumentRegistrationRepositoryImpl(
+        gh<_i639.DocumentRegistrationApi>(),
+        gh<_i583.MockDocumentRegistrationApi>(),
+      ),
     );
     gh.lazySingleton<_i424.WalletRepository>(
       () => _i524.WalletRepositoryImpl(gh<_i1030.WalletApiService>()),
     );
     gh.lazySingleton<_i600.AuthRepository>(
       () => _i48.AuthRepositoryImpl(gh<_i540.AuthApiService>()),
+    );
+    gh.lazySingleton<_i610.ProfileRepository>(
+      () => _i448.ProfileRepositoryImpl(
+        gh<_i190.ProfileApiService>(),
+        gh<_i589.MockProfileApiService>(),
+      ),
     );
     gh.lazySingleton<_i621.LoginWithPhoneUseCase>(
       () => _i621.LoginWithPhoneUseCase(gh<_i600.AuthRepository>()),
@@ -94,3 +124,5 @@ extension GetItInjectableX on _i174.GetIt {
     return this;
   }
 }
+
+class _$NetworkModule extends _i330.NetworkModule {}

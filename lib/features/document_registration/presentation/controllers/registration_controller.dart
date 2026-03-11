@@ -20,6 +20,28 @@ class RegistrationController extends _$RegistrationController {
     return const RegistrationState();
   }
 
+  void setTier(KycTier? tier) {
+    if (tier == null) {
+      state = RegistrationState(
+        isLoading: state.isLoading,
+        errorMessage: state.errorMessage,
+        isProfileComplete: state.isProfileComplete,
+        isProfilePhotoComplete: state.isProfilePhotoComplete,
+        isIdCardComplete: state.isIdCardComplete,
+        isDrivingLicenseComplete: state.isDrivingLicenseComplete,
+        isVehicleInfoComplete: state.isVehicleInfoComplete,
+        isVehiclePhotoComplete: state.isVehiclePhotoComplete,
+        isInsuranceComplete: state.isInsuranceComplete,
+        isBankAccountComplete: state.isBankAccountComplete,
+        isConsentGiven: state.isConsentGiven,
+        selectedTier: null,
+        overallStatus: state.overallStatus,
+      );
+    } else {
+      state = state.copyWith(selectedTier: tier);
+    }
+  }
+
   Future<void> fetchStatus() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -37,7 +59,11 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _repository.updateProfile(info);
-      state = state.copyWith(isLoading: false, isProfileComplete: true);
+      state = state.copyWith(
+        isLoading: false,
+        isProfileComplete: true,
+        profileInfo: info,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -48,7 +74,12 @@ class RegistrationController extends _$RegistrationController {
   Future<bool> uploadDocument(File file, DocumentType type) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      await _repository.uploadDocument(file, type);
+      String purpose = 'driver_document';
+      if (type == DocumentType.vehicleRegistration || type == DocumentType.vehiclePhoto) {
+        purpose = 'vehicle_document';
+      }
+      
+      await _repository.uploadDocument(file, type, purpose: purpose);
       
       // Update the specific flag based on the document type
       bool isProfilePhoto = state.isProfilePhotoComplete;
@@ -77,6 +108,9 @@ class RegistrationController extends _$RegistrationController {
           break;
       }
       
+      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+      updatedDocs[type] = file.path;
+
       state = state.copyWith(
         isLoading: false,
         isProfilePhotoComplete: isProfilePhoto,
@@ -84,6 +118,7 @@ class RegistrationController extends _$RegistrationController {
         isDrivingLicenseComplete: isDrivingLicense,
         isVehiclePhotoComplete: isVehiclePhoto,
         isInsuranceComplete: isInsurance,
+        uploadedDocuments: updatedDocs,
       );
       
       return true;
@@ -97,11 +132,21 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (greenBookFile != null) {
-        await _repository.uploadDocument(greenBookFile, DocumentType.vehicleRegistration);
+        await _repository.uploadDocument(greenBookFile, DocumentType.vehicleRegistration, purpose: 'vehicle_document');
       }
       await _repository.submitVehicleDetails(info);
       
-      state = state.copyWith(isLoading: false, isVehicleInfoComplete: true);
+      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+      if (greenBookFile != null) {
+        updatedDocs[DocumentType.vehicleRegistration] = greenBookFile.path;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        isVehicleInfoComplete: true,
+        vehicleInfo: info,
+        uploadedDocuments: updatedDocs,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -113,11 +158,21 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (passbookFile != null) {
-        await _repository.uploadDocument(passbookFile, DocumentType.bankPassbook);
+        await _repository.uploadDocument(passbookFile, DocumentType.bankPassbook, purpose: 'bank_document');
       }
       await _repository.submitBankDetails(info);
       
-      state = state.copyWith(isLoading: false, isBankAccountComplete: true);
+      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+      if (passbookFile != null) {
+        updatedDocs[DocumentType.bankPassbook] = passbookFile.path;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        isBankAccountComplete: true,
+        bankAccountInfo: info,
+        uploadedDocuments: updatedDocs,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());

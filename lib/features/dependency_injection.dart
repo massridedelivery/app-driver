@@ -6,7 +6,13 @@ import 'dependency_injection.config.dart';
 
 final getIt = GetIt.instance;
 
+@module
+abstract class NetworkModule {
+  @lazySingleton
+  Dio get dio => Dio();
+}
+
 @InjectableInit()
 void configureDependencies(String env) => getIt.init(environment: env);
 
-final dioProvider = Provider<Dio>((ref) => Dio());
+final dioProvider = Provider<Dio>((ref) => GetIt.I<Dio>());

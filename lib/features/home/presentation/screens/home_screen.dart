@@ -3,14 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
@@ -240,17 +244,179 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onlineStatusProvider.notifier).initStatus();
+      ref.read(profileControllerProvider.notifier).fetchProfile();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(profileControllerProvider);
+    final profile = profileState.profile;
+    final isVerified = profile?.verified ?? false;
+
     // Ensure IncomingJobController is initialized early to catch WebSocket messages
     ref.watch(incomingJobControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-      body: Stack(children: [_buildMap(), _buildBottomSheet()]),
+      body: Stack(
+        children: [
+          _buildMap(),
+          profileState.isLoading || profileState.profile == null
+              ? _buildSkeletonLoading()
+              : (isVerified
+                  ? _buildBottomSheet()
+                  : _buildUnverifiedBottomSheet()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoading() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFF1E2F38),
+        highlightColor: const Color(0xFF2C3E4A),
+        child: Container(
+          width: double.infinity,
+          height: 350,
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E2F38),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: Colors.white12,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 200,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 180,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= UNVERIFIED UI =================
+
+  Widget _buildUnverifiedBottomSheet() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E2F38), // Matches the premium dark blue from image
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_sharp, color: Colors.white70, size: 56),
+                const SizedBox(height: 20),
+                Text(
+                  'ส่งเอกสารสมัครคนขับ',
+                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'ใกล้จะเสร็จแล้ว!\nโปรดยื่นเอกสารสมัครขับรถของคุณเพื่อเป็นคนขับ Mass\n\nติดต่อ 089-9999999',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption4.copyWith(
+                    color: Colors.white70,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.foundationOrange600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      context.push(
+                        AppRoutes.documentRegistrationChecklistNamedPage,
+                      );
+                    },
+                    child: Text(
+                      'ไปที่ลงทะเบียนคนขับ',
+                      style: AppTypography.caption3.copyWith(
+                        color: AppColors.semanticGrayNeutralFgWhite,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

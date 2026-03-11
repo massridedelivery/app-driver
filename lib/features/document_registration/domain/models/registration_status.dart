@@ -8,6 +8,12 @@ enum DocumentType {
   bankPassbook,
 }
 
+enum KycTier {
+  food,
+  ride,
+  both,
+}
+
 enum RegistrationStateStatus {
   pending,
   inReview,

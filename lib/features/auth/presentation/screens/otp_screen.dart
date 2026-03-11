@@ -169,7 +169,7 @@ class OtpScreen extends ConsumerWidget {
                             phoneNumber,
                           );
                           if (success && context.mounted) {
-                            context.go(AppRoutes.documentRegistrationChecklistNamedPage);
+                            context.go(AppRoutes.homeNamedPage);
                           }
                         },
                   style: ElevatedButton.styleFrom(
