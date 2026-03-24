@@ -23,7 +23,9 @@ class EmailLoginController extends _$EmailLoginController {
   Future<bool> loginWithEmail() async {
     debugPrint('EmailLoginController.loginWithEmail called: ${state.email}');
     if (state.email.isEmpty || !state.email.contains('@')) {
-      state = state.copyWith(errorMessage: 'Please enter a valid email address');
+      state = state.copyWith(
+        errorMessage: 'Please enter a valid email address',
+      );
       return false;
     }
     if (state.password.isEmpty) {
@@ -35,7 +37,7 @@ class EmailLoginController extends _$EmailLoginController {
     try {
       final loginUseCase = getIt<LoginWithEmailUseCase>();
       await loginUseCase.execute(state.email, state.password);
-      
+
       // Refresh AuthController to update global auth state (like Phone Login does)
       ref.read(authControllerProvider.notifier).refresh();
 

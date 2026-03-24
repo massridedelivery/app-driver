@@ -7,7 +7,8 @@ class AppAssets {
   static const String arrowRightIcon = 'icons/ic_arrow_right';
   static const String arrowUpIcon = 'icons/ic_arrow_up';
   static const String rotationArrow = 'icons/ic_rotation_arrow';
-  static const String arrowDiagonal45RectangleIcon = 'icons/ic_arrow_diagonal_45_rectangle';
+  static const String arrowDiagonal45RectangleIcon =
+      'icons/ic_arrow_diagonal_45_rectangle';
 
   // Avatar Placeholder Image
   static const String avatarPlaceholderImage = 'img_avatar_placeholder';

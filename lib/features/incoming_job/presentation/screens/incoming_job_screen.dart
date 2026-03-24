@@ -20,8 +20,6 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-
     final incomingJobState = ref.watch(incomingJobControllerProvider);
     final job = incomingJobState.currentJob;
 

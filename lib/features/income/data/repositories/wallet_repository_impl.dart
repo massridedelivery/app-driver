@@ -15,4 +15,24 @@ class WalletRepositoryImpl implements WalletRepository {
     final response = await _apiService.getWalletType();
     return WalletResponseModel.fromJson(response).toEntity();
   }
+
+  @override
+  Future<Map<String, dynamic>> getPayouts() async {
+    return await _apiService.getPayouts();
+  }
+
+  @override
+  Future<Map<String, dynamic>> requestPayout(Map<String, dynamic> data) async {
+    return await _apiService.requestPayout(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> topup(Map<String, dynamic> data) async {
+    return await _apiService.topup(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getCodStatus() async {
+    return await _apiService.getCodStatus();
+  }
 }

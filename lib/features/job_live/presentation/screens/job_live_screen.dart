@@ -360,15 +360,20 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           switch (_currentState) {
             case JobLiveState.headingToPickup:
               _currentState = JobLiveState.arrivedAtPickup;
-              if (jobId != null)
+              if (jobId != null) {
                 socket.updateJobStatus(jobId, 'ARRIVED_AT_PICKUP');
+              }
               break;
             case JobLiveState.arrivedAtPickup:
               _currentState = JobLiveState.headingToDropoff;
-              if (jobId != null) socket.updateJobStatus(jobId, 'PICKED_UP');
+              if (jobId != null) {
+                socket.updateJobStatus(jobId, 'PICKED_UP');
+              }
               break;
             case JobLiveState.headingToDropoff:
-              if (jobId != null) socket.updateJobStatus(jobId, 'COMPLETED');
+              if (jobId != null) {
+                socket.updateJobStatus(jobId, 'COMPLETED');
+              }
               context.push('/payment');
               break;
           }

@@ -8,18 +8,9 @@ enum DocumentType {
   bankPassbook,
 }
 
-enum KycTier {
-  food,
-  ride,
-  both,
-}
+enum KycTier { food, ride, both }
 
-enum RegistrationStateStatus {
-  pending,
-  inReview,
-  approved,
-  rejected,
-}
+enum RegistrationStateStatus { pending, inReview, approved, rejected }
 
 class RegistrationStatusInfo {
   final RegistrationStateStatus status;

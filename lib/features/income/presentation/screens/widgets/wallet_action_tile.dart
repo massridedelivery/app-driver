@@ -80,7 +80,9 @@ class WalletActionTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.foundationRed700.withOpacity(0.3),
+                              color: AppColors.foundationRed700.withOpacity(
+                                0.3,
+                              ),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),

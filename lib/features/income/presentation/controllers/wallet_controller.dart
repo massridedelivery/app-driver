@@ -20,7 +20,7 @@ class WalletController extends _$WalletController {
     try {
       final getWalletTypeUseCase = getIt<GetWalletTypeUseCase>();
       final response = await getWalletTypeUseCase.execute();
-      
+
       state = state.copyWith(
         isLoading: false,
         cashBalance: response.cashBalance,

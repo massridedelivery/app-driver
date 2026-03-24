@@ -2,27 +2,27 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
+import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 class OnlineStatus extends Notifier<bool> {
-  StreamSubscription<Position>? _positionStreamSubscription;
-  Timer? _fallbackTimer;
-
   // Default Bangkok center for emulator testing
   static const double defaultLat = 13.7563;
   static const double defaultLng = 100.5018;
@@ -33,51 +33,30 @@ class OnlineStatus extends Notifier<bool> {
       previous,
       next,
     ) {
-      next.listen((connected) {
+      (next as Stream<bool>).listen((connected) {
         if (connected && state) {
           debugPrint(
-            'OnlineStatus: Connection successful and driver is online. Sending location_update.',
+            'OnlineStatus: Connection successful and driver is online. Starting location updates.',
           );
-          _sendInitialLocation();
+          ref.read(locationServiceProvider).startLocationUpdates();
         }
       });
     });
 
-    ref.onDispose(() {
-      _positionStreamSubscription?.cancel();
-      _fallbackTimer?.cancel();
-    });
     return false;
   }
 
-  Future<void> _sendInitialLocation() async {
-    try {
-      final socketService = ref.read(socketServiceProvider);
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      if (socketService.isConnected) {
-        socketService.sendLocationUpdate(position.latitude, position.longitude);
-
-        // Center map on real location
-        final controller = ref.read(mapControllerProvider);
-        controller?.animateCamera(
-          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
-        );
-      }
-    } catch (e) {
-      debugPrint('OnlineStatus Initial Location Error: $e');
-    }
-  }
-
-  Future<void> initStatus() async {
+  Future<void> initStatus(BuildContext context) async {
     try {
       final res = await ref.read(homeApiServiceProvider).fetchDriverStatus();
       if (res.isSuccessful && res.data != null) {
-        final status = res.data['status'];
-        if (status == 'online') {
-          // If already online, skip the goOnline API call
+        final status = res.data['status']?.toString().toUpperCase();
+        debugPrint('OnlineStatus: Driver Initial Status (Normalized): $status');
+
+        if (status == 'BUSY' || status == 'ON_TRIP') {
+          // Check for active job and redirect
+          await _checkAndRedirectToActiveJob(context);
+        } else if (status == 'ONLINE') {
           await setStatus(true, skipApiCall: true);
         } else {
           await setStatus(false);
@@ -88,100 +67,85 @@ class OnlineStatus extends Notifier<bool> {
     }
   }
 
+  Future<void> _checkAndRedirectToActiveJob(BuildContext context) async {
+    try {
+      final repo = getIt<JobLiveRepository>();
+
+      // 1. Try Active Job (Ride)
+      dynamic activeData = await repo.getActiveJob();
+
+      // 2. Try Active Offer (Ride) if 1 fails
+      activeData ??= await repo.getActiveOffer();
+
+      // 3. Try Active Food Order if others fail
+      activeData ??= await repo.getActiveFoodOrder();
+
+      if (activeData != null) {
+        debugPrint('OnlineStatus: Found active job/order. Redirecting...');
+
+        Map<String, dynamic>? jobJson;
+
+        if (activeData is Map<String, dynamic>) {
+          if (activeData.containsKey('job')) {
+            jobJson = activeData['job'];
+          } else {
+            jobJson = activeData;
+          }
+        } else if (activeData is List && activeData.isNotEmpty) {
+          final firstItem = activeData.first;
+          if (firstItem is Map<String, dynamic>) {
+            jobJson = firstItem;
+          }
+        }
+
+        if (jobJson != null) {
+          final job = IncomingJobModel.fromJson(jobJson);
+          ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
+
+          if (context.mounted) {
+            context.go('/job-live');
+          }
+        } else {
+          debugPrint('OnlineStatus: Active data found but could not parse job JSON.');
+        }
+      } else {
+        debugPrint(
+          'OnlineStatus: Status is BUSY but no active job found on any endpoint.',
+        );
+      }
+    } catch (e) {
+      debugPrint('OnlineStatus: Error checking active job: $e');
+    }
+  }
+
   Future<void> setStatus(bool value, {bool skipApiCall = false}) async {
     if (value == state) return;
 
     final socketService = ref.read(socketServiceProvider);
+    final locationService = ref.read(locationServiceProvider);
 
     if (value) {
-      // Check location permissions before going online
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return; // You might want to show a dialog here
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          return;
-        }
-      }
-
-      // Set Online via API first (required by Backend to receive jobs/allow connection)
-      // Skip if already online according to /api/driver/status
+      // Set Online via API first
       if (!skipApiCall) {
         try {
           final res = await ref.read(homeApiServiceProvider).goOnline();
-          if (!res.isSuccessful) {
-            throw Exception('Failed to go online');
-          }
+          if (!res.isSuccessful) throw Exception('Failed to go online');
         } catch (e) {
           debugPrint('Go Online API Error: $e');
           rethrow;
         }
       }
 
-      // Connect WebSocket and wait for it to be ready
+      // Connect WebSocket
       await socketService.connect();
 
-      // Send initial location - only after successful connection
-      await _sendInitialLocation();
-
-      // Start location stream with optimized settings
-      _positionStreamSubscription =
-          Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              distanceFilter: 10, // Send update if moved 10 meters
-            ),
-          ).listen((Position position) {
-            if (ref.read(socketServiceProvider).isConnected) {
-              debugPrint(
-                'OnlineStatus: Moving - Sending location_update (${position.latitude}, ${position.longitude})',
-              );
-              socketService.sendLocationUpdate(
-                position.latitude,
-                position.longitude,
-              );
-            }
-          });
-
-      // Periodic Fallback: Send update every 30 seconds even if stationary
-      _fallbackTimer?.cancel();
-      _fallbackTimer = Timer.periodic(const Duration(seconds: 30), (
-        timer,
-      ) async {
-        if (!state) {
-          timer.cancel();
-          return;
-        }
-
-        try {
-          final socketService = ref.read(socketServiceProvider);
-          if (socketService.isConnected) {
-            Position position = await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.high,
-            );
-            debugPrint(
-              'OnlineStatus: Stationary - Sending periodic fallback location_update',
-            );
-            socketService.sendLocationUpdate(
-              position.latitude,
-              position.longitude,
-            );
-          }
-        } catch (e) {
-          debugPrint('OnlineStatus Fallback Update Error: $e');
-        }
-      });
+      // Start precise 5s location updates
+      await locationService.startLocationUpdates();
 
       state = true;
     } else {
       // Go offline
-      await _positionStreamSubscription?.cancel();
-      _positionStreamSubscription = null;
-      _fallbackTimer?.cancel();
-      _fallbackTimer = null;
+      locationService.stopLocationUpdates();
 
       try {
         await ref.read(homeApiServiceProvider).goOffline();
@@ -242,9 +206,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(onlineStatusProvider.notifier).initStatus();
-      ref.read(profileControllerProvider.notifier).fetchProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      debugPrint('HomeScreen: initState - Calling fetchProfile()');
+      final profileNotifier = ref.read(profileControllerProvider.notifier);
+      await profileNotifier.fetchProfile();
+
+      final profile = ref.read(profileControllerProvider).profile;
+      debugPrint(
+        'HomeScreen: fetchProfile() finished. Verified: ${profile?.isVerified}',
+      );
+
+      if (profile?.isVerified == true) {
+        debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
+        ref.read(onlineStatusProvider.notifier).initStatus(context);
+      } else {
+        debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
+      }
     });
   }
 
@@ -252,7 +229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
-    final isVerified = profile?.verified ?? false;
+    final isVerified = profile?.isVerified ?? false;
 
     // Ensure IncomingJobController is initialized early to catch WebSocket messages
     ref.watch(incomingJobControllerProvider);
@@ -265,8 +242,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()
               : (isVerified
-                  ? _buildBottomSheet()
-                  : _buildUnverifiedBottomSheet()),
+                    ? _buildBottomSheet()
+                    : _buildUnverifiedBottomSheet()),
         ],
       ),
     );
@@ -614,17 +591,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       childAspectRatio: 1,
       children: [
         _circleMenu(Icons.card_giftcard, "รายได้", () {
-          AppNavigator.push(context, const IncomeScreen());
+          AppNavigator.push(context, IncomeScreen());
         }),
         _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
-          AppNavigator.push(context, const ServiceTypeScreen());
+          AppNavigator.push(context, ServiceTypeScreen());
         }),
         _circleMenu(Icons.location_on, "ปลายทางของฉัน", () {}),
         _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
-          AppNavigator.push(context, const ProfileScreen());
+          AppNavigator.push(context, ProfileScreen());
         }),
         _circleMenu(Icons.settings_sharp, "การตั้งค่า", () {
-          AppNavigator.push(context, const SettingScreen());
+          AppNavigator.push(context, SettingScreen());
         }),
       ],
     );

@@ -22,7 +22,10 @@ class EmailLoginScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.semanticGrayNeutralFgHigh),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: AppColors.semanticGrayNeutralFgHigh,
+          ),
           onPressed: () => context.pop(),
         ),
       ),
@@ -46,7 +49,7 @@ class EmailLoginScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Email Field
               Container(
                 decoration: BoxDecoration(
@@ -95,7 +98,7 @@ class EmailLoginScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Password Field
               Container(
                 decoration: BoxDecoration(
@@ -143,7 +146,7 @@ class EmailLoginScreen extends ConsumerWidget {
                   onChanged: controller.updatePassword,
                 ),
               ),
-              
+
               if (state.errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
@@ -200,7 +203,7 @@ class EmailLoginScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Register Link
               TextButton(
                 onPressed: () => context.push(AppRoutes.registerNamedPage),

@@ -23,11 +23,11 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> verifyOtp(String phone, String otp) async {
     final response = await _apiService.verifyOtp(phone, otp);
     final user = UserModel.fromJson(response);
-    
+
     // Store token securely
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
-    
+
     return user;
   }
 
@@ -41,23 +41,25 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> loginWithEmail(String email, String password) async {
     final response = await _apiService.loginWithEmail(email, password);
     final user = UserModel.fromJson(response);
-    
+
     // Store token securely
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
-    
+
     return user;
   }
 
   @override
   Future<UserEntity> register(RegisterRequest request) async {
-    final response = await _apiService.register(RegisterRequestModel.fromEntity(request));
+    final response = await _apiService.register(
+      RegisterRequestModel.fromEntity(request),
+    );
     final user = UserModel.fromJson(response);
-    
+
     // Store token securely
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
-    
+
     return user;
   }
 }

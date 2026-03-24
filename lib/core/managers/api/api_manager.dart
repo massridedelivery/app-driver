@@ -19,6 +19,8 @@ import 'package:massdrive/features/auth/presentation/controllers/auth_controller
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:massdrive/features/dependency_injection.dart';
+
 part 'api_manager.g.dart';
 
 class ResponseData {
@@ -43,27 +45,16 @@ extension ResponseDataExtension on ResponseData {
 }
 
 class ApiManager {
-  factory ApiManager(Ref ref) => ApiManager._internal(ref);
+  factory ApiManager(Ref ref) => ApiManager._internal(ref, getIt<dio_client.Dio>());
 
   String baseUrl = 'https://driver-api-dev.nutchaphut.dev';
-  final dio = dio_client.Dio();
+  final dio_client.Dio dio;
   final box = GetStorage();
   final _secureStorage = SecureStorageManager();
 
   late final Ref ref;
 
-  ApiManager._internal(this.ref) {
-    dio.interceptors.add(
-      AppDioLoggerInterceptor(LoggerManager.instance.talker),
-    );
-    dio.interceptors.add(
-      AppDioRefreshTokenInterceptor(
-        secureStorage: _secureStorage,
-        dio: dio,
-        authController: ref.read(authControllerProvider.notifier),
-      ),
-    );
-  }
+  ApiManager._internal(this.ref, this.dio);
 
   Future<ResponseData> fetchApi({
     required String endPoint,
@@ -98,8 +89,9 @@ class ApiManager {
 
     try {
       dio.options.headers['app-version'] = await Device.getAppVersion();
-      dio.options.headers['device-models'] =
-          Device.isAndroid ? 'Android' : 'iOS';
+      dio.options.headers['device-models'] = Device.isAndroid
+          ? 'Android'
+          : 'iOS';
       dio.options.headers['os-device'] = await Device.getOSVersion();
     } catch (e) {
       debugPrint('ApiManager Header Error: $e');

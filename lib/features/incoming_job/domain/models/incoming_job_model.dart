@@ -12,10 +12,16 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'id') required String jobId,
     @JsonKey(name: 'pickup_address') required String pickupAddress,
     @JsonKey(name: 'dropoff_address') required String dropoffAddress,
-    @JsonKey(name: 'pickup_address_detail') @Default('') String pickupAddressDetail,
-    @JsonKey(name: 'dropoff_address_detail') @Default('') String dropoffAddressDetail,
+    @JsonKey(name: 'pickup_address_detail')
+    @Default('')
+    String pickupAddressDetail,
+    @JsonKey(name: 'dropoff_address_detail')
+    @Default('')
+    String dropoffAddressDetail,
     @JsonKey(name: 'pickup_distance_km') @Default(0.0) double pickupDistanceKm,
-    @JsonKey(name: 'dropoff_distance_km') @Default(0.0) double dropoffDistanceKm,
+    @JsonKey(name: 'dropoff_distance_km')
+    @Default(0.0)
+    double dropoffDistanceKm,
     @JsonKey(name: 'pickup_lat') required double pickupLat,
     @JsonKey(name: 'pickup_lng') required double pickupLng,
     @JsonKey(name: 'dropoff_lat') required double dropoffLat,
@@ -27,6 +33,10 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'passenger_name') @Default('Passenger') String passengerName,
     @JsonKey(name: 'item_summary') @Default('') String itemSummary,
     @JsonKey(name: 'timeout_seconds') @Default(30) int timeoutSeconds,
+    @JsonKey(name: 'surge_multiplier') @Default(1.0) double surgeMultiplier,
+    @JsonKey(name: 'surge_active') @Default(false) bool surgeActive,
+    @JsonKey(name: 'is_scheduled') @Default(false) bool isScheduled,
+    @JsonKey(name: 'scheduled_at') String? scheduledAt,
   }) = _IncomingJobModel;
 
   factory IncomingJobModel.fromJson(Map<String, dynamic> json) =>

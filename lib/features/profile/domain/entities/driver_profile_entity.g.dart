@@ -14,7 +14,7 @@ _DriverProfileEntity _$DriverProfileEntityFromJson(
   phone: json['phone'] as String?,
   rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
   totalTrips: (json['total_trips'] as num?)?.toInt() ?? 0,
-  verified: json['verified'] as bool? ?? false,
+  isVerified: json['is_verified'] as bool? ?? false,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentEntity.fromJson(e as Map<String, dynamic>))
@@ -38,6 +38,7 @@ _DriverProfileEntity _$DriverProfileEntityFromJson(
   balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
   commissionRate: (json['commission_rate'] as num?)?.toDouble() ?? 0.0,
   incentiveTier: json['incentive_tier'] as String?,
+  loyaltyPoints: (json['loyalty_points'] as num?)?.toInt() ?? 0,
   acceptanceRate: (json['acceptance_rate'] as num?)?.toDouble() ?? 0.0,
   cancellationRate: (json['cancellation_rate'] as num?)?.toDouble() ?? 0.0,
   weeklyCompletedJobs: (json['weekly_completed_jobs'] as num?)?.toInt() ?? 0,
@@ -52,7 +53,7 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
   'phone': instance.phone,
   'rating': instance.rating,
   'total_trips': instance.totalTrips,
-  'verified': instance.verified,
+  'is_verified': instance.isVerified,
   'documents': instance.documents,
   'vehicle_type_ids': instance.vehicleTypeIds,
   'vehicle_types': instance.vehicleTypes,
@@ -64,6 +65,7 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
   'balance': instance.balance,
   'commission_rate': instance.commissionRate,
   'incentive_tier': instance.incentiveTier,
+  'loyalty_points': instance.loyaltyPoints,
   'acceptance_rate': instance.acceptanceRate,
   'cancellation_rate': instance.cancellationRate,
   'weekly_completed_jobs': instance.weeklyCompletedJobs,
@@ -76,6 +78,7 @@ _DocumentEntity _$DocumentEntityFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String,
       mediaUrl: json['media_url'] as String?,
       reviewedAt: json['reviewed_at'] as String?,
+      rejectionReason: json['rejection_reason'] as String?,
     );
 
 Map<String, dynamic> _$DocumentEntityToJson(_DocumentEntity instance) =>
@@ -84,6 +87,7 @@ Map<String, dynamic> _$DocumentEntityToJson(_DocumentEntity instance) =>
       'status': instance.status,
       'media_url': instance.mediaUrl,
       'reviewed_at': instance.reviewedAt,
+      'rejection_reason': instance.rejectionReason,
     };
 
 _VehicleTypeEntity _$VehicleTypeEntityFromJson(Map<String, dynamic> json) =>

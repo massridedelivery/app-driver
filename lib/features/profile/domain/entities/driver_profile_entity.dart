@@ -12,10 +12,12 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     String? phone,
     @Default(0.0) double rating,
     @JsonKey(name: 'total_trips') @Default(0) int totalTrips,
-    @Default(false) bool verified,
+    @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
     @Default([]) List<DocumentEntity> documents,
     @JsonKey(name: 'vehicle_type_ids') @Default([]) List<String> vehicleTypeIds,
-    @JsonKey(name: 'vehicle_types') @Default([]) List<VehicleTypeEntity> vehicleTypes,
+    @JsonKey(name: 'vehicle_types')
+    @Default([])
+    List<VehicleTypeEntity> vehicleTypes,
     @JsonKey(name: 'vehicle_plate') String? vehiclePlate,
     @JsonKey(name: 'vehicle_color') String? vehicleColor,
     @JsonKey(name: 'vehicle_model') String? vehicleModel,
@@ -24,6 +26,7 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     @Default(0.0) double balance,
     @JsonKey(name: 'commission_rate') @Default(0.0) double commissionRate,
     @JsonKey(name: 'incentive_tier') String? incentiveTier,
+    @JsonKey(name: 'loyalty_points') @Default(0) int loyaltyPoints,
     @JsonKey(name: 'acceptance_rate') @Default(0.0) double acceptanceRate,
     @JsonKey(name: 'cancellation_rate') @Default(0.0) double cancellationRate,
     @JsonKey(name: 'weekly_completed_jobs') @Default(0) int weeklyCompletedJobs,
@@ -41,6 +44,7 @@ sealed class DocumentEntity with _$DocumentEntity {
     required String status,
     @JsonKey(name: 'media_url') String? mediaUrl,
     @JsonKey(name: 'reviewed_at') String? reviewedAt,
+    @JsonKey(name: 'rejection_reason') String? rejectionReason,
   }) = _DocumentEntity;
 
   factory DocumentEntity.fromJson(Map<String, dynamic> json) =>

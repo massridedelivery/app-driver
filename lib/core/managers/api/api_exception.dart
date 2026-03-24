@@ -12,7 +12,7 @@ class ApiException implements Exception {
         data['code'] is int ? data['code'] as int : 0,
         status: data['status'] as String?,
         message: data['message'] as String?,
-        data: data['data'] as Map<String, dynamic>?
+        data: data['data'] as Map<String, dynamic>?,
       );
     }
     return const ApiException(0, message: 'Invalid error format');

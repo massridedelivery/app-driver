@@ -3,7 +3,8 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/features/auth/presentation/states/auth_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/dependency_injection.dart' as massdrive_di;
-import 'package:massdrive/features/auth/domain/usecase/logout_usecase.dart' as massdrive_logout;
+import 'package:massdrive/features/auth/domain/usecase/logout_usecase.dart'
+    as massdrive_logout;
 
 part 'auth_controller.g.dart';
 

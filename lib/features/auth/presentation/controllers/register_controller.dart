@@ -41,7 +41,7 @@ class RegisterController extends _$RegisterController {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       final registerUseCase = getIt<RegisterUseCase>();
-      
+
       final request = RegisterRequest(
         email: state.email,
         fullName: state.fullName,
@@ -51,7 +51,7 @@ class RegisterController extends _$RegisterController {
       );
 
       await registerUseCase.execute(request);
-      
+
       state = state.copyWith(isLoading: false);
       return true; // Navigate to Home
     } catch (e) {

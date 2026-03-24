@@ -2,35 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/constants/app_routes.dart'; // This import is used
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:massdrive/features/main/controllers/splash_controller.dart';
+import 'package:massdrive/features/splash_screen/presentation/controllers/app_startup_controller.dart';
+import 'package:massdrive/router/startup_destination.dart';
 
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final splashAsync = ref.watch(splashControllerProvider);
+    final startupAsync = ref.watch(appStartupControllerProvider);
 
-    splashAsync.when(
-      data: (_) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          final authState = await ref.read(authControllerProvider.future);
-          if (context.mounted) {
-            if (authState.isLogin) {
-              context.go(AppRoutes.homeNamedPage);
-            } else {
+    startupAsync.when(
+      data: (destination) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          switch (destination) {
+            case StartupDestination.onboarding:
               context.go(AppRoutes.loginNamedPage);
-            }
+              break;
+            case StartupDestination.home:
+              context.go(AppRoutes.homeNamedPage);
+              break;
           }
         });
       },
       loading: () {},
-      error: (e, _) {
-        debugPrint(e.toString());
-      },
+      error: (e, _) => debugPrint('Startup Error: $e'),
     );
 
     return Scaffold(

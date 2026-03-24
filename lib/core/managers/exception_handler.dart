@@ -31,7 +31,10 @@ class ExceptionHandle {
       connect_timeout_error,
       'Connection TimeOut',
     ),
-    send_timeout_error: const NetError(send_timeout_error, 'Send Connection TimeOut'),
+    send_timeout_error: const NetError(
+      send_timeout_error,
+      'Send Connection TimeOut',
+    ),
     receive_timeout_error: const NetError(
       receive_timeout_error,
       'Receive Connection TimeOut',

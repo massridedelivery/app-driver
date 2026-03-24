@@ -1,7 +1,7 @@
 import 'package:massdrive/features/home/data/models/home_model.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/domain/entities/home_entity.dart';
-import 'package:massdrive/features/home/domain/repositorues/home_repository.dart';
+import 'package:massdrive/features/home/domain/repositories/home_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'home_repository_impl.g.dart';

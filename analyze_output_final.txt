@@ -1,0 +1,72 @@
+Analyzing massDrive...                                          
+
+warning • Unused import: 'package:massdrive/router/app_routes.dart' • lib/common/widgets/navbar/scaffold_with_nav_bar.dart:20:8 • unused_import
+warning • Unused import: 'package:go_router/go_router.dart' • lib/core/managers/deeplink_manager.dart:3:8 • unused_import
+   info • Missing type annotation • lib/core/services/location_service.dart:10:33 • strict_top_level_inference
+   info • Missing type annotation • lib/core/services/socket_service.dart:15:29 • strict_top_level_inference
+warning • The declaration '_$RegisterRequestModelFromJson' isn't referenced • lib/features/auth/data/models/register_request_model.g.dart:9:22 • unused_element
+   info • Don't invoke 'print' in production code • lib/features/document_registration/data/repositories/document_registration_repository_impl.dart:51:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/document_registration/data/repositories/document_registration_repository_impl.dart:61:5 • avoid_print
+warning • The value of the local variable 'documents' isn't used • lib/features/document_registration/data/repositories/document_registration_repository_impl.dart:70:25 • unused_local_variable
+warning • Dead code • lib/features/document_registration/presentation/screens/basic_profile_form_screen.dart:35:66 • dead_code
+warning • The left operand can't be null, so the right operand is never executed • lib/features/document_registration/presentation/screens/basic_profile_form_screen.dart:35:69 • dead_null_aware_expression
+   info • Constructors for public widgets should have a named 'key' parameter • lib/features/history/presentation/widgets/date_selector.dart:4:9 • use_key_in_widget_constructors
+   info • Constructors for public widgets should have a named 'key' parameter • lib/features/history/presentation/widgets/history_toggle.dart:7:9 • use_key_in_widget_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/history_detail/presentation/screens/widgets/history_map_section.dart:20:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/history_detail/presentation/screens/widgets/payment_section.dart:24:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/history_detail/presentation/screens/widgets/service_info_section.dart:24:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/history_detail/presentation/screens/widgets/your_net_income_section.dart:24:33 • deprecated_member_use
+warning • Unused import: 'package:geolocator/geolocator.dart' • lib/features/home/presentation/screens/home_screen.dart:4:8 • unused_import
+warning • Unnecessary cast • lib/features/home/presentation/screens/home_screen.dart:33:8 • unnecessary_cast
+warning • The value of the field '_mapController' isn't used • lib/features/home/presentation/screens/home_screen.dart:131:24 • unused_field
+warning • The value of the field '_sheetSize' isn't used • lib/features/home/presentation/screens/home_screen.dart:133:10 • unused_field
+   info • Don't invoke 'print' in production code • lib/features/home/presentation/screens/home_screen.dart:426:11 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/home/presentation/screens/home_screen.dart:456:43 • deprecated_member_use
+warning • The declaration '_$WalletResponseModelToJson' isn't referenced • lib/features/income/data/models/wallet_response_model.g.dart:15:22 • unused_element
+warning • The value of the local variable 'token' isn't used • lib/features/income/data/sources/wallet_api_service_impl.dart:27:13 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/cash_wallet_screen.dart:44:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/cash_wallet_screen.dart:96:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/cash_wallet_screen.dart:99:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/cash_wallet_screen.dart:117:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/credit_wallet_screen.dart:103:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/credit_wallet_screen.dart:107:35 • deprecated_member_use
+warning • Unused import: 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart' • lib/features/income/presentation/screens/income_screen.dart:5:8 • unused_import
+warning • Unused import: 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart' • lib/features/income/presentation/screens/income_screen.dart:11:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/income_screen.dart:114:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/parallax_card.dart:34:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/parallax_card.dart:60:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/wallet_action_tile.dart:30:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/wallet_action_tile.dart:33:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/wallet_action_tile.dart:46:63 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/wallet_action_tile.dart:83:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/income/presentation/screens/widgets/wallet_action_tile.dart:105:61 • deprecated_member_use
+   info • 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/features/incoming_job/presentation/controllers/incoming_job_controller.dart:123:11 • deprecated_member_use
+warning • Unused import: 'package:massdrive/core/navigation/app_navigator.dart' • lib/features/incoming_job/presentation/screens/incoming_job_screen.dart:7:8 • unused_import
+warning • The value of the field '_minSize' isn't used • lib/features/job_live/presentation/screens/job_live_screen.dart:27:16 • unused_field
+warning • The value of the field '_initialSize' isn't used • lib/features/job_live/presentation/screens/job_live_screen.dart:28:16 • unused_field
+warning • The value of the field '_maxSize' isn't used • lib/features/job_live/presentation/screens/job_live_screen.dart:29:16 • unused_field
+warning • The value of the field '_currentSize' isn't used • lib/features/job_live/presentation/screens/job_live_screen.dart:31:10 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/job_live/presentation/screens/job_live_screen.dart:180:54 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/features/job_live/presentation/screens/job_live_screen.dart:364:17 • curly_braces_in_flow_control_structures
+   info • The imported package 'bloc' isn't a dependency of the importing package • lib/features/main/controllers/navigation_cubit.dart:1:8 • depend_on_referenced_packages
+   info • Missing type annotation • lib/features/main/screens/main_screen.dart:43:3 • strict_top_level_inference
+warning • The declaration '_buildInputRow' isn't referenced • lib/features/payment/presentation/screens/payment_screen.dart:369:10 • unused_element
+warning • Unused import: 'package:massdrive/core/managers/api/api_manager.dart' • lib/features/profile/data/sources/profile_api_service.dart:4:8 • unused_import
+warning • The declaration '_inAppUpdate' isn't referenced • lib/features/profile/presentation/screens/profile_screen.dart:108:8 • unused_element
+   info • The imported package 'provider' isn't a dependency of the importing package • lib/features/service_type/presentation/screens/service_type_screen.dart:8:8 • depend_on_referenced_packages
+   info • Unnecessary use of multiple underscores • lib/features/service_type/presentation/screens/service_type_screen.dart:44:39 • unnecessary_underscores
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/service_type/presentation/widget/service_toggle_tile.dart:31:60 • deprecated_member_use
+warning • The declaration '_SettingTile' isn't referenced • lib/features/setting/presentation/screens/setting_screen.dart:145:7 • unused_element
+warning • A value for optional parameter 'subtitle' isn't ever given • lib/features/setting/presentation/screens/setting_screen.dart:150:49 • unused_element_parameter
+warning • A value for optional parameter 'trailingText' isn't ever given • lib/features/setting/presentation/screens/setting_screen.dart:150:64 • unused_element_parameter
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/setting/presentation/screens/setting_screen.dart:249:13 • deprecated_member_use
+warning • Dead code • lib/features/splash_screen/presentation/controllers/app_startup_controller.dart:20:24 • dead_code
+warning • Dead code • lib/features/splash_screen/presentation/controllers/app_startup_controller.dart:21:22 • dead_code
+warning • Unused import: 'package:easy_localization/easy_localization.dart' • lib/features/splash_screen/presentation/screens/onboarding_screen.dart:1:8 • unused_import
+warning • Unused import: 'package:go_router/go_router.dart' • lib/features/splash_screen/presentation/screens/onboarding_screen.dart:4:8 • unused_import
+warning • Unused import: 'package:massdrive/core/constants/app_routes.dart' • lib/features/splash_screen/presentation/screens/onboarding_screen.dart:5:8 • unused_import
+warning • Unused import: 'package:massdrive/core/constants/enum/links.dart' • lib/features/splash_screen/presentation/screens/onboarding_screen.dart:6:8 • unused_import
+warning • Unused import: 'package:massdrive/core/managers/deeplink_manager.dart' • lib/features/splash_screen/presentation/screens/onboarding_screen.dart:7:8 • unused_import
+warning • The value of the field '_shellNavigatorKey' isn't used • lib/router/app_routes.dart:31:16 • unused_field
+
+68 issues found. (ran in 2.7s)

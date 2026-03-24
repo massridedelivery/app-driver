@@ -212,8 +212,14 @@ class _WeeklyOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _StatItem(value: "\${profile.acceptanceRate.toStringAsFixed(1)}%", label: "เปอร์เซ็นต์รับ"),
-              _StatItem(value: "\${profile.cancellationRate.toStringAsFixed(1)}%", label: "เปอร์เซ็นต์ยกเลิก"),
+              _StatItem(
+                value: "${profile.acceptanceRate.toStringAsFixed(1)}%",
+                label: "เปอร์เซ็นต์รับ",
+              ),
+              _StatItem(
+                value: "${profile.cancellationRate.toStringAsFixed(1)}%",
+                label: "เปอร์เซ็นต์ยกเลิก",
+              ),
             ],
           ),
         ],

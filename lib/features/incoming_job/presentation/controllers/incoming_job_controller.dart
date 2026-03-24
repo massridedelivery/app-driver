@@ -92,6 +92,10 @@ class IncomingJobController extends _$IncomingJobController {
     state = state.copyWith(currentJob: job, isModalVisible: true);
   }
 
+  void resumeJob(IncomingJobModel job) {
+    state = state.copyWith(currentJob: job, isModalVisible: false);
+  }
+
   void acceptJob() {
     final job = state.currentJob;
     if (job != null) {

@@ -1,28 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
-import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
-import 'package:massdrive/core/managers/logger_manager.dart';
 import 'package:massdrive/features/auth/data/models/register_request_model.dart';
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
 
 @LazySingleton(as: AuthApiService)
 class AuthApiServiceImpl implements AuthApiService {
-  late final Dio _dio;
+  final Dio _dio;
 
-  AuthApiServiceImpl() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: 'https://driver-api-dev.nutchaphut.dev',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
-    _dio.interceptors.add(
-      AppDioLoggerInterceptor(LoggerManager.instance.talker),
-    );
-  }
+  AuthApiServiceImpl(this._dio);
 
   @override
   Future<void> requestOtp(String phone) async {
@@ -122,6 +108,7 @@ class AuthApiServiceImpl implements AuthApiService {
     String fallbackPhone,
   ) async {
     try {
+      // Pass token explicitly since it might not be saved to storage yet
       final profileResponse = await _dio.get(
         Endpoints.driverProfile,
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),

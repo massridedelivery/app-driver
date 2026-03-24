@@ -13,12 +13,14 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
   AppDioRefreshTokenInterceptor({
     required this.secureStorage,
     required this.dio,
-    required this.authController,
+    this.authController,
+    this.onTokenExpired,
   });
 
   final SecureStorageManager secureStorage;
   final Dio dio;
-  final AuthController authController;
+  final AuthController? authController;
+  final FutureOr<void> Function()? onTokenExpired;
 
   static Completer<void>? _refreshCompleter;
 
@@ -117,13 +119,26 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
   }
 
   bool _isUnauthorized(DioException e) {
+    if (e.response == null) return false;
+
     final status = e.response?.statusCode;
-    return status == 401 || status == 403;
+    if (status == 401 || status == 403) return true;
+
+    // Check for specific backend error format
+    try {
+      final data = e.response?.data;
+      if (data is Map<String, dynamic> && data['error'] == 'missing authorization header') {
+        return true;
+      }
+    } catch (_) {}
+
+    return false;
   }
 
   Future<void> _clearToken() async {
     await secureStorage.deleteAll();
-    await authController.refresh();
+    await authController?.refresh();
+    await onTokenExpired?.call();
   }
 
   Future<bool> _refreshToken(String? currentRefresh) async {
@@ -139,10 +154,13 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
         return false;
       }
 
-      final data = response.data['data'];
-      if (data == null) return false;
+      // Support both structured data wrapper and flat json
+      final data = response.data;
+      final tokenData = data is Map && data.containsKey('data') ? data['data'] : data;
+      
+      if (tokenData == null) return false;
 
-      final authTokenModel = AuthTokenModel.fromJson(data);
+      final authTokenModel = AuthTokenModel.fromJson(tokenData);
       final accessToken = authTokenModel.accessToken;
       final refreshToken = authTokenModel.refreshToken;
 

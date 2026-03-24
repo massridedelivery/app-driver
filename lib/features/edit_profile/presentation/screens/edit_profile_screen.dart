@@ -72,7 +72,12 @@ class EditProfileScreen extends ConsumerWidget {
                 vehicle: profile.vehicleModel!,
                 isPrimary: true,
                 onTap: () {
-                  _showUpdateVehicleSheet(context, ref, profile.vehiclePlate!, profile.vehicleModel!);
+                  _showUpdateVehicleSheet(
+                    context,
+                    ref,
+                    profile.vehiclePlate!,
+                    profile.vehicleModel!,
+                  );
                 },
               )
             else
@@ -106,7 +111,12 @@ class EditProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showUpdateVehicleSheet(BuildContext context, WidgetRef ref, String currentPlate, String currentModel) {
+  void _showUpdateVehicleSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String currentPlate,
+    String currentModel,
+  ) {
     final plateController = TextEditingController(text: currentPlate);
     final modelController = TextEditingController(text: currentModel);
 
@@ -137,7 +147,9 @@ class EditProfileScreen extends ConsumerWidget {
                 decoration: const InputDecoration(
                   labelText: "ป้ายทะเบียน",
                   labelStyle: TextStyle(color: Colors.white70),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -147,7 +159,9 @@ class EditProfileScreen extends ConsumerWidget {
                 decoration: const InputDecoration(
                   labelText: "รุ่น/ยี่ห้อ (เช่น HONDA CLICK)",
                   labelStyle: TextStyle(color: Colors.white70),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -159,10 +173,12 @@ class EditProfileScreen extends ConsumerWidget {
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
-                    final success = await ref.read(profileControllerProvider.notifier).updateVehicleDetails({
-                      "vehicle_plate": plateController.text,
-                      "vehicle_model": modelController.text,
-                    });
+                    final success = await ref
+                        .read(profileControllerProvider.notifier)
+                        .updateVehicleDetails({
+                          "vehicle_plate": plateController.text,
+                          "vehicle_model": modelController.text,
+                        });
                     if (success) {
                       ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
                     } else {

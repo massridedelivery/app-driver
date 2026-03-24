@@ -10,7 +10,11 @@ class DocumentRegistrationApi {
 
   DocumentRegistrationApi(this.dio);
 
-  Future<Map<String, dynamic>> uploadDocument(File file, DocumentType type, {String purpose = 'driver_document'}) async {
+  Future<Map<String, dynamic>> uploadDocument(
+    File file,
+    DocumentType type, {
+    String purpose = 'driver_document',
+  }) async {
     // Determine content type based on file extension
     final ext = file.path.split('.').last.toLowerCase();
     String contentType = 'image/jpeg';
@@ -63,7 +67,7 @@ class DocumentRegistrationApi {
     // Step 2: Upload File Directly to Storage (R2)
     // Create a new Dio instance without interceptors so we don't send auth headers to R2
     final storageDio = Dio();
-    
+
     // Read file bytes
     final fileBytes = await file.readAsBytes();
 
@@ -81,10 +85,7 @@ class DocumentRegistrationApi {
     // Step 3: Confirm Document Upload
     final confirmResponse = await dio.post(
       Endpoints.documentConfirm,
-      data: {
-        "document_type": documentTypeStr,
-        "file_key": fileKey,
-      },
+      data: {"document_type": documentTypeStr, "file_key": fileKey},
     );
 
     return confirmResponse.data as Map<String, dynamic>;

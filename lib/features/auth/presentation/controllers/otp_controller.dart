@@ -20,7 +20,7 @@ class OtpController extends _$OtpController {
       state = state.copyWith(errorMessage: 'Please enter 6-digit OTP');
       return false;
     }
-    
+
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       final verifyOtpUseCase = getIt<VerifyOtpUseCase>();

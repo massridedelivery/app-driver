@@ -48,4 +48,4 @@ final class HomeApiServiceProvider
   }
 }
 
-String _$homeApiServiceHash() => r'ac18c842e77c1da75a1b4c0deb52e13027a0a19e';
+String _$homeApiServiceHash() => r'09333b0497cc1e6b527244daf98ffe26b23d059c';

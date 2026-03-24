@@ -18,7 +18,9 @@ class LoginState {
     return LoginState(
       phoneNumber: phoneNumber ?? this.phoneNumber,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage != null ? (errorMessage.isEmpty ? null : errorMessage) : this.errorMessage,
+      errorMessage: errorMessage != null
+          ? (errorMessage.isEmpty ? null : errorMessage)
+          : this.errorMessage,
     );
   }
 }

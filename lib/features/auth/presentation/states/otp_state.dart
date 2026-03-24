@@ -9,15 +9,13 @@ class OtpState {
     this.errorMessage,
   });
 
-  OtpState copyWith({
-    String? otpCode,
-    bool? isLoading,
-    String? errorMessage,
-  }) {
+  OtpState copyWith({String? otpCode, bool? isLoading, String? errorMessage}) {
     return OtpState(
       otpCode: otpCode ?? this.otpCode,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage != null ? (errorMessage.isEmpty ? null : errorMessage) : this.errorMessage,
+      errorMessage: errorMessage != null
+          ? (errorMessage.isEmpty ? null : errorMessage)
+          : this.errorMessage,
     );
   }
 }

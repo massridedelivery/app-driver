@@ -13,7 +13,9 @@ sealed class SocketMessageModel with _$SocketMessageModel {
   factory SocketMessageModel.fromJson(Map<String, dynamic> json) {
     return SocketMessageModel(
       type: json['type'] as String? ?? 'unknown',
-      data: json['data'] is Map<String, dynamic> ? json['data'] as Map<String, dynamic> : null,
+      data: json['data'] is Map<String, dynamic>
+          ? json['data'] as Map<String, dynamic>
+          : null,
       raw: json,
     );
   }

@@ -5,7 +5,7 @@ abstract class Endpoints {
   static const checkoutValidate = '/v1/checkout/validate';
   static const createOrder = '/v1/orders/create-order';
   static const defaultAddress = '/v1/users/addresses/default';
-  
+
   // MARK: WebSockets
   static const websocketPath = '/ws';
 
@@ -30,7 +30,7 @@ abstract class Endpoints {
   static const phoneEdit = '/v1/auth/edit-phone-number';
   static const phoneChangePassword = '/v1/auth/change-password-phone';
   static const logout = '/v1/auth/logout';
-  static const refreshToken = '/v1/auth/refresh';
+  static const refreshToken = '/auth/refresh';
 
   // MARK: Wallet
   static const walletType = '/driver/wallet/type';
@@ -93,4 +93,45 @@ abstract class Endpoints {
   static const paymentCards = '/v1/payment/save/cards';
   static const paymentDeleteCard = '/v1/payment/card/delete';
   static const paymentAddCard = '/v1/payment/card/add';
+
+  // MARK: Driver Actions & Jobs
+  static const driverJobsCancel = '/api/driver/jobs/:id/cancel';
+  static const driverJobsStopsArrive =
+      '/api/driver/jobs/:id/stops/:stop_id/arrive';
+  static const driverJobsStopsDepart =
+      '/api/driver/jobs/:id/stops/:stop_id/depart';
+  static const driverJobsStatus = '/api/driver/jobs/:id/status';
+  static const driverJobsActive = '/api/driver/jobs/active';
+  static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
+
+  // MARK: Wallet & Earnings
+  static const driverPayouts = '/api/driver/payouts';
+  static const driverTopup = '/api/driver/topup';
+  static const driverCodStatus = '/api/driver/cod-status';
+
+  // MARK: Quests & Tiers
+  static const driverTier = '/api/driver/tier';
+  static const driverQuests = '/api/driver/quests';
+  static const driverQuestsClaim = '/api/driver/quests/:id/claim';
+
+  // MARK: SOS
+  static const sosTrigger = '/api/sos/trigger';
+  static const sosResolve = '/api/sos/:id/resolve';
+
+  // MARK: Discovery & Home
+  static const driverDiscoveryHome = '/api/driver/discovery/home';
+
+  // MARK: Food Delivery
+  static const foodDriverOrdersAccept = '/api/food/driver/orders/:id/accept';
+  static const foodDriverOrdersPickedUp =
+      '/api/food/driver/orders/:id/picked-up';
+  static const foodDriverOrdersDelivered =
+      '/api/food/driver/orders/:id/delivered';
+  static const foodDriverOrdersActive = '/api/food/driver/orders/active';
+
+  // MARK: Notifications
+  static const registerDevice = '/api/notifications/register-device';
+
+  // MARK: Vehicle Settings
+  static const vehicleTypeToggle = '/api/driver/vehicle-types/:id/toggle';
 }

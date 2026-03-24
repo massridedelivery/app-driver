@@ -1,53 +1,54 @@
+import 'package:dio/dio.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/managers/api/api_manager.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'home_api_service.g.dart';
 
 class HomeApiService {
-  final ApiManager _apiManager;
+  final Dio _dio;
 
-  const HomeApiService({required ApiManager apiManager})
-    : _apiManager = apiManager;
+  HomeApiService({required Dio dio}) : _dio = dio;
 
   Future<ResponseData> fetchHome() async {
-    final response = await _apiManager.fetchApi(
-      endPoint: Endpoints.home,
-      method: 'GET',
-      feature: 'GET: home',
+    final response = await _dio.get(Endpoints.home);
+    return ResponseData(
+      data: response.data,
+      isSuccessful: response.statusCode == 200 || response.statusCode == 201,
+      errorStatusCode: response.statusCode ?? 0,
     );
-    return response;
   }
 
   Future<ResponseData> goOnline() async {
-    final response = await _apiManager.fetchApi(
-      endPoint: Endpoints.driverOnline,
-      method: 'POST',
-      feature: 'POST: driver online',
+    final response = await _dio.post(Endpoints.driverOnline);
+    return ResponseData(
+      data: response.data,
+      isSuccessful: response.statusCode == 200 || response.statusCode == 201,
+      errorStatusCode: response.statusCode ?? 0,
     );
-    return response;
   }
 
   Future<ResponseData> goOffline() async {
-    final response = await _apiManager.fetchApi(
-      endPoint: Endpoints.driverOffline,
-      method: 'POST',
-      feature: 'POST: driver offline',
+    final response = await _dio.post(Endpoints.driverOffline);
+    return ResponseData(
+      data: response.data,
+      isSuccessful: response.statusCode == 200 || response.statusCode == 201,
+      errorStatusCode: response.statusCode ?? 0,
     );
-    return response;
   }
 
   Future<ResponseData> fetchDriverStatus() async {
-    final response = await _apiManager.fetchApi(
-      endPoint: Endpoints.driverStatus,
-      method: 'GET',
-      feature: 'GET: driver status',
+    final response = await _dio.get(Endpoints.driverStatus);
+    return ResponseData(
+      data: response.data,
+      isSuccessful: response.statusCode == 200 || response.statusCode == 201,
+      errorStatusCode: response.statusCode ?? 0,
     );
-    return response;
   }
 }
 
 @riverpod
 HomeApiService homeApiService(Ref ref) {
-  return HomeApiService(apiManager: ref.read(apiManagerProvider));
+  return HomeApiService(dio: getIt<Dio>());
 }

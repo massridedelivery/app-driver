@@ -75,19 +75,20 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       String purpose = 'driver_document';
-      if (type == DocumentType.vehicleRegistration || type == DocumentType.vehiclePhoto) {
+      if (type == DocumentType.vehicleRegistration ||
+          type == DocumentType.vehiclePhoto) {
         purpose = 'vehicle_document';
       }
-      
+
       await _repository.uploadDocument(file, type, purpose: purpose);
-      
+
       // Update the specific flag based on the document type
       bool isProfilePhoto = state.isProfilePhotoComplete;
       bool isIdCard = state.isIdCardComplete;
       bool isDrivingLicense = state.isDrivingLicenseComplete;
       bool isVehiclePhoto = state.isVehiclePhotoComplete;
       bool isInsurance = state.isInsuranceComplete;
-      
+
       switch (type) {
         case DocumentType.profilePhoto:
           isProfilePhoto = true;
@@ -107,8 +108,10 @@ class RegistrationController extends _$RegistrationController {
         default:
           break;
       }
-      
-      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+
+      final updatedDocs = Map<DocumentType, String>.from(
+        state.uploadedDocuments,
+      );
       updatedDocs[type] = file.path;
 
       state = state.copyWith(
@@ -120,7 +123,7 @@ class RegistrationController extends _$RegistrationController {
         isInsuranceComplete: isInsurance,
         uploadedDocuments: updatedDocs,
       );
-      
+
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -128,15 +131,24 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
-  Future<bool> submitVehicleDetails(VehicleInfo info, File? greenBookFile) async {
+  Future<bool> submitVehicleDetails(
+    VehicleInfo info,
+    File? greenBookFile,
+  ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (greenBookFile != null) {
-        await _repository.uploadDocument(greenBookFile, DocumentType.vehicleRegistration, purpose: 'vehicle_document');
+        await _repository.uploadDocument(
+          greenBookFile,
+          DocumentType.vehicleRegistration,
+          purpose: 'vehicle_document',
+        );
       }
       await _repository.submitVehicleDetails(info);
-      
-      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+
+      final updatedDocs = Map<DocumentType, String>.from(
+        state.uploadedDocuments,
+      );
       if (greenBookFile != null) {
         updatedDocs[DocumentType.vehicleRegistration] = greenBookFile.path;
       }
@@ -154,15 +166,24 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
-  Future<bool> submitBankDetails(BankAccountInfo info, File? passbookFile) async {
+  Future<bool> submitBankDetails(
+    BankAccountInfo info,
+    File? passbookFile,
+  ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (passbookFile != null) {
-        await _repository.uploadDocument(passbookFile, DocumentType.bankPassbook, purpose: 'bank_document');
+        await _repository.uploadDocument(
+          passbookFile,
+          DocumentType.bankPassbook,
+          purpose: 'bank_document',
+        );
       }
       await _repository.submitBankDetails(info);
-      
-      final updatedDocs = Map<DocumentType, String>.from(state.uploadedDocuments);
+
+      final updatedDocs = Map<DocumentType, String>.from(
+        state.uploadedDocuments,
+      );
       if (passbookFile != null) {
         updatedDocs[DocumentType.bankPassbook] = passbookFile.path;
       }
@@ -182,10 +203,12 @@ class RegistrationController extends _$RegistrationController {
 
   Future<bool> submitApplication(String driverId, bool consent) async {
     if (!state.isAllStepsExceptConsentCompleted) {
-      state = state.copyWith(errorMessage: 'Please complete all previous steps first.');
+      state = state.copyWith(
+        errorMessage: 'Please complete all previous steps first.',
+      );
       return false;
     }
-    
+
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _repository.submitFinalConsent(driverId, consent);

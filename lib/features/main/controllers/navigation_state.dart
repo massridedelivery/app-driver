@@ -1,7 +1,6 @@
 part of 'navigation_cubit.dart';
 
 class NavigationState extends Equatable {
-
   final String bottomNavItems;
   final int index;
 

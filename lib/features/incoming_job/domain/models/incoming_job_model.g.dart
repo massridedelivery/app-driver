@@ -27,6 +27,10 @@ _IncomingJobModel _$IncomingJobModelFromJson(Map<String, dynamic> json) =>
       passengerName: json['passenger_name'] as String? ?? 'Passenger',
       itemSummary: json['item_summary'] as String? ?? '',
       timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 30,
+      surgeMultiplier: (json['surge_multiplier'] as num?)?.toDouble() ?? 1.0,
+      surgeActive: json['surge_active'] as bool? ?? false,
+      isScheduled: json['is_scheduled'] as bool? ?? false,
+      scheduledAt: json['scheduled_at'] as String?,
     );
 
 Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
@@ -49,4 +53,8 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'passenger_name': instance.passengerName,
       'item_summary': instance.itemSummary,
       'timeout_seconds': instance.timeoutSeconds,
+      'surge_multiplier': instance.surgeMultiplier,
+      'surge_active': instance.surgeActive,
+      'is_scheduled': instance.isScheduled,
+      'scheduled_at': instance.scheduledAt,
     };

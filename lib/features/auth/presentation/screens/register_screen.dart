@@ -14,7 +14,8 @@ class RegisterScreen extends ConsumerWidget {
     final state = ref.watch(registerControllerProvider);
     final controller = ref.read(registerControllerProvider.notifier);
 
-    final bool isValid = state.fullName.isNotEmpty &&
+    final bool isValid =
+        state.fullName.isNotEmpty &&
         state.email.contains('@') &&
         state.phone.length > 9 &&
         state.password.length >= 6;
@@ -25,7 +26,10 @@ class RegisterScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.semanticGrayNeutralFgHigh),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: AppColors.semanticGrayNeutralFgHigh,
+          ),
           onPressed: () => context.pop(),
         ),
       ),
@@ -84,7 +88,7 @@ class RegisterScreen extends ConsumerWidget {
                 onChanged: (val) => controller.updateFields(password: val),
                 obscureText: true,
               ),
-              
+
               if (state.errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
@@ -175,10 +179,7 @@ class RegisterScreen extends ConsumerWidget {
           fontSize: 16,
         ),
         decoration: InputDecoration(
-          prefixIcon: Icon(
-            icon,
-            color: AppColors.semanticGrayNeutralFgHigh,
-          ),
+          prefixIcon: Icon(icon, color: AppColors.semanticGrayNeutralFgHigh),
           hintText: hintText,
           hintStyle: AppTypography.caption3.copyWith(
             color: AppColors.semanticGrayNeutralFgLowOnWhite,
