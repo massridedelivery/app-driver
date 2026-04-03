@@ -44,7 +44,9 @@ class ProfileController extends _$ProfileController {
   Future<bool> toggleVehicleType(String typeId, bool isEnabled) async {
     state = state.copyWith(isUpdating: true, errorMessage: null);
     try {
-      await _vehicleRepository.toggleVehicleType(typeId, { "is_enabled": isEnabled });
+      await _vehicleRepository.toggleVehicleType(typeId, {
+        "enabled": isEnabled,
+      });
       await fetchProfile();
       return true;
     } catch (e) {

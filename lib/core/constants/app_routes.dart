@@ -28,6 +28,7 @@ class AppRoutes {
   static const settingNamedPage = '/setting';
   static const settingDetailsNamedPage = 'details';
   static const incomingJobNamedPage = '/incoming-job';
+  static const foodLiveNamedPage = '/food-live';
 
   static const documentRegistrationChecklistNamedPage =
       '/document-registration';

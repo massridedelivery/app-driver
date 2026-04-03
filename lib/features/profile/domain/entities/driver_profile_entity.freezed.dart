@@ -622,7 +622,7 @@ as String?,
 /// @nodoc
 mixin _$VehicleTypeEntity {
 
- String get id; String get name;@JsonKey(name: 'display_name') String get displayName;@JsonKey(name: 'is_enabled') bool get isEnabled;
+ String get id; String get name;@JsonKey(name: 'display_name') String get displayName; String? get description;@JsonKey(name: 'vehicle_class') String? get vehicleClass;@JsonKey(name: 'base_fare') double get baseFare;@JsonKey(name: 'price_per_km') double get pricePerKm;@JsonKey(name: 'price_per_min') double get pricePerMin;@JsonKey(name: 'min_fare') double get minFare;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'updated_at') String? get updatedAt;@JsonKey(name: 'is_enabled') bool get isEnabled;
 /// Create a copy of VehicleTypeEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -635,16 +635,16 @@ $VehicleTypeEntityCopyWith<VehicleTypeEntity> get copyWith => _$VehicleTypeEntit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VehicleTypeEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VehicleTypeEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.description, description) || other.description == description)&&(identical(other.vehicleClass, vehicleClass) || other.vehicleClass == vehicleClass)&&(identical(other.baseFare, baseFare) || other.baseFare == baseFare)&&(identical(other.pricePerKm, pricePerKm) || other.pricePerKm == pricePerKm)&&(identical(other.pricePerMin, pricePerMin) || other.pricePerMin == pricePerMin)&&(identical(other.minFare, minFare) || other.minFare == minFare)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,displayName,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,name,displayName,description,vehicleClass,baseFare,pricePerKm,pricePerMin,minFare,isActive,createdAt,updatedAt,isEnabled);
 
 @override
 String toString() {
-  return 'VehicleTypeEntity(id: $id, name: $name, displayName: $displayName, isEnabled: $isEnabled)';
+  return 'VehicleTypeEntity(id: $id, name: $name, displayName: $displayName, description: $description, vehicleClass: $vehicleClass, baseFare: $baseFare, pricePerKm: $pricePerKm, pricePerMin: $pricePerMin, minFare: $minFare, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt, isEnabled: $isEnabled)';
 }
 
 
@@ -655,7 +655,7 @@ abstract mixin class $VehicleTypeEntityCopyWith<$Res>  {
   factory $VehicleTypeEntityCopyWith(VehicleTypeEntity value, $Res Function(VehicleTypeEntity) _then) = _$VehicleTypeEntityCopyWithImpl;
 @useResult
 $Res call({
- String id, String name,@JsonKey(name: 'display_name') String displayName,@JsonKey(name: 'is_enabled') bool isEnabled
+ String id, String name,@JsonKey(name: 'display_name') String displayName, String? description,@JsonKey(name: 'vehicle_class') String? vehicleClass,@JsonKey(name: 'base_fare') double baseFare,@JsonKey(name: 'price_per_km') double pricePerKm,@JsonKey(name: 'price_per_min') double pricePerMin,@JsonKey(name: 'min_fare') double minFare,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'is_enabled') bool isEnabled
 });
 
 
@@ -672,12 +672,21 @@ class _$VehicleTypeEntityCopyWithImpl<$Res>
 
 /// Create a copy of VehicleTypeEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? displayName = null,Object? isEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? displayName = null,Object? description = freezed,Object? vehicleClass = freezed,Object? baseFare = null,Object? pricePerKm = null,Object? pricePerMin = null,Object? minFare = null,Object? isActive = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? isEnabled = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
+as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,vehicleClass: freezed == vehicleClass ? _self.vehicleClass : vehicleClass // ignore: cast_nullable_to_non_nullable
+as String?,baseFare: null == baseFare ? _self.baseFare : baseFare // ignore: cast_nullable_to_non_nullable
+as double,pricePerKm: null == pricePerKm ? _self.pricePerKm : pricePerKm // ignore: cast_nullable_to_non_nullable
+as double,pricePerMin: null == pricePerMin ? _self.pricePerMin : pricePerMin // ignore: cast_nullable_to_non_nullable
+as double,minFare: null == minFare ? _self.minFare : minFare // ignore: cast_nullable_to_non_nullable
+as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as String?,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -760,10 +769,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName, @JsonKey(name: 'is_enabled')  bool isEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName,  String? description, @JsonKey(name: 'vehicle_class')  String? vehicleClass, @JsonKey(name: 'base_fare')  double baseFare, @JsonKey(name: 'price_per_km')  double pricePerKm, @JsonKey(name: 'price_per_min')  double pricePerMin, @JsonKey(name: 'min_fare')  double minFare, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'is_enabled')  bool isEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VehicleTypeEntity() when $default != null:
-return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);case _:
+return $default(_that.id,_that.name,_that.displayName,_that.description,_that.vehicleClass,_that.baseFare,_that.pricePerKm,_that.pricePerMin,_that.minFare,_that.isActive,_that.createdAt,_that.updatedAt,_that.isEnabled);case _:
   return orElse();
 
 }
@@ -781,10 +790,10 @@ return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName, @JsonKey(name: 'is_enabled')  bool isEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName,  String? description, @JsonKey(name: 'vehicle_class')  String? vehicleClass, @JsonKey(name: 'base_fare')  double baseFare, @JsonKey(name: 'price_per_km')  double pricePerKm, @JsonKey(name: 'price_per_min')  double pricePerMin, @JsonKey(name: 'min_fare')  double minFare, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'is_enabled')  bool isEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _VehicleTypeEntity():
-return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);}
+return $default(_that.id,_that.name,_that.displayName,_that.description,_that.vehicleClass,_that.baseFare,_that.pricePerKm,_that.pricePerMin,_that.minFare,_that.isActive,_that.createdAt,_that.updatedAt,_that.isEnabled);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -798,10 +807,10 @@ return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName, @JsonKey(name: 'is_enabled')  bool isEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name, @JsonKey(name: 'display_name')  String displayName,  String? description, @JsonKey(name: 'vehicle_class')  String? vehicleClass, @JsonKey(name: 'base_fare')  double baseFare, @JsonKey(name: 'price_per_km')  double pricePerKm, @JsonKey(name: 'price_per_min')  double pricePerMin, @JsonKey(name: 'min_fare')  double minFare, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'is_enabled')  bool isEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _VehicleTypeEntity() when $default != null:
-return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);case _:
+return $default(_that.id,_that.name,_that.displayName,_that.description,_that.vehicleClass,_that.baseFare,_that.pricePerKm,_that.pricePerMin,_that.minFare,_that.isActive,_that.createdAt,_that.updatedAt,_that.isEnabled);case _:
   return null;
 
 }
@@ -813,12 +822,21 @@ return $default(_that.id,_that.name,_that.displayName,_that.isEnabled);case _:
 @JsonSerializable()
 
 class _VehicleTypeEntity implements VehicleTypeEntity {
-  const _VehicleTypeEntity({required this.id, required this.name, @JsonKey(name: 'display_name') required this.displayName, @JsonKey(name: 'is_enabled') this.isEnabled = false});
+  const _VehicleTypeEntity({required this.id, required this.name, @JsonKey(name: 'display_name') required this.displayName, this.description, @JsonKey(name: 'vehicle_class') this.vehicleClass, @JsonKey(name: 'base_fare') this.baseFare = 0.0, @JsonKey(name: 'price_per_km') this.pricePerKm = 0.0, @JsonKey(name: 'price_per_min') this.pricePerMin = 0.0, @JsonKey(name: 'min_fare') this.minFare = 0.0, @JsonKey(name: 'is_active') this.isActive = false, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt, @JsonKey(name: 'is_enabled') this.isEnabled = false});
   factory _VehicleTypeEntity.fromJson(Map<String, dynamic> json) => _$VehicleTypeEntityFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override@JsonKey(name: 'display_name') final  String displayName;
+@override final  String? description;
+@override@JsonKey(name: 'vehicle_class') final  String? vehicleClass;
+@override@JsonKey(name: 'base_fare') final  double baseFare;
+@override@JsonKey(name: 'price_per_km') final  double pricePerKm;
+@override@JsonKey(name: 'price_per_min') final  double pricePerMin;
+@override@JsonKey(name: 'min_fare') final  double minFare;
+@override@JsonKey(name: 'is_active') final  bool isActive;
+@override@JsonKey(name: 'created_at') final  String? createdAt;
+@override@JsonKey(name: 'updated_at') final  String? updatedAt;
 @override@JsonKey(name: 'is_enabled') final  bool isEnabled;
 
 /// Create a copy of VehicleTypeEntity
@@ -834,16 +852,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VehicleTypeEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VehicleTypeEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.description, description) || other.description == description)&&(identical(other.vehicleClass, vehicleClass) || other.vehicleClass == vehicleClass)&&(identical(other.baseFare, baseFare) || other.baseFare == baseFare)&&(identical(other.pricePerKm, pricePerKm) || other.pricePerKm == pricePerKm)&&(identical(other.pricePerMin, pricePerMin) || other.pricePerMin == pricePerMin)&&(identical(other.minFare, minFare) || other.minFare == minFare)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,displayName,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,name,displayName,description,vehicleClass,baseFare,pricePerKm,pricePerMin,minFare,isActive,createdAt,updatedAt,isEnabled);
 
 @override
 String toString() {
-  return 'VehicleTypeEntity(id: $id, name: $name, displayName: $displayName, isEnabled: $isEnabled)';
+  return 'VehicleTypeEntity(id: $id, name: $name, displayName: $displayName, description: $description, vehicleClass: $vehicleClass, baseFare: $baseFare, pricePerKm: $pricePerKm, pricePerMin: $pricePerMin, minFare: $minFare, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt, isEnabled: $isEnabled)';
 }
 
 
@@ -854,7 +872,7 @@ abstract mixin class _$VehicleTypeEntityCopyWith<$Res> implements $VehicleTypeEn
   factory _$VehicleTypeEntityCopyWith(_VehicleTypeEntity value, $Res Function(_VehicleTypeEntity) _then) = __$VehicleTypeEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name,@JsonKey(name: 'display_name') String displayName,@JsonKey(name: 'is_enabled') bool isEnabled
+ String id, String name,@JsonKey(name: 'display_name') String displayName, String? description,@JsonKey(name: 'vehicle_class') String? vehicleClass,@JsonKey(name: 'base_fare') double baseFare,@JsonKey(name: 'price_per_km') double pricePerKm,@JsonKey(name: 'price_per_min') double pricePerMin,@JsonKey(name: 'min_fare') double minFare,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'is_enabled') bool isEnabled
 });
 
 
@@ -871,12 +889,21 @@ class __$VehicleTypeEntityCopyWithImpl<$Res>
 
 /// Create a copy of VehicleTypeEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? displayName = null,Object? isEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? displayName = null,Object? description = freezed,Object? vehicleClass = freezed,Object? baseFare = null,Object? pricePerKm = null,Object? pricePerMin = null,Object? minFare = null,Object? isActive = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? isEnabled = null,}) {
   return _then(_VehicleTypeEntity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
+as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,vehicleClass: freezed == vehicleClass ? _self.vehicleClass : vehicleClass // ignore: cast_nullable_to_non_nullable
+as String?,baseFare: null == baseFare ? _self.baseFare : baseFare // ignore: cast_nullable_to_non_nullable
+as double,pricePerKm: null == pricePerKm ? _self.pricePerKm : pricePerKm // ignore: cast_nullable_to_non_nullable
+as double,pricePerMin: null == pricePerMin ? _self.pricePerMin : pricePerMin // ignore: cast_nullable_to_non_nullable
+as double,minFare: null == minFare ? _self.minFare : minFare // ignore: cast_nullable_to_non_nullable
+as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as String?,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

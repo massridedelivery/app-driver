@@ -9,16 +9,16 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
-enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
+enum FoodLiveState { confirming, preparing, delivery }
 
-class JobLiveScreen extends ConsumerStatefulWidget {
-  const JobLiveScreen({super.key});
+class FoodLiveScreen extends ConsumerStatefulWidget {
+  const FoodLiveScreen({super.key});
 
   @override
-  ConsumerState<JobLiveScreen> createState() => _JobLiveScreenState();
+  ConsumerState<FoodLiveScreen> createState() => _FoodLiveScreenState();
 }
 
-class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
+class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
@@ -29,7 +29,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   final double _maxSize = 0.85;
 
   double _currentSize = 0.45;
-  JobLiveState _currentState = JobLiveState.headingToPickup;
+  FoodLiveState _currentState = FoodLiveState.confirming;
 
   @override
   void initState() {
@@ -43,19 +43,29 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
-        if (msg.type == 'job_status') {
-          final jobId = msg.data?['job_id'];
+        if (msg.type == 'job_status' || msg.type == 'ORDER_STATUS_UPDATED') {
+          final jobId = msg.data?['job_id'] ?? msg.data?['orderId'];
           final status = msg.data?['status'];
           final currentJobId = ref
               .read(incomingJobControllerProvider)
               .currentJob
               ?.jobId;
 
-          if (currentJobId == jobId && status == 'CANCELLED') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('ผู้โดยสารยกเลิกงานนี้แล้ว')),
-            );
-            context.go('/home');
+          if (currentJobId == jobId) {
+            if (status == 'CANCELLED') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('ออเดอร์ถูกยกเลิกแล้ว')),
+              );
+              context.go('/home');
+            } else if (status == 'PREPARING') {
+              setState(() {
+                _currentState = FoodLiveState.preparing;
+              });
+            } else if (status == 'DELIVERY') {
+              setState(() {
+                _currentState = FoodLiveState.delivery;
+              });
+            }
           }
         }
       });
@@ -102,15 +112,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;
 
-    if (_currentState == JobLiveState.headingToPickup ||
-        _currentState == JobLiveState.arrivedAtPickup) {
+    if (_currentState == FoodLiveState.confirming ||
+        _currentState == FoodLiveState.preparing) {
       target = pickupLatLng;
       markers.add(
         Marker(
           markerId: const MarkerId('pickup'),
           position: pickupLatLng,
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
+            BitmapDescriptor.hueOrange,
           ),
         ),
       );
@@ -135,7 +145,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   /// =========================
-  /// BOTTOM SHEET (PRODUCTION)
+  /// BOTTOM SHEET
   /// =========================
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
@@ -158,11 +168,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               const SizedBox(height: 16),
               _buildTripHeader(),
               const SizedBox(height: 20),
-              _buildPassengerInfo(),
+              _buildOrderInfo(),
               const SizedBox(height: 20),
               _buildContactRow(),
               const SizedBox(height: 24),
-              _buildArrivedButton(),
+              _buildActionButton(),
             ],
           ),
         );
@@ -235,15 +245,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     Color headerColor = AppColors.semanticSuccessBgHigh;
 
     switch (_currentState) {
-      case JobLiveState.headingToPickup:
-        headerText = "กำลังไปรับผู้โดยสาร";
+      case FoodLiveState.confirming:
+        headerText = "1. กำลังเดินทางไปร้านอาหาร";
         break;
-      case JobLiveState.arrivedAtPickup:
-        headerText = "รอผู้โดยสาร";
+      case FoodLiveState.preparing:
+        headerText = "2. รอรับอาหารที่ร้าน";
         headerColor = AppColors.foundationOrange600;
         break;
-      case JobLiveState.headingToDropoff:
-        headerText = "กำลังไปส่งผู้โดยสาร";
+      case FoodLiveState.delivery:
+        headerText = "3. กำลังไปส่งอาหาร";
         headerColor = AppColors.semanticSuccessBgHigh;
         break;
     }
@@ -253,34 +263,34 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       children: [
         Text(
           headerText,
-          style: AppTypography.heading4.copyWith(color: headerColor),
+          style: AppTypography.heading5.copyWith(color: headerColor),
         ),
         const SizedBox(height: 4),
         Text(
-          currentJob?.serviceType ?? "Saver Bike",
+          currentJob?.serviceType ?? "MassFood",
           style: AppTypography.body2.copyWith(color: Colors.white70),
         ),
       ],
     );
   }
 
-  Widget _buildPassengerInfo() {
+  Widget _buildOrderInfo() {
     final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          currentJob?.passengerName ?? "Passenger",
+          currentJob?.passengerName ?? "Customer",
           style: AppTypography.heading4.copyWith(
             color: AppColors.semanticGrayNeutralFgWhite,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          _currentState == JobLiveState.headingToPickup ||
-                  _currentState == JobLiveState.arrivedAtPickup
-              ? (currentJob?.pickupAddress ?? "Pickup Address")
-              : (currentJob?.dropoffAddress ?? "Dropoff Address"),
+          _currentState == FoodLiveState.confirming ||
+                  _currentState == FoodLiveState.preparing
+              ? (currentJob?.pickupAddress ?? "Restaurant Address")
+              : (currentJob?.dropoffAddress ?? "Customer Address"),
           style: AppTypography.caption3.copyWith(
             color: Colors.white70,
             height: 1.4,
@@ -304,6 +314,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
             ),
           ],
         ),
+        if (currentJob?.itemSummary != null && currentJob!.itemSummary.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(
+            "ออเดอร์: ${currentJob.itemSummary}",
+            style: AppTypography.caption4.copyWith(
+              color: AppColors.foundationOrange500,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -333,20 +352,20 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  Widget _buildArrivedButton() {
+  Widget _buildActionButton() {
     String buttonText = "";
     Color buttonColor = AppColors.semanticSuccessBgHigh;
 
     switch (_currentState) {
-      case JobLiveState.headingToPickup:
-        buttonText = "ถึงแล้ว";
+      case FoodLiveState.confirming:
+        buttonText = "ถึงร้านแล้ว";
         break;
-      case JobLiveState.arrivedAtPickup:
-        buttonText = "เริ่มเดินทาง";
+      case FoodLiveState.preparing:
+        buttonText = "รับอาหารแล้ว";
         buttonColor = AppColors.semanticSuccessBgHigh;
         break;
-      case JobLiveState.headingToDropoff:
-        buttonText = "ส่งผู้โดยสาร";
+      case FoodLiveState.delivery:
+        buttonText = "ส่งอาหารสำเร็จ";
         buttonColor = AppColors.semanticSuccessBgHigh;
         break;
     }
@@ -358,20 +377,23 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
         setState(() {
           switch (_currentState) {
-            case JobLiveState.headingToPickup:
-              _currentState = JobLiveState.arrivedAtPickup;
+            case FoodLiveState.confirming:
+              _currentState = FoodLiveState.preparing;
               if (jobId != null) {
-                socket.updateJobStatus(jobId, 'ARRIVED_AT_PICK_UP');
+                // Let the server know driver has arrived at restaurant
+                socket.updateJobStatus(jobId, 'PREPARING');
               }
               break;
-            case JobLiveState.arrivedAtPickup:
-              _currentState = JobLiveState.headingToDropoff;
+            case FoodLiveState.preparing:
+              _currentState = FoodLiveState.delivery;
               if (jobId != null) {
-                socket.updateJobStatus(jobId, 'PICKED_UP');
+                // Driver has picked up food
+                socket.updateJobStatus(jobId, 'DELIVERY');
               }
               break;
-            case JobLiveState.headingToDropoff:
+            case FoodLiveState.delivery:
               if (jobId != null) {
+                // Job completed
                 socket.updateJobStatus(jobId, 'COMPLETED');
               }
               context.push('/payment');
@@ -397,3 +419,4 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 }
+

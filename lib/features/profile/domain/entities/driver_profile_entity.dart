@@ -57,6 +57,15 @@ sealed class VehicleTypeEntity with _$VehicleTypeEntity {
     required String id,
     required String name,
     @JsonKey(name: 'display_name') required String displayName,
+    String? description,
+    @JsonKey(name: 'vehicle_class') String? vehicleClass,
+    @JsonKey(name: 'base_fare') @Default(0.0) double baseFare,
+    @JsonKey(name: 'price_per_km') @Default(0.0) double pricePerKm,
+    @JsonKey(name: 'price_per_min') @Default(0.0) double pricePerMin,
+    @JsonKey(name: 'min_fare') @Default(0.0) double minFare,
+    @JsonKey(name: 'is_active') @Default(false) bool isActive,
+    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'updated_at') String? updatedAt,
     @JsonKey(name: 'is_enabled') @Default(false) bool isEnabled,
   }) = _VehicleTypeEntity;
 

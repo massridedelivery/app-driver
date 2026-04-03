@@ -49,17 +49,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   void _onConfirmPayment() {
+    // 1. Dismiss modal and clear current job state (IncomingJobController)
     ref.read(incomingJobControllerProvider.notifier).dismissModal();
 
-    // Reconnect socket for next job (force disconnect first)
+    // 2. Explicitly disconnect socket to ensure a fresh session for the next job
     ref.read(socketServiceProvider).disconnect();
 
-    // Set to online state
-    ref.read(onlineStatusProvider.notifier).setStatus(true);
+    // 3. Refresh online status on backend (Ensures status BUSY -> ONLINE)
+    // setStatus(true, force: true) will automatically call connect() and start location updates
+    ref.read(onlineStatusProvider.notifier).setStatus(true, force: true);
 
-    ref.read(socketServiceProvider).connect();
-    // Return to home
-    context.go('/');
+    // 4. Return to home
+    if (mounted) {
+      context.go('/');
+    }
   }
 
   @override

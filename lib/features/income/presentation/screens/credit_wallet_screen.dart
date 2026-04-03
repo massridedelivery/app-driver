@@ -5,7 +5,10 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/features/income/presentation/screens/topup_form_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 
 class CreditWalletScreen extends ConsumerWidget {
@@ -46,7 +49,7 @@ class CreditWalletScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '฿${state.creditBalance}',
+                        '฿${state.creditBalance.toStringAsFixed(0)}',
                         style: AppTypography.heading1.copyWith(
                           color: Colors.white,
                           fontSize: 48,
@@ -67,22 +70,45 @@ class CreditWalletScreen extends ConsumerWidget {
                       icon: Icons.bolt_rounded,
                       showBadge: true,
                       badgeText: 'ใหม่',
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          const TopupFormScreen(),
+                        );
+                      },
                     ),
                     WalletActionTile(
                       title: 'เติมเงินโดยใช้บัญชี',
                       icon: Icons.account_balance_rounded,
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          const TopupFormScreen(),
+                        );
+                      },
                     ),
                     WalletActionTile(
                       title: 'เติมเงินโดยใช้ PIN',
                       icon: Icons.password_rounded,
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          const TopupFormScreen(),
+                        );
+                      },
                     ),
                     WalletActionTile(
                       title: 'ตรวจสอบประวัติการโอนเงิน',
                       icon: Icons.history_rounded,
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          const TransactionHistoryScreen(
+                            title: 'ประวัติกระเป๋าเครดิต',
+                            transactionType: 'topup',
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

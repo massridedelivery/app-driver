@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
+import 'package:massdrive/core/data/sources/base_api_service.dart';
 
 abstract class ProfileApiService {
   Future<Response<Map<String, dynamic>>> getProfile();
@@ -10,21 +11,19 @@ abstract class ProfileApiService {
 }
 
 @LazySingleton(as: ProfileApiService)
-class ProfileApiServiceImpl implements ProfileApiService {
-  final Dio _dio;
-
-  ProfileApiServiceImpl(this._dio);
+class ProfileApiServiceImpl extends BaseApiService implements ProfileApiService {
+  ProfileApiServiceImpl(super.dio);
 
   @override
   Future<Response<Map<String, dynamic>>> getProfile() async {
-    return await _dio.get<Map<String, dynamic>>(Endpoints.driverProfile);
+    return await get<Map<String, dynamic>>(Endpoints.driverProfile);
   }
 
   @override
   Future<Response<Map<String, dynamic>>> updateProfile(
     Map<String, dynamic> data,
   ) async {
-    return await _dio.put<Map<String, dynamic>>(
+    return await put<Map<String, dynamic>>(
       Endpoints.driverProfile,
       data: data,
     );

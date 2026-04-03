@@ -5,8 +5,8 @@ part 'wallet_response_model.g.dart';
 
 @JsonSerializable(createFactory: true, fieldRename: FieldRename.snake)
 class WalletResponseModel {
-  final String cashBalance;
-  final String creditBalance;
+  final double cashBalance;
+  final double creditBalance;
 
   const WalletResponseModel({
     required this.cashBalance,

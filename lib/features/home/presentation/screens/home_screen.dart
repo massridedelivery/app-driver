@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:massdrive/common/widgets/indicator/default_circular_progress_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -22,19 +23,33 @@ import 'package:massdrive/features/service_type/presentation/screens/service_typ
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
-class OnlineStatus extends Notifier<bool> {
+class OnlineStatusState {
+  final bool isOnline;
+  final bool isLoading;
+
+  const OnlineStatusState({this.isOnline = false, this.isLoading = false});
+
+  OnlineStatusState copyWith({bool? isOnline, bool? isLoading}) {
+    return OnlineStatusState(
+      isOnline: isOnline ?? this.isOnline,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
+class OnlineStatus extends Notifier<OnlineStatusState> {
   // Default Bangkok center for emulator testing
   static const double defaultLat = 13.7563;
   static const double defaultLng = 100.5018;
 
   @override
-  bool build() {
+  OnlineStatusState build() {
     ref.listen(socketServiceProvider.select((s) => s.onConnectionStatus), (
       previous,
       next,
     ) {
       (next as Stream<bool>).listen((connected) {
-        if (connected && state) {
+        if (connected && state.isOnline) {
           debugPrint(
             'OnlineStatus: Connection successful and driver is online. Starting location updates.',
           );
@@ -43,10 +58,11 @@ class OnlineStatus extends Notifier<bool> {
       });
     });
 
-    return false;
+    return const OnlineStatusState();
   }
 
   Future<void> initStatus(BuildContext context) async {
+    state = state.copyWith(isLoading: true);
     try {
       final res = await ref.read(homeApiServiceProvider).fetchDriverStatus();
       if (res.isSuccessful && res.data != null) {
@@ -59,11 +75,13 @@ class OnlineStatus extends Notifier<bool> {
         } else if (status == 'ONLINE') {
           await setStatus(true, skipApiCall: true);
         } else {
-          await setStatus(false);
+          await setStatus(false, skipApiCall: true);
         }
       }
     } catch (e) {
       debugPrint('Fetch Driver Status Error: $e');
+    } finally {
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -103,10 +121,17 @@ class OnlineStatus extends Notifier<bool> {
           ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
 
           if (context.mounted) {
-            context.go('/job-live');
+            final isFood = job.serviceType.toLowerCase().contains('food');
+            if (isFood) {
+              context.go(AppRoutes.foodLiveNamedPage);
+            } else {
+              context.go('/job-live');
+            }
           }
         } else {
-          debugPrint('OnlineStatus: Active data found but could not parse job JSON.');
+          debugPrint(
+            'OnlineStatus: Active data found but could not parse job JSON.',
+          );
         }
       } else {
         debugPrint(
@@ -118,48 +143,60 @@ class OnlineStatus extends Notifier<bool> {
     }
   }
 
-  Future<void> setStatus(bool value, {bool skipApiCall = false}) async {
-    if (value == state) return;
+  Future<void> setStatus(
+    bool value, {
+    bool skipApiCall = false,
+    bool force = false,
+  }) async {
+    if (value == state.isOnline && !force) return;
 
     final socketService = ref.read(socketServiceProvider);
     final locationService = ref.read(locationServiceProvider);
 
-    if (value) {
-      // Set Online via API first
-      if (!skipApiCall) {
-        try {
-          final res = await ref.read(homeApiServiceProvider).goOnline();
-          if (!res.isSuccessful) throw Exception('Failed to go online');
-        } catch (e) {
-          debugPrint('Go Online API Error: $e');
-          rethrow;
+    state = state.copyWith(isLoading: true);
+
+    try {
+      if (value) {
+        // Set Online via API first
+        if (!skipApiCall) {
+          try {
+            final res = await ref.read(homeApiServiceProvider).goOnline();
+            if (!res.isSuccessful) throw Exception('Failed to go online');
+          } catch (e) {
+            debugPrint('Go Online API Error: $e');
+            rethrow;
+          }
         }
+
+        // Connect WebSocket
+        await socketService.connect();
+
+        // Start precise 5s location updates
+        await locationService.startLocationUpdates();
+
+        state = state.copyWith(isOnline: true);
+      } else {
+        // Go offline
+        locationService.stopLocationUpdates();
+
+        if (!skipApiCall) {
+          try {
+            await ref.read(homeApiServiceProvider).goOffline();
+          } catch (e) {
+            debugPrint('Go Offline API Error: $e');
+          }
+        }
+
+        socketService.disconnect();
+        state = state.copyWith(isOnline: false);
       }
-
-      // Connect WebSocket
-      await socketService.connect();
-
-      // Start precise 5s location updates
-      await locationService.startLocationUpdates();
-
-      state = true;
-    } else {
-      // Go offline
-      locationService.stopLocationUpdates();
-
-      try {
-        await ref.read(homeApiServiceProvider).goOffline();
-      } catch (e) {
-        debugPrint('Go Offline API Error: $e');
-      }
-
-      socketService.disconnect();
-      state = false;
+    } finally {
+      state = state.copyWith(isLoading: false);
     }
   }
 }
 
-final onlineStatusProvider = NotifierProvider<OnlineStatus, bool>(
+final onlineStatusProvider = NotifierProvider<OnlineStatus, OnlineStatusState>(
   () => OnlineStatus(),
 );
 
@@ -228,6 +265,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
+    final onlineStatus = ref.watch(onlineStatusProvider);
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
 
@@ -239,12 +277,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       body: Stack(
         children: [
           _buildMap(),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 16,
+            child: _buildSettingsButton(),
+          ),
           profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()
               : (isVerified
                     ? _buildBottomSheet()
                     : _buildUnverifiedBottomSheet()),
+          if (onlineStatus.isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(child: DefaultCircularProgressIndicator()),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsButton() {
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.settingNamedPage),
+      child: Container(
+        height: 50,
+        width: 50,
+        decoration: BoxDecoration(
+          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.7),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.settings_outlined,
+          color: Colors.white,
+          size: 26,
+        ),
       ),
     );
   }
@@ -477,29 +551,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildOnlineButton() {
-    final isOnline = ref.watch(onlineStatusProvider);
+    final onlineStatus = ref.watch(onlineStatusProvider);
+    final isOnline = onlineStatus.isOnline;
     return GestureDetector(
       onTap: () async {
-        final current = ref.read(onlineStatusProvider);
+        final current = ref.read(onlineStatusProvider).isOnline;
         final newValue = !current;
 
         try {
           await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
-          if (mounted && newValue && ref.read(onlineStatusProvider)) {
+          if (mounted && newValue && ref.read(onlineStatusProvider).isOnline) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('พร้อมรับงานแล้ว'),
+              SnackBar(
+                content: Text(
+                  'พร้อมรับงานแล้ว',
+                  style: AppTypography.label2.copyWith(
+                    color: AppColors.semanticGrayNeutralBgWhite,
+                  ),
+                ),
                 backgroundColor: AppColors.semanticSuccessBgHigh,
               ),
             );
           }
         } catch (e) {
-          print('error : $e');
           if (mounted && newValue) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง'),
+              SnackBar(
+                content: Text(
+                  'ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง',
+                  style: AppTypography.label2.copyWith(
+                    color: AppColors.semanticGrayNeutralBgWhite,
+                  ),
+                ),
                 backgroundColor: AppColors.semanticErrorBgHigh,
               ),
             );
@@ -551,7 +635,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ================= STATUS CARD =================
 
   Widget _buildStatusCard() {
-    final isOnline = ref.watch(onlineStatusProvider);
+    final isOnline = ref.watch(onlineStatusProvider).isOnline;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -596,7 +680,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
           AppNavigator.push(context, ServiceTypeScreen());
         }),
-        _circleMenu(Icons.location_on, "ปลายทางของฉัน", () {}),
+        // _circleMenu(Icons.location_on, "ปลายทางของฉัน", () {}),
         _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
           AppNavigator.push(context, ProfileScreen());
         }),

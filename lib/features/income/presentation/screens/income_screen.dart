@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
-import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -21,57 +20,60 @@ class IncomeScreen extends ConsumerStatefulWidget {
 
 class _IncomeScreenState extends ConsumerState<IncomeScreen>
     with TickerProviderStateMixin {
-  late bool isNavigateToConsent = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final walletState = ref.watch(walletControllerProvider);
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 18,
-              childAspectRatio: 1.2,
-              children: [
-                WalletGridItem(
-                  icon: Icons.attach_money,
-                  iconBgColor: AppColors.foundationOrange700,
-                  title: 'กระเป๋าเงินสด',
-                  amount: '฿ 100',
-                  onTap: () => context.push(AppRoutes.cashWalletNamedPage),
-                ),
-                WalletGridItem(
-                  icon: Icons.work,
-                  iconBgColor: AppColors.semanticGrayNeutralBgWhite,
-                  iconColor: AppColors.foundationOrange700,
-                  title: 'กระเป๋าเครดิต',
-                  amount: '฿ 200',
-                  onTap: () => context.push(AppRoutes.creditWalletNamedPage),
-                ),
-              ],
+      body: walletState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 18,
+                    childAspectRatio: 1.2,
+                    children: [
+                      WalletGridItem(
+                        icon: Icons.attach_money,
+                        iconBgColor: AppColors.foundationOrange700,
+                        title: 'กระเป๋าเงินสด',
+                        amount: '฿${walletState.cashBalance.toStringAsFixed(0)}',
+                        onTap: () =>
+                            context.push(AppRoutes.cashWalletNamedPage),
+                      ),
+                      WalletGridItem(
+                        icon: Icons.work,
+                        iconBgColor: AppColors.semanticGrayNeutralBgWhite,
+                        iconColor: AppColors.foundationOrange700,
+                        title: 'กระเป๋าเครดิต',
+                        amount:
+                            '฿${walletState.creditBalance.toStringAsFixed(0)}',
+                        onTap: () =>
+                            context.push(AppRoutes.creditWalletNamedPage),
+                      ),
+                    ],
+                  ),
+                  EarningsSection(
+                    earningsToday: walletState.earningsToday,
+                    earningsWeek: walletState.earningsWeek,
+                  ),
+                  const SizedBox(height: 16),
+                  CompletedTripsTile(
+                    totalTrips: walletState.tripsWeek,
+                    onTap: () {
+                      AppNavigator.push(context, const HistoryScreen());
+                    },
+                  ),
+                ],
+              ),
             ),
-            EarningsSection(),
-            const SizedBox(height: 16),
-            CompletedTripsTile(
-              totalTrips: 10,
-              onTap: () {
-                AppNavigator.push(context, const HistoryScreen());
-              },
-            ),
-          ],
-        ),
-      ),
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
     );
   }
@@ -151,3 +153,6 @@ class WalletGridItem extends StatelessWidget {
     );
   }
 }
+
+
+

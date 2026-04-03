@@ -8,8 +8,8 @@ part of 'wallet_response_model.dart';
 
 WalletResponseModel _$WalletResponseModelFromJson(Map<String, dynamic> json) =>
     WalletResponseModel(
-      cashBalance: json['cash_balance'] as String,
-      creditBalance: json['credit_balance'] as String,
+      cashBalance: (json['cash_balance'] as num).toDouble(),
+      creditBalance: (json['credit_balance'] as num).toDouble(),
     );
 
 Map<String, dynamic> _$WalletResponseModelToJson(

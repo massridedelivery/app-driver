@@ -12,6 +12,7 @@ class ServiceTypeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
     final vehicleTypes = profileState.profile?.vehicleTypes ?? [];
+    print('vehicleTypes : $vehicleTypes');
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ประเภทการบริการ', showLeftIcon: true),
@@ -21,7 +22,7 @@ class ServiceTypeScreen extends ConsumerWidget {
             ? const Center(child: CircularProgressIndicator())
             : ListView.separated(
                 itemCount: vehicleTypes.length,
-                separatorBuilder: (_, __) => const Divider(
+                separatorBuilder: (context, index) => const Divider(
                   color: AppColors.semanticGrayNeutralFgLowOnGray,
                   height: 1,
                 ),
@@ -30,6 +31,7 @@ class ServiceTypeScreen extends ConsumerWidget {
 
                   return ServiceToggleTile(
                     title: service.displayName,
+                    description: service.description,
                     // vehicleTypes use displayName from backend
                     isEnabled: service.isEnabled,
                     onToggle: () {

@@ -33,8 +33,7 @@ class SplashScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.foundationOrange600,
-      // From wireframe Aber green
+      backgroundColor: AppColors.foundationRed700,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -48,7 +47,7 @@ class SplashScreen extends ConsumerWidget {
               child: const Icon(
                 Icons.directions_car, // Placeholder for Aber logo
                 size: 64,
-                color: AppColors.foundationOrange600,
+                color: AppColors.foundationRed700,
               ),
             ),
             const SizedBox(height: 24),

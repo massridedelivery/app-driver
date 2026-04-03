@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interceptor.dart';
+import 'package:massdrive/core/managers/api/header_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
 
 import 'dependency_injection.config.dart';
@@ -27,6 +28,7 @@ abstract class NetworkModule {
     final secureStorage = SecureStorageManager();
 
     dio.interceptors.addAll([
+      HeaderInterceptor(),
       AppDioLoggerInterceptor(LoggerManager.instance.talker),
       AppDioRefreshTokenInterceptor(
         secureStorage: secureStorage,

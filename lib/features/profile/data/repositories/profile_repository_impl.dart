@@ -13,7 +13,14 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<DriverProfileEntity> getProfile() async {
     final response = await _apiService.getProfile();
     if (response.statusCode == 200 && response.data != null) {
-      return DriverProfileEntity.fromJson(response.data!);
+      final json = response.data!;
+      print('Profile API Raw Response Keys: ${json.keys}');
+      if (json.containsKey('vehicle_types')) {
+        print('vehicle_types raw data (first item): ${json['vehicle_types'] is List && (json['vehicle_types'] as List).isNotEmpty ? (json['vehicle_types'] as List).first : 'empty'}');
+      } else {
+        print('WARNING: vehicle_types key is MISSING from profile response');
+      }
+      return DriverProfileEntity.fromJson(json);
     } else {
       throw Exception('Failed to get profile: ${response.statusCode}');
     }

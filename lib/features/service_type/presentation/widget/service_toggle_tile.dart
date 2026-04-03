@@ -4,12 +4,14 @@ import 'package:massdrive/core/constants/app_typography.dart';
 
 class ServiceToggleTile extends StatelessWidget {
   final String title;
+  final String? description;
   final bool isEnabled;
   final VoidCallback onToggle;
 
   const ServiceToggleTile({
     super.key,
     required this.title,
+    this.description,
     required this.isEnabled,
     required this.onToggle,
   });
@@ -31,7 +33,26 @@ class ServiceToggleTile extends StatelessWidget {
                     : AppColors.semanticGrayNeutralBgWhite.withOpacity(0.4),
                 fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w400,
               ),
-              child: Text(title),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title),
+                  if (description != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      description!,
+                      style: AppTypography.caption4.copyWith(
+                        color: isEnabled
+                            ? AppColors.semanticGrayNeutralBgWhite
+                                .withOpacity(0.6)
+                            : AppColors.semanticGrayNeutralBgWhite
+                                .withOpacity(0.3),
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
 
             _AnimatedToggle(isEnabled: isEnabled),

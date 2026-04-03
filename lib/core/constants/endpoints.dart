@@ -108,6 +108,8 @@ abstract class Endpoints {
   static const driverPayouts = '/api/driver/payouts';
   static const driverTopup = '/api/driver/topup';
   static const driverCodStatus = '/api/driver/cod-status';
+  static const driverEarnings = '/api/driver/earnings';
+  static const driverTransactions = '/api/driver/transactions';
 
   // MARK: Quests & Tiers
   static const driverTier = '/api/driver/tier';

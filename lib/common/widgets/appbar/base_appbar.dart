@@ -48,7 +48,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                 icon:
                     leftIcon ??
                     const AssetImageWidget(
-                      AppAssets.chevronLeftLineIcon,
+                      AppAssets.icArrowLeft,
                       color: AppColors.semanticGrayNeutralBgWhite,
                       width: AppSpacing.s6,
                       height: AppSpacing.s6,
@@ -76,7 +76,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       case CommonAppBarType.title:
         return Text(
           titleText ?? '',
-          style: AppTypography.heading3.copyWith(
+          style: AppTypography.heading4.copyWith(
             color: AppColors.semanticGrayNeutralBgWhite,
           ),
         );

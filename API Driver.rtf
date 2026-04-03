@@ -1,0 +1,620 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs26 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2   "driver-backend_internal_auth.MessageResponse": \{\
+            "type": "object",\
+            "properties": \{\
+                "message": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_driver.UpdateProfileRequest": \{\
+            "type": "object",\
+            "properties": \{\
+                "avatar_url": \{\
+                    "type": "string"\
+                \},\
+                "email": \{\
+                    "type": "string"\
+                \},\
+                "full_name": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_color": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_model": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_plate": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_province": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_type_ids": \{\
+                    "description": "Many-to-many vehicle type IDs",\
+                    "type": "array",\
+                    "items": \{\
+                        "type": "string"\
+                    \}\
+                \},\
+                "vehicle_year": \{\
+                    "type": "integer"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_job.Job": \{\
+            "type": "object",\
+            "properties": \{\
+                "accepted_at": \{\
+                    "type": "string"\
+                \},\
+                "arrived_at_pickup_at": \{\
+                    "type": "string"\
+                \},\
+                "avoid_tolls": \{\
+                    "description": "Tollway handling",\
+                    "type": "boolean"\
+                \},\
+                "back_to_back_notified": \{\
+                    "type": "boolean"\
+                \},\
+                "booking_type": \{\
+                    "type": "string"\
+                \},\
+                "cancel_reason": \{\
+                    "type": "string"\
+                \},\
+                "cancellation_fee": \{\
+                    "type": "number"\
+                \},\
+                "cancelled_at": \{\
+                    "type": "string"\
+                \},\
+                "cancelled_by": \{\
+                    "type": "string"\
+                \},\
+                "completed_at": \{\
+                    "type": "string"\
+                \},\
+                "created_at": \{\
+                    "type": "string"\
+                \},\
+                "customer_comment": \{\
+                    "type": "string"\
+                \},\
+                "customer_id": \{\
+                    "type": "string"\
+                \},\
+                "destination_city": \{\
+                    "type": "string"\
+                \},\
+                "discount": \{\
+                    "type": "number"\
+                \},\
+                "dispatcher_notified_at": \{\
+                    "type": "string"\
+                \},\
+                "distance_category": \{\
+                    "type": "string"\
+                \},\
+                "distance_km": \{\
+                    "type": "number"\
+                \},\
+                "driver_compensation": \{\
+                    "type": "number"\
+                \},\
+                "driver_id": \{\
+                    "type": "string"\
+                \},\
+                "driver_info": \{\
+                    "description": "Driver Details (Projected via JOIN)",\
+                    "allOf": [\
+                        \{\
+                            "$ref": "#/definitions/driver-backend_internal_job.JobDriverInfo"\
+                        \}\
+                    ]\
+                \},\
+                "dropoff_address": \{\
+                    "type": "string"\
+                \},\
+                "dropoff_lat": \{\
+                    "type": "number"\
+                \},\
+                "dropoff_lng": \{\
+                    "type": "number"\
+                \},\
+                "fare": \{\
+                    "type": "number"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "is_intercity": \{\
+                    "type": "boolean"\
+                \},\
+                "is_multi_stop": \{\
+                    "type": "boolean"\
+                \},\
+                "is_queued_next": \{\
+                    "description": "Back-to-back dispatching",\
+                    "type": "boolean"\
+                \},\
+                "is_scheduled": \{\
+                    "type": "boolean"\
+                \},\
+                "navigation_urls": \{\
+                    "description": "Navigation Links",\
+                    "allOf": [\
+                        \{\
+                            "$ref": "#/definitions/driver-backend_internal_job.NavigationURLs"\
+                        \}\
+                    ]\
+                \},\
+                "origin_city": \{\
+                    "type": "string"\
+                \},\
+                "payment_method": \{\
+                    "type": "string"\
+                \},\
+                "picked_up_at": \{\
+                    "type": "string"\
+                \},\
+                "pickup_address": \{\
+                    "type": "string"\
+                \},\
+                "pickup_lat": \{\
+                    "type": "number"\
+                \},\
+                "pickup_lng": \{\
+                    "type": "number"\
+                \},\
+                "promo_id": \{\
+                    "type": "string"\
+                \},\
+                "queued_for_driver_id": \{\
+                    "type": "string"\
+                \},\
+                "rating_by_customer": \{\
+                    "type": "integer"\
+                \},\
+                "scheduled_at": \{\
+                    "type": "string"\
+                \},\
+                "status": \{\
+                    "type": "string"\
+                \},\
+                "stops": \{\
+                    "description": "Multi-stop details",\
+                    "type": "array",\
+                    "items": \{\
+                        "$ref": "#/definitions/driver-backend_internal_job.JobStop"\
+                    \}\
+                \},\
+                "subscription_id": \{\
+                    "description": "Phase D: Recurring \\u0026 Intercity",\
+                    "type": "string"\
+                \},\
+                "toll_fee": \{\
+                    "type": "number"\
+                \},\
+                "toll_paid_by": \{\
+                    "type": "string"\
+                \},\
+                "total_distance_km": \{\
+                    "type": "number"\
+                \},\
+                "total_duration_min": \{\
+                    "type": "number"\
+                \},\
+                "updated_at": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_type_id": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_job.JobDriverInfo": \{\
+            "type": "object",\
+            "properties": \{\
+                "avatar_url": \{\
+                    "type": "string"\
+                \},\
+                "full_name": \{\
+                    "type": "string"\
+                \},\
+                "phone": \{\
+                    "type": "string"\
+                \},\
+                "rating": \{\
+                    "type": "number"\
+                \},\
+                "vehicle_color": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_model": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_plate": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_province": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_year": \{\
+                    "type": "integer"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_job.JobStop": \{\
+            "type": "object",\
+            "properties": \{\
+                "address": \{\
+                    "type": "string"\
+                \},\
+                "arrival_time": \{\
+                    "type": "string"\
+                \},\
+                "created_at": \{\
+                    "type": "string"\
+                \},\
+                "departure_time": \{\
+                    "type": "string"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "job_id": \{\
+                    "type": "string"\
+                \},\
+                "lat": \{\
+                    "type": "number"\
+                \},\
+                "lng": \{\
+                    "type": "number"\
+                \},\
+                "name": \{\
+                    "type": "string"\
+                \},\
+                "sequence": \{\
+                    "type": "integer"\
+                \},\
+                "stop_type": \{\
+                    "description": "pickup, dropoff, waypoint",\
+                    "type": "string"\
+                \},\
+                "updated_at": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_job.NavigationURLs": \{\
+            "type": "object",\
+            "properties": \{\
+                "apple_maps": \{\
+                    "type": "string"\
+                \},\
+                "google_maps": \{\
+                    "type": "string"\
+                \},\
+                "waze": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_job.PaymentIntentDetails": \{\
+            "type": "object",\
+            "properties": \{\
+                "amount": \{\
+                    "type": "number"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "payment_method": \{\
+                    "type": "string"\
+                \},\
+                "qr_code_url": \{\
+                    "type": "string"\
+                \},\
+                "status": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_payment.CODStatusResponse": \{\
+            "type": "object",\
+            "properties": \{\
+                "cod_blocked": \{\
+                    "type": "boolean"\
+                \},\
+                "cod_debt": \{\
+                    "type": "number"\
+                \},\
+                "cod_threshold": \{\
+                    "type": "number"\
+                \},\
+                "current_balance": \{\
+                    "type": "number"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_payment.PaymentIntentResponse": \{\
+            "type": "object",\
+            "properties": \{\
+                "charge_url": \{\
+                    "description": "3DS redirect URL for cards",\
+                    "type": "string"\
+                \},\
+                "expires_at": \{\
+                    "description": "Only for PromptPay",\
+                    "type": "string"\
+                \},\
+                "intent_id": \{\
+                    "type": "string"\
+                \},\
+                "qr_code_url": \{\
+                    "description": "Only for PromptPay",\
+                    "type": "string"\
+                \},\
+                "status": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_payment.TopUpRequest": \{\
+            "type": "object",\
+            "required": [\
+                "amount"\
+            ],\
+            "properties": \{\
+                "amount": \{\
+                    "type": "number",\
+                    "minimum": 100\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_pricing.PricingZone": \{\
+            "type": "object",\
+            "properties": \{\
+                "boundary": \{\
+                    "description": "Layer A: Business",\
+                    "type": "string"\
+                \},\
+                "created_at": \{\
+                    "type": "string"\
+                \},\
+                "description": \{\
+                    "type": "string"\
+                \},\
+                "food_multiplier": \{\
+                    "type": "number"\
+                \},\
+                "food_surcharge": \{\
+                    "type": "number"\
+                \},\
+                "h3_index": \{\
+                    "description": "Layer B: Surge",\
+                    "type": "string"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "is_active": \{\
+                    "type": "boolean"\
+                \},\
+                "name": \{\
+                    "type": "string"\
+                \},\
+                "ride_multiplier": \{\
+                    "type": "number"\
+                \},\
+                "ride_surcharge": \{\
+                    "type": "number"\
+                \},\
+                "updated_at": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_pricing.SurgeInfo": \{\
+            "type": "object",\
+            "properties": \{\
+                "demand": \{\
+                    "type": "integer"\
+                \},\
+                "h3_index": \{\
+                    "type": "string"\
+                \},\
+                "is_active": \{\
+                    "description": "true if multiplier \\u003e 1.0",\
+                    "type": "boolean"\
+                \},\
+                "multiplier": \{\
+                    "type": "number"\
+                \},\
+                "resolution": \{\
+                    "type": "integer"\
+                \},\
+                "supply": \{\
+                    "type": "integer"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_pricing.SurgeResolutionZone": \{\
+            "type": "object",\
+            "properties": \{\
+                "boundary": \{\
+                    "description": "WKT polygon",\
+                    "type": "string"\
+                \},\
+                "created_at": \{\
+                    "type": "string"\
+                \},\
+                "description": \{\
+                    "type": "string"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "is_active": \{\
+                    "type": "boolean"\
+                \},\
+                "name": \{\
+                    "type": "string"\
+                \},\
+                "resolution": \{\
+                    "type": "integer"\
+                \},\
+                "updated_at": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_tracking.LocationLog": \{\
+            "type": "object",\
+            "properties": \{\
+                "accuracy": \{\
+                    "description": "GPS accuracy in meters",\
+                    "type": "number"\
+                \},\
+                "driver_id": \{\
+                    "type": "string"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "job_id": \{\
+                    "type": "string"\
+                \},\
+                "lat": \{\
+                    "type": "number"\
+                \},\
+                "lng": \{\
+                    "type": "number"\
+                \},\
+                "recorded_at": \{\
+                    "type": "string"\
+                \},\
+                "speed": \{\
+                    "description": "km/h if available",\
+                    "type": "number"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_tracking.RouteComparisonResponse": \{\
+            "type": "object",\
+            "properties": \{\
+                "actual_distance_km": \{\
+                    "type": "number"\
+                \},\
+                "actual_duration_min": \{\
+                    "type": "number"\
+                \},\
+                "distance_variance_pct": \{\
+                    "type": "number"\
+                \},\
+                "duration_variance_pct": \{\
+                    "type": "number"\
+                \},\
+                "estimated_distance_km": \{\
+                    "type": "number"\
+                \},\
+                "estimated_duration_min": \{\
+                    "type": "number"\
+                \},\
+                "job_id": \{\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_tracking.RouteReplayResponse": \{\
+            "type": "object",\
+            "properties": \{\
+                "driver_id": \{\
+                    "type": "string"\
+                \},\
+                "driver_name": \{\
+                    "type": "string"\
+                \},\
+                "end_time": \{\
+                    "type": "string"\
+                \},\
+                "job_id": \{\
+                    "type": "string"\
+                \},\
+                "locations": \{\
+                    "type": "array",\
+                    "items": \{\
+                        "$ref": "#/definitions/driver-backend_internal_tracking.LocationLog"\
+                    \}\
+                \},\
+                "start_time": \{\
+                    "type": "string"\
+                \},\
+                "total_points": \{\
+                    "type": "integer"\
+                \}\
+            \}\
+        \},\
+        "driver-backend_internal_vehicletype.DriverVehicleType": \{\
+            "type": "object",\
+            "properties": \{\
+                "base_fare": \{\
+                    "description": "Initial fare when starting a ride",\
+                    "type": "number"\
+                \},\
+                "created_at": \{\
+                    "type": "string"\
+                \},\
+                "description": \{\
+                    "type": "string"\
+                \},\
+                "display_name": \{\
+                    "description": "e.g., 'GrabCar', 'GrabBike'",\
+                    "type": "string"\
+                \},\
+                "id": \{\
+                    "type": "string"\
+                \},\
+                "is_active": \{\
+                    "type": "boolean"\
+                \},\
+                "is_enabled": \{\
+                    "type": "boolean"\
+                \},\
+                "min_fare": \{\
+                    "description": "Minimum fare charged",\
+                    "type": "number"\
+                \},\
+                "name": \{\
+                    "description": "e.g., 'car', 'motorcycle', 'tuk_tuk', 'van'",\
+                    "type": "string"\
+                \},\
+                "price_per_km": \{\
+                    "description": "Price charged per kilometer",\
+                    "type": "number"\
+                \},\
+                "price_per_min": \{\
+                    "description": "Price charged per minute",\
+                    "type": "number"\
+                \},\
+                "updated_at": \{\
+                    "type": "string"\
+                \},\
+                "vehicle_class": \{\
+                    "description": "e.g., 'car', 'motorcycle', 'tuk_tuk', 'van'",\
+                    "type": "string"\
+                \}\
+            \}\
+        \},\
+}

@@ -3,7 +3,14 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/parallax_card.dart';
 
 class EarningsSection extends StatefulWidget {
-  const EarningsSection({super.key});
+  final double earningsToday;
+  final double earningsWeek;
+
+  const EarningsSection({
+    super.key,
+    this.earningsToday = 10.0,
+    this.earningsWeek = 20.0,
+  });
 
   @override
   State<EarningsSection> createState() => _EarningsSectionState();
@@ -13,9 +20,9 @@ class _EarningsSectionState extends State<EarningsSection> {
   late final PageController _controller;
   double currentPage = 0;
 
-  final items = const [
-    {"today": 0.0, "week": 0.0},
-    {"today": 1200.0, "week": 5400.0},
+  List<Map<String, double>> get items => [
+    {"today": widget.earningsToday, "week": widget.earningsWeek},
+    {"today": 0.0, "week": 0.0}, // placeholder second card
   ];
 
   @override
@@ -50,7 +57,7 @@ class _EarningsSectionState extends State<EarningsSection> {
               final offset = currentPage - index;
 
               return Padding(
-                padding: const EdgeInsets.only(right: 12), // 👈 เว้นแค่ขวา
+                padding: const EdgeInsets.only(right: 12),
                 child: ParallaxCard(
                   today: items[index]["today"]!,
                   week: items[index]["week"]!,
@@ -75,8 +82,7 @@ class _EarningsSectionState extends State<EarningsSection> {
               width: isActive ? 20 : 6,
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors
-                          .foundationOrange600 //
+                    ? AppColors.foundationOrange600
                     : AppColors.semanticGrayNeutralFgMidOnWhite,
                 borderRadius: BorderRadius.circular(6),
               ),

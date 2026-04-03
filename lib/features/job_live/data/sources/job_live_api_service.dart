@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
+import 'package:massdrive/core/data/sources/base_api_service.dart';
 
 abstract class JobLiveApiService {
   Future<Response> cancelJob(String jobId, Map<String, dynamic> data);
@@ -13,15 +14,13 @@ abstract class JobLiveApiService {
 }
 
 @LazySingleton(as: JobLiveApiService)
-class JobLiveApiServiceImpl implements JobLiveApiService {
-  final Dio _dio;
-
-  JobLiveApiServiceImpl(this._dio);
+class JobLiveApiServiceImpl extends BaseApiService implements JobLiveApiService {
+  JobLiveApiServiceImpl(super.dio);
 
   @override
   Future<Response> cancelJob(String jobId, Map<String, dynamic> data) async {
     final endpoint = Endpoints.driverJobsCancel.replaceAll(':id', jobId);
-    return await _dio.post(endpoint, data: data);
+    return await post(endpoint, data: data);
   }
 
   @override
@@ -29,7 +28,7 @@ class JobLiveApiServiceImpl implements JobLiveApiService {
     final endpoint = Endpoints.driverJobsStopsArrive
         .replaceAll(':id', jobId)
         .replaceAll(':stop_id', stopId);
-    return await _dio.post(endpoint);
+    return await post(endpoint);
   }
 
   @override
@@ -37,7 +36,7 @@ class JobLiveApiServiceImpl implements JobLiveApiService {
     final endpoint = Endpoints.driverJobsStopsDepart
         .replaceAll(':id', jobId)
         .replaceAll(':stop_id', stopId);
-    return await _dio.post(endpoint);
+    return await post(endpoint);
   }
 
   @override
@@ -46,21 +45,21 @@ class JobLiveApiServiceImpl implements JobLiveApiService {
     Map<String, dynamic> data,
   ) async {
     final endpoint = Endpoints.driverJobsStatus.replaceAll(':id', jobId);
-    return await _dio.patch(endpoint, data: data);
+    return await patch(endpoint, data: data);
   }
 
   @override
   Future<Response> getActiveJob() async {
-    return await _dio.get(Endpoints.driverJobsActive);
+    return await get(Endpoints.driverJobsActive);
   }
 
   @override
   Future<Response> getActiveOffer() async {
-    return await _dio.get(Endpoints.driverJobsActiveOffer);
+    return await get(Endpoints.driverJobsActiveOffer);
   }
 
   @override
   Future<Response> getActiveFoodOrder() async {
-    return await _dio.get(Endpoints.foodDriverOrdersActive);
+    return await get(Endpoints.foodDriverOrdersActive);
   }
 }

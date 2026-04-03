@@ -1,6 +1,6 @@
 class WalletResponse {
-  final String cashBalance;
-  final String creditBalance;
+  final double cashBalance;
+  final double creditBalance;
 
   const WalletResponse({
     required this.cashBalance,

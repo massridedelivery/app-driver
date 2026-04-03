@@ -17,6 +17,7 @@ import 'package:massdrive/features/job_live/presentation/screens/job_live_screen
 import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
+import 'package:massdrive/features/food_live/presentation/screens/food_live_screen.dart';
 
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
@@ -111,6 +112,11 @@ class AppRouter {
         path: '/job-live',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: JobLiveScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.foodLiveNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: FoodLiveScreen()),
       ),
       GoRoute(
         path: '/payment',

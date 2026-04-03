@@ -218,6 +218,9 @@ class AppAssets {
   static const String chevronLeftLineIcon = 'icons/ic_chevron_left_line';
   static const String chevronRightLineIcon = 'icons/ic_chevron_right_line';
 
+  static const String icArrowLeft = 'icons/ic_arrow_left';
+  static const String icArrowRight = 'icons/ic_arrow_right';
+
   // My Cart Icon
   static const String couponIcon = 'icons/ic_coupon_line';
   static const String shippingLineIcon = 'icons/ic_shipping_bar';

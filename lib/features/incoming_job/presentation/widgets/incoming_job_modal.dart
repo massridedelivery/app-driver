@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
@@ -245,7 +246,15 @@ class IncomingJobModal extends ConsumerWidget {
                         ref
                             .read(incomingJobControllerProvider.notifier)
                             .acceptJob();
-                        context.go('/job-live');
+                        // Route based on generic service type check
+                        final isFood = job.serviceType.toLowerCase().contains(
+                          'food',
+                        );
+                        if (isFood) {
+                          context.go(AppRoutes.foodLiveNamedPage);
+                        } else {
+                          context.go('/job-live');
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.semanticSuccessBgHigh,

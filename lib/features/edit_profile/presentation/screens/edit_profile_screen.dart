@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
 class EditProfileScreen extends ConsumerWidget {
   const EditProfileScreen({super.key});
@@ -72,12 +72,12 @@ class EditProfileScreen extends ConsumerWidget {
                 vehicle: profile.vehicleModel!,
                 isPrimary: true,
                 onTap: () {
-                  _showUpdateVehicleSheet(
-                    context,
-                    ref,
-                    profile.vehiclePlate!,
-                    profile.vehicleModel!,
-                  );
+                  // _showUpdateVehicleSheet(
+                  //   context,
+                  //   ref,
+                  //   profile.vehiclePlate!,
+                  //   profile.vehicleModel!,
+                  // );
                 },
               )
             else

@@ -5,7 +5,10 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/features/income/presentation/screens/payout_form_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 
 class CashWalletScreen extends ConsumerWidget {
@@ -47,7 +50,7 @@ class CashWalletScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '฿${state.cashBalance}',
+                        '฿${state.cashBalance.toStringAsFixed(0)}',
                         style: AppTypography.heading1.copyWith(
                           color: Colors.white,
                           fontSize: 48,
@@ -66,12 +69,27 @@ class CashWalletScreen extends ConsumerWidget {
                     WalletActionTile(
                       title: 'โอนไปยังบัญชี',
                       icon: Icons.account_balance_wallet_outlined,
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          PayoutFormScreen(
+                            availableBalance: state.cashBalance,
+                          ),
+                        );
+                      },
                     ),
                     WalletActionTile(
                       title: 'ตรวจสอบประวัติการโอนเงิน',
                       icon: Icons.history_rounded,
-                      onTap: () {},
+                      onTap: () {
+                        AppNavigator.push(
+                          context,
+                          const TransactionHistoryScreen(
+                            title: 'ประวัติกระเป๋าเงินสด',
+                            transactionType: 'payout',
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -128,3 +146,4 @@ class CashWalletScreen extends ConsumerWidget {
     );
   }
 }
+
