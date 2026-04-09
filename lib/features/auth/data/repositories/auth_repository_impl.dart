@@ -7,6 +7,7 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/features/auth/data/models/user_model.dart';
 import 'package:massdrive/features/auth/domain/entities/register_request.dart';
 import 'package:massdrive/features/auth/data/models/register_request_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @LazySingleton(as: AuthRepository)
 class AuthRepositoryImpl implements AuthRepository {
@@ -35,6 +36,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     final secureStorage = SecureStorageManager();
     await secureStorage.delete(SecureStorageKey.accessToken);
+    
+    // Clear Shared Preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 
   @override

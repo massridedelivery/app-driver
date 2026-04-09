@@ -6,6 +6,7 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interceptor.dart';
 import 'package:massdrive/core/managers/api/header_interceptor.dart';
+import 'package:massdrive/core/managers/api/profile_error_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
 
 import 'dependency_injection.config.dart';
@@ -38,6 +39,7 @@ abstract class NetworkModule {
           // Add global logout or navigation logic if needed
         },
       ),
+      ProfileErrorInterceptor(),
     ]);
 
     return dio;
