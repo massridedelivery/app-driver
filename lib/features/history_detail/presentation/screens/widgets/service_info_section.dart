@@ -33,20 +33,32 @@ class ServiceInfoSection extends StatelessWidget {
           _buildHeader(theme),
           const SizedBox(height: 16),
           _buildServiceRow(
-            icon: Icons.two_wheeler_sharp,
+            icon: data.isFood ? Icons.fastfood : Icons.two_wheeler_sharp,
             label: "ประเภทบริการ",
             value: _getServiceType(),
+            iconColor: data.isFood
+                ? AppColors.foundationOrange600
+                : null,
           ),
+          if (data.isFood && data.restaurantName != null) ...[
+            const SizedBox(height: 12),
+            _buildServiceRow(
+              icon: Icons.storefront,
+              label: "ร้านอาหาร",
+              value: data.restaurantName!,
+              iconColor: AppColors.foundationOrange600,
+            ),
+          ],
           const SizedBox(height: 12),
           _buildServiceRow(
             icon: Icons.location_on_outlined,
-            label: "จุดรับ",
+            label: data.isFood ? "รับอาหารจาก" : "จุดรับ",
             value: data.pickupAddress,
           ),
           const SizedBox(height: 12),
           _buildServiceRow(
             icon: Icons.flag_outlined,
-            label: "จุดส่ง",
+            label: data.isFood ? "ส่งที่" : "จุดส่ง",
             value: data.dropoffAddress,
           ),
         ],
@@ -67,11 +79,12 @@ class ServiceInfoSection extends StatelessWidget {
     required IconData icon,
     required String label,
     required String value,
+    Color? iconColor,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20),
+        Icon(icon, size: 20, color: iconColor),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -97,10 +110,12 @@ class ServiceInfoSection extends StatelessWidget {
     );
   }
 
-  /// 👇 รองรับ future expansion
+  /// Map serviceType from entity to display label
   String _getServiceType() {
-    // ถ้าภายหลังมี field serviceType ใน entity
-    // สามารถ map ตรงนี้ได้
+    if (data.isFood) {
+      return "MassFood Delivery";
+    }
     return "Saver Bike";
   }
 }
+

@@ -111,14 +111,14 @@ extension GetItInjectableX on _i174.GetIt {
     final networkModule = _$NetworkModule();
     gh.singleton<_i822.DeeplinkManager>(() => _i822.DeeplinkManager());
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i168.JobLiveApiService>(
-      () => _i168.JobLiveApiServiceImpl(gh<_i361.Dio>()),
-    );
     gh.lazySingleton<_i307.FoodDeliveryApiService>(
       () => _i307.FoodDeliveryApiServiceImpl(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i893.VehicleApiService>(
       () => _i893.VehicleApiServiceImpl(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i168.JobLiveApiService>(
+      () => _i168.JobLiveApiServiceImpl(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i1068.MediaApiService>(
       () => _i1068.MediaApiServiceImpl(gh<_i361.Dio>()),
@@ -135,11 +135,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i540.AuthApiService>(
       () => _i425.AuthApiServiceImpl(gh<_i361.Dio>()),
     );
-    gh.lazySingleton<_i639.DocumentRegistrationApi>(
-      () => _i639.DocumentRegistrationApi(gh<_i361.Dio>()),
-    );
     gh.lazySingleton<_i190.ProfileApiService>(
       () => _i190.ProfileApiServiceImpl(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i639.DocumentRegistrationApi>(
+      () => _i639.DocumentRegistrationApi(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i717.NotificationApiService>(
       () => _i717.NotificationApiServiceImpl(gh<_i361.Dio>()),

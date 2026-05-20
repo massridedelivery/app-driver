@@ -30,7 +30,7 @@ class AppDioRequestLog extends DioRequestLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${requestOptions.extra['endPoint']}';
+    msg += '\nEndPoint: ${requestOptions.extra['endPoint'] ?? requestOptions.path}';
 
     try {
       if (queryParameters.isNotEmpty) {
@@ -116,7 +116,7 @@ class AppDioResponseLog extends DioResponseLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${response.requestOptions.extra['endPoint']}';
+    msg += '\nEndPoint: ${response.requestOptions.extra['endPoint'] ?? response.requestOptions.path}';
     msg += '\nStatus: ${response.statusCode}';
     msg += '\nMessage: $responseMessage';
 
@@ -165,7 +165,7 @@ class AppDioErrorLog extends DioErrorLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${dioException.requestOptions.extra['endPoint']}';
+    msg += '\nEndPoint: ${dioException.requestOptions.extra['endPoint'] ?? dioException.requestOptions.path}';
 
     if (statusCode != null) {
       msg += '\nStatus: ${dioException.response?.statusCode}';

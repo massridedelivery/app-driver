@@ -8,6 +8,9 @@ class HistoryDetailEntity {
   final double total;
   final String paymentMethod;
   final double driverNet;
+  final String serviceType; // 'ride' or 'food'
+  final String? restaurantName;
+  final List<Map<String, dynamic>>? orderItems;
 
   HistoryDetailEntity({
     required this.id,
@@ -19,5 +22,11 @@ class HistoryDetailEntity {
     required this.total,
     required this.paymentMethod,
     required this.driverNet,
+    this.serviceType = 'ride',
+    this.restaurantName,
+    this.orderItems,
   });
+
+  bool get isFood => serviceType == 'food';
 }
+

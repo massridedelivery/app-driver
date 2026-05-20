@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/states/incoming_job_state.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -25,33 +27,12 @@ class IncomingJobController extends _$IncomingJobController {
 
       if (msg.type == 'job_offer') {
         debugPrint('IncomingJobController: 📥 RECEIVED job_offer message');
-        try {
-          // Priority: raw['job'], data['job'], data, raw
-          final jobData =
-              msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
-          debugPrint('IncomingJobController: Job Data extracted: $jobData');
-
-          if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
-            final job = IncomingJobModel.fromJson(jobData);
-            debugPrint(
-              'IncomingJobController: ✅ Job parsed successfully. ID=${job.jobId}',
-            );
-
-            receiveJob(job);
-
-            // Automatically navigate to the Incoming Job screen
-            debugPrint(
-              'IncomingJobController: 🚀 Navigating using .go() to ${AppRoutes.incomingJobNamedPage}',
-            );
-            AppRouter.router.go(AppRoutes.incomingJobNamedPage);
-          } else {
-            debugPrint(
-              'IncomingJobController: ⚠️ job_offer data invalid or missing id. Data: $jobData',
-            );
-          }
-        } catch (e) {
-          debugPrint('IncomingJobController: ❌ Parse Error (job_offer): $e');
-        }
+        _handleJobOffer(msg.raw, msg.data);
+      } else if (msg.type == 'food_delivery_offer') {
+        debugPrint(
+          'IncomingJobController: 🍔 RECEIVED food_delivery_offer message',
+        );
+        _handleFoodDeliveryOffer(msg.raw, msg.data);
       } else if (msg.type == 'job_accepted') {
         // Notification that the job is confirmed to us
         try {
@@ -88,6 +69,69 @@ class IncomingJobController extends _$IncomingJobController {
     return const IncomingJobState();
   }
 
+  /// Handle ride job_offer event
+  void _handleJobOffer(
+    Map<String, dynamic> raw,
+    Map<String, dynamic>? data,
+  ) {
+    try {
+      final jobData = raw['job'] ?? data?['job'] ?? data ?? raw;
+      debugPrint('IncomingJobController: Job Data extracted: $jobData');
+
+      if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
+        final job = IncomingJobModel.fromJson(jobData);
+        debugPrint(
+          'IncomingJobController: ✅ Ride Job parsed. ID=${job.jobId}',
+        );
+
+        receiveJob(job);
+        AppRouter.router.go(AppRoutes.incomingJobNamedPage);
+      } else {
+        debugPrint(
+          'IncomingJobController: ⚠️ job_offer data invalid. Data: $jobData',
+        );
+      }
+    } catch (e) {
+      debugPrint('IncomingJobController: ❌ Parse Error (job_offer): $e');
+    }
+  }
+
+  /// Handle food_delivery_offer event
+  void _handleFoodDeliveryOffer(
+    Map<String, dynamic> raw,
+    Map<String, dynamic>? data,
+  ) {
+    try {
+      final jobData = raw['order'] ?? data?['order'] ?? data ?? raw;
+      debugPrint(
+        'IncomingJobController: Food Order Data extracted: $jobData',
+      );
+
+      if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
+        // Ensure service_type marks it as food if not already set
+        final enrichedData = Map<String, dynamic>.from(jobData);
+        enrichedData['service_type'] ??= 'MassFood';
+
+        final job = IncomingJobModel.fromJson(enrichedData);
+        debugPrint(
+          'IncomingJobController: 🍔 Food Job parsed. ID=${job.jobId}, '
+          'restaurant=${job.restaurantName}, items=${job.orderItems.length}',
+        );
+
+        receiveJob(job);
+        AppRouter.router.go(AppRoutes.incomingJobNamedPage);
+      } else {
+        debugPrint(
+          'IncomingJobController: ⚠️ food_delivery_offer data invalid. Data: $jobData',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        'IncomingJobController: ❌ Parse Error (food_delivery_offer): $e',
+      );
+    }
+  }
+
   void receiveJob(IncomingJobModel job) {
     state = state.copyWith(currentJob: job, isModalVisible: true);
   }
@@ -96,11 +140,30 @@ class IncomingJobController extends _$IncomingJobController {
     state = state.copyWith(currentJob: job, isModalVisible: false);
   }
 
+  /// Accept a ride job via WebSocket
   void acceptJob() {
     final job = state.currentJob;
     if (job != null) {
       ref.read(socketServiceProvider).acceptJob(job.jobId);
       _sendLocationUpdate();
+    }
+    state = state.copyWith(isModalVisible: false);
+  }
+
+  /// Accept a food delivery job via REST API
+  Future<void> acceptFoodJob() async {
+    final job = state.currentJob;
+    if (job == null) return;
+
+    try {
+      final apiService = getIt<FoodDeliveryApiService>();
+      await apiService.acceptOrder(job.jobId);
+      debugPrint(
+        'IncomingJobController: 🍔 Food job accepted via REST API: ${job.jobId}',
+      );
+      _sendLocationUpdate();
+    } catch (e) {
+      debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
     }
     state = state.copyWith(isModalVisible: false);
   }

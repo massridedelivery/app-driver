@@ -16,6 +16,7 @@ class AuthApiServiceImpl implements AuthApiService {
       await _dio.post(
         Endpoints.otpPhoneRequest,
         data: {'phone': phone, 'role': 'driver'},
+        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.otpPhoneRequest}),
       );
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
@@ -36,6 +37,7 @@ class AuthApiServiceImpl implements AuthApiService {
           'role': 'driver',
           'full_name': 'New Driver', // Used if first time login
         },
+        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.phoneVerify}),
       );
 
       final accessToken = verifyResponse.data['access_token'];
@@ -59,6 +61,7 @@ class AuthApiServiceImpl implements AuthApiService {
       final loginResponse = await _dio.post(
         Endpoints.login,
         data: {'email': email, 'password': password},
+        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.login}),
       );
 
       final accessToken = loginResponse.data['access_token'];
@@ -84,6 +87,7 @@ class AuthApiServiceImpl implements AuthApiService {
       final response = await _dio.post(
         Endpoints.register,
         data: request.toJson(),
+        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.register}),
       );
 
       final accessToken = response.data['access_token'];

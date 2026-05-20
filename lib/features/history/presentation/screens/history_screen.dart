@@ -26,12 +26,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
       amount: 28,
       paymentType: PaymentType.grabPay,
       status: HistoryStatus.completed,
+      serviceType: ServiceType.ride,
     ),
     HistoryItemModel(
       id: "2",
-      dateTime: DateTime.now(),
+      dateTime: DateTime.now().subtract(const Duration(minutes: 30)),
+      title: "ร้านขนมหวานสุดอร่อย → Condo",
+      amount: 45,
+      paymentType: PaymentType.cash,
+      status: HistoryStatus.completed,
+      serviceType: ServiceType.food,
+    ),
+    HistoryItemModel(
+      id: "3",
+      dateTime: DateTime.now().subtract(const Duration(hours: 1)),
       title: "ก๋วยเตี๋ยวต้มยำสามล้อสูตรโบราณ",
       status: HistoryStatus.cancelled,
+      serviceType: ServiceType.food,
+    ),
+    HistoryItemModel(
+      id: "4",
+      dateTime: DateTime.now().subtract(const Duration(hours: 2)),
+      title: "อนุสาวรีย์ชัย → สีลม",
+      amount: 65,
+      paymentType: PaymentType.grabPay,
+      status: HistoryStatus.completed,
+      serviceType: ServiceType.ride,
     ),
   ];
 
@@ -47,19 +67,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
-            // /// Toggle
-            // SliverToBoxAdapter(
-            //   child: HistoryToggle(
-            //     isDaily: isDaily,
-            //     onChanged: (value) {
-            //       setState(() => isDaily = value);
-            //     },
-            //   ),
-            // ),
-            //
-            // /// Date Selector
-            // SliverToBoxAdapter(child: DateSelector()),
-
             /// List
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
@@ -70,7 +77,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   onTap: () {
                     AppNavigator.push(
                       context,
-                      HistoryDetailScreen(historyId: ''),
+                      HistoryDetailScreen(
+                        historyId: item.id,
+                        isFood: item.serviceType == ServiceType.food,
+                      ),
                     );
                   },
                 );
@@ -82,3 +92,4 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 }
+

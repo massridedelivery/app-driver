@@ -31,6 +31,14 @@ _IncomingJobModel _$IncomingJobModelFromJson(Map<String, dynamic> json) =>
       surgeActive: json['surge_active'] as bool? ?? false,
       isScheduled: json['is_scheduled'] as bool? ?? false,
       scheduledAt: json['scheduled_at'] as String?,
+      restaurantName: json['restaurant_name'] as String?,
+      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0.0,
+      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+      orderItems:
+          (json['order_items'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
@@ -57,4 +65,8 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'surge_active': instance.surgeActive,
       'is_scheduled': instance.isScheduled,
       'scheduled_at': instance.scheduledAt,
+      'restaurant_name': instance.restaurantName,
+      'delivery_fee': instance.deliveryFee,
+      'subtotal': instance.subtotal,
+      'order_items': instance.orderItems,
     };

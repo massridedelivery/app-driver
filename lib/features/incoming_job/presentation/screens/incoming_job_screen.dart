@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_food_modal.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_job_modal.dart';
 
 class IncomingJobScreen extends ConsumerStatefulWidget {
@@ -35,7 +36,9 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
       Marker(
         markerId: const MarkerId('pickup'),
         position: LatLng(job.pickupLat, job.pickupLng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          job.isFood ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
+        ),
       ),
       Marker(
         markerId: const MarkerId('dropoff'),
@@ -51,7 +54,9 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
           LatLng(job.pickupLat, job.pickupLng),
           LatLng(job.dropoffLat, job.dropoffLng),
         ],
-        color: AppColors.semanticPrimaryBgHigh,
+        color: job.isFood
+            ? AppColors.foundationOrange600
+            : AppColors.semanticPrimaryBgHigh,
         width: 4,
         patterns: [PatternItem.dash(20), PatternItem.gap(10)],
       ),
@@ -95,15 +100,16 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
             ),
           ),
 
-          // Build the UI previously in the bottom sheet at the absolute bottom
+          // Show the appropriate modal based on job type
           Align(
             alignment: Alignment.bottomCenter,
-            child: IncomingJobModal(
-              job: job,
-            ), // Repurposing the modal widget seamlessly
+            child: job.isFood
+                ? IncomingFoodModal(job: job)
+                : IncomingJobModal(job: job),
           ),
         ],
       ),
     );
   }
 }
+

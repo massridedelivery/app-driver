@@ -37,7 +37,19 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'surge_active') @Default(false) bool surgeActive,
     @JsonKey(name: 'is_scheduled') @Default(false) bool isScheduled,
     @JsonKey(name: 'scheduled_at') String? scheduledAt,
+
+    // Food Delivery fields
+    @JsonKey(name: 'restaurant_name') String? restaurantName,
+    @JsonKey(name: 'delivery_fee') @Default(0.0) double deliveryFee,
+    @JsonKey(name: 'subtotal') @Default(0.0) double subtotal,
+    @JsonKey(name: 'order_items')
+    @Default([])
+    List<Map<String, dynamic>> orderItems,
   }) = _IncomingJobModel;
+
+  /// Whether this job is a food delivery order
+  bool get isFood =>
+      serviceType.toLowerCase().contains('food') || orderItems.isNotEmpty;
 
   factory IncomingJobModel.fromJson(Map<String, dynamic> json) =>
       _$IncomingJobModelFromJson(json);

@@ -1,265 +1,141 @@
-# Mass Drive App Roadmap (Grab Driver Clone)
+# Mass Drive App Roadmap (Driver App Breakdown)
 
-This roadmap outlines the complete development lifecycle for the **Mass Drive App**, structured into logical phases. It also maps your current project files (`lib/features/...`) to track what has been initiated and what remains.
+เอกสารฉบับนี้ใช้สรุปโครงสร้างฟีเจอร์ของระบบ **Mass Drive App (ฝั่ง Driver)** ตาม Phases ต่างๆ พร้อมรายละเอียดการเชื่อมต่อ API จริงจากระบบ เพื่อใช้สำหรับสื่อสารและนำเสนอทีมผู้พัฒนา (Backend / Frontend / QA)
 
 ---
 
 ## 🎯 Overall Objective
-To build a scalable, real-time driver application similar to Grab Driver. The app will feature authentication, real-time geolocation, job dispatch, navigation, earnings tracking, and user profile management using **Flutter**, **Riverpod**, **GoRouter**, and **Firebase**.
+เพื่อพัฒนาระบบ Driver Application ที่รองรับ Real-time dispatch, Tracking, Job handling, และ Financial dashboard อย่างมีประสิทธิภาพ ด้วยเทคโนโลยี **Flutter, Riverpod, WebSockets, และ REST APIs**
 
 ---
 
-## 🛠 Phase 1: Foundation, Onboarding & Authentication
-**Goal:** Allow drivers to register, log in securely, and set up their profile and vehicle documents.
-*(Note: As the real API is not yet available, all network integrations in this phase will use **Mock APIs**).*
+## 🛠 Phase 1: Onboarding & Authentication (การสมัครและเข้าระบบ)
+**เป้าหมาย:** จัดการสถานะตัวตนของคนขับ ตั้งแต่การสมัคร, การอัปโหลดเอกสารตรวจสอบ จนกระทั่งสามารถล็อกอินพร้อมใช้งาน
 
-### Features
-- [x] 1. **Splash Screen:** Initial app load, checking auth state and routing.
-- [x] 2. **Authentication:** Login/Signup via Phone Number & OTP, and feature **Login with Email**.
-- [ ] 3. **Document Submission:** Uploading ID, Driver's License, and Vehicle Registration.
-- [ ] 4. **Profile Management:** Viewing and editing driver details.
-- [ ] 5. **Service Type Selection:** Choosing vehicle type (e.g., Bike, Car, SUV) which dictates job eligibility.
-- [ ] 6. **Job Dispatch Listener:** Listening for incoming ride requests via WebSockets (`web_socket_channel`).
-- [ ] 7. **Incoming Job UI:** A bottom sheet or modal showing pickup/dropoff, estimated distance, and a timer to accept/decline.
-
-### Current Project Mapping
-- `lib/features/splash_screen/`: **[Code Present]** Handles initial load and routing.
-- `lib/features/auth/`: **[Code Present]** Contains login and OTP logic.
-- `lib/features/profile/`: **[Code Present]** View driver details.
-- `lib/features/edit_profile/`: **[Code Present]** Update driver details.
-- `lib/features/service_type/`: **[Code Present]** Allows driver to select service category.
-
-**Next Steps exactly in Phase 1:**
-- [x] Scaffold the Mock API service for Authentication.
-- [x] Complete Mock API integration for OTP request and validation.
-- [ ] Plan and implement the Motorcycle Driver Registration Flow (Grab Clone).
-- [ ] Ensure robust validation for document uploads.
+### 🔗 Feature & API Mapping
+| Feature / หน้าจอ | คำอธิบาย API Endpoint | Method | Payload / Params สำคัญ |
+| :--- | :--- | :---: | :--- |
+| **1. Request OTP** | ส่งรหัส OTP ไปยังเบอร์โทรศัพท์ของคนขับ | `POST` | `/auth/otp/send`<br>`{"phone": "...", "role": "driver"}` |
+| **2. Verify OTP** | ยืนยันรหัส OTP และรับ Token เข้าระบบ | `POST` | `/auth/otp/verify`<br>`{"phone": "...", "code": "...", "role": "driver"}` |
+| **3. Email Login** | ช่องทางล็อกอินสำรองผ่าน Email | `POST` | `/auth/login`<br>`{"email": "...", "password": "..."}` |
+| **4. Registration** | สมัครสมาชิก (รอบแรก) | `POST` | `/auth/register`<br>`{"fullName": "...", "phone": "...", "password": "..."}` |
+| **5. Driver Profile** | ดูข้อมูลและสถานะโปรไฟล์ปัจจุบันของคนขับ | `GET` | `/api/driver/profile` |
+| **6. Update Profile** | แก้ไขข้อมูลส่วนตัว (ชื่อ, อีเมล) | `PUT` | `/api/driver/profile` |
+| **7. Get Upload URL** | ขอ Presigned URL เพื่ออัปโหลดรูปเอกสาร (S3/Cloud) | `GET` | `/api/media/upload-url` |
+| **8. Confirm Document** | ผูกลิงก์รูปภาพเข้ากับประเภทเอกสาร (ID, License) | `POST` | `/api/driver/documents` |
+| **9. Registration Status** | ตรวจสอบว่าเอกสารผ่านการอนุมัติแล้วหรือยัง | `GET` | `/api/driver/status` (Check: `pending`/`approved`) |
 
 ---
 
-### 📄 Driver Document Registration Flow (Motorcycle - Grab Clone)
+## 🗺 Phase 2: Core Interface & Dispatching Hub (หน้าแรกและการรับงาน)
+**เป้าหมาย:** ศูนย์กลางที่คนขับใช้เวลามากที่สุดในการรอรับงาน, จัดการสถานะ Online/Offline และเลือกประเภทบริการ
 
-**Flow Steps (แยก Feature ตามขั้นตอน):**
-1. **Personal Information Profile (ข้อมูลส่วนตัว):**
-   - **Feature:** Basic Profile Setup.
-   - **Fields:** First Name, Last Name, Email, Emergency Contact.
-2. **Profile Photo (รูปถ่ายโปรไฟล์):**
-   - **Feature:** Driver Selfie Upload.
-   - **Fields:** Selfie looking straight, clear background.
-3. **National ID Card (บัตรประชาชน):**
-   - **Feature:** ID Verification.
-   - **Fields:** Front side of the ID card.
-4. **Driving License (ใบขับขี่):**
-   - **Feature:** License Verification.
-   - **Fields:** Front side of the motorcycle driving license.
-5. **Vehicle Information & Document (ข้อมูลรถ และ สมุดคู่มือจดทะเบียนรถ):**
-   - **Feature:** Vehicle Details Setup.
-   - **Fields:** Brand, Model, Year, License Plate, Image of Green Book page.
-6. **Vehicle Photo (รูปถ่ายตัวรถ):**
-   - **Feature:** Vehicle Physical Verification.
-   - **Fields:** Photo showing the vehicle's front and license plate clearly.
-7. **Compulsory Motor Insurance (พ.ร.บ. รถจักรยานยนต์):**
-   - **Feature:** Insurance Verification.
-   - **Fields:** Image of the Por Ror Bor or Tax badge.
-8. **Bank Account Details (ข้อมูลบัญชีธนาคาร):**
-   - **Feature:** Payout Account Setup.
-   - **Fields:** Bank Name, Account Name, Account Number, Passbook image.
-9. **Criminal Background Check Consent (หนังสือยินยอมการตรวจประวัติอาชญากรรม):**
-   - **Feature:** Legal Consent.
-   - **Fields:** Checkbox/Signature for consent.
-
-**APIs & Mock Data Details:**
-
-**1. Update Basic Profile API**
-- **Endpoint:** `POST /api/v1/driver/profile`
-- **Request Body:**
-  ```json
-  {
-    "firstName": "Somchai",
-    "lastName": "Jaidee",
-    "email": "somchai@example.com",
-    "emergencyContact": "0812345678"
-  }
-  ```
-- **Response (200 OK):**
-  ```json
-  {
-    "message": "Profile saved successfully",
-    "status": "pending_documents"
-  }
-  ```
-
-**2. Universal Document Upload API (Reusable for all images)**
-- **Endpoint:** `POST /api/v1/driver/documents/upload`
-- **Content-Type:** `multipart/form-data`
-- **Payload:** 
-  - `file`: (Image File)
-  - `type`: String Enum (`"profile_photo"`, `"id_card"`, `"driving_license"`, `"vehicle_registration"`, `"vehicle_photo"`, `"insurance"`, `"bank_passbook"`)
-- **Response (200 OK):** 
-  ```json
-  {
-    "documentId": "doc_12345",
-    "url": "https://mock-storage.com/documents/doc_12345.jpg",
-    "type": "id_card",
-    "status": "uploaded"
-  }
-  ```
-
-**3. Submit Vehicle Details API**
-- **Endpoint:** `POST /api/v1/driver/vehicle`
-- **Request Body:** 
-  ```json
-  {
-    "vehicleType": "motorcycle",
-    "brand": "Honda",
-    "model": "Click 160",
-    "year": 2023,
-    "licensePlate": "1กข 1234"
-  }
-  ```
-- **Response (200 OK):** 
-  ```json
-  {
-    "message": "Vehicle details saved"
-  }
-  ```
-
-**4. Submit Bank Account Details API**
-- **Endpoint:** `POST /api/v1/driver/bank-account`
-- **Request Body:** 
-  ```json
-  {
-    "bankName": "Kasikornbank",
-    "accountName": "Somchai Jaidee",
-    "accountNumber": "123-4-56789-0"
-  }
-  ```
-- **Response (200 OK):** 
-  ```json
-  {
-    "message": "Bank details saved"
-  }
-  ```
-
-**5. Submit Consent & Final Review API**
-- **Endpoint:** `POST /api/v1/driver/documents/submit`
-- **Request Body:** 
-  ```json
-  {
-    "driverId": "drv_123",
-    "criminalCheckConsent": true
-  }
-  ```
-- **Response (200 OK):** 
-  ```json
-  {
-    "message": "All documents submitted for review",
-    "status": "in_review"
-  }
-  ```
-
-**6. Check Registration Status API (Polling/Init)**
-- **Endpoint:** `GET /api/v1/driver/status`
-- **Response (200 OK):** 
-  ```json
-  {
-    "status": "in_review",
-    "rejectedReasons": [],
-    "missingDocuments": []
-  }
-  ```
-  *(Status Enum: `pending`, `in_review`, `approved`, `rejected`)*
+### 🔗 Feature & API Mapping
+| Feature / หน้าจอ | คำอธิบาย API Endpoint | Method | Description |
+| :--- | :--- | :---: | :--- |
+| **1. Go Online** | เปิดระบบเพื่อเริ่มรับคำสั่งงาน | `POST` | `/api/driver/online` |
+| **2. Go Offline** | ปิดระบบเพื่อหยุดพักการรับงาน | `POST` | `/api/driver/offline` |
+| **3. Home Discovery** | ดึงข้อมูลแบนเนอร์ข่าวสาร กิจกรรม และแดชบอร์ดหน้าแรก | `GET` | `/api/driver/discovery/home` |
+| **4. Vehicle Settings** | เปิด/ปิด ประเภทรถที่ต้องการรับงาน (เช่น มอเตอร์ไซค์, รถเก๋ง) | `POST` | `/api/driver/vehicle-types/:id/toggle` |
+| **5. Real-time Tracking** | ส่งพิกัด GPS และรับ Event งานใหม่ (Push) | `WebSocket` | `/ws` (WebSocket connection) |
 
 ---
 
-## 🗺 Phase 2: Core Driver Interface & Map Integration
-**Goal:** Provide the primary interface where drivers spend most of their time waiting for jobs.
+## 🚗 Phase 3: Active Job Lifecycle (กระบวนการดำเนินงานรับส่ง)
+**เป้าหมาย:** การบริหารจัดการทริป ตั้งแต่กดรับงาน, เดินทางไปจุดรับ (Pickup), จนกระทั่งส่งถึงจุดหมาย (Drop-off)
 
-- [ ] 1. **Interactive Map:** Displaying current location using Google Maps.
-- [ ] 2. **Online/Offline Toggle:** Driver availability status management.
-- [ ] 3. **Real-time Location Updates:** Sending driver coordinates to the backend continuously.
-
-### Current Project Mapping
-- `lib/features/home/`: **[Code Present]** The main map interface and online/offline toggle.
-- `dependencies`: `google_maps_flutter`, `firebase_core` are already in `pubspec.yaml`.
-
-**Next Steps exactly in Phase 2:**
-- Combine the map interface with the online/offline state.
-- Ensure background location tracking is configured and robust (requires background execution permissions).
-
----
-
-## 🚗 Phase 3: Active Job Management & Navigation
-**Goal:** Handle the end-to-end trip lifecycle once a driver accepts a job.
-
-### Features
-- [ ] 1. **Routing and Navigation:** Drawing polyline routes from Driver -> Pickup -> Dropoff.
-- [ ] 2. **Trip Status Updates:** Changing status (Arrived at Pickup, Passenger Onboard, En-route to Dropoff, Arrived).
-- [ ] 3. **Fare Calculation:** Showing final fare, waiting time fees, and toll charges (if applicable).
-- [ ] 4. **Payment Collection:** Cash collection UI or digital payment confirmation.
-- [ ] 5. **Cancellation & Dispute:** UI to cancel the job logically with reasons.
-
-### Current Project Mapping
-- `lib/features/job_live/`: **[Code Present]** Handles the active job view and actions.
-
-**Next Steps exactly in Phase 3:**
-- Integrate third-party map links (opening Waze or Google Maps App) for turn-by-turn navigation.
-- Implement the fare summary screen natively inside the app once the trip finishes.
+### 🔗 Feature & API Mapping
+| Feature / หน้าจอ | คำอธิบาย API Endpoint | Method | Flow Handling |
+| :--- | :--- | :---: | :--- |
+| **1. Active Offer Recovery** | ตรวจสอบหากมีงานค้างหรือกำลังยื่นข้อเสนอ (เมื่อ App หลุด) | `GET` | `/api/driver/jobs/active_offer` |
+| **2. Accept Order** | ยืนยันกดรับคำสั่งซื้ออาหาร / งานขนส่ง | `POST` | `/api/food/driver/orders/:id/accept` |
+| **3. Arrive at Stop** | แจ้งเตือนระบบว่าคนขับ "มาถึงจุดหยุด (Stop)" แล้ว | `POST` | `/api/driver/jobs/:id/stops/:stop_id/arrive` |
+| **4. Depart from Stop** | แจ้งเตือนว่าคนขับ "ออกเดินทางจากจุดหยุด" แล้ว | `POST` | `/api/driver/jobs/:id/stops/:stop_id/depart` |
+| **5. Update Job Status** | การปรับปรุงสถานะทั่วไปของงาน ณ ขณะนั้น | `PATCH` | `/api/driver/jobs/:id/status` |
+| **6. Food Picked Up** | (กรณีส่งอาหาร) ยืนยันว่ารับอาหารจากร้านแล้ว | `POST` | `/api/food/driver/orders/:id/picked-up` |
+| **7. Food Delivered** | (กรณีส่งอาหาร) ยืนยันว่าจัดส่งถึงมือลูกค้าสำเร็จ | `POST` | `/api/food/driver/orders/:id/delivered` |
+| **8. Active Job Info** | ดึงข้อมูลงานปัจจุบันที่กำลังรันอยู่ทั้งหมดเพื่อสร้างเส้นทาง Map | `GET` | `/api/driver/jobs/active` |
+| **9. Cancel Job** | ยกเลิกงาน พร้อมระบุเหตุผล (เช่น ผู้โดยสารไม่มา) | `POST` | `/api/driver/jobs/:id/cancel` |
 
 ---
 
-## 💰 Phase 4: Earnings, Wallet & History
-**Goal:** Provide transparency on daily/weekly earnings and ride history.
+### 🍔 Phase 3.1: Food Delivery Feature — Incoming & Job Live (สั่งอาหาร)
+**เป้าหมาย:** แยก Flow การรับ-ส่งอาหาร ออกจากการรับ-ส่งผู้โดยสาร เพื่อให้ Driver เห็นข้อมูลที่เกี่ยวข้องกับออเดอร์อาหารโดยเฉพาะ
 
-### Features
-- [ ] 1. **Earnings Dashboard (Income):** High-level view of today's, this week's, and total earnings.
-- [/] 2. **Cash Wallet / Credit Wallet:** Managing top-ups for driver commissions and viewing balance. (Creating Cash/Credit Wallet Screens)
-- [ ] 3. **Job History:** List of all completed, cancelled, or missed jobs.
-- [ ] 4. **Job Detail View:** Viewing precise fare breakdown, route taken, and timestamps of a past trip.
+#### ✅ Completed Features
+- [x] **WebSocket Event แยก** — รับ event `food_delivery_offer` แยกจาก `job_offer` (ride) ใน `IncomingJobController`
+- [x] **IncomingJobModel** — เพิ่ม fields: `restaurantName`, `deliveryFee`, `subtotal`, `orderItems`, `isFood` computed getter
+- [x] **IncomingFoodModal** — UI modal เฉพาะ food (ธีมส้ม) แสดงชื่อร้าน, รายการอาหาร, ค่าส่ง, ยอดรวม
+- [x] **IncomingJobScreen** — สลับ Modal อัตโนมัติตาม `job.isFood` (Ride Modal vs Food Modal)
+- [x] **FoodLiveScreen** — Full 3-step flow ด้วย REST API:
+  - Step 1: `heading_to_restaurant` → กด "ถึงร้านแล้ว" → ส่ง status `ARRIVED_AT_RESTAURANT`
+  - Step 2: `at_restaurant` → กด "รับอาหารแล้ว" → `POST /api/food/driver/orders/:id/picked-up`
+  - Step 3: `delivering` → กด "ส่งอาหารสำเร็จ" → `POST /api/food/driver/orders/:id/delivered`
+- [x] **Accept Food Job** — ใช้ REST API `POST /api/food/driver/orders/:id/accept` แทน WebSocket
+- [x] **History** — เพิ่ม `ServiceType.food` + mock data + ไอคอน 🏍️/🍔 แยกประเภท
+- [x] **HistoryDetail** — แสดง `OrderItemsSection` สำหรับ food + ชื่อร้านอาหาร
+- [x] **ServiceInfoSection** — แสดง "MassFood Delivery" แทน "Saver Bike" ตาม serviceType
 
-### Current Project Mapping
-- `lib/features/income/`: **[Code Present]** Earnings overview.
-- `lib/features/history/`: **[Code Present]** List of past jobs.
-- `lib/features/history_detail/`: **[Code Present]** In-depth view of a specific historical job.
+#### 🔗 API / WebSocket Summary
+| Action | Method | Endpoint / Event |
+| :--- | :--- | :--- |
+| รับ Offer อาหาร | WebSocket | `food_delivery_offer` |
+| กดรับงาน Food | REST POST | `/api/food/driver/orders/:id/accept` |
+| แจ้งถึงร้าน | WebSocket | `job_status` → `ARRIVED_AT_RESTAURANT` |
+| รับอาหารแล้ว | REST POST | `/api/food/driver/orders/:id/picked-up` |
+| ส่งอาหารสำเร็จ | REST POST | `/api/food/driver/orders/:id/delivered` |
 
-**Next Steps exactly in Phase 4:**
-- Build graphs or charts for income breakdown if not completed.
-- Integrate the driver "Wallet" for commission deduction visibility.
+#### 📁 Files Modified / Created
+- `[NEW]` `lib/features/incoming_job/domain/models/food_order_item_model.dart`
+- `[NEW]` `lib/features/incoming_job/presentation/widgets/incoming_food_modal.dart`
+- `[NEW]` `lib/features/history_detail/presentation/screens/widgets/order_items_section.dart`
+- `[MOD]` `lib/features/incoming_job/domain/models/incoming_job_model.dart`
+- `[MOD]` `lib/features/incoming_job/presentation/controllers/incoming_job_controller.dart`
+- `[MOD]` `lib/features/incoming_job/presentation/screens/incoming_job_screen.dart`
+- `[MOD]` `lib/features/food_live/presentation/screens/food_live_screen.dart`
+- `[MOD]` `lib/features/history/domain/models/history_item_model.dart`
+- `[MOD]` `lib/features/history/presentation/screens/history_screen.dart`
+- `[MOD]` `lib/features/history/presentation/widgets/history_item.dart`
+- `[MOD]` `lib/features/history_detail/domain/entities/history_entity.dart`
+- `[MOD]` `lib/features/history_detail/presentation/screens/history_detail_screen.dart`
+- `[MOD]` `lib/features/history_detail/presentation/screens/widgets/service_info_section.dart`
 
----
 
-## ⚙️ Phase 5: Advanced Options, Chat & Account Settings
-**Goal:** Complete the ecosystem by adding essential secondary features.
-
-### Features
-- [ ] 1. **In-App Chat / Calling:** Communication with the passenger without revealing personal phone numbers.
-- [ ] 2. **Notifications & Announcements:** Broadcast messages from admin to drivers (e.g., incentives).
-- [ ] 3. **Ratings & Feedback:** Viewing passenger reviews and driver rating.
-- [ ] 4. **Settings/Support:** App settings, languge selection (using `easy_localization`), terms of service, and help center.
-
-### Current Project Mapping
-- `lib/features/setting/` & `lib/features/settings/`: **[Code Present]** Settings menus.
-- `lib/common/`: Likely holds reusable widgets or utilities (needs alignment for chat UI components).
-- `dependencies`: `easy_localization` is present for multi-language support.
-
-**Next Steps exactly in Phase 5:**
-- Implement real-time chat between Driver and Passenger (usually via Firebase).
-- Connect Firebase Cloud Messaging (FCM) for push notifications.
-
----
-
-## 🚀 Summary of Current Progress
-According to your `lib/features/` and `pubspec.yaml`, you have **successfully established the skeleton for all major phases**.
-- The core navigation via `GoRouter` is set up (`router/app_routes.dart`).
-- UI folders for `auth`, `home`, `job_live`, `history`, `income`, and `settings` are already created.
-- Essential dependencies (State Management: Riverpod, Networking: Dio, Maps: Google Maps, Storage: Hive/SecureStorage) are ready.
-
-**Immediate Recommended Actions:**
-1. Deep-dive into completing the **Phase 1** Auth Flow with actual backend endpoints using `Dio`.
-2. Move to **Phase 2** by displaying the driver's live location on the Map in `home_screen.dart` and setting up the online/offline toggle connection.
 
 ---
 
-## 🔄 Development Workflow Protocol
-- At the completion of each major feature or phase, the checklist `- [ ]` will be updated to `- [x]`.
-- A `git add .` and `git commit -m "..."` will be performed to maintain version history accurately.
+## 💰 Phase 4: Wallet, Earnings & Gamification (การเงินและภารกิจ)
+**เป้าหมาย:** โปร่งใสเรื่องรายได้ ประวัติการทำงาน และระบบช่วยกระตุ้นการขับ (Quests)
+
+### 🔗 Feature & API Mapping
+| Feature / หน้าจอ | คำอธิบาย API Endpoint | Method | Usage |
+| :--- | :--- | :---: | :--- |
+| **1. Daily/Weekly Earnings** | สรุปยอดรายได้วันนี้/สัปดาห์นี้ และจำนวนเที่ยว | `GET` | `/api/driver/earnings` |
+| **2. Wallet Type/Balance** | ดึงยอดคงเหลือใน Cash Wallet และ Credit Wallet | `GET` | `/driver/wallet/type` |
+| **3. Transaction History** | ดูประวัติการทำรายการทางการเงินทั้งหมดย้อนหลัง | `GET` | `/api/driver/transactions` |
+| **4. Request Payout** | กดถอนเงินรายได้เข้าบัญชีธนาคารที่ผูกไว้ | `POST` | `/api/driver/payouts` |
+| **5. Top Up Wallet** | เติมเงินเครดิตเพื่อนำไปใช้หัก Commission | `POST` | `/api/driver/topup` |
+| **6. COD Status monitoring** | ตรวจสอบวงเงินเก็บเงินปลายทางว่าเกินกำหนดหรือไม่ | `GET` | `/api/driver/cod-status` |
+| **7. Driver Quests** | ดูรายการภารกิจพิเศษประจำช่วงเวลา | `GET` | `/api/driver/quests` |
+| **8. Claim Reward** | รับเงินรางวัลโบนัสหลังจากทำภารกิจสำเร็จ | `POST` | `/api/driver/quests/:id/claim` |
+| **9. Loyalty Tier** | ตรวจสอบระดับคนขับ (Silver, Gold, Platinum) | `GET` | `/api/driver/tier` |
+
+---
+
+## ⚙️ Phase 5: Security & System Support (ความปลอดภัยและการตั้งค่าระบบ)
+**เป้าหมาย:** ฟีเจอร์ความปลอดภัยและระบบหลังบ้านที่สนับสนุนการทำงาน
+
+### 🔗 Feature & API Mapping
+| Feature / หน้าจอ | คำอธิบาย API Endpoint | Method | Impact |
+| :--- | :--- | :---: | :--- |
+| **1. Push Notifications** | ลงทะเบียน Token อุปกรณ์เพื่อรับ Push Notify / Job Notification | `POST` | `/api/notifications/register-device` |
+| **2. SOS Panic Button** | กดปุ่มฉุกเฉินเพื่อแจ้ง Call Center / Admin ทันที | `POST` | `/api/sos/trigger` |
+| **3. Resolve SOS** | ยกเลิกหรือยืนยันจบเหตุการณ์ฉุกเฉิน | `POST` | `/api/sos/:id/resolve` |
+
+---
+
+## 🛠 Tech Stack Context (สำหรับนักพัฒนา)
+เพื่อให้ทีมเข้าใจโครงสร้าง code เบื้องต้น:
+- **Networking**: ใช้ `Dio` Library ร่วมกับ `BaseApiService` เพื่อจัดการ Header, Interceptor และ Refresh Token อัตโนมัติ
+- **Clean Architecture**: แบ่ง Layer ชัดเจนเป็น `Data Sources` (API Calls) -> `Repositories` (Data Mapping) -> `Riverpod Controllers` (State Management)
+- **Endpoints Registry**: ดูรายชื่อ Endpoint ทั้งหมดได้ที่ `lib/core/constants/endpoints.dart`
