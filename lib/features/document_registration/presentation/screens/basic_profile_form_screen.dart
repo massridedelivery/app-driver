@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -114,8 +115,9 @@ class _BasicProfileFormScreenState
               'เบอร์ติดต่อฉุกเฉิน (Emergency Contact)',
               _emergencyController,
               true,
-              keyboardType: TextInputType.phone,
+              keyboardType: TextInputType.number,
               hint: 'เช่น 0812345678',
+              maxLength: 10,
             ),
             const SizedBox(height: 40),
             SizedBox(
@@ -150,6 +152,7 @@ class _BasicProfileFormScreenState
     bool required, {
     TextInputType keyboardType = TextInputType.text,
     String? hint,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,6 +167,10 @@ class _BasicProfileFormScreenState
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: maxLength != null
+              ? [FilteringTextInputFormatter.digitsOnly]
+              : null,
+          maxLength: maxLength,
           style: AppTypography.label2.copyWith(
             color: AppColors.semanticGrayNeutralFgMidOnGray,
           ),
@@ -178,6 +185,7 @@ class _BasicProfileFormScreenState
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
+            counterText: '',
             errorStyle: AppTypography.caption4.copyWith(
               color: AppColors.foundationRed800,
             ),
@@ -185,6 +193,12 @@ class _BasicProfileFormScreenState
           validator: (value) {
             if (required && (value == null || value.trim().isEmpty)) {
               return 'กรุณากรอกข้อมูลให้ครบถ้วน';
+            }
+            if (maxLength != null &&
+                value != null &&
+                value.trim().isNotEmpty &&
+                value.trim().length != maxLength) {
+              return 'กรุณากรอกให้ครบ $maxLength หลัก';
             }
             return null;
           },

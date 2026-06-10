@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' as dio_client;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -550,6 +551,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  void _showUnverifiedDocsDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E2F38),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.foundationOrange500,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'เอกสารของคุณยังไม่ได้รับการอนุมัติ',
+                style: AppTypography.heading5.copyWith(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบถ้วนและรอการตรวจสอบให้เรียบร้อยเพื่อเริ่มต้นรับงาน',
+                style: AppTypography.caption3.copyWith(
+                  color: Colors.white70,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white30),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        'ยกเลิก',
+                        style: AppTypography.label2.copyWith(color: Colors.white70),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.push(
+                          AppRoutes.documentRegistrationChecklistNamedPage,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.foundationOrange600,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'ตรวจสอบเอกสาร',
+                        style: AppTypography.label2.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildOnlineButton() {
     final onlineStatus = ref.watch(onlineStatusProvider);
     final isOnline = onlineStatus.isOnline;
@@ -576,17 +665,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           }
         } catch (e) {
           if (mounted && newValue) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง',
-                  style: AppTypography.label2.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+            bool isDocError = false;
+            if (e is dio_client.DioException) {
+              final resp = e.response;
+              if (resp?.statusCode == 403) {
+                final data = resp?.data;
+                if (data is Map && data['code'] == 'documents_not_verified') {
+                  isDocError = true;
+                }
+              }
+            } else if (e.toString().contains('documents_not_verified') || e.toString().contains('403')) {
+              isDocError = true;
+            }
+
+            if (isDocError) {
+              _showUnverifiedDocsDialog();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง',
+                    style: AppTypography.label2.copyWith(
+                      color: AppColors.semanticGrayNeutralBgWhite,
+                    ),
                   ),
+                  backgroundColor: AppColors.semanticErrorBgHigh,
                 ),
-                backgroundColor: AppColors.semanticErrorBgHigh,
-              ),
-            );
+              );
+            }
           }
         }
       },

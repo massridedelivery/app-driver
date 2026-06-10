@@ -1,6 +1,7 @@
 import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
 import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
 import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
+import 'package:massdrive/features/document_registration/domain/models/driver_document_model.dart';
 
 import '../../domain/models/registration_status.dart';
 
@@ -43,6 +44,7 @@ class RegistrationState {
   final VehicleInfo? vehicleInfo;
   final BankAccountInfo? bankAccountInfo;
   final Map<DocumentType, String> uploadedDocuments;
+  final Map<DocumentType, DriverDocumentModel> remoteDocuments;
 
   const RegistrationState({
     this.isLoading = false,
@@ -62,6 +64,7 @@ class RegistrationState {
     this.vehicleInfo,
     this.bankAccountInfo,
     this.uploadedDocuments = const {},
+    this.remoteDocuments = const {},
   });
 
   bool get isAllStepsExceptConsentCompleted {
@@ -110,6 +113,7 @@ class RegistrationState {
     VehicleInfo? vehicleInfo,
     BankAccountInfo? bankAccountInfo,
     Map<DocumentType, String>? uploadedDocuments,
+    Map<DocumentType, DriverDocumentModel>? remoteDocuments,
   }) {
     return RegistrationState(
       isLoading: isLoading ?? this.isLoading,
@@ -134,6 +138,7 @@ class RegistrationState {
       vehicleInfo: vehicleInfo ?? this.vehicleInfo,
       bankAccountInfo: bankAccountInfo ?? this.bankAccountInfo,
       uploadedDocuments: uploadedDocuments ?? this.uploadedDocuments,
+      remoteDocuments: remoteDocuments ?? this.remoteDocuments,
     );
   }
 }

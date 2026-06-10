@@ -25,36 +25,38 @@ class ServiceToggleTile extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: AppTypography.caption2.copyWith(
-                color: isEnabled
-                    ? AppColors.semanticGrayNeutralBgWhite
-                    : AppColors.semanticGrayNeutralBgWhite.withOpacity(0.4),
-                fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w400,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title),
-                  if (description != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      description!,
-                      style: AppTypography.caption4.copyWith(
-                        color: isEnabled
-                            ? AppColors.semanticGrayNeutralBgWhite
-                                .withOpacity(0.6)
-                            : AppColors.semanticGrayNeutralBgWhite
-                                .withOpacity(0.3),
-                        fontWeight: FontWeight.w400,
+            Expanded(
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: AppTypography.caption2.copyWith(
+                  color: isEnabled
+                      ? AppColors.semanticGrayNeutralBgWhite
+                      : AppColors.semanticGrayNeutralBgWhite.withValues(alpha: 0.4),
+                  fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w400,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title),
+                    if (description != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        description!,
+                        style: AppTypography.caption4.copyWith(
+                          color: isEnabled
+                              ? AppColors.semanticGrayNeutralBgWhite
+                                  .withValues(alpha: 0.6)
+                              : AppColors.semanticGrayNeutralBgWhite
+                                  .withValues(alpha: 0.3),
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-
+            const SizedBox(width: 16),
             _AnimatedToggle(isEnabled: isEnabled),
           ],
         ),

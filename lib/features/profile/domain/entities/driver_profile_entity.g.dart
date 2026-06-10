@@ -14,7 +14,7 @@ _DriverProfileEntity _$DriverProfileEntityFromJson(
   phone: json['phone'] as String?,
   rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
   totalTrips: (json['total_trips'] as num?)?.toInt() ?? 0,
-  isVerified: json['is_verified'] as bool? ?? false,
+  isVerified: json['verified'] as bool? ?? false,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentEntity.fromJson(e as Map<String, dynamic>))
@@ -53,7 +53,7 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
   'phone': instance.phone,
   'rating': instance.rating,
   'total_trips': instance.totalTrips,
-  'is_verified': instance.isVerified,
+  'verified': instance.isVerified,
   'documents': instance.documents,
   'vehicle_type_ids': instance.vehicleTypeIds,
   'vehicle_types': instance.vehicleTypes,

@@ -7,17 +7,31 @@ import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/registration_status.dart';
 import '../controllers/registration_controller.dart';
 
-class RegistrationChecklistScreen extends ConsumerWidget {
+class RegistrationChecklistScreen extends ConsumerStatefulWidget {
   const RegistrationChecklistScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RegistrationChecklistScreen> createState() =>
+      _RegistrationChecklistScreenState();
+}
+
+class _RegistrationChecklistScreenState
+    extends ConsumerState<RegistrationChecklistScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(registrationControllerProvider.notifier).fetchStatus();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(registrationControllerProvider);
 
-    if (state.overallStatus == RegistrationStateStatus.inReview) {
-      return const _InReviewView();
-    }
-
+    // Only show the approved screen when the backend has confirmed is_verified = true.
+    // For all other statuses (inReview, pending, rejected), show the checklist
+    // so the driver can see the status of each document.
     if (state.overallStatus == RegistrationStateStatus.approved) {
       return const _ApprovedView();
     }
@@ -70,7 +84,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                           _buildStepItem(
                             context,
                             title: '1. ข้อมูลส่วนตัว',
-                            isComplete: state.isProfileComplete,
+                            status: state.isProfileComplete ? 'approved' : null,
+                            rejectionReason: null,
                             onTap: () => context.push(
                               '/document-registration/basic-profile',
                             ),
@@ -78,7 +93,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                           _buildStepItem(
                             context,
                             title: '2. รูปถ่ายโปรไฟล์',
-                            isComplete: state.isProfilePhotoComplete,
+                            status: state.remoteDocuments[DocumentType.profilePhoto]?.status,
+                            rejectionReason: state.remoteDocuments[DocumentType.profilePhoto]?.rejectionReason,
                             onTap: () => context.push(
                               '/document-registration/upload-document',
                               extra: {
@@ -90,7 +106,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                           _buildStepItem(
                             context,
                             title: '3. บัตรประชาชน',
-                            isComplete: state.isIdCardComplete,
+                            status: state.remoteDocuments[DocumentType.idCard]?.status,
+                            rejectionReason: state.remoteDocuments[DocumentType.idCard]?.rejectionReason,
                             onTap: () => context.push(
                               '/document-registration/upload-document',
                               extra: {
@@ -106,7 +123,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                             context,
                             title:
                                 '4. ${state.selectedTier == KycTier.food ? "ใบขับขี่" : "ใบขับขี่สาธารณะ"}',
-                            isComplete: state.isDrivingLicenseComplete,
+                            status: state.remoteDocuments[DocumentType.drivingLicense]?.status,
+                            rejectionReason: state.remoteDocuments[DocumentType.drivingLicense]?.rejectionReason,
                             onTap: () => context.push(
                               '/document-registration/upload-document',
                               extra: {
@@ -121,7 +139,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                             _buildStepItem(
                               context,
                               title: '5. ข้อมูลรถ และ สมุดคู่มือ',
-                              isComplete: state.isVehicleInfoComplete,
+                              status: state.isVehicleInfoComplete ? 'approved' : null,
+                              rejectionReason: null,
                               onTap: () => context.push(
                                 '/document-registration/vehicle-info',
                               ),
@@ -129,7 +148,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                             _buildStepItem(
                               context,
                               title: '6. รูปถ่ายตัวรถ',
-                              isComplete: state.isVehiclePhotoComplete,
+                              status: state.isVehiclePhotoComplete ? 'approved' : null,
+                              rejectionReason: null,
                               onTap: () => context.push(
                                 '/document-registration/upload-document',
                                 extra: {
@@ -141,7 +161,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                             _buildStepItem(
                               context,
                               title: '7. พ.ร.บ. รถจักรยานยนต์ / ประกัน',
-                              isComplete: state.isInsuranceComplete,
+                              status: state.remoteDocuments[DocumentType.insurance]?.status,
+                              rejectionReason: state.remoteDocuments[DocumentType.insurance]?.rejectionReason,
                               onTap: () => context.push(
                                 '/document-registration/upload-document',
                                 extra: {
@@ -155,7 +176,8 @@ class RegistrationChecklistScreen extends ConsumerWidget {
                           _buildStepItem(
                             context,
                             title: '8. ข้อมูลบัญชีธนาคาร',
-                            isComplete: state.isBankAccountComplete,
+                            status: state.isBankAccountComplete ? 'approved' : null,
+                            rejectionReason: null,
                             onTap: () => context.push(
                               '/document-registration/bank-account',
                             ),
@@ -201,18 +223,95 @@ class RegistrationChecklistScreen extends ConsumerWidget {
   Widget _buildStepItem(
     BuildContext context, {
     required String title,
-    required bool isComplete,
+    required String? status,
+    required String? rejectionReason,
     required VoidCallback onTap,
   }) {
+    Color backgroundColor = Colors.white;
+    Color borderColor = AppColors.semanticGrayNeutralBorderLightgray;
+    Widget trailingIcon = const Icon(
+      Icons.chevron_right,
+      color: AppColors.semanticGrayNeutralFgHigh,
+    );
+    Widget? subtitleWidget;
+    bool isInteractive = true;
+
+    if (status == 'approved') {
+      backgroundColor = AppColors.foundationGreen100;
+      borderColor = AppColors.foundationGreen400;
+      trailingIcon = const Icon(
+        Icons.check_circle,
+        color: AppColors.foundationGreen500,
+      );
+      subtitleWidget = Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          'ผ่านการอนุมัติแล้ว',
+          style: AppTypography.caption4.copyWith(
+            color: AppColors.foundationGreen600,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+      isInteractive = false;
+    } else if (status == 'pending') {
+      backgroundColor = AppColors.foundationOrange100.withOpacity(0.5);
+      borderColor = AppColors.foundationOrange400;
+      trailingIcon = const Icon(
+        Icons.access_time_filled,
+        color: AppColors.foundationOrange600,
+      );
+      subtitleWidget = Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          'อยู่ระหว่างการตรวจสอบ',
+          style: AppTypography.caption4.copyWith(
+            color: AppColors.foundationOrange600,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+      isInteractive = false;
+    } else if (status == 'rejected') {
+      backgroundColor = AppColors.foundationRed100;
+      borderColor = AppColors.foundationRed400;
+      trailingIcon = const Icon(
+        Icons.error,
+        color: AppColors.foundationRed500,
+      );
+      subtitleWidget = Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ถูกปฏิเสธ: ${rejectionReason ?? "กรุณาแก้ไขข้อมูล"}',
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationRed800,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'แตะเพื่ออัปโหลดใหม่',
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationRed800,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
+        ),
+      );
+      isInteractive = true;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isComplete ? AppColors.foundationGreen100 : Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isComplete
-              ? AppColors.foundationGreen400
-              : AppColors.semanticGrayNeutralBorderLightgray,
+          color: borderColor,
         ),
       ),
       child: ListTile(
@@ -220,18 +319,29 @@ class RegistrationChecklistScreen extends ConsumerWidget {
           title,
           style: AppTypography.label2.copyWith(
             color: AppColors.semanticGrayNeutralFgHigh,
+            fontWeight: isInteractive ? FontWeight.normal : FontWeight.bold,
           ),
         ),
-        trailing: isComplete
-            ? const Icon(
-                Icons.check_circle,
-                color: AppColors.foundationGreen500,
-              )
-            : const Icon(
-                Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralFgHigh,
-              ),
-        onTap: onTap,
+        subtitle: subtitleWidget,
+        trailing: trailingIcon,
+        onTap: isInteractive
+            ? onTap
+            : () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    duration: const Duration(seconds: 2),
+                    content: Text(
+                      status == 'approved'
+                          ? 'เอกสารนี้ผ่านการอนุมัติแล้ว ไม่สามารถแก้ไขได้'
+                          : 'เอกสารอยู่ระหว่างการตรวจสอบ ไม่สามารถแก้ไขได้',
+                      style: AppTypography.label2.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                  ),
+                );
+              },
       ),
     );
   }
