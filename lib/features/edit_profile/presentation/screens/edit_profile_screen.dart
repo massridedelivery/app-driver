@@ -5,6 +5,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/core/utils/string_util.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 
