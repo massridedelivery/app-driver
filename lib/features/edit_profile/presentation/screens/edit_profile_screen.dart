@@ -6,6 +6,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 
 class EditProfileScreen extends ConsumerWidget {
   const EditProfileScreen({super.key});
@@ -123,6 +124,9 @@ class EditProfileScreen extends ConsumerWidget {
               title: "",
               value: "เลือกเอกสารที่ต้องการอัปเดต",
               showArrow: true,
+              onTap: () {
+                AppNavigator.push(context, const RegistrationChecklistScreen());
+              },
             ),
 
             const SizedBox(height: 24),
