@@ -4,6 +4,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
+import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
 class EditProfileScreen extends ConsumerWidget {
@@ -35,15 +36,20 @@ class EditProfileScreen extends ConsumerWidget {
 
             _ProfileImageTile(),
 
-            _InfoTile(title: "ชื่อ", value: profile.fullName),
+            _InfoTile(title: "ชื่อ", value: profile.fullName.blindName()),
 
             _InfoTile(
               title: "หมายเลขโทรศัพท์มือถือ",
-              value: profile.phone ?? "ยังไม่ได้กรอกข้อมูล",
+              value: profile.phone != null
+                  ? profile.phone!.blindPhone()
+                  : "ยังไม่ได้กรอกข้อมูล",
               showArrow: true,
             ),
 
-            _InfoTile(title: "ที่อยู่อีเมล", value: profile.userId),
+            _InfoTile(
+              title: "ที่อยู่อีเมล",
+              value: profile.userId.blindEmailOrUuid(),
+            ),
 
             _InfoTile(
               title: "รายชื่อผู้ติดต่อฉุกเฉิน",
@@ -68,16 +74,16 @@ class EditProfileScreen extends ConsumerWidget {
 
             if (profile.vehiclePlate != null && profile.vehicleModel != null)
               _VehicleTile(
-                plate: profile.vehiclePlate!,
+                plate: profile.vehiclePlate!.blindPlate(),
                 vehicle: profile.vehicleModel!,
                 isPrimary: true,
                 onTap: () {
-                  // _showUpdateVehicleSheet(
-                  //   context,
-                  //   ref,
-                  //   profile.vehiclePlate!,
-                  //   profile.vehicleModel!,
-                  // );
+                  _showUpdateVehicleSheet(
+                    context,
+                    ref,
+                    profile.vehiclePlate!,
+                    profile.vehicleModel!,
+                  );
                 },
               )
             else

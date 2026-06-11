@@ -139,8 +139,10 @@ class _RegistrationChecklistScreenState
                             _buildStepItem(
                               context,
                               title: '5. ข้อมูลรถ และ สมุดคู่มือ',
-                              status: state.isVehicleInfoComplete ? 'approved' : null,
-                              rejectionReason: null,
+                              // Use vehicleRegistration doc status; fall back to 'approved' if profile data filled but no doc yet
+                              status: state.remoteDocuments[DocumentType.vehicleRegistration]?.status
+                                  ?? (state.isVehicleInfoComplete ? 'approved' : null),
+                              rejectionReason: state.remoteDocuments[DocumentType.vehicleRegistration]?.rejectionReason,
                               onTap: () => context.push(
                                 '/document-registration/vehicle-info',
                               ),
@@ -148,8 +150,8 @@ class _RegistrationChecklistScreenState
                             _buildStepItem(
                               context,
                               title: '6. รูปถ่ายตัวรถ',
-                              status: state.isVehiclePhotoComplete ? 'approved' : null,
-                              rejectionReason: null,
+                              status: state.remoteDocuments[DocumentType.vehiclePhoto]?.status,
+                              rejectionReason: state.remoteDocuments[DocumentType.vehiclePhoto]?.rejectionReason,
                               onTap: () => context.push(
                                 '/document-registration/upload-document',
                                 extra: {
@@ -176,8 +178,8 @@ class _RegistrationChecklistScreenState
                           _buildStepItem(
                             context,
                             title: '8. ข้อมูลบัญชีธนาคาร',
-                            status: state.isBankAccountComplete ? 'approved' : null,
-                            rejectionReason: null,
+                            status: state.remoteDocuments[DocumentType.bankPassbook]?.status,
+                            rejectionReason: state.remoteDocuments[DocumentType.bankPassbook]?.rejectionReason,
                             onTap: () => context.push(
                               '/document-registration/bank-account',
                             ),

@@ -7,6 +7,8 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/features/auth/data/models/user_model.dart';
 import 'package:massdrive/features/auth/domain/entities/register_request.dart';
 import 'package:massdrive/features/auth/data/models/register_request_model.dart';
+import 'package:massdrive/features/auth/domain/entities/otp_response.dart';
+import 'package:massdrive/features/auth/data/models/otp_response_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 @LazySingleton(as: AuthRepository)
@@ -16,13 +18,15 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._apiService);
 
   @override
-  Future<void> loginWithPhone(String phone) async {
-    await _apiService.requestOtp(phone);
+  Future<OtpResponse> loginWithPhone({required String phone, required String deviceId}) async {
+    final responseModel = await _apiService.requestOtp(phone: phone, deviceId: deviceId);
+    return responseModel.toEntity();
   }
 
+
   @override
-  Future<UserEntity> verifyOtp(String phone, String otp) async {
-    final response = await _apiService.verifyOtp(phone, otp);
+  Future<UserEntity> verifyOtp(String phone, String otp, {String refId = ''}) async {
+    final response = await _apiService.verifyOtp(phone, otp, refId: refId);
     final user = UserModel.fromJson(response);
 
     // Store token securely

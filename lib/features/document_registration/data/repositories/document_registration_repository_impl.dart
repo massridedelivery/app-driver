@@ -92,7 +92,7 @@ class DocumentRegistrationRepositoryImpl
     final data = response.data!;
     // is_verified from /api/driver/profile is the single source of truth.
     // Only return approved when the backend explicitly confirms it.
-    final bool isVerified = data['verified'] ?? false;
+    final bool isVerified = data['is_verified'] as bool? ?? false;
 
     if (isVerified) {
       return RegistrationStatusInfo(

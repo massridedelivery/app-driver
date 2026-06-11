@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
@@ -28,14 +29,22 @@ class AppStartupController extends _$AppStartupController {
   Future<void> _registerNotificationToken() async {
     try {
       final api = getIt<NotificationApiService>();
-      // Placeholder token - in production this comes from FirebaseMessaging.instance.getToken()
-      const dummyToken = 'dummy_fcm_token_123456';
+      
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+        debugPrint('FCM Token retrieved: $fcmToken');
+      } catch (e) {
+        debugPrint('FCM: Failed to get real FCM token: $e');
+      }
+
+      final token = fcmToken ?? 'dummy_fcm_token_123456';
       
       await api.registerDevice({
-        'token': dummyToken,
+        'token': token,
         'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
       });
-      debugPrint('FCM: Device registered successfully with real API');
+      debugPrint('FCM: Device registered successfully with token: $token');
     } catch (e) {
       debugPrint('FCM Error: $e');
     }

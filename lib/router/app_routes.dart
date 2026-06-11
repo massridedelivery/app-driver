@@ -59,8 +59,17 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.otpNamedPage,
         pageBuilder: (context, state) {
-          final phone = state.extra as String? ?? '';
-          return NoTransitionPage(child: OtpScreen(phoneNumber: phone));
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final phone = extra['phone'] as String? ?? '';
+          final refId = extra['refId'] as String? ?? '';
+          final isRegistered = extra['isRegistered'] as bool? ?? true;
+          return NoTransitionPage(
+            child: OtpScreen(
+              phoneNumber: phone,
+              refId: refId,
+              isRegistered: isRegistered,
+            ),
+          );
         },
       ),
       GoRoute(

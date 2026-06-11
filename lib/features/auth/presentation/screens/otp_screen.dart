@@ -9,8 +9,15 @@ import 'package:pinput/pinput.dart';
 
 class OtpScreen extends ConsumerWidget {
   final String phoneNumber;
+  final String refId;
+  final bool isRegistered;
 
-  const OtpScreen({super.key, required this.phoneNumber});
+  const OtpScreen({
+    super.key,
+    required this.phoneNumber,
+    this.refId = '',
+    this.isRegistered = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,7 +130,7 @@ class OtpScreen extends ConsumerWidget {
 
                         // Subtitle
                         Text(
-                          'รหัส 6 หลักถูกส่งไปยัง $phoneNumber',
+                          'รหัส 6 หลักถูกส่งไปยัง $phoneNumber${refId.isNotEmpty ? ' (Ref: $refId)' : ''}',
                           style: AppTypography.caption3.copyWith(
                             color: AppColors.semanticGrayNeutralFgHigh,
                           ),
@@ -145,9 +152,16 @@ class OtpScreen extends ConsumerWidget {
                             showCursor: true,
                             onChanged: controller.updateOtp,
                             onCompleted: (pin) async {
-                              final success = await controller.verifyOtp(phoneNumber);
-                              if (success && context.mounted) {
+                              final result = await controller.verifyOtp(
+                                phoneNumber,
+                                isRegistered: isRegistered,
+                                refId: refId,
+                              );
+                              if (!context.mounted) return;
+                              if (result == OtpVerifyResult.home) {
                                 context.go(AppRoutes.homeNamedPage);
+                              } else if (result == OtpVerifyResult.registrationChecklist) {
+                                context.go(AppRoutes.documentRegistrationChecklistNamedPage);
                               }
                             },
                           ),
@@ -173,11 +187,16 @@ class OtpScreen extends ConsumerWidget {
                             onPressed: (state.isLoading || !isOtpValid)
                                 ? null
                                 : () async {
-                                    final success = await controller.verifyOtp(
+                                    final result = await controller.verifyOtp(
                                       phoneNumber,
+                                      isRegistered: isRegistered,
+                                      refId: refId,
                                     );
-                                    if (success && context.mounted) {
+                                    if (!context.mounted) return;
+                                    if (result == OtpVerifyResult.home) {
                                       context.go(AppRoutes.homeNamedPage);
+                                    } else if (result == OtpVerifyResult.registrationChecklist) {
+                                      context.go(AppRoutes.documentRegistrationChecklistNamedPage);
                                     }
                                   },
                             style: ElevatedButton.styleFrom(

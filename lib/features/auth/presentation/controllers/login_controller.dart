@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/features/auth/domain/usecase/login_with_phone_usecase.dart';
 import 'package:massdrive/features/auth/presentation/states/login_state.dart';
@@ -29,9 +31,28 @@ class LoginController extends _$LoginController {
     try {
       debugPrint('LoginController: Calling use case...');
       final loginUseCase = getIt<LoginWithPhoneUseCase>();
-      await loginUseCase.execute(state.phoneNumber);
-      debugPrint('LoginController: Use case success');
-      state = state.copyWith(isLoading: false);
+
+      // Get device ID
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceId = '';
+      if (kIsWeb) {
+        deviceId = 'web';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceId = androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? '';
+      }
+
+      final otpResponse = await loginUseCase.execute(state.phoneNumber, deviceId);
+      debugPrint('LoginController: Use case success: refId=${otpResponse.refId}, isRegistered=${otpResponse.isRegistered}');
+      
+      state = state.copyWith(
+        isLoading: false,
+        refId: otpResponse.refId,
+        isRegistered: otpResponse.isRegistered,
+      );
       return true; // Navigate to OTP
     } catch (e) {
       debugPrint('LoginController: Error $e');
@@ -40,3 +61,4 @@ class LoginController extends _$LoginController {
     }
   }
 }
+

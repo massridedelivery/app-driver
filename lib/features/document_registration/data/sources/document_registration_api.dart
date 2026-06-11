@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
@@ -86,6 +87,7 @@ class DocumentRegistrationApi {
       queryParams['room_id'] = '';
     }
 
+    debugPrint('[Upload] Step1: GET upload URL | category=${category.purpose} content_type=$contentType');
     final requestUrlResponse = await dio.get(
       Endpoints.documentUploadUrl,
       queryParameters: queryParams,
@@ -94,41 +96,52 @@ class DocumentRegistrationApi {
     final uploadUrlData = requestUrlResponse.data as Map<String, dynamic>;
     final String uploadUrl = uploadUrlData['upload_url'] as String;
     final String fileKey = uploadUrlData['file_key'] as String;
+    debugPrint('[Upload] Step1 OK | file_key=$fileKey upload_url=${uploadUrl.substring(0, 60)}...');
     // max_bytes and expires_at are available if needed in future:
     // final int maxBytes = uploadUrlData['max_bytes'] as int? ?? category.maxSizeBytes;
     // final String expiresAt = uploadUrlData['expires_at'] as String? ?? '';
 
 
     // Step 2: Direct Binary Upload to presigned URL
-    // Must use raw binary body — NO FormData.
+    // Must use raw binary body — NO FormData, NO Stream (MinIO rejects chunked encoding).
     // Content-Type header must exactly match what was sent in Step 1.
-    final storageDio = Dio(); // fresh Dio so no auth interceptors touch the storage request
+    final storageDio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 30),
+      ),
+    );
     final fileBytes = await file.readAsBytes();
 
+    debugPrint('[Upload] Step2: PUT to MinIO | bytes=${fileBytes.length} content_type=$contentType');
     await storageDio.put(
       uploadUrl,
-      data: Stream.fromIterable([fileBytes]),
+      data: fileBytes,
       options: Options(
+        contentType: contentType,
         headers: {
-          Headers.contentTypeHeader: contentType,
-          Headers.contentLengthHeader: fileBytes.length.toString(),
+          'Content-Length': fileBytes.length,
         },
       ),
     );
+    debugPrint('[Upload] Step2 OK: Binary upload to MinIO succeeded');
 
     // Step 3: Server Confirmation — POST /api/media/confirm
     // Must be called after a successful PUT so the server marks the file as permanent.
+    debugPrint('[Upload] Step3: POST media/confirm | file_key=$fileKey');
     final confirmMediaResponse = await dio.post(
       Endpoints.mediaConfirm,
       data: {'file_key': fileKey},
     );
     final confirmData = confirmMediaResponse.data as Map<String, dynamic>;
     final bool confirmed = confirmData['confirmed'] as bool? ?? false;
+    debugPrint('[Upload] Step3 result: confirmed=$confirmed');
     if (!confirmed) {
       throw Exception('Media confirmation failed for file_key: $fileKey');
     }
 
-    // Step 4: Register Document with Driver Profile
+    debugPrint('[Upload] Step4: Register doc | type=$documentTypeStr isUpdate=$isUpdate');
     Response confirmResponse;
     if (isUpdate) {
       // Correction / Update (Upsert)
