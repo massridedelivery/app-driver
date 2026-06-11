@@ -22,6 +22,15 @@ class EditProfileScreen extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    String? profilePhotoUrl;
+    for (final doc in profile.documents) {
+      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
+        profilePhotoUrl = doc.mediaUrl;
+        break;
+      }
+    }
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
       backgroundColor: const Color(0xFF0F0F0F),
@@ -34,7 +43,7 @@ class EditProfileScreen extends ConsumerWidget {
 
             _SectionHeader(title: "ข้อมูลส่วนตัว"),
 
-            _ProfileImageTile(),
+            _ProfileImageTile(imageUrl: profilePhotoUrl),
 
             _InfoTile(
               title: "ชื่อ",
@@ -374,10 +383,12 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _ProfileImageTile extends StatelessWidget {
-  const _ProfileImageTile();
+  final String? imageUrl;
+  const _ProfileImageTile({this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
@@ -386,9 +397,17 @@ class _ProfileImageTile extends StatelessWidget {
           color: AppColors.semanticGrayNeutralBgWhite,
         ),
       ),
-      trailing: const CircleAvatar(
+      trailing: CircleAvatar(
         radius: 24,
-        backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=3"),
+        backgroundColor: Colors.grey[800],
+        backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
+        child: !hasImage
+            ? const Icon(
+                Icons.person,
+                color: Colors.white70,
+                size: 24,
+              )
+            : null,
       ),
     );
   }
