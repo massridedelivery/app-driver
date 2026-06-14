@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/constants/media_category.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
+import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
 
 @lazySingleton
 class DocumentRegistrationApi {
@@ -14,6 +15,28 @@ class DocumentRegistrationApi {
 
   Future<List<dynamic>> fetchDocuments() async {
     final response = await dio.get(Endpoints.documentConfirm);
+    try {
+      final list = response.data as List<dynamic>;
+      debugPrint('=== DEBUG /api/driver/documents RAW RESPONSE ===');
+      debugPrint(list.toString());
+      debugPrint('=== UNAPPROVED DOCUMENTS ===');
+      bool hasUnapproved = false;
+      for (final doc in list) {
+        if (doc is Map<String, dynamic>) {
+          final status = doc['status'] as String? ?? '';
+          if (status != 'approved') {
+            hasUnapproved = true;
+            debugPrint('Doc Type: ${doc['doc_type']} | Status: $status | Reason: ${doc['rejection_reason']}');
+          }
+        }
+      }
+      if (!hasUnapproved) {
+        debugPrint('All documents are approved!');
+      }
+      debugPrint('================================================');
+    } catch (e) {
+      debugPrint('Error debugging documents: $e');
+    }
     return response.data as List<dynamic>;
   }
 
@@ -57,6 +80,9 @@ class DocumentRegistrationApi {
           break;
         case DocumentType.drivingLicense:
           documentTypeStr = 'driver_license';
+          break;
+        case DocumentType.publicDrivingLicense:
+          documentTypeStr = 'public_transport_license';
           break;
         case DocumentType.vehicleRegistration:
           documentTypeStr = 'vehicle_registration';
@@ -165,5 +191,101 @@ class DocumentRegistrationApi {
     }
 
     return confirmResponse.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> uploadBankPassbook(
+    File file,
+    BankAccountInfo info,
+  ) async {
+    // Determine content type based on file extension
+    final ext = file.path.split('.').last.toLowerCase();
+    String contentType = 'image/jpeg';
+    if (ext == 'png') contentType = 'image/png';
+    if (ext == 'webp') contentType = 'image/webp';
+    if (ext == 'pdf') contentType = 'application/pdf';
+
+    final category = MediaCategory.driverDoc;
+
+    // Step 1: Request Presigned Upload URL
+    final queryParams = <String, dynamic>{
+      'category': category.purpose,
+      'content_type': contentType,
+    };
+
+    debugPrint('[Upload Passbook] Step1: GET upload URL');
+    final requestUrlResponse = await dio.get(
+      Endpoints.documentUploadUrl,
+      queryParameters: queryParams,
+    );
+
+    final uploadUrlData = requestUrlResponse.data as Map<String, dynamic>;
+    final String uploadUrl = uploadUrlData['upload_url'] as String;
+    final String fileKey = uploadUrlData['file_key'] as String;
+    debugPrint('[Upload Passbook] Step1 OK | file_key=$fileKey');
+
+    // Step 2: Direct Binary Upload to presigned URL
+    final storageDio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 30),
+      ),
+    );
+    final fileBytes = await file.readAsBytes();
+
+    debugPrint('[Upload Passbook] Step2: PUT to MinIO');
+    await storageDio.put(
+      uploadUrl,
+      data: fileBytes,
+      options: Options(
+        contentType: contentType,
+        headers: {
+          'Content-Length': fileBytes.length,
+        },
+      ),
+    );
+    debugPrint('[Upload Passbook] Step2 OK');
+
+    // Step 3: Server Confirmation — POST /api/media/confirm
+    debugPrint('[Upload Passbook] Step3: POST media/confirm | file_key=$fileKey');
+    final confirmMediaResponse = await dio.post(
+      Endpoints.mediaConfirm,
+      data: {'file_key': fileKey},
+    );
+    final confirmData = confirmMediaResponse.data as Map<String, dynamic>;
+    final bool confirmed = confirmData['confirmed'] as bool? ?? false;
+    if (!confirmed) {
+      throw Exception('Media confirmation failed for file_key: $fileKey');
+    }
+    debugPrint('[Upload Passbook] Step3 OK');
+
+    // Step 4: Update Payout Method — PUT /api/driver/payouts/method
+    debugPrint('[Upload Passbook] Step4: PUT payouts/method | file_key=$fileKey');
+    final payoutResponse = await dio.put(
+      Endpoints.driverPayoutsMethod,
+      data: {
+        "method": {
+          "type": "bank_transfer",
+          "details": {
+            "bank_name": info.bankName,
+            "account_number": info.accountNumber,
+            "account_name": info.accountName,
+          }
+        },
+        "file_key": fileKey,
+      },
+    );
+
+    return payoutResponse.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>?> fetchPayoutMethod() async {
+    try {
+      final response = await dio.get(Endpoints.driverPayoutsMethod);
+      return response.data as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('Error fetching payout method: $e');
+      return null;
+    }
   }
 }
