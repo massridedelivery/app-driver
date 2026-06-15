@@ -2,6 +2,7 @@ enum DocumentType {
   profilePhoto,
   idCard,
   drivingLicense,
+  publicDrivingLicense,
   vehicleRegistration,
   vehiclePhoto,
   insurance,

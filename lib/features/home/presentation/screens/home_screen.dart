@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/default_circular_progress_indicator.dart';
@@ -90,14 +91,27 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
     try {
       final repo = getIt<JobLiveRepository>();
 
+      double? lat;
+      double? lng;
+      try {
+        final position = await Geolocator.getLastKnownPosition() ??
+            await Geolocator.getCurrentPosition(
+              timeLimit: const Duration(seconds: 3),
+            );
+        lat = position.latitude;
+        lng = position.longitude;
+      } catch (e) {
+        debugPrint('HomeScreen: Error fetching location for active check: $e');
+      }
+
       // 1. Try Active Job (Ride)
-      dynamic activeData = await repo.getActiveJob();
+      dynamic activeData = await repo.getActiveJob(lat: lat, lng: lng);
 
       // 2. Try Active Offer (Ride) if 1 fails
-      activeData ??= await repo.getActiveOffer();
+      activeData ??= await repo.getActiveOffer(lat: lat, lng: lng);
 
       // 3. Try Active Food Order if others fail
-      activeData ??= await repo.getActiveFoodOrder();
+      activeData ??= await repo.getActiveFoodOrder(lat: lat, lng: lng);
 
       if (activeData != null) {
         debugPrint('OnlineStatus: Found active job/order. Redirecting...');

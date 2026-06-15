@@ -30,9 +30,9 @@ class JobLiveRepositoryImpl implements JobLiveRepository {
   }
 
   @override
-  Future<dynamic> getActiveJob() async {
+  Future<dynamic> getActiveJob({double? lat, double? lng}) async {
     try {
-      final response = await _apiService.getActiveJob();
+      final response = await _apiService.getActiveJob(lat: lat, lng: lng);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
       }
@@ -48,9 +48,9 @@ class JobLiveRepositoryImpl implements JobLiveRepository {
   }
 
   @override
-  Future<dynamic> getActiveOffer() async {
+  Future<dynamic> getActiveOffer({double? lat, double? lng}) async {
     try {
-      final response = await _apiService.getActiveOffer();
+      final response = await _apiService.getActiveOffer(lat: lat, lng: lng);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
       }
@@ -66,9 +66,9 @@ class JobLiveRepositoryImpl implements JobLiveRepository {
   }
 
   @override
-  Future<dynamic> getActiveFoodOrder() async {
+  Future<dynamic> getActiveFoodOrder({double? lat, double? lng}) async {
     try {
-      final response = await _apiService.getActiveFoodOrder();
+      final response = await _apiService.getActiveFoodOrder(lat: lat, lng: lng);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
       }

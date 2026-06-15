@@ -11,7 +11,7 @@ class AppRoutes {
   static const otpNamedPage = '/otp_screen';
   static const homeNamedPage = '/home';
   static const homeDetailsNamedPage = 'details';
-  static const incomeNamedPage = '/home';
+  static const incomeNamedPage = '/income';
   static const incomeDetailsNamedPage = 'details';
   static const profileNamedPage = '/profile';
   static const profileDetailsNamedPage = 'details';

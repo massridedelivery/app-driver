@@ -117,12 +117,10 @@ class _RegistrationChecklistScreenState
                             ),
                           ),
 
-                          // Driving License is required for both, but might be different "type" (Public transport vs Standard)
-                          // In our simplified enum, we just have drivingLicense.
+                          // Driving License (Core - always shown)
                           _buildStepItem(
                             context,
-                            title:
-                                '4. ${state.selectedTier == KycTier.food ? "ใบขับขี่" : "ใบขับขี่สาธารณะ"}',
+                            title: '4. ใบขับขี่',
                             status: state.remoteDocuments[DocumentType.drivingLicense]?.status,
                             rejectionReason: state.remoteDocuments[DocumentType.drivingLicense]?.rejectionReason,
                             onTap: () => context.push(
@@ -138,7 +136,20 @@ class _RegistrationChecklistScreenState
                               state.selectedTier == KycTier.both) ...[
                             _buildStepItem(
                               context,
-                              title: '5. ข้อมูลรถ และ สมุดคู่มือ',
+                              title: '5. ใบขับขี่สาธารณะ',
+                              status: state.remoteDocuments[DocumentType.publicDrivingLicense]?.status,
+                              rejectionReason: state.remoteDocuments[DocumentType.publicDrivingLicense]?.rejectionReason,
+                              onTap: () => context.push(
+                                '/document-registration/upload-document',
+                                extra: {
+                                  'type': DocumentType.publicDrivingLicense,
+                                  'title': 'ใบขับขี่สาธารณะ',
+                                },
+                              ),
+                            ),
+                            _buildStepItem(
+                              context,
+                              title: '6. ข้อมูลรถ และ สมุดคู่มือ',
                               // Use vehicleRegistration doc status; fall back to 'approved' if profile data filled but no doc yet
                               status: state.remoteDocuments[DocumentType.vehicleRegistration]?.status
                                   ?? (state.isVehicleInfoComplete ? 'approved' : null),
@@ -149,7 +160,7 @@ class _RegistrationChecklistScreenState
                             ),
                             _buildStepItem(
                               context,
-                              title: '6. รูปถ่ายตัวรถ',
+                              title: '7. รูปถ่ายตัวรถ',
                               status: state.remoteDocuments[DocumentType.vehiclePhoto]?.status,
                               rejectionReason: state.remoteDocuments[DocumentType.vehiclePhoto]?.rejectionReason,
                               onTap: () => context.push(
@@ -162,7 +173,7 @@ class _RegistrationChecklistScreenState
                             ),
                             _buildStepItem(
                               context,
-                              title: '7. พ.ร.บ. รถจักรยานยนต์ / ประกัน',
+                              title: '8. พ.ร.บ. รถจักรยานยนต์ / ประกัน',
                               status: state.remoteDocuments[DocumentType.insurance]?.status,
                               rejectionReason: state.remoteDocuments[DocumentType.insurance]?.rejectionReason,
                               onTap: () => context.push(
@@ -177,7 +188,7 @@ class _RegistrationChecklistScreenState
 
                           _buildStepItem(
                             context,
-                            title: '8. ข้อมูลบัญชีธนาคาร',
+                            title: '${state.selectedTier == KycTier.food ? "5" : "9"}. ข้อมูลบัญชีธนาคาร',
                             status: state.remoteDocuments[DocumentType.bankPassbook]?.status,
                             rejectionReason: state.remoteDocuments[DocumentType.bankPassbook]?.rejectionReason,
                             onTap: () => context.push(

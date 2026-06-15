@@ -18,6 +18,8 @@ abstract class DocumentRegistrationRepository {
   });
   Future<void> submitVehicleDetails(VehicleInfo info);
   Future<void> submitBankDetails(BankAccountInfo info);
+  Future<void> submitBankPayoutDetails(BankAccountInfo info, File file);
+  Future<BankAccountInfo?> fetchPayoutMethod();
   Future<void> submitFinalConsent(String driverId, bool criminalCheckConsent);
   Future<RegistrationStatusInfo> fetchRegistrationStatus();
   Future<List<DriverDocumentModel>> fetchDocuments();

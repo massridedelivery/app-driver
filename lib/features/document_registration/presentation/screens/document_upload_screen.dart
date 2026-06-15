@@ -38,7 +38,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
 
   bool get _needsDocNumber =>
       widget.type == DocumentType.idCard ||
-      widget.type == DocumentType.drivingLicense;
+      widget.type == DocumentType.drivingLicense ||
+      widget.type == DocumentType.publicDrivingLicense;
 
   @override
   void initState() {

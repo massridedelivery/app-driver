@@ -148,4 +148,31 @@ class DocumentRegistrationRepositoryImpl
       missingDocuments: [],
     );
   }
+
+  @override
+  Future<void> submitBankPayoutDetails(BankAccountInfo info, File file) async {
+    await _api.uploadBankPassbook(file, info);
+  }
+
+  @override
+  Future<BankAccountInfo?> fetchPayoutMethod() async {
+    final response = await _api.fetchPayoutMethod();
+    if (response == null) return null;
+    try {
+      final method = response['method'] as Map<String, dynamic>?;
+      if (method == null) return null;
+      final type = method['type'] as String?;
+      if (type != 'bank_transfer') return null;
+      final details = method['details'] as Map<String, dynamic>?;
+      if (details == null) return null;
+      return BankAccountInfo(
+        bankName: details['bank_name'] as String? ?? '',
+        accountNumber: details['account_number'] as String? ?? '',
+        accountName: details['account_name'] as String? ?? '',
+      );
+    } catch (e) {
+      debugPrint('Error parsing payout method: $e');
+      return null;
+    }
+  }
 }
