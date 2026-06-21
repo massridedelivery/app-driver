@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 
 class PayoutFormScreen extends ConsumerStatefulWidget {
@@ -40,7 +41,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     setState(() => _isSubmitting = false);
 
     if (success) {
-      context.pop();
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -51,10 +52,11 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
         ),
       );
     } else {
+      final error = ref.read(walletControllerProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'โอนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+            error.isNotEmpty ? error : 'โอนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticErrorBgHigh,
@@ -65,6 +67,9 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final walletState = ref.watch(walletControllerProvider);
+    final bankInfo = walletState.bankAccountInfo;
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โอนเงินไปยังบัญชี', showLeftIcon: true),
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
@@ -112,7 +117,130 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+
+                // Bank Account Info Block or Warning Card
+                if (bankInfo == null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.semanticErrorBgHigh.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.semanticErrorBgHigh.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: AppColors.semanticErrorBgHigh),
+                            const SizedBox(width: 8),
+                            Text(
+                              'ยังไม่ได้ผูกบัญชีธนาคารสำหรับรับเงิน',
+                              style: AppTypography.caption3.copyWith(
+                                color: AppColors.semanticErrorBgHigh,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'กรุณาผูกบัญชีธนาคารเพื่อใช้ในการรับเงินโอน',
+                          style: AppTypography.caption4.copyWith(
+                            color: AppColors.foundationAlphaWhite400,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 36,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              AppNavigator.push(context, const BankAccountFormScreen());
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.semanticErrorBgHigh,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: Text(
+                              'ผูกบัญชีธนาคาร',
+                              style: AppTypography.caption3.copyWith(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.foundationAlphaWhite100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.foundationAlphaWhite200,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'บัญชีธนาคารสำหรับรับเงิน',
+                          style: AppTypography.caption4.copyWith(
+                            color: AppColors.foundationAlphaWhite400,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.foundationOrange600,
+                              child: Icon(Icons.account_balance_rounded, color: Colors.white, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    bankInfo.bankName,
+                                    style: AppTypography.caption3.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'เลขที่บัญชี: ${bankInfo.accountNumber.length >= 4 ? "xxxxxx${bankInfo.accountNumber.substring(bankInfo.accountNumber.length - 4)}" : bankInfo.accountNumber}',
+                                    style: AppTypography.caption4.copyWith(
+                                      color: AppColors.foundationAlphaWhite400,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'ชื่อบัญชี: ${bankInfo.accountName}',
+                                    style: AppTypography.caption4.copyWith(
+                                      color: AppColors.foundationAlphaWhite400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 24),
 
                 Text(
                   'จำนวนเงินที่ต้องการโอน',
@@ -157,6 +285,9 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     if (amount > widget.availableBalance) {
                       return 'ยอดเงินไม่เพียงพอ';
                     }
+                    if (amount < 100) {
+                      return 'ถอนเงินขั้นต่ำ ฿100';
+                    }
                     return null;
                   },
                 ),
@@ -175,7 +306,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
+                    onPressed: (_isSubmitting || bankInfo == null) ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.foundationGreen600,
                       shape: RoundedRectangleBorder(

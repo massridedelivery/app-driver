@@ -33,6 +33,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
 
+    final refreshToken = response['refresh_token'] as String?;
+    if (refreshToken != null) {
+      await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
+    }
+
     return user;
   }
 
@@ -40,6 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     final secureStorage = SecureStorageManager();
     await secureStorage.delete(SecureStorageKey.accessToken);
+    await secureStorage.delete(SecureStorageKey.refreshToken);
     
     // Clear Shared Preferences
     final prefs = await SharedPreferences.getInstance();
@@ -55,6 +61,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
 
+    final refreshToken = response['refresh_token'] as String?;
+    if (refreshToken != null) {
+      await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
+    }
+
     return user;
   }
 
@@ -68,6 +79,11 @@ class AuthRepositoryImpl implements AuthRepository {
     // Store token securely
     final secureStorage = SecureStorageManager();
     await secureStorage.write(SecureStorageKey.accessToken, user.token);
+
+    final refreshToken = response['refresh_token'] as String?;
+    if (refreshToken != null) {
+      await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
+    }
 
     return user;
   }

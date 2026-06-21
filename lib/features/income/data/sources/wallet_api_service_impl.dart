@@ -9,18 +9,6 @@ class WalletApiServiceImpl implements WalletApiService {
 
   WalletApiServiceImpl(this._dio);
 
-  @override
-  Future<Map<String, dynamic>> getWalletType() async {
-    try {
-      final response = await _dio.get(Endpoints.walletType);
-      return response.data;
-    } on DioException catch (e) {
-      if (e.response?.data != null && e.response?.data['error'] != null) {
-        throw Exception(e.response?.data['error']);
-      }
-      throw Exception('Failed to fetch wallet type');
-    }
-  }
 
   @override
   Future<Map<String, dynamic>> getPayouts() async {
@@ -63,6 +51,19 @@ class WalletApiServiceImpl implements WalletApiService {
   }
 
   @override
+  Future<Map<String, dynamic>> submitTopupSlip(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post(Endpoints.driverTopupSlip, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response?.data['error'] != null) {
+        throw Exception(e.response?.data['error']);
+      }
+      throw Exception('Failed to submit top-up slip');
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> getCodStatus() async {
     try {
       final response = await _dio.get(Endpoints.driverCodStatus);
@@ -79,7 +80,7 @@ class WalletApiServiceImpl implements WalletApiService {
   Future<Map<String, dynamic>> getTransactions({String? type}) async {
     try {
       final response = await _dio.get(
-        Endpoints.driverTransactions,
+        Endpoints.driverEarningsTransactions,
         queryParameters: type != null ? {'type': type} : null,
       );
       if (response.data is List) return {'data': response.data};
@@ -87,7 +88,7 @@ class WalletApiServiceImpl implements WalletApiService {
     } on DioException {
       // Mock fallback – return sample transactions while backend isn't ready
       return {
-        'data': [
+        'transactions': [
           {
             'id': 'txn-001',
             'type': type ?? 'payout',

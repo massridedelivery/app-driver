@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
@@ -23,7 +22,6 @@ class CashWalletScreen extends ConsumerWidget {
       appBar: CommonAppBar(
         titleText: 'กระเป๋าเงินสด',
         showLeftIcon: true,
-        onLeftTap: () => context.pop(),
       ),
       body: Container(
         color: AppColors.semanticGrayNeutralFgHigh,
@@ -50,7 +48,7 @@ class CashWalletScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '฿${state.cashBalance.toStringAsFixed(0)}',
+                        '฿${state.balance.toStringAsFixed(0)}',
                         style: AppTypography.heading1.copyWith(
                           color: Colors.white,
                           fontSize: 48,
@@ -73,7 +71,7 @@ class CashWalletScreen extends ConsumerWidget {
                         AppNavigator.push(
                           context,
                           PayoutFormScreen(
-                            availableBalance: state.cashBalance,
+                            availableBalance: state.balance,
                           ),
                         );
                       },

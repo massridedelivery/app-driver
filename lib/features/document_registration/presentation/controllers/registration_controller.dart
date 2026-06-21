@@ -254,17 +254,26 @@ class RegistrationController extends _$RegistrationController {
     File? passbookFile,
   ) async {
     if (passbookFile == null) {
-      state = state.copyWith(errorMessage: 'กรุณาอัปโหลดรูปภาพก่อนบันทึก');
-      return false;
+      final remoteDoc = state.remoteDocuments[DocumentType.bankPassbook];
+      if (remoteDoc == null || remoteDoc.imageUrl.isEmpty) {
+        state = state.copyWith(errorMessage: 'กรุณาอัปโหลดรูปภาพก่อนบันทึก');
+        return false;
+      }
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      await _repository.submitBankPayoutDetails(info, passbookFile);
+      if (passbookFile != null) {
+        await _repository.submitBankPayoutDetails(info, passbookFile);
+      } else {
+        await _repository.submitBankDetails(info);
+      }
 
       final updatedDocs = Map<DocumentType, String>.from(
         state.uploadedDocuments,
       );
-      updatedDocs[DocumentType.bankPassbook] = passbookFile.path;
+      if (passbookFile != null) {
+        updatedDocs[DocumentType.bankPassbook] = passbookFile.path;
+      }
 
       state = state.copyWith(
         isBankAccountComplete: true,

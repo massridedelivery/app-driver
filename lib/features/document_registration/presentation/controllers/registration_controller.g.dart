@@ -42,7 +42,7 @@ final class RegistrationControllerProvider
 }
 
 String _$registrationControllerHash() =>
-    r'2e07500bca991270dc94da14e62951d3c438d8e7';
+    r'73cd4b6f8bfd0c8e687a218bebbb648999e7ecda';
 
 abstract class _$RegistrationController extends $Notifier<RegistrationState> {
   RegistrationState build();

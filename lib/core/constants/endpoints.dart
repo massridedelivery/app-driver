@@ -34,8 +34,6 @@ abstract class Endpoints {
   static const logout = '/v1/auth/logout';
   static const refreshToken = '/auth/refresh';
 
-  // MARK: Wallet
-  static const walletType = '/driver/wallet/type';
 
   // MARK: Me
   static const me = '/v1/me';
@@ -110,8 +108,11 @@ abstract class Endpoints {
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
   static const driverTopup = '/api/driver/topup';
+  static const driverTopupSlip = '/api/driver/topup/slip';
   static const driverCodStatus = '/api/driver/cod-status';
   static const driverEarnings = '/api/driver/earnings';
+  static const driverEarningsTransactions = '/api/driver/earnings/transactions';
+  static const driverEarningsTrips = '/api/driver/earnings/trips';
   static const driverTransactions = '/api/driver/transactions';
 
   // MARK: Quests & Tiers

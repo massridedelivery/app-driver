@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
@@ -23,6 +27,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       DraggableScrollableController();
 
   StreamSubscription? _socketSub;
+  final DirectionsService _directionsService = DirectionsService();
 
   final double _minSize = 0.12;
   final double _initialSize = 0.45;
@@ -30,6 +35,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   double _currentSize = 0.45;
   JobLiveState _currentState = JobLiveState.headingToPickup;
+  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
@@ -41,6 +47,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRoute();
+
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
         if (msg.type == 'job_status') {
@@ -59,6 +67,57 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           }
         }
       });
+    });
+  }
+
+  /// Fetches the route polyline from Directions API based on current job state.
+  /// Uses driver's current GPS location as origin.
+  Future<void> _loadRoute() async {
+    final currentJob = ref.read(incomingJobControllerProvider).currentJob;
+    if (currentJob == null) return;
+
+    // Try to get driver's current location as route origin
+    LatLng origin;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      origin = LatLng(position.latitude, position.longitude);
+    } catch (_) {
+      // Fallback to pickup if location unavailable
+      origin = LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    }
+
+    final pickupLatLng = LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    final dropoffLatLng = LatLng(currentJob.dropoffLat, currentJob.dropoffLng);
+
+    // Determine destination based on current state
+    final LatLng destination =
+        (_currentState == JobLiveState.headingToDropoff)
+            ? dropoffLatLng
+            : pickupLatLng;
+
+    final points = await _directionsService.getRoutePolyline(
+      origin: origin,
+      destination: destination,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _polylines = {
+        if (points.isNotEmpty)
+          Polyline(
+            polylineId: const PolylineId('route'),
+            points: points,
+            color: AppColors.semanticSuccessBgHigh,
+            width: 5,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            jointType: JointType.round,
+          ),
+      };
     });
   }
 
@@ -128,8 +187,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: target, zoom: 16),
       markers: markers,
+      polylines: _polylines,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: false,
+      myLocationEnabled: true,
       compassEnabled: false,
     );
   }
@@ -309,10 +370,25 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   Widget _buildContactRow() {
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _bottomAction(Icons.chat_bubble_outline, "แชท"),
+        _bottomAction(
+          Icons.chat_bubble_outline,
+          "แชท",
+          onTap: currentJob == null
+              ? null
+              : () {
+                  AppNavigator.push(
+                    context,
+                    ChatScreen(
+                      jobId: currentJob.jobId,
+                      passengerName: currentJob.passengerName,
+                    ),
+                  );
+                },
+        ),
         _bottomAction(Icons.phone_outlined, "โทรฟรี"),
         _bottomAction(Icons.help_outline, "ช่วยเหลือ"),
         _bottomAction(Icons.more_horiz, "อื่นๆ"),
@@ -320,16 +396,23 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  Widget _bottomAction(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: AppTypography.caption4.copyWith(color: Colors.white70),
+  Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white70),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTypography.caption4.copyWith(color: Colors.white70),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -378,6 +461,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               break;
           }
         });
+        // Reload route whenever state changes
+        _loadRoute();
       },
       child: Container(
         width: double.infinity,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
@@ -8,6 +7,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/topup_form_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/topup_slip_form_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 
@@ -23,7 +23,6 @@ class CreditWalletScreen extends ConsumerWidget {
       appBar: CommonAppBar(
         titleText: 'เครดิตวอลเล็ต',
         showLeftIcon: true,
-        onLeftTap: () => context.pop(),
       ),
       body: Container(
         color: AppColors.semanticGrayNeutralFgHigh,
@@ -49,7 +48,7 @@ class CreditWalletScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '฿${state.creditBalance.toStringAsFixed(0)}',
+                        '฿${state.balance.toStringAsFixed(0)}',
                         style: AppTypography.heading1.copyWith(
                           color: Colors.white,
                           fontSize: 48,
@@ -83,7 +82,7 @@ class CreditWalletScreen extends ConsumerWidget {
                       onTap: () {
                         AppNavigator.push(
                           context,
-                          const TopupFormScreen(),
+                          const TopupSlipFormScreen(),
                         );
                       },
                     ),

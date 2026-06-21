@@ -1,7 +1,13 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/features/dependency_injection.dart';
-import 'package:massdrive/features/income/domain/usecase/get_wallet_type_usecase.dart';
+import 'package:massdrive/features/document_registration/data/sources/media_api_service.dart';
+import 'package:massdrive/features/document_registration/domain/repositories/document_registration_repository.dart';
+import 'package:massdrive/features/income/domain/repositories/wallet_repository.dart';
 import 'package:massdrive/features/income/presentation/states/wallet_state.dart';
+import 'package:massdrive/features/wallet/domain/usecases/get_wallet_overview_usecase.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
 
@@ -18,7 +24,8 @@ class WalletController extends _$WalletController {
   Future<void> fetchAll() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
-      await Future.wait([fetchWalletData(), fetchEarnings()]);
+      await fetchEarnings();
+      await fetchPayoutMethod();
     } catch (e) {
       debugPrint('WalletController: Error $e');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -27,30 +34,18 @@ class WalletController extends _$WalletController {
     }
   }
 
-  Future<void> fetchWalletData() async {
-    try {
-      final getWalletTypeUseCase = getIt<GetWalletTypeUseCase>();
-      final response = await getWalletTypeUseCase.execute();
-
-      state = state.copyWith(
-        cashBalance: response.cashBalance,
-        creditBalance: response.creditBalance,
-      );
-    } catch (e) {
-      debugPrint('WalletController: fetchWalletData Error $e');
-    }
-  }
-
   Future<void> fetchEarnings() async {
     try {
-      final walletService = getIt<WalletApiService>();
-      final data = await walletService.getEarnings();
+      final useCase = getIt<GetWalletOverviewUseCase>();
+      final overview = await useCase.execute();
 
       state = state.copyWith(
-        earningsToday: (data['today'] as num?)?.toDouble() ?? 0.0,
-        earningsWeek: (data['this_week'] as num?)?.toDouble() ?? 0.0,
-        tripsToday: (data['total_trips_today'] as num?)?.toInt() ?? 0,
-        tripsWeek: (data['total_trips_week'] as num?)?.toInt() ?? 0,
+        balance: overview.balance,
+        currency: overview.currency,
+        isVerified: overview.isVerified,
+        lastUpdated: overview.lastUpdated,
+        earningsToday: overview.todayEarnings,
+        totalTripsToday: overview.totalTripsToday,
       );
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
@@ -62,7 +57,9 @@ class WalletController extends _$WalletController {
     try {
       final walletService = getIt<WalletApiService>();
       final data = await walletService.getTransactions(type: type);
-      final list = (data['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final list = (data['transactions'] as List?)?.cast<Map<String, dynamic>>()
+          ?? (data['data'] as List?)?.cast<Map<String, dynamic>>()
+          ?? [];
       state = state.copyWith(transactions: list);
     } catch (e) {
       debugPrint('WalletController: fetchTransactions Error $e');
@@ -71,12 +68,55 @@ class WalletController extends _$WalletController {
     }
   }
 
-  Future<bool> requestPayout(double amount) async {
-    state = state.copyWith(isLoading: true);
+  Future<void> fetchPayoutMethod() async {
     try {
-      final walletService = getIt<WalletApiService>();
-      await walletService.requestPayout({'amount': amount});
-      await fetchWalletData();
+      final repo = getIt<DocumentRegistrationRepository>();
+      final bankInfo = await repo.fetchPayoutMethod();
+      state = state.copyWith(bankAccountInfo: bankInfo);
+    } catch (e) {
+      debugPrint('WalletController: fetchPayoutMethod Error $e');
+    }
+  }
+
+  String _mapBankToCode(String bankName) {
+    final clean = bankName.toLowerCase();
+    if (clean.contains('kbank') || clean.contains('kasikorn') || clean.contains('กสิกร')) {
+      return '002';
+    } else if (clean.contains('scb') || clean.contains('ไทยพาณิชย์')) {
+      return '014';
+    } else if (clean.contains('bbl') || clean.contains('กรุงเทพ')) {
+      return '002';
+    } else if (clean.contains('krung') || clean.contains('ktb') || clean.contains('กรุงไทย')) {
+      return '006';
+    } else if (clean.contains('ayudhya') || clean.contains('bay') || clean.contains('กรุงศรี')) {
+      return '025';
+    }
+    return '002';
+  }
+
+  Future<bool> requestPayout(double amount) async {
+    state = state.copyWith(isLoading: true, errorMessage: '');
+    try {
+      var bankInfo = state.bankAccountInfo;
+      if (bankInfo == null) {
+        final repo = getIt<DocumentRegistrationRepository>();
+        bankInfo = await repo.fetchPayoutMethod();
+        if (bankInfo == null) {
+          throw Exception('กรุณาผูกบัญชีธนาคารสำหรับรับเงินก่อนดำเนินการถอน');
+        }
+        state = state.copyWith(bankAccountInfo: bankInfo);
+      }
+
+      final bankCode = _mapBankToCode(bankInfo.bankName);
+      final walletRepo = getIt<WalletRepository>();
+      await walletRepo.requestPayout({
+        'amount': amount,
+        'bank_code': bankCode,
+        'account_number': bankInfo.accountNumber,
+        'account_name': bankInfo.accountName,
+      });
+
+      await fetchEarnings();
       return true;
     } catch (e) {
       debugPrint('WalletController: requestPayout Error $e');
@@ -92,10 +132,68 @@ class WalletController extends _$WalletController {
     try {
       final walletService = getIt<WalletApiService>();
       final result = await walletService.topup({'amount': amount});
-      await fetchWalletData();
+      await fetchEarnings();
       return result;
     } catch (e) {
       debugPrint('WalletController: topup Error $e');
+      state = state.copyWith(errorMessage: e.toString());
+      return null;
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<Map<String, dynamic>?> submitTopupSlip({
+    required double amount,
+    required File slipFile,
+    required String bankAccountName,
+    required DateTime transferAt,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: '');
+    try {
+      final ext = slipFile.path.split('.').last.toLowerCase();
+      String contentType = 'image/jpeg';
+      if (ext == 'png') contentType = 'image/png';
+      if (ext == 'webp') contentType = 'image/webp';
+      if (ext == 'pdf') contentType = 'application/pdf';
+
+      final mediaService = getIt<MediaApiService>();
+      final requestUrlResponse = await mediaService.getUploadUrl({
+        'category': 'driver_doc',
+        'content_type': contentType,
+      });
+
+      final uploadUrlData = requestUrlResponse.data as Map<String, dynamic>;
+      final String uploadUrl = uploadUrlData['upload_url'] as String;
+      final String fileKey = uploadUrlData['file_key'] as String;
+
+      final fileBytes = await slipFile.readAsBytes();
+      await mediaService.uploadFileDirectly(uploadUrl, fileBytes, contentType);
+
+      final dio = getIt<Dio>();
+      final confirmResponse = await dio.post(
+        Endpoints.mediaConfirm,
+        data: {'file_key': fileKey},
+      );
+      final confirmData = confirmResponse.data as Map<String, dynamic>;
+      final bool confirmed = confirmData['confirmed'] as bool? ?? false;
+      if (!confirmed) {
+        throw Exception('Media confirmation failed');
+      }
+
+      final walletRepo = getIt<WalletRepository>();
+      final transferAtIso = transferAt.toUtc().toIso8601String();
+      final result = await walletRepo.submitTopupSlip({
+        'amount': amount,
+        'slip_image_key': fileKey,
+        'bank_account_name': bankAccountName,
+        'transfer_at': transferAtIso,
+      });
+
+      await fetchEarnings();
+      return result;
+    } catch (e) {
+      debugPrint('WalletController: submitTopupSlip Error $e');
       state = state.copyWith(errorMessage: e.toString());
       return null;
     } finally {

@@ -63,9 +63,12 @@ class AuthApiServiceImpl implements AuthApiService {
       );
 
       final accessToken = verifyResponse.data['access_token'];
+      final refreshToken = verifyResponse.data['refresh_token'];
 
       // Fetch profile using the token
-      return await _fetchDriverProfile(accessToken, normalizedPhone);
+      final profile = await _fetchDriverProfile(accessToken, normalizedPhone);
+      profile['refresh_token'] = refreshToken;
+      return profile;
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
@@ -87,6 +90,7 @@ class AuthApiServiceImpl implements AuthApiService {
       );
 
       final accessToken = loginResponse.data['access_token'];
+      final refreshToken = loginResponse.data['refresh_token'];
 
       // Temporarily removed _fetchDriverProfile per user request
       return {
@@ -94,6 +98,7 @@ class AuthApiServiceImpl implements AuthApiService {
         'name': 'Driver (Email)',
         'phoneNumber': '', // No phone from email login yet
         'token': accessToken,
+        'refresh_token': refreshToken,
       };
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
@@ -113,6 +118,7 @@ class AuthApiServiceImpl implements AuthApiService {
       );
 
       final accessToken = response.data['access_token'];
+      final refreshToken = response.data['refresh_token'];
 
       // Temporarily return user data structuring until backend provides profile from registration or another endpoint is hit
       return {
@@ -120,6 +126,7 @@ class AuthApiServiceImpl implements AuthApiService {
         'name': request.fullName,
         'phoneNumber': request.phone,
         'token': accessToken,
+        'refresh_token': refreshToken,
       };
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {

@@ -1,5 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
+import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
@@ -38,7 +40,12 @@ class AppStartupController extends _$AppStartupController {
         debugPrint('FCM: Failed to get real FCM token: $e');
       }
 
-      final token = fcmToken ?? 'dummy_fcm_token_123456';
+      String token = fcmToken ?? '';
+      if (token.isEmpty) {
+        final secureStorage = SecureStorageManager();
+        final savedAccessToken = await secureStorage.read(SecureStorageKey.accessToken);
+        token = savedAccessToken ?? 'dummy_fcm_token_123456';
+      }
       
       await api.registerDevice({
         'token': token,

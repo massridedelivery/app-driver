@@ -70,10 +70,12 @@ class DocumentRegistrationRepositoryImpl
 
   @override
   Future<void> submitBankDetails(BankAccountInfo info) async {
-    // Currently no API specifically defined in driver_integration.md for submitting Bank Details only
-    // This could also be an updateProfile
-    print("MOCK Action: submitBankDetails for ${info.accountName}");
-    await Future.delayed(const Duration(milliseconds: 500));
+    final docs = await fetchDocuments();
+    final bankPassbookDoc = docs.firstWhere(
+      (d) => d.docType == 'bank_passbook',
+      orElse: () => throw Exception('กรุณาอัปโหลดรูปภาพสมุดบัญชีธนาคารก่อนบันทึก'),
+    );
+    await _api.updatePayoutMethod(info, bankPassbookDoc.imageUrl);
   }
 
   @override
@@ -159,11 +161,13 @@ class DocumentRegistrationRepositoryImpl
     final response = await _api.fetchPayoutMethod();
     if (response == null) return null;
     try {
-      final method = response['method'] as Map<String, dynamic>?;
-      if (method == null) return null;
-      final type = method['type'] as String?;
+      Map<String, dynamic> methodData = response;
+      if (response.containsKey('method') && response['method'] is Map) {
+        methodData = response['method'] as Map<String, dynamic>;
+      }
+      final type = methodData['type'] as String?;
       if (type != 'bank_transfer') return null;
-      final details = method['details'] as Map<String, dynamic>?;
+      final details = methodData['details'] as Map<String, dynamic>?;
       if (details == null) return null;
       return BankAccountInfo(
         bankName: details['bank_name'] as String? ?? '',

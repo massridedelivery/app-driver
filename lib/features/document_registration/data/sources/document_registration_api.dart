@@ -279,6 +279,27 @@ class DocumentRegistrationApi {
     return payoutResponse.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updatePayoutMethod(
+    BankAccountInfo info,
+    String fileKey,
+  ) async {
+    final payoutResponse = await dio.put(
+      Endpoints.driverPayoutsMethod,
+      data: {
+        "method": {
+          "type": "bank_transfer",
+          "details": {
+            "bank_name": info.bankName,
+            "account_number": info.accountNumber,
+            "account_name": info.accountName,
+          }
+        },
+        "file_key": fileKey,
+      },
+    );
+    return payoutResponse.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>?> fetchPayoutMethod() async {
     try {
       final response = await dio.get(Endpoints.driverPayoutsMethod);

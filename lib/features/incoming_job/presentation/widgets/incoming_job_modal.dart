@@ -200,7 +200,7 @@ class IncomingJobModal extends ConsumerWidget {
                           _buildAddressBlock(
                             job.dropoffAddress,
                             job.dropoffAddressDetail,
-                            '${job.dropoffDistanceKm} KM',
+                            '${(job.distanceKm ?? 0.0) > 0 ? job.distanceKm : job.dropoffDistanceKm} KM',
                           ),
                         ],
                       ),

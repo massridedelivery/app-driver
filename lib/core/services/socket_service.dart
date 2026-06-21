@@ -58,56 +58,56 @@ class SocketService {
     _reconnectTimer?.cancel();
 
     try {
-      debugPrint('SocketService: Starting connection steps...');
+      if (kDebugMode) debugPrint('SocketService: Starting connection steps...');
 
       final secureStorage = SecureStorageManager();
-      debugPrint('SocketService: SecureStorageManager instance created.');
 
       final token = await secureStorage.read(SecureStorageKey.accessToken);
-      debugPrint(
-        'SocketService: Token read result: ${token != null ? "Found" : "Not Found"}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'SocketService: Token read result: ${token != null ? "Found" : "Not Found"}',
+        );
+      }
 
       if (token == null || token.isEmpty) {
-        debugPrint('SocketService: No access token found. Cannot connect.');
+        if (kDebugMode) debugPrint('SocketService: No access token found. Cannot connect.');
         return;
       }
 
       final url = _buildWebSocketUrl(token);
-      debugPrint('SocketService: Connecting to $url');
+      if (kDebugMode) debugPrint('SocketService: Connecting to $url');
 
       _channel = WebSocketChannel.connect(Uri.parse(url));
-      debugPrint('SocketService: WebSocketChannel.connect called.');
 
       // Wait for connection to be ready before logging success
       await _channel!.ready;
-      debugPrint('✅ SocketService: Connected successfully to the backend.');
+      if (kDebugMode) debugPrint('✅ SocketService: Connected successfully to the backend.');
       _connectionStatusController.add(true);
       _reconnectAttempts = 0;
       _startHeartbeat();
 
       _subscription = _channel!.stream.listen(
         (data) {
-          debugPrint('📥 SocketService Received Data: $data');
+          if (kDebugMode) debugPrint('📥 SocketService Received Data: $data');
           try {
             final jsonMap = jsonDecode(data.toString());
             final message = SocketMessageModel.fromJson(jsonMap);
             _messageController.add(message);
           } catch (e) {
-            debugPrint('⚠️ SocketService Parse Error: $e - Data: $data');
+            if (kDebugMode) debugPrint('⚠️ SocketService Parse Error: $e - Data: $data');
           }
         },
         onError: (error) {
-          debugPrint('SocketService WebSocket Error: $error');
+          if (kDebugMode) debugPrint('SocketService WebSocket Error: $error');
           _handleDisconnect();
         },
         onDone: () {
-          debugPrint('SocketService WebSocket Closed');
+          if (kDebugMode) debugPrint('SocketService WebSocket Closed');
           _handleDisconnect();
         },
       );
     } catch (e) {
-      debugPrint('SocketService Connection Error: $e');
+      if (kDebugMode) debugPrint('SocketService Connection Error: $e');
       _handleDisconnect();
       rethrow;
     }
@@ -116,7 +116,7 @@ class SocketService {
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      debugPrint('💓 SocketService: Sending Heartbeat Ping');
+      if (kDebugMode) debugPrint('💓 SocketService: Sending Heartbeat Ping');
       sendMessage('ping');
     });
   }
@@ -128,15 +128,17 @@ class SocketService {
       _reconnectAttempts++;
       final delaySeconds =
           _reconnectAttempts * 2; // Exponential-ish backoff: 2s, 4s, 6s...
-      debugPrint(
-        'SocketService: Reconnecting in $delaySeconds seconds (Attempt $_reconnectAttempts/$_maxReconnectAttempts)',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'SocketService: Reconnecting in $delaySeconds seconds (Attempt $_reconnectAttempts/$_maxReconnectAttempts)',
+        );
+      }
 
       _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
         connect();
       });
     } else {
-      debugPrint('SocketService: Max reconnect attempts reached. Giving up.');
+      if (kDebugMode) debugPrint('SocketService: Max reconnect attempts reached. Giving up.');
     }
   }
 
@@ -147,7 +149,7 @@ class SocketService {
         if (data != null) 'data': data,
       };
 
-      // Some simple messages like location update format lat/lnt at root of payload in WS Guide
+      // Some simple messages like location update format lat/lng at root of payload in WS Guide
       // Adjusting to make sure we support both formats easily
       if (data != null && data.containsKey('_merge_to_root')) {
         data.remove('_merge_to_root');
@@ -157,11 +159,13 @@ class SocketService {
 
       final jsonStr = jsonEncode(payload);
       _channel!.sink.add(jsonStr);
-      debugPrint('SocketService Sent: $jsonStr');
+      if (kDebugMode) debugPrint('SocketService Sent: $jsonStr');
     } else {
-      debugPrint(
-        'SocketService Warning: Cannot send message, socket not connected.',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'SocketService Warning: Cannot send message, socket not connected.',
+        );
+      }
     }
   }
 
