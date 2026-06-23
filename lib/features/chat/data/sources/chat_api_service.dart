@@ -4,7 +4,19 @@ import 'package:massdrive/core/constants/endpoints.dart';
 
 abstract class ChatApiService {
   /// Fetches historical chat messages for a specific job.
-  Future<Response<List<dynamic>>> getChatHistory(String jobId);
+  Future<Response<List<dynamic>>> getChatHistory(
+    String jobId, {
+    int? limit,
+    String? before,
+  });
+
+  /// Sends a chat message to the room via REST.
+  Future<Response<Map<String, dynamic>>> sendMessageRest({
+    required String jobId,
+    required String roomId,
+    required String msgType,
+    required String text,
+  });
 
   /// Requests a pre-signed S3/MinIO upload URL for chat media.
   Future<Response<Map<String, dynamic>>> getPresignedUploadUrl({
@@ -33,9 +45,38 @@ class ChatApiServiceImpl implements ChatApiService {
   ChatApiServiceImpl(this._dio);
 
   @override
-  Future<Response<List<dynamic>>> getChatHistory(String jobId) async {
-    final endpoint = '/api/chat/job/$jobId/history';
-    return await _dio.get<List<dynamic>>(endpoint);
+  Future<Response<List<dynamic>>> getChatHistory(
+    String jobId, {
+    int? limit,
+    String? before,
+  }) async {
+    final endpoint = '/api/driver/jobs/$jobId/chat';
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+    if (before != null) queryParams['before'] = before;
+
+    return await _dio.get<List<dynamic>>(
+      endpoint,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> sendMessageRest({
+    required String jobId,
+    required String roomId,
+    required String msgType,
+    required String text,
+  }) async {
+    final endpoint = '/api/driver/jobs/$jobId/chat';
+    return await _dio.post<Map<String, dynamic>>(
+      endpoint,
+      data: {
+        'room_id': roomId,
+        'msg_type': msgType,
+        'text': text,
+      },
+    );
   }
 
   @override

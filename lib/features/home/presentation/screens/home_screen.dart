@@ -260,7 +260,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   late DraggableScrollableController _sheetController;
-  GoogleMapController? _mapController;
 
   final double _minSize = 0.25;
   final double _maxSize = 0.85;
@@ -309,7 +308,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(
         children: [
-          _buildMap(),
+          const _HomeMap(),
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
@@ -505,24 +504,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   // ================= MAP =================
-
-  Widget _buildMap() {
-    return SizedBox.expand(
-      child: GoogleMap(
-        onMapCreated: (controller) {
-          _mapController = controller;
-          ref.read(mapControllerProvider.notifier).setController(controller);
-        },
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
-          zoom: 14,
-        ),
-        myLocationEnabled: true,
-        zoomControlsEnabled: false,
-        myLocationButtonEnabled: false,
-      ),
-    );
-  }
 
   // ================= BOTTOM SHEET =================
 
@@ -875,4 +856,26 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
       );
     },
   );
+}
+
+class _HomeMap extends ConsumerWidget {
+  const _HomeMap();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox.expand(
+      child: GoogleMap(
+        onMapCreated: (controller) {
+          ref.read(mapControllerProvider.notifier).setController(controller);
+        },
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
+          zoom: 14,
+        ),
+        myLocationEnabled: true,
+        zoomControlsEnabled: false,
+        myLocationButtonEnabled: false,
+      ),
+    );
+  }
 }

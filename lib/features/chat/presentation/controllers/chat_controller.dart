@@ -8,6 +8,7 @@ import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
 import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'chat_controller.g.dart';
@@ -69,10 +70,14 @@ class ChatController extends _$ChatController {
     await connectWebSocket();
   }
 
-  Future<void> fetchHistory() async {
+  Future<void> fetchHistory({int? limit, String? before}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final history = await _chatRepository.getChatHistory(_jobId);
+      final history = await _chatRepository.getChatHistory(
+        _jobId,
+        limit: limit,
+        before: before,
+      );
       state = state.copyWith(messages: history, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -86,10 +91,15 @@ class ChatController extends _$ChatController {
       final token = await secureStorage.read(SecureStorageKey.accessToken);
       if (token == null || token.isEmpty) return;
 
-      final wsUrl = 'wss://driver-api-dev.nutchaphut.dev/ws/chat?job_id=$_jobId&token=${token.trim()}';
+      final wsUrl = 'wss://driver-api-dev.nutchaphut.dev/ws';
       if (kDebugMode) debugPrint('ChatController: Connecting to chat WS: $wsUrl');
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _channel = IOWebSocketChannel.connect(
+        Uri.parse(wsUrl),
+        headers: {
+          'Authorization': 'Bearer ${token.trim()}',
+        },
+      );
       await _channel!.ready;
 
       _isConnected = true;
@@ -111,6 +121,9 @@ class ChatController extends _$ChatController {
                   messages: [...state.messages, newMessage],
                 );
               }
+            } else if (type == 'error') {
+              final errorMessage = jsonMap['data']?.toString() ?? 'An error occurred';
+              state = state.copyWith(error: errorMessage);
             }
           } catch (e) {
             if (kDebugMode) debugPrint('ChatController WS Parse error: $e');
@@ -133,10 +146,18 @@ class ChatController extends _$ChatController {
 
   void sendMessage(String text) {
     if (!_isConnected || _channel == null) {
-      if (kDebugMode) debugPrint('ChatController: Cannot send message, WS not connected. Trying to reconnect...');
-      connectWebSocket().then((_) {
-        if (_isConnected && _channel != null) {
-          _sendPayload(text);
+      if (kDebugMode) debugPrint('ChatController: WS not connected. Trying HTTP Fallback to send message.');
+      _chatRepository.sendMessageRest(
+        jobId: _jobId,
+        roomId: 'job:$_jobId',
+        msgType: 'text',
+        text: text,
+      ).then((success) {
+        if (success) {
+          fetchHistory();
+        } else {
+          if (kDebugMode) debugPrint('ChatController: HTTP Fallback also failed. Trying to reconnect WS...');
+          connectWebSocket();
         }
       });
       return;
@@ -148,8 +169,9 @@ class ChatController extends _$ChatController {
     final payload = {
       'type': 'chat_message',
       'room_id': 'job:$_jobId',
-      'content': text,
       'msg_type': 'text',
+      'text': text,
+      'file_key': null,
     };
 
     final jsonStr = jsonEncode(payload);

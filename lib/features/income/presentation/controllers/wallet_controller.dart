@@ -13,7 +13,7 @@ import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
 
 part 'wallet_controller.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class WalletController extends _$WalletController {
   @override
   WalletState build() {

@@ -26,15 +26,15 @@ class ChatMessage {
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
       id: json['id']?.toString() ?? '',
-      jobId: json['job_id']?.toString() ?? '',
+      jobId: json['job_id']?.toString() ?? json['room_id']?.toString()?.replaceAll('job:', '') ?? '',
       senderId: json['sender_id']?.toString() ?? '',
-      senderType: json['sender_type']?.toString() ?? '',
-      content: json['content']?.toString() ?? '',
+      senderType: json['sender_type']?.toString() ?? json['sender_role']?.toString() ?? '',
+      content: json['content']?.toString() ?? json['text']?.toString() ?? '',
       msgType: json['msg_type']?.toString() ?? 'text',
       mediaUrl: json['media_url']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'].toString())
-          : DateTime.now(),
+          : (json['sent_at'] != null ? DateTime.parse(json['sent_at'].toString()) : DateTime.now()),
     );
   }
 

@@ -20,7 +20,7 @@ final class WalletControllerProvider
         argument: null,
         retry: null,
         name: r'walletControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -41,7 +41,7 @@ final class WalletControllerProvider
   }
 }
 
-String _$walletControllerHash() => r'071e1439cabdb73fecf380b2f0efb279e5565d91';
+String _$walletControllerHash() => r'c6a63746552bd36402383b18cbbf5626940fc1ae';
 
 abstract class _$WalletController extends $Notifier<WalletState> {
   WalletState build();

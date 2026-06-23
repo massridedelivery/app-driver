@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/completed_trips_tile.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/earnings_section.dart';
 
@@ -60,7 +60,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
                           iconBgColor: AppColors.foundationOrange700,
                           title: 'กระเป๋าเงินสด',
                           amount: '฿${walletState.balance.toStringAsFixed(0)}',
-                          onTap: () => AppNavigator.push(context, const CashWalletScreen()),
+                          onTap: () => context.push(AppRoutes.cashWalletNamedPage),
                         ),
                         WalletGridItem(
                           icon: Icons.work,
@@ -68,7 +68,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
                           iconColor: AppColors.foundationOrange700,
                           title: 'กระเป๋าเครดิต',
                           amount: '฿${walletState.balance.toStringAsFixed(0)}',
-                          onTap: () => AppNavigator.push(context, const CreditWalletScreen()),
+                          onTap: () => context.push(AppRoutes.creditWalletNamedPage),
                         ),
                       ],
                     ),

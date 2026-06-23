@@ -29,22 +29,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   StreamSubscription? _socketSub;
   final DirectionsService _directionsService = DirectionsService();
 
-  final double _minSize = 0.12;
-  final double _initialSize = 0.45;
-  final double _maxSize = 0.85;
-
-  double _currentSize = 0.45;
   JobLiveState _currentState = JobLiveState.headingToPickup;
   Set<Polyline> _polylines = {};
 
   @override
   void initState() {
     super.initState();
-    _sheetController.addListener(() {
-      setState(() {
-        _currentSize = _sheetController.size;
-      });
-    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();

@@ -12,15 +12,45 @@ class ChatRepositoryImpl implements ChatRepository {
   ChatRepositoryImpl(this._chatApiService);
 
   @override
-  Future<List<ChatMessage>> getChatHistory(String jobId) async {
+  Future<List<ChatMessage>> getChatHistory(
+    String jobId, {
+    int? limit,
+    String? before,
+  }) async {
     try {
-      final response = await _chatApiService.getChatHistory(jobId);
+      final response = await _chatApiService.getChatHistory(
+        jobId,
+        limit: limit,
+        before: before,
+      );
       final list = response.data;
       if (list == null) return [];
       return list.map((item) => ChatMessage.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
       debugPrint('ChatRepository: getChatHistory error: $e');
       return [];
+    }
+  }
+
+  @override
+  Future<bool> sendMessageRest({
+    required String jobId,
+    required String roomId,
+    required String msgType,
+    required String text,
+  }) async {
+    try {
+      final response = await _chatApiService.sendMessageRest(
+        jobId: jobId,
+        roomId: roomId,
+        msgType: msgType,
+        text: text,
+      );
+      final data = response.data;
+      return data?['message'] == 'sent' || response.statusCode == 201;
+    } catch (e) {
+      debugPrint('ChatRepository: sendMessageRest error: $e');
+      return false;
     }
   }
 

@@ -199,7 +199,7 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: AppColors.foundationGreen600,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -215,7 +215,12 @@ class EditProfileScreen extends ConsumerWidget {
                       ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
                     }
                   },
-                  child: const Text("บันทึก"),
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -270,7 +275,7 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: AppColors.foundationGreen600,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -285,7 +290,12 @@ class EditProfileScreen extends ConsumerWidget {
                       ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
                     }
                   },
-                  child: const Text("บันทึก"),
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -341,7 +351,7 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: AppColors.foundationGreen600,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -356,7 +366,12 @@ class EditProfileScreen extends ConsumerWidget {
                       ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
                     }
                   },
-                  child: const Text("บันทึก"),
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
