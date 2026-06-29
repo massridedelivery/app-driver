@@ -111,9 +111,14 @@ class WalletController extends _$WalletController {
       final walletRepo = getIt<WalletRepository>();
       await walletRepo.requestPayout({
         'amount': amount,
-        'bank_code': bankCode,
-        'account_number': bankInfo.accountNumber,
-        'account_name': bankInfo.accountName,
+        'method': {
+          'type': 'bank_transfer',
+          'details': {
+            'bank_name': bankCode,
+            'account_number': bankInfo.accountNumber,
+            'account_name': bankInfo.accountName,
+          },
+        },
       });
 
       await fetchEarnings();

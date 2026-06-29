@@ -11,10 +11,21 @@ class HistoryListRepositoryImpl implements HistoryListRepository {
 
   @override
   Future<List<HistoryItemModel>> getHistoryList({
-    required int page,
     required int limit,
+    required int offset,
+    String? type,
+    String? status,
+    String? startDate,
+    String? endDate,
   }) async {
-    final response = await _apiService.getHistoryList(page: page, limit: limit);
+    final response = await _apiService.getHistoryList(
+      limit: limit,
+      offset: offset,
+      type: type,
+      status: status,
+      startDate: startDate,
+      endDate: endDate,
+    );
     return response.data.map((model) => model.toEntity()).toList();
   }
 }

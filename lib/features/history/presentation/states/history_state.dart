@@ -10,7 +10,8 @@ sealed class HistoryState with _$HistoryState {
     @Default(false) bool isLoadingMore,
     @Default([]) List<HistoryItemModel> items,
     @Default('') String errorMessage,
-    @Default(1) int page,
+    @Default(0) int page,
     @Default(true) bool hasMore,
+    String? selectedType, // null = all, e.g. 'FARE_PAYMENT'
   }) = _HistoryState;
 }

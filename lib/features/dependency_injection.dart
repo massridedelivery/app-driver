@@ -30,7 +30,6 @@ abstract class NetworkModule {
 
     dio.interceptors.addAll([
       HeaderInterceptor(),
-      AppDioLoggerInterceptor(LoggerManager.instance.talker),
       AppDioRefreshTokenInterceptor(
         secureStorage: secureStorage,
         dio: dio,
@@ -39,6 +38,7 @@ abstract class NetworkModule {
           // Add global logout or navigation logic if needed
         },
       ),
+      AppDioLoggerInterceptor(LoggerManager.instance.talker),
       ProfileErrorInterceptor(),
     ]);
 

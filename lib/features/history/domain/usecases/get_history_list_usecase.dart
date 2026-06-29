@@ -9,9 +9,20 @@ class GetHistoryListUseCase {
   GetHistoryListUseCase(this._repository);
 
   Future<List<HistoryItemModel>> execute({
-    int page = 1,
     int limit = 20,
+    int offset = 0,
+    String? type,
+    String? status,
+    String? startDate,
+    String? endDate,
   }) {
-    return _repository.getHistoryList(page: page, limit: limit);
+    return _repository.getHistoryList(
+      limit: limit,
+      offset: offset,
+      type: type,
+      status: status,
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 }

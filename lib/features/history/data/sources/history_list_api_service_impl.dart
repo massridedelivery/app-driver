@@ -12,27 +12,44 @@ class HistoryListApiServiceImpl implements HistoryListApiService {
 
   @override
   Future<HistoryListResponseModel> getHistoryList({
-    required int page,
     required int limit,
+    required int offset,
+    String? type,
+    String? status,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
+      final queryParams = <String, dynamic>{
+        'limit': limit,
+        'offset': offset,
+        if (type != null) 'type': type,
+        if (status != null) 'status': status,
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      };
       final response = await _dio.get(
-        Endpoints.driverEarningsTrips,
-        queryParameters: {
-          'page': page,
-          'limit': limit,
-        },
+        Endpoints.driverEarningsTransactions,
+        queryParameters: queryParams,
       );
-      return HistoryListResponseModel.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      if (e.response?.data != null && e.response?.data['error'] != null) {
-        throw Exception(e.response?.data['error']);
+      return HistoryListResponseModel.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('⛔ HistoryListApiServiceImpl ERROR: $e');
+      // ignore: avoid_print
+      print('⛔ STACKTRACE: $st');
+      if (e is DioException) {
+        if (e.response?.data != null && e.response?.data['error'] != null) {
+          throw Exception(e.response?.data['error']);
+        }
       }
-      return _mockResponse(page, limit);
+      rethrow; // let controller see the real error instead of hiding in mock
     }
   }
 
-  HistoryListResponseModel _mockResponse(int page, int limit) {
+  HistoryListResponseModel _mockResponse(int limit, int offset) {
     final now = DateTime.now();
     final items = [
       HistoryItemApiModel(
@@ -79,7 +96,7 @@ class HistoryListApiServiceImpl implements HistoryListApiService {
 
     return HistoryListResponseModel(
       data: items,
-      page: page,
+      offset: offset,
       limit: limit,
       total: items.length,
     );

@@ -10,6 +10,20 @@ class Transaction {
   final String description;
   final DateTime createdAt;
 
+  // Additional fields from API
+  final String? jobId;
+  final String? orderId;
+  final String? userId;
+  final String? counterpartyId;
+  final String? currency;
+  final String? paymentMethod;
+  final String? metadata;
+  final double? commission;
+  final double? discount;
+  final double? platformFee;
+  final double? subtotal;
+  final DateTime? completedAt;
+
   const Transaction({
     required this.id,
     required this.type,
@@ -17,6 +31,18 @@ class Transaction {
     required this.status,
     required this.description,
     required this.createdAt,
+    this.jobId,
+    this.orderId,
+    this.userId,
+    this.counterpartyId,
+    this.currency,
+    this.paymentMethod,
+    this.metadata,
+    this.commission,
+    this.discount,
+    this.platformFee,
+    this.subtotal,
+    this.completedAt,
   });
 
   /// Whether the amount adds funds to the wallet.
@@ -35,9 +61,14 @@ class TransactionListResult {
 
   /// Total number of records (before pagination).
   final int total;
+  final int limit;
+  final int offset;
 
   const TransactionListResult({
     required this.transactions,
     required this.total,
+    this.limit = 20,
+    this.offset = 0,
   });
 }
+

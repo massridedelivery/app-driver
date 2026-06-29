@@ -16,6 +16,20 @@ class TransactionModel {
   final String description;
   final DateTime createdAt;
 
+  // Additional fields from API
+  final String? jobId;
+  final String? orderId;
+  final String? userId;
+  final String? counterpartyId;
+  final String? currency;
+  final String? paymentMethod;
+  final String? metadata;
+  final double? commission;
+  final double? discount;
+  final double? platformFee;
+  final double? subtotal;
+  final DateTime? completedAt;
+
   const TransactionModel({
     required this.id,
     required this.type,
@@ -23,9 +37,22 @@ class TransactionModel {
     required this.status,
     required this.description,
     required this.createdAt,
+    this.jobId,
+    this.orderId,
+    this.userId,
+    this.counterpartyId,
+    this.currency,
+    this.paymentMethod,
+    this.metadata,
+    this.commission,
+    this.discount,
+    this.platformFee,
+    this.subtotal,
+    this.completedAt,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    // Resolve description: use field → metadata.reason → type fallback
     String desc = json['description'] as String? ?? '';
     if (desc.isEmpty) {
       final metadataStr = json['metadata'] as String?;
@@ -34,11 +61,9 @@ class TransactionModel {
           final Map<String, dynamic> meta = jsonDecode(metadataStr);
           final reason = meta['reason'] as String?;
           if (reason != null && reason.isNotEmpty) {
-            if (reason == 'Manual Top-up Slip Approval') {
-              desc = 'เติมเงินด้วยสลิป (อนุมัติโดยระบบ)';
-            } else {
-              desc = reason;
-            }
+            desc = reason == 'Manual Top-up Slip Approval'
+                ? 'เติมเงินด้วยสลิป (อนุมัติโดยระบบ)'
+                : reason;
           }
         } catch (_) {}
       }
@@ -67,15 +92,28 @@ class TransactionModel {
       }
     }
 
+    DateTime? parseDate(String? s) =>
+        s != null && s.isNotEmpty ? DateTime.tryParse(s) : null;
+
     return TransactionModel(
       id: json['id'] as String? ?? '',
       type: json['type'] as String? ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       status: json['status'] as String? ?? '',
       description: desc,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+      createdAt: parseDate(json['created_at'] as String?) ?? DateTime.now(),
+      jobId: json['job_id'] as String?,
+      orderId: json['order_id'] as String?,
+      userId: json['user_id'] as String?,
+      counterpartyId: json['counterparty_id'] as String?,
+      currency: json['currency'] as String?,
+      paymentMethod: json['payment_method'] as String?,
+      metadata: json['metadata'] as String?,
+      commission: (json['commission'] as num?)?.toDouble(),
+      discount: (json['discount'] as num?)?.toDouble(),
+      platformFee: (json['platform_fee'] as num?)?.toDouble(),
+      subtotal: (json['subtotal'] as num?)?.toDouble(),
+      completedAt: parseDate(json['completed_at'] as String?),
     );
   }
 
@@ -89,6 +127,18 @@ class TransactionModel {
       status: TransactionStatus.fromString(status),
       description: description,
       createdAt: createdAt,
+      jobId: jobId,
+      orderId: orderId,
+      userId: userId,
+      counterpartyId: counterpartyId,
+      currency: currency,
+      paymentMethod: paymentMethod,
+      metadata: metadata,
+      commission: commission,
+      discount: discount,
+      platformFee: platformFee,
+      subtotal: subtotal,
+      completedAt: completedAt,
     );
   }
 }
@@ -98,10 +148,14 @@ class TransactionModel {
 class TransactionListModel {
   final List<TransactionModel> transactions;
   final int total;
+  final int limit;
+  final int offset;
 
   const TransactionListModel({
     required this.transactions,
     required this.total,
+    this.limit = 20,
+    this.offset = 0,
   });
 
   factory TransactionListModel.fromJson(Map<String, dynamic> json) {
@@ -111,10 +165,11 @@ class TransactionListModel {
     final transactions = list
         .map((e) => TransactionModel.fromJson(e as Map<String, dynamic>))
         .toList();
-    final total = json['total'] as int? ?? transactions.length;
     return TransactionListModel(
       transactions: transactions,
-      total: total,
+      total: json['total'] as int? ?? transactions.length,
+      limit: json['limit'] as int? ?? 20,
+      offset: json['offset'] as int? ?? 0,
     );
   }
 
@@ -124,6 +179,9 @@ class TransactionListModel {
     return TransactionListResult(
       transactions: transactions.map((m) => m.toEntity()).toList(),
       total: total,
+      limit: limit,
+      offset: offset,
     );
   }
 }
+

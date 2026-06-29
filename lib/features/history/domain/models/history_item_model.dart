@@ -12,6 +12,7 @@ class HistoryItemModel {
   final PaymentType? paymentType;
   final HistoryStatus status;
   final ServiceType serviceType;
+  final String? rawType; // 'FARE_PAYMENT', 'COMMISSION_DEDUCTION', 'TOPUP', 'WITHDRAWAL', etc.
 
   HistoryItemModel({
     required this.id,
@@ -21,6 +22,7 @@ class HistoryItemModel {
     this.paymentType,
     required this.status,
     this.serviceType = ServiceType.ride,
+    this.rawType,
   });
 }
 
