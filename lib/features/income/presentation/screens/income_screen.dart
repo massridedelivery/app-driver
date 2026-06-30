@@ -59,7 +59,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
                           icon: Icons.attach_money,
                           iconBgColor: AppColors.foundationOrange700,
                           title: 'กระเป๋าเงินสด',
-                          amount: '฿${walletState.balance.toStringAsFixed(0)}',
+                          amount: '฿0',
                           onTap: () => AppNavigator.push(context, const CashWalletScreen()),
                         ),
                         WalletGridItem(
@@ -67,7 +67,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
                           iconBgColor: AppColors.semanticGrayNeutralBgWhite,
                           iconColor: AppColors.foundationOrange700,
                           title: 'กระเป๋าเครดิต',
-                          amount: '฿${walletState.balance.toStringAsFixed(0)}',
+                          amount: '฿${walletState.balance.abs().toStringAsFixed(0)}',
                           onTap: () => AppNavigator.push(context, const CreditWalletScreen()),
                         ),
                       ],
@@ -189,7 +189,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance);
+    final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance.abs());
     final formattedDate = lastUpdated != null
         ? DateFormat('dd MMM yyyy HH:mm', 'th_TH').format(lastUpdated!.toLocal())
         : null;
@@ -219,7 +219,7 @@ class _BalanceCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'ยอดเงินรวม',
+                'ยอดค้างชำระ',
                 style: AppTypography.caption4.copyWith(
                   color: AppColors.semanticGrayNeutralFgMidOnWhite,
                 ),

@@ -6,8 +6,7 @@ import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/screens/topup_form_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/topup_slip_form_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/settle_debt_form_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
@@ -41,7 +40,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           _buildPremiumMassIllustration(),
                           const SizedBox(height: 24),
                           Text(
-                            'ยอดเครดิตในระบบ',
+                            'ยอดค้างชำระ',
                             style: AppTypography.caption4.copyWith(
                               color: AppColors.semanticGrayNeutralBgWhite,
                               letterSpacing: 1.2,
@@ -49,7 +48,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.balance.toStringAsFixed(0)}',
+                            '฿${state.balance.abs().toStringAsFixed(0)}',
                             style: AppTypography.heading1.copyWith(
                               color: Colors.white,
                               fontSize: 48,
@@ -66,34 +65,24 @@ class CreditWalletScreen extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       children: [
                         WalletActionTile(
-                          title: 'เติมเงินทันที',
+                          title: 'ชำระเงินทาง PromptPay',
                           icon: Icons.bolt_rounded,
                           showBadge: true,
                           badgeText: 'ใหม่',
                           onTap: () {
                             AppNavigator.push(
                               context,
-                              const TopupFormScreen(),
+                              const SettleDebtFormScreen(paymentMethod: 'PROMPTPAY'),
                             );
                           },
                         ),
                         WalletActionTile(
-                          title: 'เติมเงินโดยใช้บัญชี',
+                          title: 'โอนเงินเข้าบัญชี (Manual)',
                           icon: Icons.account_balance_rounded,
                           onTap: () {
                             AppNavigator.push(
                               context,
-                              const TopupSlipFormScreen(),
-                            );
-                          },
-                        ),
-                        WalletActionTile(
-                          title: 'เติมเงินโดยใช้ PIN',
-                          icon: Icons.password_rounded,
-                          onTap: () {
-                            AppNavigator.push(
-                              context,
-                              const TopupFormScreen(),
+                              const SettleDebtFormScreen(paymentMethod: 'MANUAL'),
                             );
                           },
                         ),

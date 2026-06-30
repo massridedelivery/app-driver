@@ -19,13 +19,13 @@ class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> topup(Map<String, dynamic> data) async {
-    return await _apiService.topup(data);
+  Future<Map<String, dynamic>> settleDebt(Map<String, dynamic> data) async {
+    return await _apiService.settleDebt(data);
   }
 
   @override
-  Future<Map<String, dynamic>> submitTopupSlip(Map<String, dynamic> data) async {
-    return await _apiService.submitTopupSlip(data);
+  Future<Map<String, dynamic>> submitSettlementSlip(String intentId, Map<String, dynamic> data) async {
+    return await _apiService.submitSettlementSlip(intentId, data);
   }
 
   @override

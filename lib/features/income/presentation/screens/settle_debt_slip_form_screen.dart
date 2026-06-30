@@ -1,7 +1,5 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -10,16 +8,24 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 
-class TopupSlipFormScreen extends ConsumerStatefulWidget {
-  const TopupSlipFormScreen({super.key});
+class SettleDebtSlipFormScreen extends ConsumerStatefulWidget {
+  final String intentId;
+  final double amount;
+  final Map<String, dynamic> bankDetails;
+
+  const SettleDebtSlipFormScreen({
+    super.key,
+    required this.intentId,
+    required this.amount,
+    required this.bankDetails,
+  });
 
   @override
-  ConsumerState<TopupSlipFormScreen> createState() => _TopupSlipFormScreenState();
+  ConsumerState<SettleDebtSlipFormScreen> createState() => _SettleDebtSlipFormScreenState();
 }
 
-class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
+class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
   final _bankAccountNameController = TextEditingController();
 
   DateTime _transferAt = DateTime.now();
@@ -30,7 +36,6 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
 
   @override
   void dispose() {
-    _amountController.dispose();
     _bankAccountNameController.dispose();
     super.dispose();
   }
@@ -122,11 +127,10 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
     final bankAccountName = _bankAccountNameController.text.trim();
 
-    final result = await ref.read(walletControllerProvider.notifier).submitTopupSlip(
-          amount: amount,
+    final result = await ref.read(walletControllerProvider.notifier).submitSettlementSlip(
+          intentId: widget.intentId,
           slipFile: _selectedImage!,
           bankAccountName: bankAccountName,
           transferAt: _transferAt,
@@ -157,6 +161,10 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
       return _buildSuccessScreen(_result!);
     }
 
+    final bankName = widget.bankDetails['bank_name']?.toString() ?? 'ธนาคารกสิกรไทย (KBANK)';
+    final accountNumber = widget.bankDetails['account_number']?.toString() ?? '012-3-45678-9';
+    final accountName = widget.bankDetails['account_name']?.toString() ?? 'บริษัท แมสไดรฟ์ จำกัด';
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'แจ้งยอดโอนเงิน', showLeftIcon: true),
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
@@ -166,7 +174,7 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              // Mock Company Bank Info Box
+              // Company Bank Info Box
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -180,16 +188,18 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'โอนเงินเพื่อเติมเครดิตเข้าบัญชี',
+                      'โอนเงินเพื่อชำระหนี้ค้างชำระ',
                       style: AppTypography.caption3.copyWith(
                         color: AppColors.foundationOrange500,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildBankInfoRow('ธนาคาร:', 'ธนาคารกสิกรไทย (KBANK)'),
-                    _buildBankInfoRow('เลขที่บัญชี:', '012-3-45678-9'),
-                    _buildBankInfoRow('ชื่อบัญชี:', 'บริษัท แมสไดรฟ์ จำกัด'),
+                    _buildBankInfoRow('ธนาคาร:', bankName),
+                    _buildBankInfoRow('เลขที่บัญชี:', accountNumber),
+                    _buildBankInfoRow('ชื่อบัญชี:', accountName),
+                    _buildBankInfoRow('จำนวนเงิน:', '฿${widget.amount.toStringAsFixed(2)}'),
+                    _buildBankInfoRow('หมายเลขรายการ:', widget.intentId),
                   ],
                 ),
               ),
@@ -238,51 +248,6 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
                           ],
                         ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // Amount Form Field
-              Text(
-                'จำนวนเงินที่โอน',
-                style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTypography.heading5.copyWith(color: Colors.white),
-                decoration: InputDecoration(
-                  prefixText: '฿ ',
-                  prefixStyle: AppTypography.heading5.copyWith(
-                    color: Colors.white70,
-                  ),
-                  hintText: '0',
-                  hintStyle: AppTypography.heading5.copyWith(
-                    color: Colors.white30,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.foundationAlphaWhite100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 18,
-                  ),
-                ),
-                validator: (value) {
-                  final amount = double.tryParse(value ?? '');
-                  if (amount == null || amount < 100) {
-                    return 'จำนวนเงินขั้นต่ำ ฿100';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 24),
 
@@ -374,7 +339,7 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          'ส่งหลักฐานการเติมเงิน',
+                          'ส่งหลักฐานการชำระเงิน',
                           style: AppTypography.heading5.copyWith(
                             color: Colors.white,
                           ),
@@ -418,9 +383,9 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
   }
 
   Widget _buildSuccessScreen(Map<String, dynamic> result) {
-    final txId = result['id']?.toString() ?? '';
-    final status = result['status']?.toString() ?? 'PENDING';
-    final message = result['message']?.toString() ?? 'ส่งคำขอเติมเงินแล้ว อยู่ระหว่างการตรวจสอบโดยเจ้าหน้าที่';
+    final intentId = result['intent_id']?.toString() ?? widget.intentId;
+    final status = result['status']?.toString() ?? 'PENDING_REVIEW';
+    final message = result['message']?.toString() ?? 'ส่งหลักฐานการชำระเงินสำเร็จแล้ว อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ';
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ผลการส่งหลักฐาน', showLeftIcon: false),
@@ -475,7 +440,7 @@ class _TopupSlipFormScreenState extends ConsumerState<TopupSlipFormScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            txId,
+                            intentId,
                             textAlign: TextAlign.end,
                             style: AppTypography.body1.copyWith(
                               color: Colors.white,

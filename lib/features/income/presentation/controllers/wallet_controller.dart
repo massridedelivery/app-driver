@@ -47,8 +47,21 @@ class WalletController extends _$WalletController {
         earningsToday: overview.todayEarnings,
         totalTripsToday: overview.totalTripsToday,
       );
+
+      await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
+    }
+  }
+
+  Future<void> fetchCodStatus() async {
+    try {
+      final walletRepo = getIt<WalletRepository>();
+      final codStatus = await walletRepo.getCodStatus();
+      final codDebt = (codStatus['cod_debt'] as num?)?.toDouble() ?? 0.0;
+      state = state.copyWith(balance: codDebt);
+    } catch (e) {
+      debugPrint('WalletController: fetchCodStatus Error $e');
     }
   }
 
@@ -132,15 +145,21 @@ class WalletController extends _$WalletController {
     }
   }
 
-  Future<Map<String, dynamic>?> topup(double amount) async {
+  Future<Map<String, dynamic>?> settleDebt({
+    required double amount,
+    required String paymentMethod,
+  }) async {
     state = state.copyWith(isLoading: true);
     try {
       final walletService = getIt<WalletApiService>();
-      final result = await walletService.topup({'amount': amount});
+      final result = await walletService.settleDebt({
+        'amount': amount,
+        'payment_method': paymentMethod,
+      });
       await fetchEarnings();
       return result;
     } catch (e) {
-      debugPrint('WalletController: topup Error $e');
+      debugPrint('WalletController: settleDebt Error $e');
       state = state.copyWith(errorMessage: e.toString());
       return null;
     } finally {
@@ -148,8 +167,8 @@ class WalletController extends _$WalletController {
     }
   }
 
-  Future<Map<String, dynamic>?> submitTopupSlip({
-    required double amount,
+  Future<Map<String, dynamic>?> submitSettlementSlip({
+    required String intentId,
     required File slipFile,
     required String bankAccountName,
     required DateTime transferAt,
@@ -188,8 +207,7 @@ class WalletController extends _$WalletController {
 
       final walletRepo = getIt<WalletRepository>();
       final transferAtIso = transferAt.toUtc().toIso8601String();
-      final result = await walletRepo.submitTopupSlip({
-        'amount': amount,
+      final result = await walletRepo.submitSettlementSlip(intentId, {
         'slip_image_key': fileKey,
         'bank_account_name': bankAccountName,
         'transfer_at': transferAtIso,
@@ -198,7 +216,7 @@ class WalletController extends _$WalletController {
       await fetchEarnings();
       return result;
     } catch (e) {
-      debugPrint('WalletController: submitTopupSlip Error $e');
+      debugPrint('WalletController: submitSettlementSlip Error $e');
       state = state.copyWith(errorMessage: e.toString());
       return null;
     } finally {

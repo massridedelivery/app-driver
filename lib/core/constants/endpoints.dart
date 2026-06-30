@@ -107,8 +107,9 @@ abstract class Endpoints {
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
-  static const driverTopup = '/api/driver/topup';
-  static const driverTopupSlip = '/api/driver/topup/slip';
+  static const driverSettleDebt = '/api/driver/settle-debt';
+  static String driverSettleDebtSlip(String intentId) =>
+      '/api/driver/settle-debt/$intentId/slip';
   static const driverCodStatus = '/api/driver/cod-status';
   static const driverEarnings = '/api/driver/earnings';
   static const driverEarningsTransactions = '/api/driver/earnings/transactions';

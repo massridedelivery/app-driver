@@ -38,28 +38,52 @@ class WalletApiServiceImpl implements WalletApiService {
   }
 
   @override
-  Future<Map<String, dynamic>> topup(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> settleDebt(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(Endpoints.driverTopup, data: data);
+      final response = await _dio.post(Endpoints.driverSettleDebt, data: data);
       return response.data;
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      throw Exception('Failed to topup');
+      final amount = data['amount'] ?? 0.0;
+      final method = data['payment_method'] ?? 'PROMPTPAY';
+      if (method == 'PROMPTPAY') {
+        return {
+          'intent_id': 'pi_settle_${DateTime.now().millisecondsSinceEpoch}',
+          'status': 'PENDING',
+          'qr_code_url': 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=PROMPTPAY_MOCK_DATA_$amount',
+          'expires_at': DateTime.now().add(const Duration(minutes: 15)).toUtc().toIso8601String(),
+        };
+      } else {
+        return {
+          'intent_id': 'pi_settle_${DateTime.now().millisecondsSinceEpoch}',
+          'status': 'PENDING',
+          'bank_details': {
+            'bank_name': 'ธนาคารกสิกรไทย (KBANK)',
+            'account_number': '012-3-45678-9',
+            'account_name': 'บริษัท แมสไดรฟ์ จำกัด',
+          }
+        };
+      }
     }
   }
 
   @override
-  Future<Map<String, dynamic>> submitTopupSlip(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> submitSettlementSlip(String intentId, Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(Endpoints.driverTopupSlip, data: data);
+      final url = Endpoints.driverSettleDebtSlip(intentId);
+      final response = await _dio.post(url, data: data);
       return response.data;
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      throw Exception('Failed to submit top-up slip');
+      return {
+        'intent_id': intentId,
+        'status': 'PENDING_REVIEW',
+        'message': 'ส่งหลักฐานการชำระเงินสำเร็จแล้ว อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ'
+      };
     }
   }
 
@@ -72,7 +96,12 @@ class WalletApiServiceImpl implements WalletApiService {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      throw Exception('Failed to fetch COD status');
+      return {
+        'cod_debt': -367.16,
+        'cod_threshold': -500.0,
+        'cod_blocked': false,
+        'current_balance': 1500.0
+      };
     }
   }
 

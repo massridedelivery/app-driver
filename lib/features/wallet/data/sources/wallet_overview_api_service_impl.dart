@@ -20,7 +20,7 @@ class WalletOverviewApiServiceImpl implements WalletOverviewApiService {
       }
       // Mock fallback – return sample data while backend isn't ready
       return {
-        'balance': 1520.75,
+        'balance': -350.00,
         'currency': 'THB',
         'today_earnings': 450.00,
         'total_trips_today': 8,

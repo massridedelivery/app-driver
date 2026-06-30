@@ -49,7 +49,7 @@ class CashWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.balance.toStringAsFixed(0)}',
+                            '฿0',
                             style: AppTypography.heading1.copyWith(
                               color: Colors.white,
                               fontSize: 48,
@@ -69,6 +69,15 @@ class CashWalletScreen extends ConsumerWidget {
                           title: 'โอนไปยังบัญชี',
                           icon: Icons.account_balance_wallet_outlined,
                           onTap: () {
+                            if (state.balance <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('ไม่มียอดเงินสดที่สามารถถอนได้'),
+                                  backgroundColor: AppColors.semanticErrorBgHigh,
+                                ),
+                              );
+                              return;
+                            }
                             AppNavigator.push(
                               context,
                               PayoutFormScreen(
