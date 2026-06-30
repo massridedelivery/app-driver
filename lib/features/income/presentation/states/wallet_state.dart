@@ -18,6 +18,8 @@ sealed class WalletState with _$WalletState {
     @Default(0) int tripsToday,
     @Default(0) int totalTripsToday,
     @Default(0) int tripsWeek,
+    @Default(0.0) double codDebt,
+    @Default(0.0) double currentBalance,
     @Default([]) List<Map<String, dynamic>> transactions,
     BankAccountInfo? bankAccountInfo,
   }) = _WalletState;

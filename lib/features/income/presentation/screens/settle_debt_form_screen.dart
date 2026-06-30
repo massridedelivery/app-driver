@@ -80,8 +80,8 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
       return _buildQRScreen(_settleResult!);
     }
 
-    final balance = ref.watch(walletControllerProvider).balance;
-    final maxAmount = balance.abs();
+    final codDebt = ref.watch(walletControllerProvider).codDebt;
+    final maxAmount = codDebt.abs();
 
     return Scaffold(
       appBar: CommonAppBar(

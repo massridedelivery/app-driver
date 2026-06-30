@@ -7,10 +7,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/completed_trips_tile.dart';
-import 'package:massdrive/features/income/presentation/screens/widgets/earnings_section.dart';
 
 class IncomeScreen extends ConsumerStatefulWidget {
   const IncomeScreen({super.key});
@@ -39,50 +37,22 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
                   children: [
                     // ── Balance Card ────────────────────────────────
                     _BalanceCard(
-                      balance: walletState.balance,
+                      balance: walletState.currentBalance,
                       currency: walletState.currency,
                       isVerified: walletState.isVerified,
                       lastUpdated: walletState.lastUpdated,
                     ),
                     const SizedBox(height: 16),
 
-                    // ── Wallet Type Grid ─────────────────────────────
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 18,
-                      childAspectRatio: 1.2,
-                      children: [
-                        WalletGridItem(
-                          icon: Icons.attach_money,
-                          iconBgColor: AppColors.foundationOrange700,
-                          title: 'กระเป๋าเงินสด',
-                          amount: '฿0',
-                          onTap: () => AppNavigator.push(context, const CashWalletScreen()),
-                        ),
-                        WalletGridItem(
-                          icon: Icons.work,
-                          iconBgColor: AppColors.semanticGrayNeutralBgWhite,
-                          iconColor: AppColors.foundationOrange700,
-                          title: 'กระเป๋าเครดิต',
-                          amount: '฿${walletState.balance.abs().toStringAsFixed(0)}',
-                          onTap: () => AppNavigator.push(context, const CreditWalletScreen()),
-                        ),
-                      ],
-                    ),
-
-                    // ── Earnings Section ─────────────────────────────
-                    EarningsSection(
-                      earningsToday: walletState.earningsToday,
-                      earningsWeek: walletState.earningsWeek,
+                    // ── Credit Wallet Card ───────────────────────────
+                    CreditWalletCard(
+                      amount: '-฿${(walletState.currentBalance + walletState.codDebt).abs().toStringAsFixed(0)}',
+                      onTap: () => AppNavigator.push(context, const CreditWalletScreen()),
                     ),
                     const SizedBox(height: 16),
 
                     // ── Trips Today ──────────────────────────────────
                     CompletedTripsTile(
-                      totalTrips: walletState.totalTripsToday,
                       onTap: () {
                         AppNavigator.push(context, const HistoryScreen());
                       },
@@ -96,20 +66,12 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
   }
 }
 
-class WalletGridItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconBgColor;
-  final Color iconColor;
-  final String title;
+class CreditWalletCard extends StatelessWidget {
   final String amount;
   final VoidCallback onTap;
 
-  const WalletGridItem({
+  const CreditWalletCard({
     super.key,
-    required this.icon,
-    required this.iconBgColor,
-    this.iconColor = AppColors.semanticGrayNeutralBgWhite,
-    required this.title,
     required this.amount,
     required this.onTap,
   });
@@ -117,10 +79,10 @@ class WalletGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
@@ -136,33 +98,55 @@ class WalletGridItem extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Container(
               width: 55,
               height: 55,
-              decoration: BoxDecoration(
-                color: iconBgColor,
+              decoration: const BoxDecoration(
+                color: AppColors.semanticGrayNeutralBgWhite,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor, size: 28),
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: AppTypography.heading5.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
+              child: const Icon(
+                Icons.work,
+                color: AppColors.foundationOrange700,
+                size: 28,
               ),
             ),
-
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'กระเป๋าเครดิต',
+                    style: AppTypography.heading5.copyWith(
+                      color: AppColors.semanticGrayNeutralBgWhite,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'แตะเพื่อชำระหนี้ค้างชำระ',
+                    style: AppTypography.caption4.copyWith(
+                      color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Text(
               amount,
-              style: AppTypography.caption3.copyWith(
+              style: AppTypography.heading4.copyWith(
                 color: AppColors.semanticGrayNeutralBgWhite,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: AppColors.semanticGrayNeutralFgMidOnWhite,
+              size: 16,
             ),
           ],
         ),
@@ -189,7 +173,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance.abs());
+    final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance);
     final formattedDate = lastUpdated != null
         ? DateFormat('dd MMM yyyy HH:mm', 'th_TH').format(lastUpdated!.toLocal())
         : null;

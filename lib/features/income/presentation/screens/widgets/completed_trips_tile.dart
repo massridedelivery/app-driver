@@ -3,12 +3,10 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 
 class CompletedTripsTile extends StatelessWidget {
-  final int totalTrips;
   final VoidCallback onTap;
 
   const CompletedTripsTile({
     super.key,
-    required this.totalTrips,
     required this.onTap,
   });
 
@@ -26,23 +24,11 @@ class CompletedTripsTile extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "รายการทั้งหมด",
-                  style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "$totalTrips รายการ",
-                  style: AppTypography.heading4.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
-                  ),
-                ),
-              ],
+            Text(
+              "รายการทั้งหมด",
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.semanticGrayNeutralBgWhite,
+              ),
             ),
             const Icon(Icons.chevron_right, color: Colors.white),
           ],

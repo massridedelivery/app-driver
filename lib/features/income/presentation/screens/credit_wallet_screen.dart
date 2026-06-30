@@ -48,7 +48,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.balance.abs().toStringAsFixed(0)}',
+                            '฿${state.currentBalance.toStringAsFixed(0)}',
                             style: AppTypography.heading1.copyWith(
                               color: Colors.white,
                               fontSize: 48,

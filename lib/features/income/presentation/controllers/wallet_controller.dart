@@ -41,6 +41,7 @@ class WalletController extends _$WalletController {
 
       state = state.copyWith(
         balance: overview.balance,
+        currentBalance: overview.balance,
         currency: overview.currency,
         isVerified: overview.isVerified,
         lastUpdated: overview.lastUpdated,
@@ -59,7 +60,12 @@ class WalletController extends _$WalletController {
       final walletRepo = getIt<WalletRepository>();
       final codStatus = await walletRepo.getCodStatus();
       final codDebt = (codStatus['cod_debt'] as num?)?.toDouble() ?? 0.0;
-      state = state.copyWith(balance: codDebt);
+      final currentBalance = (codStatus['current_balance'] as num?)?.toDouble() ?? 0.0;
+      state = state.copyWith(
+        codDebt: codDebt,
+        currentBalance: currentBalance,
+        balance: currentBalance,
+      );
     } catch (e) {
       debugPrint('WalletController: fetchCodStatus Error $e');
     }
