@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// Service for fetching driving routes from Google Directions API
@@ -8,8 +9,8 @@ class DirectionsService {
   static const String _baseUrl =
       'https://maps.googleapis.com/maps/api/directions/json';
 
-  // Same key used in AndroidManifest.xml for Maps SDK
-  static const String _apiKey = 'AIzaSyBKWN8ZVliDj16RnqOHjaNbqhzXpyreAMo';
+  /// Loaded from `.env` (GOOGLE_DIRECTIONS_API_KEY) — never hardcode.
+  static String get _apiKey => dotenv.env['GOOGLE_DIRECTIONS_API_KEY'] ?? '';
 
   final Dio _dio;
 

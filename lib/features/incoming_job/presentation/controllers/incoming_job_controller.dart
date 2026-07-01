@@ -166,8 +166,17 @@ class IncomingJobController extends _$IncomingJobController {
     if (job != null) {
       ref.read(socketServiceProvider).acceptJob(job.jobId);
       _sendLocationUpdate();
+      
+      state = state.copyWith(isModalVisible: false);
+      final isFood = job.serviceType.toLowerCase().contains('food');
+      if (isFood) {
+        AppRouter.router.go(AppRoutes.foodLiveNamedPage);
+      } else {
+        AppRouter.router.go('/job-live');
+      }
+    } else {
+      state = state.copyWith(isModalVisible: false);
     }
-    state = state.copyWith(isModalVisible: false);
   }
 
   /// Accept a food delivery job via REST API
@@ -184,10 +193,12 @@ class IncomingJobController extends _$IncomingJobController {
         );
       }
       _sendLocationUpdate();
+      
+      state = state.copyWith(isModalVisible: false);
+      AppRouter.router.go(AppRoutes.foodLiveNamedPage);
     } catch (e) {
       if (kDebugMode) debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
     }
-    state = state.copyWith(isModalVisible: false);
   }
 
   void declineJob() {
@@ -197,6 +208,7 @@ class IncomingJobController extends _$IncomingJobController {
       _sendLocationUpdate();
     }
     state = state.copyWith(isModalVisible: false, currentJob: null);
+    AppRouter.router.go('/');
   }
 
   void dismissModal() {
@@ -209,7 +221,9 @@ class IncomingJobController extends _$IncomingJobController {
       final socketService = ref.read(socketServiceProvider);
       if (socketService.isConnected) {
         final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         socketService.sendLocationUpdate(position.latitude, position.longitude);
         if (kDebugMode) {

@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -109,6 +111,61 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           ),
       };
     });
+  }
+
+  /// Opens the external Google Maps app in turn-by-turn navigation mode,
+  /// routing to the current destination (pickup or dropoff) by car.
+  Future<void> _openGoogleMapsNavigation() async {
+    final currentJob = ref.read(incomingJobControllerProvider).currentJob;
+
+    LatLng? destination;
+    if (currentJob != null) {
+      destination = (_currentState == JobLiveState.headingToDropoff)
+          ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
+          : LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    } else if (kDebugMode) {
+      // No active job while testing — use a fixed destination so the
+      // Google Maps launch can still be verified. Not used in release.
+      destination = const LatLng(13.7563, 100.5018); // Bangkok
+      debugPrint('NAV: no active job → using debug test destination');
+    }
+
+    if (destination == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยังไม่มีงานที่กำลังทำอยู่')),
+      );
+      return;
+    }
+
+    final lat = destination.latitude;
+    final lng = destination.longitude;
+
+    // Android: launches directly into navigation mode.
+    final Uri navUri = Uri.parse('google.navigation:q=$lat,$lng&mode=d');
+    // Universal fallback (iOS / no navigation scheme available).
+    final Uri fallbackUri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
+    );
+
+    final bool canNav = await canLaunchUrl(navUri);
+    debugPrint('NAV: dest=$lat,$lng  canLaunch(google.navigation)=$canNav');
+
+    try {
+      if (canNav) {
+        await launchUrl(navUri, mode: LaunchMode.externalApplication);
+      } else {
+        final ok =
+            await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+        debugPrint('NAV: fallback https launch result=$ok');
+      }
+    } catch (e) {
+      debugPrint('NAV: launch error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถเปิดแอปนำทางได้')),
+      );
+    }
   }
 
   @override
@@ -247,6 +304,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       top: 160,
       child: Column(
         children: [
+          _circleButton(
+            Icons.navigation,
+            onTap: _openGoogleMapsNavigation,
+            color: AppColors.semanticSuccessBgHigh,
+          ),
+          const SizedBox(height: 12),
           _circleButton(Icons.shield_outlined),
           const SizedBox(height: 12),
           _circleButton(Icons.notifications_none),
@@ -255,15 +318,18 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  Widget _circleButton(IconData icon) {
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgHigh,
-        shape: BoxShape.circle,
+  Widget _circleButton(IconData icon, {VoidCallback? onTap, Color? color}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: color ?? AppColors.semanticGrayNeutralFgHigh,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: AppColors.semanticGrayNeutralFgWhite),
       ),
-      child: Icon(icon, color: AppColors.semanticGrayNeutralFgWhite),
     );
   }
 
