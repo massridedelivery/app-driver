@@ -22,13 +22,18 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
   @override
   Widget build(BuildContext context) {
     final walletState = ref.watch(walletControllerProvider);
+    final creditDiff = walletState.codThreshold - walletState.currentBalance;
+    final creditAmount = creditDiff < 0
+        ? '฿${creditDiff.abs().toStringAsFixed(2)}'
+        : '฿${creditDiff.toStringAsFixed(2)}';
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),
       body: walletState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () => ref.read(walletControllerProvider.notifier).fetchAll(),
+              onRefresh: () =>
+                  ref.read(walletControllerProvider.notifier).fetchAll(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -46,8 +51,11 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
 
                     // ── Credit Wallet Card ───────────────────────────
                     CreditWalletCard(
-                      amount: '-฿${(walletState.currentBalance + walletState.codDebt).abs().toStringAsFixed(0)}',
-                      onTap: () => AppNavigator.push(context, const CreditWalletScreen()),
+                      amount: creditAmount,
+                      onTap: () => AppNavigator.push(
+                        context,
+                        const CreditWalletScreen(),
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -175,7 +183,10 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance);
     final formattedDate = lastUpdated != null
-        ? DateFormat('dd MMM yyyy HH:mm', 'th_TH').format(lastUpdated!.toLocal())
+        ? DateFormat(
+            'dd MMM yyyy HH:mm',
+            'th_TH',
+          ).format(lastUpdated!.toLocal())
         : null;
 
     return Container(
@@ -211,7 +222,10 @@ class _BalanceCard extends StatelessWidget {
               if (isVerified) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E6B3C),
                     borderRadius: BorderRadius.circular(12),
@@ -219,7 +233,11 @@ class _BalanceCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.verified, color: Colors.greenAccent, size: 12),
+                      const Icon(
+                        Icons.verified,
+                        color: Colors.greenAccent,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'ยืนยันแล้ว',

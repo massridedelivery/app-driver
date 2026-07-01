@@ -45,7 +45,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'โอนเงิน ฿${amount.toStringAsFixed(0)} สำเร็จ',
+            'โอนเงิน ฿${amount.toStringAsFixed(2)} สำเร็จ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,
@@ -107,7 +107,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '฿${widget.availableBalance.toStringAsFixed(0)}',
+                        '฿${widget.availableBalance.toStringAsFixed(2)}',
                         style: AppTypography.heading2.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -294,7 +294,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  'ขั้นต่ำ ฿100 | สูงสุด ฿${widget.availableBalance.toStringAsFixed(0)}',
+                  'ขั้นต่ำ ฿100 | สูงสุด ฿${widget.availableBalance.toStringAsFixed(2)}',
                   style: AppTypography.caption5.copyWith(
                     color: AppColors.foundationAlphaWhite400,
                   ),

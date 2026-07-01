@@ -61,10 +61,12 @@ class WalletController extends _$WalletController {
       final codStatus = await walletRepo.getCodStatus();
       final codDebt = (codStatus['cod_debt'] as num?)?.toDouble() ?? 0.0;
       final currentBalance = (codStatus['current_balance'] as num?)?.toDouble() ?? 0.0;
+      final codThreshold = (codStatus['cod_threshold'] as num?)?.toDouble() ?? -500.0;
       state = state.copyWith(
         codDebt: codDebt,
         currentBalance: currentBalance,
         balance: currentBalance,
+        codThreshold: codThreshold,
       );
     } catch (e) {
       debugPrint('WalletController: fetchCodStatus Error $e');
