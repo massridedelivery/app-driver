@@ -175,6 +175,18 @@ class WalletController extends _$WalletController {
     }
   }
 
+  /// Poll a payment intent's status (SCRUM-35 §2.2 / §4.3).
+  /// Returns the raw intent map (`{ id, status, paid_at, ... }`) or null on error.
+  Future<Map<String, dynamic>?> getPaymentIntent(String intentId) async {
+    try {
+      final walletRepo = getIt<WalletRepository>();
+      return await walletRepo.getPaymentIntent(intentId);
+    } catch (e) {
+      debugPrint('WalletController: getPaymentIntent Error $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> submitSettlementSlip({
     required String intentId,
     required File slipFile,

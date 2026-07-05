@@ -111,6 +111,10 @@ abstract class Endpoints {
   static String driverSettleDebtSlip(String intentId) =>
       '/api/driver/settle-debt/$intentId/slip';
   static const driverCodStatus = '/api/driver/cod-status';
+
+  // MARK: Payment Intent (shared poll endpoint — SCRUM-35 §2.2)
+  static String paymentIntent(String intentId) =>
+      '/api/payment/intent/$intentId';
   static const driverEarnings = '/api/driver/earnings';
   static const driverEarningsTransactions = '/api/driver/earnings/transactions';
   static const driverEarningsTrips = '/api/driver/earnings/trips';

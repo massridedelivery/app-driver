@@ -24,6 +24,11 @@ class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> getPaymentIntent(String intentId) async {
+    return await _apiService.getPaymentIntent(intentId);
+  }
+
+  @override
   Future<Map<String, dynamic>> submitSettlementSlip(String intentId, Map<String, dynamic> data) async {
     return await _apiService.submitSettlementSlip(intentId, data);
   }
