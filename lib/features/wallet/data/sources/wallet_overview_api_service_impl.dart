@@ -18,14 +18,13 @@ class WalletOverviewApiServiceImpl implements WalletOverviewApiService {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      // Mock fallback – return sample data while backend isn't ready
+      // Mock fallback – matches the real GET /api/driver/earnings shape (§1).
       return {
         'balance': -350.00,
-        'currency': 'THB',
+        'withdrawn': 500.00,
         'today_earnings': 450.00,
-        'total_trips_today': 8,
+        'total_trips': 8,
         'is_verified': true,
-        'last_updated': DateTime.now().toUtc().toIso8601String(),
       };
     }
   }

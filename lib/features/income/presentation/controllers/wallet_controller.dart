@@ -44,7 +44,8 @@ class WalletController extends _$WalletController {
         currentBalance: overview.balance,
         currency: overview.currency,
         isVerified: overview.isVerified,
-        lastUpdated: overview.lastUpdated,
+        // API has no last_updated (SCRUM-42 Gaps #4) — fall back to fetch time.
+        lastUpdated: overview.lastUpdated ?? DateTime.now(),
         earningsToday: overview.todayEarnings,
         totalTripsToday: overview.totalTripsToday,
       );
