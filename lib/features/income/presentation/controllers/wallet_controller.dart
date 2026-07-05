@@ -25,6 +25,7 @@ class WalletController extends _$WalletController {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       await fetchEarnings();
+      await fetchWeekEarnings();
       await fetchTransactionSummary();
       await fetchPayoutMethod();
     } catch (e) {
@@ -55,6 +56,29 @@ class WalletController extends _$WalletController {
       await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
+    }
+  }
+
+  /// Week-to-date earnings via the period variant of GET /api/driver/earnings
+  /// (SCRUM-42 "รายได้ (period)"): with date params, `today_earnings` in the
+  /// response is the period total (Monday → today).
+  Future<void> fetchWeekEarnings() async {
+    try {
+      final now = DateTime.now();
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      String fmt(DateTime d) =>
+          '${d.year.toString().padLeft(4, '0')}-'
+          '${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+
+      final useCase = getIt<GetWalletOverviewUseCase>();
+      final period = await useCase.execute(
+        startDate: fmt(monday),
+        endDate: fmt(now),
+      );
+      state = state.copyWith(earningsWeek: period.todayEarnings);
+    } catch (e) {
+      debugPrint('WalletController: fetchWeekEarnings Error $e');
     }
   }
 
