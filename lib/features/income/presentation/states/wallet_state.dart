@@ -21,6 +21,10 @@ sealed class WalletState with _$WalletState {
     @Default(0.0) double codDebt,
     @Default(0.0) double currentBalance,
     @Default(-500.0) double codThreshold,
+    // Dual-wallet split from GET /api/driver/payouts/summary (SCRUM-42).
+    // Cash = withdrawable earnings; Credit = non-withdrawable COD top-up credit.
+    @Default(0.0) double cashBalance,
+    @Default(0.0) double creditBalance,
     @Default([]) List<Map<String, dynamic>> transactions,
     BankAccountInfo? bankAccountInfo,
   }) = _WalletState;

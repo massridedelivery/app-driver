@@ -40,7 +40,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           _buildPremiumMassIllustration(),
                           const SizedBox(height: 24),
                           Text(
-                            'ยอดค้างชำระ',
+                            'ยอดเครดิตในระบบ',
                             style: AppTypography.caption4.copyWith(
                               color: AppColors.semanticGrayNeutralBgWhite,
                               letterSpacing: 1.2,
@@ -48,7 +48,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.currentBalance.toStringAsFixed(2)}',
+                            '฿${state.creditBalance.toStringAsFixed(2)}',
                             style: AppTypography.heading1.copyWith(
                               color: Colors.white,
                               fontSize: 48,

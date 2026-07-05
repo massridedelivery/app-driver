@@ -1,5 +1,6 @@
 abstract class WalletApiService {
   Future<Map<String, dynamic>> getPayouts();
+  Future<Map<String, dynamic>> getPayoutSummary();
   Future<Map<String, dynamic>> requestPayout(Map<String, dynamic> data);
   Future<Map<String, dynamic>> settleDebt(Map<String, dynamic> data);
   Future<Map<String, dynamic>> getPaymentIntent(String intentId);

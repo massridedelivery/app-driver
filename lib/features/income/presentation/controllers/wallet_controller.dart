@@ -49,9 +49,24 @@ class WalletController extends _$WalletController {
         totalTripsToday: overview.totalTripsToday,
       );
 
+      await fetchPayoutSummary();
       await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
+    }
+  }
+
+  /// Cash vs Credit wallet split (SCRUM-42 §2, GET /api/driver/payouts/summary).
+  /// Cash = `available_balance` (withdrawable); Credit = `credit_balance`.
+  Future<void> fetchPayoutSummary() async {
+    try {
+      final walletRepo = getIt<WalletRepository>();
+      final summary = await walletRepo.getPayoutSummary();
+      final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
+      final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
+      state = state.copyWith(cashBalance: cash, creditBalance: credit);
+    } catch (e) {
+      debugPrint('WalletController: fetchPayoutSummary Error $e');
     }
   }
 

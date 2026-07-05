@@ -15,7 +15,9 @@ T _$identity<T>(T value) => value;
 mixin _$WalletState {
 
  bool get isLoading; String get errorMessage; double get balance; String get currency; bool get isVerified; DateTime? get lastUpdated;// Earnings & trips
- double get earningsToday; double get earningsWeek; int get tripsToday; int get totalTripsToday; int get tripsWeek; double get codDebt; double get currentBalance; double get codThreshold; List<Map<String, dynamic>> get transactions; BankAccountInfo? get bankAccountInfo;
+ double get earningsToday; double get earningsWeek; int get tripsToday; int get totalTripsToday; int get tripsWeek; double get codDebt; double get currentBalance; double get codThreshold;// Dual-wallet split from GET /api/driver/payouts/summary (SCRUM-42).
+// Cash = withdrawable earnings; Credit = non-withdrawable COD top-up credit.
+ double get cashBalance; double get creditBalance; List<Map<String, dynamic>> get transactions; BankAccountInfo? get bankAccountInfo;
 /// Create a copy of WalletState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,16 +28,16 @@ $WalletStateCopyWith<WalletState> get copyWith => _$WalletStateCopyWithImpl<Wall
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated)&&(identical(other.earningsToday, earningsToday) || other.earningsToday == earningsToday)&&(identical(other.earningsWeek, earningsWeek) || other.earningsWeek == earningsWeek)&&(identical(other.tripsToday, tripsToday) || other.tripsToday == tripsToday)&&(identical(other.totalTripsToday, totalTripsToday) || other.totalTripsToday == totalTripsToday)&&(identical(other.tripsWeek, tripsWeek) || other.tripsWeek == tripsWeek)&&(identical(other.codDebt, codDebt) || other.codDebt == codDebt)&&(identical(other.currentBalance, currentBalance) || other.currentBalance == currentBalance)&&(identical(other.codThreshold, codThreshold) || other.codThreshold == codThreshold)&&const DeepCollectionEquality().equals(other.transactions, transactions)&&(identical(other.bankAccountInfo, bankAccountInfo) || other.bankAccountInfo == bankAccountInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated)&&(identical(other.earningsToday, earningsToday) || other.earningsToday == earningsToday)&&(identical(other.earningsWeek, earningsWeek) || other.earningsWeek == earningsWeek)&&(identical(other.tripsToday, tripsToday) || other.tripsToday == tripsToday)&&(identical(other.totalTripsToday, totalTripsToday) || other.totalTripsToday == totalTripsToday)&&(identical(other.tripsWeek, tripsWeek) || other.tripsWeek == tripsWeek)&&(identical(other.codDebt, codDebt) || other.codDebt == codDebt)&&(identical(other.currentBalance, currentBalance) || other.currentBalance == currentBalance)&&(identical(other.codThreshold, codThreshold) || other.codThreshold == codThreshold)&&(identical(other.cashBalance, cashBalance) || other.cashBalance == cashBalance)&&(identical(other.creditBalance, creditBalance) || other.creditBalance == creditBalance)&&const DeepCollectionEquality().equals(other.transactions, transactions)&&(identical(other.bankAccountInfo, bankAccountInfo) || other.bankAccountInfo == bankAccountInfo));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,balance,currency,isVerified,lastUpdated,earningsToday,earningsWeek,tripsToday,totalTripsToday,tripsWeek,codDebt,currentBalance,codThreshold,const DeepCollectionEquality().hash(transactions),bankAccountInfo);
+int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,balance,currency,isVerified,lastUpdated,earningsToday,earningsWeek,tripsToday,totalTripsToday,tripsWeek,codDebt,currentBalance,codThreshold,cashBalance,creditBalance,const DeepCollectionEquality().hash(transactions),bankAccountInfo);
 
 @override
 String toString() {
-  return 'WalletState(isLoading: $isLoading, errorMessage: $errorMessage, balance: $balance, currency: $currency, isVerified: $isVerified, lastUpdated: $lastUpdated, earningsToday: $earningsToday, earningsWeek: $earningsWeek, tripsToday: $tripsToday, totalTripsToday: $totalTripsToday, tripsWeek: $tripsWeek, codDebt: $codDebt, currentBalance: $currentBalance, codThreshold: $codThreshold, transactions: $transactions, bankAccountInfo: $bankAccountInfo)';
+  return 'WalletState(isLoading: $isLoading, errorMessage: $errorMessage, balance: $balance, currency: $currency, isVerified: $isVerified, lastUpdated: $lastUpdated, earningsToday: $earningsToday, earningsWeek: $earningsWeek, tripsToday: $tripsToday, totalTripsToday: $totalTripsToday, tripsWeek: $tripsWeek, codDebt: $codDebt, currentBalance: $currentBalance, codThreshold: $codThreshold, cashBalance: $cashBalance, creditBalance: $creditBalance, transactions: $transactions, bankAccountInfo: $bankAccountInfo)';
 }
 
 
@@ -46,7 +48,7 @@ abstract mixin class $WalletStateCopyWith<$Res>  {
   factory $WalletStateCopyWith(WalletState value, $Res Function(WalletState) _then) = _$WalletStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLoading, String errorMessage, double balance, String currency, bool isVerified, DateTime? lastUpdated, double earningsToday, double earningsWeek, int tripsToday, int totalTripsToday, int tripsWeek, double codDebt, double currentBalance, double codThreshold, List<Map<String, dynamic>> transactions, BankAccountInfo? bankAccountInfo
+ bool isLoading, String errorMessage, double balance, String currency, bool isVerified, DateTime? lastUpdated, double earningsToday, double earningsWeek, int tripsToday, int totalTripsToday, int tripsWeek, double codDebt, double currentBalance, double codThreshold, double cashBalance, double creditBalance, List<Map<String, dynamic>> transactions, BankAccountInfo? bankAccountInfo
 });
 
 
@@ -63,7 +65,7 @@ class _$WalletStateCopyWithImpl<$Res>
 
 /// Create a copy of WalletState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? errorMessage = null,Object? balance = null,Object? currency = null,Object? isVerified = null,Object? lastUpdated = freezed,Object? earningsToday = null,Object? earningsWeek = null,Object? tripsToday = null,Object? totalTripsToday = null,Object? tripsWeek = null,Object? codDebt = null,Object? currentBalance = null,Object? codThreshold = null,Object? transactions = null,Object? bankAccountInfo = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? errorMessage = null,Object? balance = null,Object? currency = null,Object? isVerified = null,Object? lastUpdated = freezed,Object? earningsToday = null,Object? earningsWeek = null,Object? tripsToday = null,Object? totalTripsToday = null,Object? tripsWeek = null,Object? codDebt = null,Object? currentBalance = null,Object? codThreshold = null,Object? cashBalance = null,Object? creditBalance = null,Object? transactions = null,Object? bankAccountInfo = freezed,}) {
   return _then(_self.copyWith(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,errorMessage: null == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -79,6 +81,8 @@ as int,tripsWeek: null == tripsWeek ? _self.tripsWeek : tripsWeek // ignore: cas
 as int,codDebt: null == codDebt ? _self.codDebt : codDebt // ignore: cast_nullable_to_non_nullable
 as double,currentBalance: null == currentBalance ? _self.currentBalance : currentBalance // ignore: cast_nullable_to_non_nullable
 as double,codThreshold: null == codThreshold ? _self.codThreshold : codThreshold // ignore: cast_nullable_to_non_nullable
+as double,cashBalance: null == cashBalance ? _self.cashBalance : cashBalance // ignore: cast_nullable_to_non_nullable
+as double,creditBalance: null == creditBalance ? _self.creditBalance : creditBalance // ignore: cast_nullable_to_non_nullable
 as double,transactions: null == transactions ? _self.transactions : transactions // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,bankAccountInfo: freezed == bankAccountInfo ? _self.bankAccountInfo : bankAccountInfo // ignore: cast_nullable_to_non_nullable
 as BankAccountInfo?,
@@ -163,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  double cashBalance,  double creditBalance,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WalletState() when $default != null:
-return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.transactions,_that.bankAccountInfo);case _:
+return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.cashBalance,_that.creditBalance,_that.transactions,_that.bankAccountInfo);case _:
   return orElse();
 
 }
@@ -184,10 +188,10 @@ return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  double cashBalance,  double creditBalance,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)  $default,) {final _that = this;
 switch (_that) {
 case _WalletState():
-return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.transactions,_that.bankAccountInfo);}
+return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.cashBalance,_that.creditBalance,_that.transactions,_that.bankAccountInfo);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -201,10 +205,10 @@ return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  String errorMessage,  double balance,  String currency,  bool isVerified,  DateTime? lastUpdated,  double earningsToday,  double earningsWeek,  int tripsToday,  int totalTripsToday,  int tripsWeek,  double codDebt,  double currentBalance,  double codThreshold,  double cashBalance,  double creditBalance,  List<Map<String, dynamic>> transactions,  BankAccountInfo? bankAccountInfo)?  $default,) {final _that = this;
 switch (_that) {
 case _WalletState() when $default != null:
-return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.transactions,_that.bankAccountInfo);case _:
+return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,_that.isVerified,_that.lastUpdated,_that.earningsToday,_that.earningsWeek,_that.tripsToday,_that.totalTripsToday,_that.tripsWeek,_that.codDebt,_that.currentBalance,_that.codThreshold,_that.cashBalance,_that.creditBalance,_that.transactions,_that.bankAccountInfo);case _:
   return null;
 
 }
@@ -216,7 +220,7 @@ return $default(_that.isLoading,_that.errorMessage,_that.balance,_that.currency,
 
 
 class _WalletState implements WalletState {
-  const _WalletState({this.isLoading = false, this.errorMessage = '', this.balance = 0.0, this.currency = 'THB', this.isVerified = false, this.lastUpdated, this.earningsToday = 0.0, this.earningsWeek = 0.0, this.tripsToday = 0, this.totalTripsToday = 0, this.tripsWeek = 0, this.codDebt = 0.0, this.currentBalance = 0.0, this.codThreshold = -500.0, final  List<Map<String, dynamic>> transactions = const [], this.bankAccountInfo}): _transactions = transactions;
+  const _WalletState({this.isLoading = false, this.errorMessage = '', this.balance = 0.0, this.currency = 'THB', this.isVerified = false, this.lastUpdated, this.earningsToday = 0.0, this.earningsWeek = 0.0, this.tripsToday = 0, this.totalTripsToday = 0, this.tripsWeek = 0, this.codDebt = 0.0, this.currentBalance = 0.0, this.codThreshold = -500.0, this.cashBalance = 0.0, this.creditBalance = 0.0, final  List<Map<String, dynamic>> transactions = const [], this.bankAccountInfo}): _transactions = transactions;
   
 
 @override@JsonKey() final  bool isLoading;
@@ -234,6 +238,10 @@ class _WalletState implements WalletState {
 @override@JsonKey() final  double codDebt;
 @override@JsonKey() final  double currentBalance;
 @override@JsonKey() final  double codThreshold;
+// Dual-wallet split from GET /api/driver/payouts/summary (SCRUM-42).
+// Cash = withdrawable earnings; Credit = non-withdrawable COD top-up credit.
+@override@JsonKey() final  double cashBalance;
+@override@JsonKey() final  double creditBalance;
  final  List<Map<String, dynamic>> _transactions;
 @override@JsonKey() List<Map<String, dynamic>> get transactions {
   if (_transactions is EqualUnmodifiableListView) return _transactions;
@@ -253,16 +261,16 @@ _$WalletStateCopyWith<_WalletState> get copyWith => __$WalletStateCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated)&&(identical(other.earningsToday, earningsToday) || other.earningsToday == earningsToday)&&(identical(other.earningsWeek, earningsWeek) || other.earningsWeek == earningsWeek)&&(identical(other.tripsToday, tripsToday) || other.tripsToday == tripsToday)&&(identical(other.totalTripsToday, totalTripsToday) || other.totalTripsToday == totalTripsToday)&&(identical(other.tripsWeek, tripsWeek) || other.tripsWeek == tripsWeek)&&(identical(other.codDebt, codDebt) || other.codDebt == codDebt)&&(identical(other.currentBalance, currentBalance) || other.currentBalance == currentBalance)&&(identical(other.codThreshold, codThreshold) || other.codThreshold == codThreshold)&&const DeepCollectionEquality().equals(other._transactions, _transactions)&&(identical(other.bankAccountInfo, bankAccountInfo) || other.bankAccountInfo == bankAccountInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated)&&(identical(other.earningsToday, earningsToday) || other.earningsToday == earningsToday)&&(identical(other.earningsWeek, earningsWeek) || other.earningsWeek == earningsWeek)&&(identical(other.tripsToday, tripsToday) || other.tripsToday == tripsToday)&&(identical(other.totalTripsToday, totalTripsToday) || other.totalTripsToday == totalTripsToday)&&(identical(other.tripsWeek, tripsWeek) || other.tripsWeek == tripsWeek)&&(identical(other.codDebt, codDebt) || other.codDebt == codDebt)&&(identical(other.currentBalance, currentBalance) || other.currentBalance == currentBalance)&&(identical(other.codThreshold, codThreshold) || other.codThreshold == codThreshold)&&(identical(other.cashBalance, cashBalance) || other.cashBalance == cashBalance)&&(identical(other.creditBalance, creditBalance) || other.creditBalance == creditBalance)&&const DeepCollectionEquality().equals(other._transactions, _transactions)&&(identical(other.bankAccountInfo, bankAccountInfo) || other.bankAccountInfo == bankAccountInfo));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,balance,currency,isVerified,lastUpdated,earningsToday,earningsWeek,tripsToday,totalTripsToday,tripsWeek,codDebt,currentBalance,codThreshold,const DeepCollectionEquality().hash(_transactions),bankAccountInfo);
+int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,balance,currency,isVerified,lastUpdated,earningsToday,earningsWeek,tripsToday,totalTripsToday,tripsWeek,codDebt,currentBalance,codThreshold,cashBalance,creditBalance,const DeepCollectionEquality().hash(_transactions),bankAccountInfo);
 
 @override
 String toString() {
-  return 'WalletState(isLoading: $isLoading, errorMessage: $errorMessage, balance: $balance, currency: $currency, isVerified: $isVerified, lastUpdated: $lastUpdated, earningsToday: $earningsToday, earningsWeek: $earningsWeek, tripsToday: $tripsToday, totalTripsToday: $totalTripsToday, tripsWeek: $tripsWeek, codDebt: $codDebt, currentBalance: $currentBalance, codThreshold: $codThreshold, transactions: $transactions, bankAccountInfo: $bankAccountInfo)';
+  return 'WalletState(isLoading: $isLoading, errorMessage: $errorMessage, balance: $balance, currency: $currency, isVerified: $isVerified, lastUpdated: $lastUpdated, earningsToday: $earningsToday, earningsWeek: $earningsWeek, tripsToday: $tripsToday, totalTripsToday: $totalTripsToday, tripsWeek: $tripsWeek, codDebt: $codDebt, currentBalance: $currentBalance, codThreshold: $codThreshold, cashBalance: $cashBalance, creditBalance: $creditBalance, transactions: $transactions, bankAccountInfo: $bankAccountInfo)';
 }
 
 
@@ -273,7 +281,7 @@ abstract mixin class _$WalletStateCopyWith<$Res> implements $WalletStateCopyWith
   factory _$WalletStateCopyWith(_WalletState value, $Res Function(_WalletState) _then) = __$WalletStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLoading, String errorMessage, double balance, String currency, bool isVerified, DateTime? lastUpdated, double earningsToday, double earningsWeek, int tripsToday, int totalTripsToday, int tripsWeek, double codDebt, double currentBalance, double codThreshold, List<Map<String, dynamic>> transactions, BankAccountInfo? bankAccountInfo
+ bool isLoading, String errorMessage, double balance, String currency, bool isVerified, DateTime? lastUpdated, double earningsToday, double earningsWeek, int tripsToday, int totalTripsToday, int tripsWeek, double codDebt, double currentBalance, double codThreshold, double cashBalance, double creditBalance, List<Map<String, dynamic>> transactions, BankAccountInfo? bankAccountInfo
 });
 
 
@@ -290,7 +298,7 @@ class __$WalletStateCopyWithImpl<$Res>
 
 /// Create a copy of WalletState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? errorMessage = null,Object? balance = null,Object? currency = null,Object? isVerified = null,Object? lastUpdated = freezed,Object? earningsToday = null,Object? earningsWeek = null,Object? tripsToday = null,Object? totalTripsToday = null,Object? tripsWeek = null,Object? codDebt = null,Object? currentBalance = null,Object? codThreshold = null,Object? transactions = null,Object? bankAccountInfo = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? errorMessage = null,Object? balance = null,Object? currency = null,Object? isVerified = null,Object? lastUpdated = freezed,Object? earningsToday = null,Object? earningsWeek = null,Object? tripsToday = null,Object? totalTripsToday = null,Object? tripsWeek = null,Object? codDebt = null,Object? currentBalance = null,Object? codThreshold = null,Object? cashBalance = null,Object? creditBalance = null,Object? transactions = null,Object? bankAccountInfo = freezed,}) {
   return _then(_WalletState(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,errorMessage: null == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -306,6 +314,8 @@ as int,tripsWeek: null == tripsWeek ? _self.tripsWeek : tripsWeek // ignore: cas
 as int,codDebt: null == codDebt ? _self.codDebt : codDebt // ignore: cast_nullable_to_non_nullable
 as double,currentBalance: null == currentBalance ? _self.currentBalance : currentBalance // ignore: cast_nullable_to_non_nullable
 as double,codThreshold: null == codThreshold ? _self.codThreshold : codThreshold // ignore: cast_nullable_to_non_nullable
+as double,cashBalance: null == cashBalance ? _self.cashBalance : cashBalance // ignore: cast_nullable_to_non_nullable
+as double,creditBalance: null == creditBalance ? _self.creditBalance : creditBalance // ignore: cast_nullable_to_non_nullable
 as double,transactions: null == transactions ? _self._transactions : transactions // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,bankAccountInfo: freezed == bankAccountInfo ? _self.bankAccountInfo : bankAccountInfo // ignore: cast_nullable_to_non_nullable
 as BankAccountInfo?,

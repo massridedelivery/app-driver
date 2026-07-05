@@ -52,6 +52,27 @@ class WalletApiServiceImpl implements WalletApiService {
   }
 
   @override
+  Future<Map<String, dynamic>> getPayoutSummary() async {
+    try {
+      final response = await _dio.get(Endpoints.driverPayoutsSummary);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (_mustSurface(e) || !_allowMockFallback) {
+        _surface(e, 'Failed to fetch payout summary');
+      }
+      // Dev-only mock while backend isn't ready. Distinct Cash vs Credit
+      // values so the dual-wallet split is visible without a live backend.
+      return {
+        'total_payouts': 500.00,
+        'total_payout_count': 1,
+        'pending_amount': 0,
+        'available_balance': 448.00,
+        'credit_balance': 0,
+      };
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> requestPayout(Map<String, dynamic> data) async {
     try {
       final response = await _dio.post(Endpoints.driverPayouts, data: data);

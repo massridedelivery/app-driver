@@ -22,10 +22,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen>
   @override
   Widget build(BuildContext context) {
     final walletState = ref.watch(walletControllerProvider);
-    final creditDiff = walletState.codThreshold - walletState.currentBalance;
-    final creditAmount = creditDiff < 0
-        ? '฿${creditDiff.abs().toStringAsFixed(2)}'
-        : '฿${creditDiff.toStringAsFixed(2)}';
+    final creditAmount = '฿${walletState.creditBalance.toStringAsFixed(2)}';
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),

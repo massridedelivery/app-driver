@@ -14,6 +14,11 @@ class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> getPayoutSummary() async {
+    return await _apiService.getPayoutSummary();
+  }
+
+  @override
   Future<Map<String, dynamic>> requestPayout(Map<String, dynamic> data) async {
     return await _apiService.requestPayout(data);
   }
