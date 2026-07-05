@@ -27,15 +27,30 @@ class WalletOverviewApiServiceImpl implements WalletOverviewApiService {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      // Mock fallback – matches the real GET /api/driver/earnings shape (§1).
-      // When a date range is given, today_earnings is the period total.
-      final isPeriod = startDate != null || endDate != null;
-      return {
+      // Mock fallback – matches the typed EarningsSummary shapes (v1.6.0-dev16).
+      const common = {
         'balance': -350.00,
+        'available_balance': 447.76,
         'withdrawn': 500.00,
-        'today_earnings': isPeriod ? 2450.00 : 450.00,
-        'total_trips': isPeriod ? 28 : 8,
         'is_verified': true,
+      };
+      if (startDate != null && endDate != null) {
+        // Ranged (single window) shape.
+        return {
+          ...common,
+          'earnings': 1830.00,
+          'total_trips': 12,
+          'range': {'start_date': startDate, 'end_date': endDate},
+        };
+      }
+      // No-range (rolling breakdown) shape.
+      return {
+        ...common,
+        'today_earnings': 450.00,
+        'this_week_earnings': 2450.00,
+        'this_month_earnings': 8600.00,
+        'this_year_earnings': 84000.00,
+        'total_trips': 8,
       };
     }
   }

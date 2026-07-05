@@ -5,16 +5,25 @@ class WalletOverview {
   /// Current total wallet balance (can be negative = COD debt).
   final double balance;
 
+  /// Withdrawable cash balance (common field in both API shapes).
+  final double availableBalance;
+
   /// Amount already withdrawn.
   final double withdrawn;
 
   /// ISO 4217 currency code. Not returned by the API — defaults to "THB".
   final String currency;
 
-  /// Total earnings for today (or the requested period when date params sent).
+  /// Rolling breakdown (no-range shape).
   final double todayEarnings;
+  final double thisWeekEarnings;
+  final double thisMonthEarnings;
+  final double thisYearEarnings;
 
-  /// Number of completed trips.
+  /// Period total (ranged shape, when start_date & end_date are supplied).
+  final double earnings;
+
+  /// Completed trips (today's count in no-range, window count in ranged).
   final int totalTripsToday;
 
   /// Whether the driver's KYC/documents are verified (NOT balance confirmation).
@@ -26,9 +35,14 @@ class WalletOverview {
 
   const WalletOverview({
     required this.balance,
+    this.availableBalance = 0.0,
     this.withdrawn = 0.0,
     this.currency = 'THB',
     required this.todayEarnings,
+    this.thisWeekEarnings = 0.0,
+    this.thisMonthEarnings = 0.0,
+    this.thisYearEarnings = 0.0,
+    this.earnings = 0.0,
     required this.totalTripsToday,
     required this.isVerified,
     this.lastUpdated,
