@@ -15,6 +15,8 @@ sealed class WalletState with _$WalletState {
     // Earnings & trips
     @Default(0.0) double earningsToday,
     @Default(0.0) double earningsWeek,
+    @Default(0.0) double earningsMonth,
+    @Default(0.0) double earningsYear,
     @Default(0) int tripsToday,
     @Default(0) int totalTripsToday,
     @Default(0) int tripsWeek,

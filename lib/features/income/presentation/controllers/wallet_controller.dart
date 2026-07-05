@@ -51,6 +51,8 @@ class WalletController extends _$WalletController {
         // (v1.6.0-dev16) — no separate ranged call needed.
         earningsToday: overview.todayEarnings,
         earningsWeek: overview.thisWeekEarnings,
+        earningsMonth: overview.thisMonthEarnings,
+        earningsYear: overview.thisYearEarnings,
         totalTripsToday: overview.totalTripsToday,
       );
 

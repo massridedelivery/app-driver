@@ -74,10 +74,12 @@ class IncomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // ── Earnings (today / week) carousel ─────────────
+                    // ── Earnings (today / week / month / year) carousel ──
                     _EarningsCarousel(
                       today: state.earningsToday,
                       week: state.earningsWeek,
+                      month: state.earningsMonth,
+                      year: state.earningsYear,
                       currency: state.currency,
                     ),
                     const SizedBox(height: 16),
@@ -290,11 +292,15 @@ class _WalletMiniCard extends StatelessWidget {
 class _EarningsCarousel extends StatefulWidget {
   final double today;
   final double week;
+  final double month;
+  final double year;
   final String currency;
 
   const _EarningsCarousel({
     required this.today,
     required this.week,
+    required this.month,
+    required this.year,
     required this.currency,
   });
 
@@ -317,6 +323,8 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
     final pages = [
       ('รายได้วันนี้', widget.today),
       ('รายได้สัปดาห์นี้', widget.week),
+      ('รายได้เดือนนี้', widget.month),
+      ('รายได้ปีนี้', widget.year),
     ];
 
     return Column(
