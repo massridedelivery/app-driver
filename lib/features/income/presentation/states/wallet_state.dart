@@ -26,6 +26,9 @@ sealed class WalletState with _$WalletState {
     @Default(0.0) double cashBalance,
     @Default(0.0) double creditBalance,
     @Default([]) List<Map<String, dynamic>> transactions,
+    // Total transaction count from GET /api/driver/earnings/transactions `total`
+    // (SCRUM-42) — the full count, not just the loaded page length.
+    @Default(0) int transactionsTotal,
     BankAccountInfo? bankAccountInfo,
   }) = _WalletState;
 }

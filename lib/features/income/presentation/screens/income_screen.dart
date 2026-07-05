@@ -84,7 +84,7 @@ class IncomeScreen extends ConsumerWidget {
 
                     // ── All transactions ─────────────────────────────
                     _AllTransactionsTile(
-                      count: state.transactions.length,
+                      count: state.transactionsTotal,
                       onTap: () => AppNavigator.push(
                         context,
                         const TransactionHistoryScreen(title: 'รายการทั้งหมด'),
@@ -322,7 +322,7 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 120,
+          height: 140,
           child: PageView.builder(
             controller: _controller,
             itemCount: pages.length,
@@ -367,17 +367,17 @@ class _EarningsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
       child: Stack(
         children: [
           // Decorative faded circle on the right.
           Positioned(
             right: -10,
-            top: 10,
+            top: 6,
             child: Container(
-              width: 90,
-              height: 90,
+              width: 84,
+              height: 84,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.foundationAlphaWhite100,
@@ -387,6 +387,7 @@ class _EarningsCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 label,
@@ -395,12 +396,17 @@ class _EarningsCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
-                style: AppTypography.heading1.copyWith(
-                  color: Colors.white,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
+                  maxLines: 1,
+                  style: AppTypography.heading1.copyWith(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],

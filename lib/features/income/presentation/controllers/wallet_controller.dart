@@ -25,6 +25,7 @@ class WalletController extends _$WalletController {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       await fetchEarnings();
+      await fetchTransactionSummary();
       await fetchPayoutMethod();
     } catch (e) {
       debugPrint('WalletController: Error $e');
@@ -96,11 +97,27 @@ class WalletController extends _$WalletController {
       final list = (data['transactions'] as List?)?.cast<Map<String, dynamic>>()
           ?? (data['data'] as List?)?.cast<Map<String, dynamic>>()
           ?? [];
-      state = state.copyWith(transactions: list);
+      final total = (data['total'] as num?)?.toInt() ?? list.length;
+      state = state.copyWith(transactions: list, transactionsTotal: total);
     } catch (e) {
       debugPrint('WalletController: fetchTransactions Error $e');
     } finally {
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Lightweight fetch of just the transaction `total` for the Earnings screen
+  /// (SCRUM-42 "รายการทั้งหมด"), without toggling the screen loading state.
+  Future<void> fetchTransactionSummary() async {
+    try {
+      final walletService = getIt<WalletApiService>();
+      final data = await walletService.getTransactions();
+      final total = (data['total'] as num?)?.toInt()
+          ?? (data['transactions'] as List?)?.length
+          ?? 0;
+      state = state.copyWith(transactionsTotal: total);
+    } catch (e) {
+      debugPrint('WalletController: fetchTransactionSummary Error $e');
     }
   }
 
