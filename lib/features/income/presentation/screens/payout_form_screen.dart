@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -21,6 +22,12 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
   final _amountController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
+
+  // Withdraw rules (SCRUM-42 §9 / Screen 3).
+  static const double _minWithdraw = 100;
+  static const double _maxWithdraw = 50000;
+  static const int _maxPerDay = 5;
+  static const double _whtRate = 0.01; // 1% withholding tax
 
   @override
   void dispose() {
@@ -63,6 +70,58 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
         ),
       );
     }
+  }
+
+  /// WHT 1% breakdown — 1% withholding is deducted from the gross withdrawal
+  /// (SCRUM-42 §9); the driver receives the net. Shown once the amount is valid.
+  Widget _buildWhtBreakdown() {
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+    if (amount < _minWithdraw ||
+        amount > _maxWithdraw ||
+        amount > widget.availableBalance) {
+      return const SizedBox.shrink();
+    }
+    final wht = amount * _whtRate;
+    final net = amount - wht;
+    final fmt = NumberFormat('#,##0.00');
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.foundationAlphaWhite100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          _whtRow('ยอดถอน', '฿${fmt.format(amount)}'),
+          const SizedBox(height: 6),
+          _whtRow('หัก ณ ที่จ่าย (1%)', '−฿${fmt.format(wht)}'),
+          const Divider(height: 16, color: AppColors.foundationAlphaWhite200),
+          _whtRow('ยอดรับสุทธิ', '฿${fmt.format(net)}', highlight: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _whtRow(String label, String value, {bool highlight = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.caption4
+              .copyWith(color: AppColors.foundationAlphaWhite400),
+        ),
+        Text(
+          value,
+          style: AppTypography.caption3.copyWith(
+            color: highlight ? AppColors.foundationGreen500 : Colors.white,
+            fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -257,6 +316,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                   ),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   style: AppTypography.heading3.copyWith(color: Colors.white),
+                  onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     prefixText: '฿ ',
                     prefixStyle: AppTypography.heading3.copyWith(
@@ -282,11 +342,14 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     if (amount == null || amount <= 0) {
                       return 'กรุณากรอกจำนวนเงิน';
                     }
+                    if (amount < _minWithdraw) {
+                      return 'ถอนเงินขั้นต่ำ ฿${_minWithdraw.toStringAsFixed(0)}';
+                    }
+                    if (amount > _maxWithdraw) {
+                      return 'ถอนสูงสุด ฿${NumberFormat('#,##0').format(_maxWithdraw)} ต่อครั้ง';
+                    }
                     if (amount > widget.availableBalance) {
                       return 'ยอดเงินไม่เพียงพอ';
-                    }
-                    if (amount < 100) {
-                      return 'ถอนเงินขั้นต่ำ ฿100';
                     }
                     return null;
                   },
@@ -294,11 +357,14 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  'ขั้นต่ำ ฿100 | สูงสุด ฿${widget.availableBalance.toStringAsFixed(2)}',
+                  'ขั้นต่ำ ฿${_minWithdraw.toStringAsFixed(0)} | สูงสุด ฿${NumberFormat('#,##0').format(_maxWithdraw)}/ครั้ง | ไม่เกิน $_maxPerDay ครั้ง/วัน',
                   style: AppTypography.caption5.copyWith(
                     color: AppColors.foundationAlphaWhite400,
                   ),
                 ),
+
+                // WHT 1% breakdown — shown once a valid amount is entered.
+                _buildWhtBreakdown(),
 
                 const Spacer(),
 
