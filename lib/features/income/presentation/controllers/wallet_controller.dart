@@ -81,7 +81,6 @@ class WalletController extends _$WalletController {
       state = state.copyWith(
         codDebt: codDebt,
         currentBalance: currentBalance,
-        balance: currentBalance,
         codThreshold: codThreshold,
       );
     } catch (e) {
