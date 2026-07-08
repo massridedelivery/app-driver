@@ -10,22 +10,47 @@ class WalletOverviewApiServiceImpl implements WalletOverviewApiService {
   WalletOverviewApiServiceImpl(this._dio);
 
   @override
-  Future<Map<String, dynamic>> getWalletOverview() async {
+  Future<Map<String, dynamic>> getWalletOverview({
+    String? startDate,
+    String? endDate,
+  }) async {
     try {
-      final response = await _dio.get(Endpoints.driverEarnings);
+      final response = await _dio.get(
+        Endpoints.driverEarnings,
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+        },
+      );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
-      // Mock fallback – return sample data while backend isn't ready
-      return {
+      // Mock fallback – matches the typed EarningsSummary shapes (v1.6.0-dev16).
+      const common = {
         'balance': -350.00,
-        'currency': 'THB',
-        'today_earnings': 450.00,
-        'total_trips_today': 8,
+        'available_balance': 447.76,
+        'withdrawn': 500.00,
         'is_verified': true,
-        'last_updated': DateTime.now().toUtc().toIso8601String(),
+      };
+      if (startDate != null && endDate != null) {
+        // Ranged (single window) shape.
+        return {
+          ...common,
+          'earnings': 1830.00,
+          'total_trips': 12,
+          'range': {'start_date': startDate, 'end_date': endDate},
+        };
+      }
+      // No-range (rolling breakdown) shape.
+      return {
+        ...common,
+        'today_earnings': 450.00,
+        'this_week_earnings': 2450.00,
+        'this_month_earnings': 8600.00,
+        'this_year_earnings': 84000.00,
+        'total_trips': 8,
       };
     }
   }

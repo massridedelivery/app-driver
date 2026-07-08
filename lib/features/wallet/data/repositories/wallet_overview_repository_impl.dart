@@ -11,8 +11,14 @@ class WalletOverviewRepositoryImpl implements WalletOverviewRepository {
   WalletOverviewRepositoryImpl(this._apiService);
 
   @override
-  Future<WalletOverview> getWalletOverview() async {
-    final json = await _apiService.getWalletOverview();
+  Future<WalletOverview> getWalletOverview({
+    String? startDate,
+    String? endDate,
+  }) async {
+    final json = await _apiService.getWalletOverview(
+      startDate: startDate,
+      endDate: endDate,
+    );
     return WalletOverviewModel.fromJson(json).toEntity();
   }
 }

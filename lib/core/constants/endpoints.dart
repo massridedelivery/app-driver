@@ -107,10 +107,15 @@ abstract class Endpoints {
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
+  static const driverPayoutsSummary = '/api/driver/payouts/summary';
   static const driverSettleDebt = '/api/driver/settle-debt';
   static String driverSettleDebtSlip(String intentId) =>
       '/api/driver/settle-debt/$intentId/slip';
   static const driverCodStatus = '/api/driver/cod-status';
+
+  // MARK: Payment Intent (shared poll endpoint — SCRUM-35 §2.2)
+  static String paymentIntent(String intentId) =>
+      '/api/payment/intent/$intentId';
   static const driverEarnings = '/api/driver/earnings';
   static const driverEarningsTransactions = '/api/driver/earnings/transactions';
   static const driverEarningsTrips = '/api/driver/earnings/trips';

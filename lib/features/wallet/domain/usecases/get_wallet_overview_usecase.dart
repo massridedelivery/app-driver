@@ -8,7 +8,10 @@ class GetWalletOverviewUseCase {
 
   GetWalletOverviewUseCase(this._repository);
 
-  Future<WalletOverview> execute() {
-    return _repository.getWalletOverview();
+  Future<WalletOverview> execute({String? startDate, String? endDate}) {
+    return _repository.getWalletOverview(
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 }

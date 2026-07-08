@@ -25,6 +25,7 @@ class WalletController extends _$WalletController {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       await fetchEarnings();
+      await fetchTransactionSummary();
       await fetchPayoutMethod();
     } catch (e) {
       debugPrint('WalletController: Error $e');
@@ -44,14 +45,35 @@ class WalletController extends _$WalletController {
         currentBalance: overview.balance,
         currency: overview.currency,
         isVerified: overview.isVerified,
-        lastUpdated: overview.lastUpdated,
+        // API has no last_updated (SCRUM-42 Gaps #4) — fall back to fetch time.
+        lastUpdated: overview.lastUpdated ?? DateTime.now(),
+        // Rolling breakdown comes in the single no-range earnings response
+        // (v1.6.0-dev16) — no separate ranged call needed.
         earningsToday: overview.todayEarnings,
+        earningsWeek: overview.thisWeekEarnings,
+        earningsMonth: overview.thisMonthEarnings,
+        earningsYear: overview.thisYearEarnings,
         totalTripsToday: overview.totalTripsToday,
       );
 
+      await fetchPayoutSummary();
       await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
+    }
+  }
+
+  /// Cash vs Credit wallet split (SCRUM-42 §2, GET /api/driver/payouts/summary).
+  /// Cash = `available_balance` (withdrawable); Credit = `credit_balance`.
+  Future<void> fetchPayoutSummary() async {
+    try {
+      final walletRepo = getIt<WalletRepository>();
+      final summary = await walletRepo.getPayoutSummary();
+      final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
+      final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
+      state = state.copyWith(cashBalance: cash, creditBalance: credit);
+    } catch (e) {
+      debugPrint('WalletController: fetchPayoutSummary Error $e');
     }
   }
 
@@ -65,7 +87,6 @@ class WalletController extends _$WalletController {
       state = state.copyWith(
         codDebt: codDebt,
         currentBalance: currentBalance,
-        balance: currentBalance,
         codThreshold: codThreshold,
       );
     } catch (e) {
@@ -81,11 +102,27 @@ class WalletController extends _$WalletController {
       final list = (data['transactions'] as List?)?.cast<Map<String, dynamic>>()
           ?? (data['data'] as List?)?.cast<Map<String, dynamic>>()
           ?? [];
-      state = state.copyWith(transactions: list);
+      final total = (data['total'] as num?)?.toInt() ?? list.length;
+      state = state.copyWith(transactions: list, transactionsTotal: total);
     } catch (e) {
       debugPrint('WalletController: fetchTransactions Error $e');
     } finally {
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Lightweight fetch of just the transaction `total` for the Earnings screen
+  /// (SCRUM-42 "รายการทั้งหมด"), without toggling the screen loading state.
+  Future<void> fetchTransactionSummary() async {
+    try {
+      final walletService = getIt<WalletApiService>();
+      final data = await walletService.getTransactions();
+      final total = (data['total'] as num?)?.toInt()
+          ?? (data['transactions'] as List?)?.length
+          ?? 0;
+      state = state.copyWith(transactionsTotal: total);
+    } catch (e) {
+      debugPrint('WalletController: fetchTransactionSummary Error $e');
     }
   }
 
@@ -172,6 +209,18 @@ class WalletController extends _$WalletController {
       return null;
     } finally {
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Poll a payment intent's status (SCRUM-35 §2.2 / §4.3).
+  /// Returns the raw intent map (`{ id, status, paid_at, ... }`) or null on error.
+  Future<Map<String, dynamic>?> getPaymentIntent(String intentId) async {
+    try {
+      final walletRepo = getIt<WalletRepository>();
+      return await walletRepo.getPaymentIntent(intentId);
+    } catch (e) {
+      debugPrint('WalletController: getPaymentIntent Error $e');
+      return null;
     }
   }
 

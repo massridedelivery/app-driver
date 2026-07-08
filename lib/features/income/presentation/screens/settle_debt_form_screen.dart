@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,10 +28,100 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
   final _quickAmounts = [100, 200, 300, 500, 1000];
 
+  // MARK: PromptPay intent polling (SCRUM-35 §4.3)
+  static const _pollInterval = Duration(seconds: 3);
+  Timer? _pollTimer;
+  Timer? _countdownTimer;
+  String _intentStatus = 'AWAITING_PAYMENT';
+  DateTime? _expiresAt;
+  Duration _timeLeft = Duration.zero;
+
+  bool get _isTerminal =>
+      _intentStatus == 'PAID' ||
+      _intentStatus == 'FAILED' ||
+      _intentStatus == 'EXPIRED' ||
+      _intentStatus == 'REFUNDED';
+
   @override
   void dispose() {
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
     _amountController.dispose();
     super.dispose();
+  }
+
+  void _cancelTimers() {
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
+  }
+
+  /// Kick off the QR flow: start the expiry countdown and status polling.
+  void _startPromptPayFlow(Map<String, dynamic> result) {
+    _cancelTimers();
+
+    final intentId = result['intent_id']?.toString() ?? '';
+    _intentStatus = result['status']?.toString() ?? 'AWAITING_PAYMENT';
+    _expiresAt = DateTime.tryParse(result['expires_at']?.toString() ?? '');
+    _tick(); // seed _timeLeft immediately
+
+    if (intentId.isEmpty || _isTerminal) return;
+
+    _countdownTimer =
+        Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _pollIntent(intentId));
+  }
+
+  void _tick() {
+    final expiresAt = _expiresAt;
+    if (expiresAt == null) return;
+    final remaining = expiresAt.difference(DateTime.now());
+    if (remaining.isNegative || remaining == Duration.zero) {
+      if (!_isTerminal) {
+        setState(() => _intentStatus = 'EXPIRED');
+      }
+      _cancelTimers();
+      setState(() => _timeLeft = Duration.zero);
+    } else {
+      setState(() => _timeLeft = remaining);
+    }
+  }
+
+  Future<void> _pollIntent(String intentId) async {
+    if (_isTerminal) {
+      _cancelTimers();
+      return;
+    }
+    final intent = await ref
+        .read(walletControllerProvider.notifier)
+        .getPaymentIntent(intentId);
+    if (!mounted || intent == null) return;
+
+    final status = intent['status']?.toString();
+    if (status == null || status == _intentStatus) return;
+
+    setState(() => _intentStatus = status);
+
+    if (status == 'PAID') {
+      _cancelTimers();
+      // Debt cleared server-side — refresh COD status so the wallet reflects it.
+      await ref.read(walletControllerProvider.notifier).fetchCodStatus();
+    } else if (status == 'FAILED' ||
+        status == 'EXPIRED' ||
+        status == 'REFUNDED') {
+      _cancelTimers();
+    }
+  }
+
+  /// Regenerate a fresh QR after expiry/failure (creates a new intent).
+  void _regenerate() {
+    _cancelTimers();
+    setState(() {
+      _settleResult = null;
+      _intentStatus = 'AWAITING_PAYMENT';
+      _expiresAt = null;
+      _timeLeft = Duration.zero;
+    });
+    _submit();
   }
 
   Future<void> _submit() async {
@@ -46,11 +139,19 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
       _settleResult = result;
     });
 
+    if (result != null && widget.paymentMethod == 'PROMPTPAY') {
+      _startPromptPayFlow(result);
+    }
+
     if (result == null) {
+      final reason = ref.read(walletControllerProvider).errorMessage;
+      final message = reason.isNotEmpty
+          ? reason.replaceFirst('Exception: ', '')
+          : 'ดำเนินการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'ดำเนินการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+            message,
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticErrorBgHigh,
@@ -226,10 +327,69 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
     );
   }
 
+  /// Thai label + accent color for each intent status (SCRUM-35 §2.2 enum).
+  ({String label, Color color}) _statusDisplay(String status) {
+    switch (status) {
+      case 'PAID':
+        return (label: 'ชำระเงินสำเร็จ', color: AppColors.semanticSuccessBorderHigh);
+      case 'FAILED':
+        return (label: 'ชำระเงินไม่สำเร็จ', color: AppColors.semanticErrorBgHigh);
+      case 'EXPIRED':
+        return (label: 'QR หมดอายุแล้ว', color: AppColors.semanticErrorBgHigh);
+      case 'REFUNDED':
+        return (label: 'คืนเงินแล้ว', color: AppColors.foundationAlphaWhite400);
+      case 'AWAITING_PAYMENT':
+      default:
+        return (label: 'รอชำระเงิน', color: AppColors.semanticWarningBorderHigh);
+    }
+  }
+
+  String _formatCountdown(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  static const _qrFallback = Icon(Icons.qr_code, size: 160, color: Colors.black);
+
+  /// Renders the PromptPay QR from either an http(s) URL (Omise) or a base64
+  /// `data:image/...;base64,…` URI (Beam), per the gateway switcher — SCRUM-42 §2.
+  Widget _buildQrImage(String qrCodeUrl) {
+    if (qrCodeUrl.isEmpty) return _qrFallback;
+
+    if (qrCodeUrl.startsWith('data:')) {
+      try {
+        final commaIndex = qrCodeUrl.indexOf(',');
+        final base64Part =
+            commaIndex >= 0 ? qrCodeUrl.substring(commaIndex + 1) : qrCodeUrl;
+        final bytes = base64Decode(base64Part);
+        return Image.memory(
+          bytes,
+          width: 180,
+          height: 180,
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => _qrFallback,
+        );
+      } catch (_) {
+        return _qrFallback;
+      }
+    }
+
+    return Image.network(
+      qrCodeUrl,
+      width: 180,
+      height: 180,
+      errorBuilder: (_, _, _) => _qrFallback,
+    );
+  }
+
   Widget _buildQRScreen(Map<String, dynamic> result) {
+    if (_intentStatus == 'PAID') return _buildSuccessScreen();
+
     final intentId = result['intent_id']?.toString() ?? '';
-    final status = result['status']?.toString() ?? 'PENDING';
     final qrCodeUrl = result['qr_code_url']?.toString() ?? '';
+    final display = _statusDisplay(_intentStatus);
+    final canRetry = _intentStatus == 'EXPIRED' || _intentStatus == 'FAILED';
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'สแกน QR เพื่อชำระ', showLeftIcon: true),
@@ -258,44 +418,143 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: qrCodeUrl.isNotEmpty
-                      ? Image.network(
-                          qrCodeUrl,
-                          width: 180,
-                          height: 180,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.qr_code, size: 160, color: Colors.black),
-                        )
-                      : const Icon(Icons.qr_code, size: 160, color: Colors.black),
-                ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(child: _buildQrImage(qrCodeUrl)),
+                  ),
+                  // Dim the QR once it can no longer be paid.
+                  if (canRetry)
+                    Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.error_outline,
+                          size: 64, color: Colors.white),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
+              // Countdown until the QR expires (hidden once terminal).
+              if (!_isTerminal && _expiresAt != null)
+                Text(
+                  'QR หมดอายุใน ${_formatCountdown(_timeLeft)}',
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.foundationAlphaWhite400,
+                  ),
+                ),
+              const SizedBox(height: 8),
               Text(
                 'หมายเลขรายการ: $intentId',
-                style: AppTypography.caption4.copyWith(
+                style: AppTypography.caption5.copyWith(
                   color: AppColors.foundationAlphaWhite400,
                 ),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.semanticWarningBorderHigh.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  status == 'PENDING' ? 'รอชำระเงิน' : status,
-                  style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticWarningBorderHigh,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (!_isTerminal) ...[
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: display.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      display.label,
+                      style: AppTypography.caption4.copyWith(color: display.color),
+                    ),
                   ),
+                ],
+              ),
+              const Spacer(),
+              if (canRetry)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _regenerate,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.foundationOrange600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'สร้าง QR ใหม่',
+                      style: AppTypography.heading5.copyWith(color: Colors.white),
+                    ),
+                  ),
+                ),
+              if (canRetry) const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.foundationAlphaWhite100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'กลับหน้ากระเป๋าเงิน',
+                    style: AppTypography.heading5.copyWith(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessScreen() {
+    return Scaffold(
+      appBar: CommonAppBar(titleText: 'ชำระหนี้สำเร็จ', showLeftIcon: false),
+      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Spacer(),
+              Icon(Icons.check_circle,
+                  size: 96, color: AppColors.semanticSuccessBorderHigh),
+              const SizedBox(height: 24),
+              Text(
+                'ชำระหนี้ COD สำเร็จ',
+                style: AppTypography.heading3.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'ยอดหนี้ของคุณได้รับการอัปเดตแล้ว',
+                textAlign: TextAlign.center,
+                style: AppTypography.caption4.copyWith(
+                  color: AppColors.foundationAlphaWhite400,
                 ),
               ),
               const Spacer(),
@@ -305,7 +564,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationAlphaWhite100,
+                    backgroundColor: AppColors.foundationOrange600,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
