@@ -119,8 +119,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/job-live',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: JobLiveScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: JobLiveScreen(initialStatus: state.extra as String?),
+        ),
       ),
       GoRoute(
         path: AppRoutes.foodLiveNamedPage,

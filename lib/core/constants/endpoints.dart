@@ -104,6 +104,10 @@ abstract class Endpoints {
   static const driverJobsActive = '/api/driver/jobs/active';
   static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
 
+  /// Cross-vertical "what am I doing now" index (SCRUM-45, v1.6.0-dev20).
+  /// Lean summary — probe for `type`+`id`, then fetch detail per vertical.
+  static const driverActive = '/api/driver/active';
+
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
