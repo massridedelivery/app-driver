@@ -140,6 +140,23 @@ abstract class Endpoints {
       '/api/food/driver/orders/:id/delivered';
   static const foodDriverOrdersActive = '/api/food/driver/orders/active';
 
+  // MARK: Messenger (Package Delivery) — SCRUM-41, driver side
+  static const messengerDriverActive = '/api/messenger/driver/orders/active';
+  static const messengerDriverCompleted =
+      '/api/messenger/driver/orders/completed';
+  static const messengerDriverOffer = '/api/messenger/driver/orders/:id/offer';
+  static const messengerDriverAccept =
+      '/api/messenger/driver/orders/:id/accept';
+  static const messengerDriverReject =
+      '/api/messenger/driver/orders/:id/reject';
+  static const messengerDriverArrived =
+      '/api/messenger/driver/orders/:id/arrived';
+  static const messengerDriverPickedUp =
+      '/api/messenger/driver/orders/:id/picked-up';
+  static const messengerDriverDelivered =
+      '/api/messenger/driver/orders/:id/delivered';
+  static const messengerDriverChat = '/api/messenger/driver/orders/:id/chat';
+
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';
 

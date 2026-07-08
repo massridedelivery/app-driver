@@ -21,6 +21,8 @@ import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
@@ -135,6 +137,15 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
       final item = active.first;
       if (kDebugMode) {
         debugPrint('OnlineStatus: active ${item.type} (${item.status}) → resuming');
+      }
+
+      // Messenger has its own model/screen — resume it directly (SCRUM-41).
+      if (item.type == ActiveJobType.messenger) {
+        final order = await getIt<MessengerRepository>().getActiveOrder();
+        if (order == null) return;
+        ref.read(messengerControllerProvider.notifier).setActiveOrder(order);
+        if (context.mounted) context.go('/messenger-live');
+        return;
       }
 
       // 2. Fetch full detail from the endpoint matching the item's vertical.
