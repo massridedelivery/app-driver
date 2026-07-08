@@ -42,6 +42,29 @@ class MessengerRepositoryImpl implements MessengerRepository {
   }
 
   @override
+  Future<({List<MessengerOrder> orders, int total})> getCompletedOrders({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final res = await _api.getCompletedOrders(limit: limit, offset: offset);
+      final data = res.data;
+      if (data is Map<String, dynamic>) {
+        final list = (data['orders'] as List?) ?? const [];
+        final orders = list
+            .whereType<Map<String, dynamic>>()
+            .map(MessengerOrder.fromJson)
+            .toList();
+        final total = (data['total'] as num?)?.toInt() ?? orders.length;
+        return (orders: orders, total: total);
+      }
+      return (orders: <MessengerOrder>[], total: 0);
+    } on DioException catch (e) {
+      throw Exception(_message(e, 'Failed to fetch completed orders'));
+    }
+  }
+
+  @override
   Future<void> acceptOrder(String orderId) async {
     try {
       await _api.acceptOrder(orderId);

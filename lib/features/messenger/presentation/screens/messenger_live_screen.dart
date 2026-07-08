@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
@@ -111,9 +114,22 @@ class _LiveSheet extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(order.isCod ? 'COD ฿${order.codAmount.toInt()}' : 'เงินสด',
                   style: AppTypography.heading6.copyWith(color: Colors.white70)),
+              const Spacer(),
+              // Chat is available once ACCEPTED — there is a counterparty.
+              IconButton(
+                onPressed: () => AppNavigator.push(
+                  context,
+                  ChatScreen(
+                    jobId: order.id,
+                    passengerName: order.recipientName ?? 'ลูกค้า',
+                    vertical: ChatVertical.messenger,
+                  ),
+                ),
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+              ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 56,

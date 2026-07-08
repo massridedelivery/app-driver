@@ -20,6 +20,7 @@ import 'package:massdrive/features/income/presentation/screens/credit_wallet_scr
 import 'package:massdrive/features/food_live/presentation/screens/food_live_screen.dart';
 import 'package:massdrive/features/messenger/presentation/screens/messenger_offer_screen.dart';
 import 'package:massdrive/features/messenger/presentation/screens/messenger_live_screen.dart';
+import 'package:massdrive/features/messenger/presentation/screens/messenger_history_screen.dart';
 
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
@@ -139,6 +140,11 @@ class AppRouter {
         path: '/messenger-live',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: MessengerLiveScreen()),
+      ),
+      GoRoute(
+        path: '/messenger-history',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: MessengerHistoryScreen()),
       ),
       GoRoute(
         path: '/payment',

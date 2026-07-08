@@ -1,19 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 
 abstract class ChatApiService {
-  /// Fetches historical chat messages for a specific job.
+  /// Fetches historical chat messages for an order/job in a given vertical.
   Future<Response<List<dynamic>>> getChatHistory(
-    String jobId, {
+    String id,
+    ChatVertical vertical, {
     int? limit,
     String? before,
   });
 
   /// Sends a chat message to the room via REST.
   Future<Response<Map<String, dynamic>>> sendMessageRest({
-    required String jobId,
-    required String roomId,
+    required String id,
+    required ChatVertical vertical,
     required String msgType,
     required String text,
   });
@@ -21,7 +23,8 @@ abstract class ChatApiService {
   /// Requests a pre-signed S3/MinIO upload URL for chat media.
   Future<Response<Map<String, dynamic>>> getPresignedUploadUrl({
     required String contentType,
-    required String jobId,
+    required String id,
+    required ChatVertical vertical,
   });
 
   /// Uploads binary file bytes directly to the pre-signed URL.
@@ -46,33 +49,32 @@ class ChatApiServiceImpl implements ChatApiService {
 
   @override
   Future<Response<List<dynamic>>> getChatHistory(
-    String jobId, {
+    String id,
+    ChatVertical vertical, {
     int? limit,
     String? before,
   }) async {
-    final endpoint = '/api/driver/jobs/$jobId/chat';
     final queryParams = <String, dynamic>{};
     if (limit != null) queryParams['limit'] = limit;
     if (before != null) queryParams['before'] = before;
 
     return await _dio.get<List<dynamic>>(
-      endpoint,
+      vertical.chatPath(id),
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
   }
 
   @override
   Future<Response<Map<String, dynamic>>> sendMessageRest({
-    required String jobId,
-    required String roomId,
+    required String id,
+    required ChatVertical vertical,
     required String msgType,
     required String text,
   }) async {
-    final endpoint = '/api/driver/jobs/$jobId/chat';
     return await _dio.post<Map<String, dynamic>>(
-      endpoint,
+      vertical.chatPath(id),
       data: {
-        'room_id': roomId,
+        'room_id': vertical.roomId(id),
         'msg_type': msgType,
         'text': text,
       },
@@ -82,12 +84,13 @@ class ChatApiServiceImpl implements ChatApiService {
   @override
   Future<Response<Map<String, dynamic>>> getPresignedUploadUrl({
     required String contentType,
-    required String jobId,
+    required String id,
+    required ChatVertical vertical,
   }) async {
     final queryParams = <String, dynamic>{
       'category': 'chat',
       'content_type': contentType,
-      'room_id': 'job:$jobId',
+      'room_id': vertical.roomId(id),
     };
 
     return await _dio.get<Map<String, dynamic>>(

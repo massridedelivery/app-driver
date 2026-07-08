@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -47,11 +48,15 @@ class ChatController extends _$ChatController {
   StreamSubscription? _subscription;
   bool _isConnected = false;
   late final String _jobId;
+  late final ChatVertical _vertical;
   late final ChatRepository _chatRepository;
 
+  String get _roomId => _vertical.roomId(_jobId);
+
   @override
-  ChatState build(String jobId) {
+  ChatState build(String jobId, ChatVertical vertical) {
     _jobId = jobId;
+    _vertical = vertical;
     _chatRepository = getIt<ChatRepository>();
 
     ref.onDispose(() {
@@ -75,6 +80,7 @@ class ChatController extends _$ChatController {
     try {
       final history = await _chatRepository.getChatHistory(
         _jobId,
+        _vertical,
         limit: limit,
         before: before,
       );
@@ -148,8 +154,8 @@ class ChatController extends _$ChatController {
     if (!_isConnected || _channel == null) {
       if (kDebugMode) debugPrint('ChatController: WS not connected. Trying HTTP Fallback to send message.');
       _chatRepository.sendMessageRest(
-        jobId: _jobId,
-        roomId: 'job:$_jobId',
+        id: _jobId,
+        vertical: _vertical,
         msgType: 'text',
         text: text,
       ).then((success) {
@@ -168,7 +174,7 @@ class ChatController extends _$ChatController {
   void _sendPayload(String text) {
     final payload = {
       'type': 'chat_message',
-      'room_id': 'job:$_jobId',
+      'room_id': _roomId,
       'msg_type': 'text',
       'text': text,
       'file_key': null,
@@ -184,7 +190,8 @@ class ChatController extends _$ChatController {
     try {
       // 1. Upload image and get view url
       final viewUrl = await _chatRepository.uploadChatImage(
-        jobId: _jobId,
+        id: _jobId,
+        vertical: _vertical,
         file: file,
       );
 
@@ -196,7 +203,7 @@ class ChatController extends _$ChatController {
       if (_isConnected && _channel != null) {
         final payload = {
           'type': 'chat_message',
-          'room_id': 'job:$_jobId',
+          'room_id': _roomId,
           'content': '[รูปภาพ]',
           'msg_type': 'image',
           'media_url': viewUrl,
