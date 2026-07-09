@@ -12,13 +12,11 @@ enum PaymentMethod { cash, qr }
 class PaymentScreen extends ConsumerStatefulWidget {
   final String passengerName;
   final double baseFare;
-  final double appFee;
 
   const PaymentScreen({
     super.key,
     this.passengerName = 'Kittidet',
-    this.baseFare = 63.0,
-    this.appFee = 1.0,
+    this.baseFare = 0.0,
   });
 
   @override
@@ -39,7 +37,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       ref.read(incomingJobControllerProvider).currentJob?.netIncome ??
       widget.baseFare;
 
-  double get _totalFare => _baseFare + widget.appFee + _tolls + _others;
+  // The customer pays the job fare (already net of any discount) plus any
+  // real add-ons the driver enters (tolls / others). No app fee is added on
+  // top of the customer's bill — platform commission is deducted separately.
+  double get _totalFare => _baseFare + _tolls + _others;
 
   @override
   void dispose() {
@@ -177,10 +178,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 24),
 
           // Breakdown
-          _buildBreakdownRow("ค่าโดยสารตายตัว", _baseFare),
+          _buildBreakdownRow("ค่าโดยสาร", _baseFare),
           const SizedBox(height: 16),
-          _buildBreakdownRow("ค่าธรรมเนียมการใช้แอปฯ", widget.appFee),
-          const SizedBox(height: 16),
+          if (_tolls > 0) ...[
+            _buildBreakdownRow("ค่าทางด่วน", _tolls),
+            const SizedBox(height: 16),
+          ],
+          if (_others > 0) ...[
+            _buildBreakdownRow("อื่นๆ", _others),
+            const SizedBox(height: 16),
+          ],
 
           // _buildInputRow(
           //   "ค่าทางด่วน",
@@ -369,54 +376,4 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildInputRow(
-    String title,
-    String? subtitle,
-    TextEditingController controller,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: AppTypography.body1.copyWith(color: Colors.white),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: AppTypography.caption4.copyWith(color: Colors.white54),
-              ),
-            ],
-          ],
-        ),
-        Container(
-          width: 80,
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            border: Border.all(color: Colors.white24),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            style: AppTypography.body1.copyWith(color: Colors.white),
-            textAlign: TextAlign.right,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              hintText: "0",
-              hintStyle: TextStyle(color: Colors.white54),
-            ),
-            onChanged: (val) => setState(() {}),
-          ),
-        ),
-      ],
-    );
-  }
 }
