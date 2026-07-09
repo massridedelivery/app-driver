@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/models/socket_message_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'socket_service.g.dart';
@@ -14,19 +17,54 @@ part 'socket_service.g.dart';
 @Riverpod(keepAlive: true)
 SocketService socketService(ref) {
   final service = SocketService();
-  ref.onDispose(() => service.disconnect());
+  ref.onDispose(service.dispose);
   return service;
 }
 
-class SocketService {
+class SocketService with WidgetsBindingObserver {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   Timer? _reconnectTimer;
-  Timer? _heartbeatTimer;
 
-  // Reconnect settings
+  SocketService() {
+    WidgetsBinding.instance.addObserver(this);
+    // Reconnect the moment the network comes back instead of waiting for the
+    // next backoff tick.
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final hasNetwork = results.any((r) => r != ConnectivityResult.none);
+      if (hasNetwork) _reconnectNow();
+    });
+  }
+
+  /// Socket-level ping/pong keep-alive: detects half-open (silently dead)
+  /// connections and closes them → onDone → reconnect.
+  static const Duration _pingInterval = Duration(seconds: 15);
+
+  /// Reconnect backoff is capped so a driver never stops trying to reconnect.
+  static const int _maxBackoffSeconds = 30;
+
   int _reconnectAttempts = 0;
-  final int _maxReconnectAttempts = 5;
+
+  /// True only once the handshake completed (`ready`). `_channel != null` is
+  /// set before that, so it must NOT be used as the connected signal.
+  bool _isReady = false;
+  bool _connecting = false;
+
+  /// Set by an intentional [disconnect]; suppresses auto-reconnect.
+  bool _intentionalClose = false;
+
+  /// Important actions that must not be silently dropped while offline — they
+  /// are queued and flushed on reconnect. Transient messages (location_update,
+  /// ping) are NOT queued: only the latest state matters, so a stale replay is
+  /// worse than a miss.
+  static const Set<String> _queueableTypes = {
+    'accept_job',
+    'reject_job',
+    'job_status',
+  };
+  static const int _maxPending = 20;
+  final List<String> _pending = [];
 
   final StreamController<SocketMessageModel> _messageController =
       StreamController<SocketMessageModel>.broadcast();
@@ -38,7 +76,7 @@ class SocketService {
 
   Stream<bool> get onConnectionStatus => _connectionStatusController.stream;
 
-  bool get isConnected => _channel != null;
+  bool get isConnected => _isReady;
 
   String _buildWebSocketUrl(String token) {
     // Hardcoding development URL to match AuthApiServiceImpl and avoid EnvironmentConfig issues
@@ -53,40 +91,45 @@ class SocketService {
   }
 
   Future<void> connect() async {
-    if (_channel != null) return;
+    if (_isReady || _connecting) return;
 
+    _connecting = true;
+    _intentionalClose = false;
     _reconnectTimer?.cancel();
 
     try {
       if (kDebugMode) debugPrint('SocketService: Starting connection steps...');
 
       final secureStorage = SecureStorageManager();
-
       final token = await secureStorage.read(SecureStorageKey.accessToken);
-      if (kDebugMode) {
-        debugPrint(
-          'SocketService: Token read result: ${token != null ? "Found" : "Not Found"}',
-        );
-      }
 
       if (token == null || token.isEmpty) {
         if (kDebugMode) debugPrint('SocketService: No access token found. Cannot connect.');
+        _connecting = false;
         return;
       }
 
       final url = _buildWebSocketUrl(token);
       if (kDebugMode) debugPrint('SocketService: Connecting to $url');
 
-      _channel = WebSocketChannel.connect(Uri.parse(url));
+      // IOWebSocketChannel gives us socket-level ping/pong so a dead TCP
+      // connection is detected and closed instead of appearing "connected".
+      final channel = IOWebSocketChannel.connect(
+        Uri.parse(url),
+        pingInterval: _pingInterval,
+      );
+      _channel = channel;
 
-      // Wait for connection to be ready before logging success
-      await _channel!.ready;
+      await channel.ready;
       if (kDebugMode) debugPrint('✅ SocketService: Connected successfully to the backend.');
-      _connectionStatusController.add(true);
-      _reconnectAttempts = 0;
-      _startHeartbeat();
 
-      _subscription = _channel!.stream.listen(
+      _isReady = true;
+      _connecting = false;
+      _reconnectAttempts = 0;
+      _connectionStatusController.add(true);
+      _flushPending();
+
+      _subscription = channel.stream.listen(
         (data) {
           if (kDebugMode) debugPrint('📥 SocketService Received Data: $data');
           try {
@@ -105,66 +148,119 @@ class SocketService {
           if (kDebugMode) debugPrint('SocketService WebSocket Closed');
           _handleDisconnect();
         },
+        cancelOnError: true,
       );
     } catch (e) {
       if (kDebugMode) debugPrint('SocketService Connection Error: $e');
+      _connecting = false;
       _handleDisconnect();
-      rethrow;
     }
   }
 
-  void _startHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (kDebugMode) debugPrint('💓 SocketService: Sending Heartbeat Ping');
-      sendMessage('ping');
-    });
-  }
-
+  /// Tears down the current channel and (unless [disconnect] was called)
+  /// schedules a capped-backoff reconnect — indefinitely, so a temporary
+  /// network drop never permanently kills the socket.
   void _handleDisconnect() {
-    disconnect(); // clean up current state
+    // Already torn down and a reconnect is pending → nothing to do.
+    if (_channel == null && _reconnectTimer != null) return;
 
-    if (_reconnectAttempts < _maxReconnectAttempts) {
-      _reconnectAttempts++;
-      final delaySeconds =
-          _reconnectAttempts * 2; // Exponential-ish backoff: 2s, 4s, 6s...
-      if (kDebugMode) {
-        debugPrint(
-          'SocketService: Reconnecting in $delaySeconds seconds (Attempt $_reconnectAttempts/$_maxReconnectAttempts)',
-        );
-      }
+    final wasReady = _isReady;
+    _cleanupChannel();
+    if (wasReady) _connectionStatusController.add(false);
 
-      _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
-        connect();
-      });
-    } else {
-      if (kDebugMode) debugPrint('SocketService: Max reconnect attempts reached. Giving up.');
+    if (_intentionalClose) return;
+
+    _reconnectAttempts++;
+    final delay = _backoffSeconds(_reconnectAttempts);
+    if (kDebugMode) {
+      debugPrint('SocketService: Reconnecting in ${delay}s (attempt $_reconnectAttempts)');
     }
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(Duration(seconds: delay), connect);
+  }
+
+  /// Exponential backoff (2,4,8,16,…) capped at [_maxBackoffSeconds].
+  int _backoffSeconds(int attempt) {
+    final seconds = 1 << attempt.clamp(1, 5); // 2..32
+    return seconds > _maxBackoffSeconds ? _maxBackoffSeconds : seconds;
+  }
+
+  void _cleanupChannel() {
+    _isReady = false;
+    _connecting = false;
+    _subscription?.cancel();
+    _subscription = null;
+    _channel?.sink.close();
+    _channel = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Sockets are frozen/killed in the background; re-establish on resume.
+    if (state == AppLifecycleState.resumed) _reconnectNow();
+  }
+
+  /// Reconnect immediately (skip the backoff wait) after a resume / network
+  /// regain — but only if we're meant to be connected.
+  void _reconnectNow() {
+    if (_intentionalClose || _isReady || _connecting) return;
+    _reconnectAttempts = 0;
+    _reconnectTimer?.cancel();
+    connect();
   }
 
   void sendMessage(String type, [Map<String, dynamic>? data]) {
-    if (_channel != null) {
-      final Map<String, dynamic> payload = {
-        'type': type,
-        if (data != null) 'data': data,
-      };
+    final Map<String, dynamic> payload = {
+      'type': type,
+      if (data != null) 'data': data,
+    };
 
-      // Some simple messages like location update format lat/lng at root of payload in WS Guide
-      // Adjusting to make sure we support both formats easily
-      if (data != null && data.containsKey('_merge_to_root')) {
-        data.remove('_merge_to_root');
-        payload.addAll(data);
-        payload.remove('data');
+    // Some simple messages (e.g. location_update) put lat/lng at the payload
+    // root per the WS guide — support both shapes.
+    if (data != null && data.containsKey('_merge_to_root')) {
+      data.remove('_merge_to_root');
+      payload.addAll(data);
+      payload.remove('data');
+    }
+
+    final jsonStr = jsonEncode(payload);
+
+    if (!_isReady || _channel == null) {
+      if (_queueableTypes.contains(type)) {
+        _enqueue(jsonStr);
+        if (kDebugMode) debugPrint('SocketService: queued "$type" (offline)');
+      } else if (kDebugMode) {
+        debugPrint('SocketService: dropped "$type" (socket not ready)');
       }
+      return;
+    }
 
-      final jsonStr = jsonEncode(payload);
+    try {
       _channel!.sink.add(jsonStr);
       if (kDebugMode) debugPrint('SocketService Sent: $jsonStr');
-    } else {
-      if (kDebugMode) {
-        debugPrint(
-          'SocketService Warning: Cannot send message, socket not connected.',
-        );
+    } catch (e) {
+      if (kDebugMode) debugPrint('SocketService: send failed ($type) → $e');
+      if (_queueableTypes.contains(type)) _enqueue(jsonStr);
+      _handleDisconnect();
+    }
+  }
+
+  void _enqueue(String jsonStr) {
+    _pending.add(jsonStr);
+    if (_pending.length > _maxPending) _pending.removeAt(0);
+  }
+
+  /// Flush queued important actions once the socket is ready again.
+  void _flushPending() {
+    if (_pending.isEmpty || !_isReady || _channel == null) return;
+    final toSend = List<String>.from(_pending);
+    _pending.clear();
+    for (final msg in toSend) {
+      try {
+        _channel!.sink.add(msg);
+        if (kDebugMode) debugPrint('SocketService: flushed queued message');
+      } catch (_) {
+        _enqueue(msg); // re-queue if the send fails mid-flush
       }
     }
   }
@@ -195,17 +291,22 @@ class SocketService {
     });
   }
 
+  /// Intentional close (logout, job finished, provider dispose). Suppresses
+  /// auto-reconnect until [connect] is called again.
   void disconnect() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-
+    _intentionalClose = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+    _reconnectAttempts = 0;
+    _cleanupChannel();
+  }
 
-    _subscription?.cancel();
-    _subscription = null;
-
-    _channel?.sink.close();
-    _channel = null;
+  /// Full teardown when the provider is disposed — also detaches the lifecycle
+  /// observer and connectivity listener.
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    disconnect();
   }
 }
