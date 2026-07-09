@@ -1,16 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
-import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
+import 'package:massdrive/core/models/socket_message_model.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'chat_controller.g.dart';
 
@@ -42,11 +39,13 @@ class ChatState {
   }
 }
 
+/// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+/// events from the main SocketService, send via the per-vertical REST endpoint.
+/// (The old design opened a second WS that the backend tried to bind to a ride,
+/// which failed for messenger/food with "no active ride partner found".)
 @riverpod
 class ChatController extends _$ChatController {
-  WebSocketChannel? _channel;
-  StreamSubscription? _subscription;
-  bool _isConnected = false;
+  StreamSubscription? _socketSub;
   late final String _jobId;
   late final ChatVertical _vertical;
   late final ChatRepository _chatRepository;
@@ -59,24 +58,37 @@ class ChatController extends _$ChatController {
     _vertical = vertical;
     _chatRepository = getIt<ChatRepository>();
 
-    ref.onDispose(() {
-      _subscription?.cancel();
-      _channel?.sink.close();
-    });
+    final socket = ref.watch(socketServiceProvider);
+    _socketSub?.cancel();
+    _socketSub = socket.messages.listen(_onSocketMessage);
 
-    // Start fetching and connecting
-    Future.microtask(() => init());
+    ref.onDispose(() => _socketSub?.cancel());
 
+    Future.microtask(fetchHistory);
     return const ChatState(isLoading: true);
   }
 
-  Future<void> init() async {
-    await fetchHistory();
-    await connectWebSocket();
+  void _onSocketMessage(SocketMessageModel msg) {
+    if (msg.type != 'chat_message') return;
+    final data = msg.data ?? msg.raw['data'] ?? msg.raw;
+    if (data is! Map<String, dynamic>) return;
+
+    // Only accept messages for this room (when the envelope says which room).
+    final roomId = (data['room_id'] ?? msg.raw['room_id'])?.toString();
+    if (roomId != null && roomId != _roomId) return;
+
+    try {
+      final newMessage = ChatMessage.fromJson(data);
+      if (!state.messages.any((m) => m.id == newMessage.id)) {
+        state = state.copyWith(messages: [...state.messages, newMessage]);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('ChatController: parse chat_message error: $e');
+    }
   }
 
-  Future<void> fetchHistory({int? limit, String? before}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> fetchHistory({int? limit, String? before, bool silent = false}) async {
+    if (!silent) state = state.copyWith(isLoading: true, error: null);
     try {
       final history = await _chatRepository.getChatHistory(
         _jobId,
@@ -90,130 +102,41 @@ class ChatController extends _$ChatController {
     }
   }
 
-  Future<void> connectWebSocket() async {
-    if (_isConnected) return;
-    try {
-      final secureStorage = SecureStorageManager();
-      final token = await secureStorage.read(SecureStorageKey.accessToken);
-      if (token == null || token.isEmpty) return;
-
-      final wsUrl = 'wss://driver-api-dev.nutchaphut.dev/ws';
-      if (kDebugMode) debugPrint('ChatController: Connecting to chat WS: $wsUrl');
-
-      _channel = IOWebSocketChannel.connect(
-        Uri.parse(wsUrl),
-        headers: {
-          'Authorization': 'Bearer ${token.trim()}',
-        },
-      );
-      await _channel!.ready;
-
-      _isConnected = true;
-      if (kDebugMode) debugPrint('ChatController: Chat WebSocket connected successfully.');
-
-      _subscription = _channel!.stream.listen(
-        (data) {
-          if (kDebugMode) debugPrint('ChatController WS Received: $data');
-          try {
-            final jsonMap = jsonDecode(data.toString());
-            final type = jsonMap['type'];
-            if (type == 'chat_message') {
-              final messageData = jsonMap['data'] ?? jsonMap;
-              final newMessage = ChatMessage.fromJson(messageData as Map<String, dynamic>);
-
-              // Append to list if not already present to avoid duplicates
-              if (!state.messages.any((m) => m.id == newMessage.id)) {
-                state = state.copyWith(
-                  messages: [...state.messages, newMessage],
-                );
-              }
-            } else if (type == 'error') {
-              final errorMessage = jsonMap['data']?.toString() ?? 'An error occurred';
-              state = state.copyWith(error: errorMessage);
-            }
-          } catch (e) {
-            if (kDebugMode) debugPrint('ChatController WS Parse error: $e');
-          }
-        },
-        onError: (err) {
-          if (kDebugMode) debugPrint('ChatController WS Error: $err');
-          _isConnected = false;
-        },
-        onDone: () {
-          if (kDebugMode) debugPrint('ChatController WS Closed');
-          _isConnected = false;
-        },
-      );
-    } catch (e) {
-      if (kDebugMode) debugPrint('ChatController WS Connection error: $e');
-      _isConnected = false;
+  Future<void> sendMessage(String text) async {
+    final ok = await _chatRepository.sendMessageRest(
+      id: _jobId,
+      vertical: _vertical,
+      msgType: 'text',
+      text: text,
+    );
+    // The backend echoes the message back over the WS; re-sync as a safety net
+    // in case that push is missed. Dedup by id prevents duplicates.
+    if (ok) {
+      await fetchHistory(silent: true);
+    } else {
+      state = state.copyWith(error: 'ส่งข้อความไม่สำเร็จ');
     }
-  }
-
-  void sendMessage(String text) {
-    if (!_isConnected || _channel == null) {
-      if (kDebugMode) debugPrint('ChatController: WS not connected. Trying HTTP Fallback to send message.');
-      _chatRepository.sendMessageRest(
-        id: _jobId,
-        vertical: _vertical,
-        msgType: 'text',
-        text: text,
-      ).then((success) {
-        if (success) {
-          fetchHistory();
-        } else {
-          if (kDebugMode) debugPrint('ChatController: HTTP Fallback also failed. Trying to reconnect WS...');
-          connectWebSocket();
-        }
-      });
-      return;
-    }
-    _sendPayload(text);
-  }
-
-  void _sendPayload(String text) {
-    final payload = {
-      'type': 'chat_message',
-      'room_id': _roomId,
-      'msg_type': 'text',
-      'text': text,
-      'file_key': null,
-    };
-
-    final jsonStr = jsonEncode(payload);
-    _channel!.sink.add(jsonStr);
-    if (kDebugMode) debugPrint('ChatController Sent: $jsonStr');
   }
 
   Future<void> sendImage(File file) async {
     state = state.copyWith(isSending: true);
     try {
-      // 1. Upload image and get view url
-      final viewUrl = await _chatRepository.uploadChatImage(
+      final fileKey = await _chatRepository.uploadChatImage(
         id: _jobId,
         vertical: _vertical,
         file: file,
       );
-
-      // 2. Send image message over WebSocket
-      if (!_isConnected || _channel == null) {
-        await connectWebSocket();
-      }
-
-      if (_isConnected && _channel != null) {
-        final payload = {
-          'type': 'chat_message',
-          'room_id': _roomId,
-          'content': '[รูปภาพ]',
-          'msg_type': 'image',
-          'media_url': viewUrl,
-        };
-
-        final jsonStr = jsonEncode(payload);
-        _channel!.sink.add(jsonStr);
-        if (kDebugMode) debugPrint('ChatController Sent Image Msg: $jsonStr');
+      final ok = await _chatRepository.sendMessageRest(
+        id: _jobId,
+        vertical: _vertical,
+        msgType: 'image',
+        text: '',
+        fileKey: fileKey,
+      );
+      if (ok) {
+        await fetchHistory(silent: true);
       } else {
-        throw Exception('WebSocket not connected. Cannot send image message.');
+        state = state.copyWith(error: 'ส่งรูปภาพไม่สำเร็จ');
       }
     } catch (e) {
       state = state.copyWith(error: e.toString());

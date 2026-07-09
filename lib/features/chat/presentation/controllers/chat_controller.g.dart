@@ -8,12 +8,24 @@ part of 'chat_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+/// events from the main SocketService, send via the per-vertical REST endpoint.
+/// (The old design opened a second WS that the backend tried to bind to a ride,
+/// which failed for messenger/food with "no active ride partner found".)
 
 @ProviderFor(ChatController)
 const chatControllerProvider = ChatControllerFamily._();
 
+/// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+/// events from the main SocketService, send via the per-vertical REST endpoint.
+/// (The old design opened a second WS that the backend tried to bind to a ride,
+/// which failed for messenger/food with "no active ride partner found".)
 final class ChatControllerProvider
     extends $NotifierProvider<ChatController, ChatState> {
+  /// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+  /// events from the main SocketService, send via the per-vertical REST endpoint.
+  /// (The old design opened a second WS that the backend tried to bind to a ride,
+  /// which failed for messenger/food with "no active ride partner found".)
   const ChatControllerProvider._({
     required ChatControllerFamily super.from,
     required (String, ChatVertical) super.argument,
@@ -58,7 +70,12 @@ final class ChatControllerProvider
   }
 }
 
-String _$chatControllerHash() => r'278b5256a70abb313038e27df03380ec31180e86';
+String _$chatControllerHash() => r'5437a7c3a90a062ebca384b2a16e9541bb73c8e6';
+
+/// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+/// events from the main SocketService, send via the per-vertical REST endpoint.
+/// (The old design opened a second WS that the backend tried to bind to a ride,
+/// which failed for messenger/food with "no active ride partner found".)
 
 final class ChatControllerFamily extends $Family
     with
@@ -78,12 +95,22 @@ final class ChatControllerFamily extends $Family
         isAutoDispose: true,
       );
 
+  /// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+  /// events from the main SocketService, send via the per-vertical REST endpoint.
+  /// (The old design opened a second WS that the backend tried to bind to a ride,
+  /// which failed for messenger/food with "no active ride partner found".)
+
   ChatControllerProvider call(String jobId, ChatVertical vertical) =>
       ChatControllerProvider._(argument: (jobId, vertical), from: this);
 
   @override
   String toString() => r'chatControllerProvider';
 }
+
+/// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
+/// events from the main SocketService, send via the per-vertical REST endpoint.
+/// (The old design opened a second WS that the backend tried to bind to a ride,
+/// which failed for messenger/food with "no active ride partner found".)
 
 abstract class _$ChatController extends $Notifier<ChatState> {
   late final _$args = ref.$arg as (String, ChatVertical);
