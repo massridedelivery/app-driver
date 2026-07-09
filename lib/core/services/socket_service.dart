@@ -54,6 +54,18 @@ class SocketService with WidgetsBindingObserver {
   /// Set by an intentional [disconnect]; suppresses auto-reconnect.
   bool _intentionalClose = false;
 
+  /// Important actions that must not be silently dropped while offline — they
+  /// are queued and flushed on reconnect. Transient messages (location_update,
+  /// ping) are NOT queued: only the latest state matters, so a stale replay is
+  /// worse than a miss.
+  static const Set<String> _queueableTypes = {
+    'accept_job',
+    'reject_job',
+    'job_status',
+  };
+  static const int _maxPending = 20;
+  final List<String> _pending = [];
+
   final StreamController<SocketMessageModel> _messageController =
       StreamController<SocketMessageModel>.broadcast();
 
@@ -115,6 +127,7 @@ class SocketService with WidgetsBindingObserver {
       _connecting = false;
       _reconnectAttempts = 0;
       _connectionStatusController.add(true);
+      _flushPending();
 
       _subscription = channel.stream.listen(
         (data) {
@@ -197,13 +210,6 @@ class SocketService with WidgetsBindingObserver {
   }
 
   void sendMessage(String type, [Map<String, dynamic>? data]) {
-    if (!_isReady || _channel == null) {
-      if (kDebugMode) {
-        debugPrint('SocketService Warning: Cannot send "$type", socket not ready.');
-      }
-      return;
-    }
-
     final Map<String, dynamic> payload = {
       'type': type,
       if (data != null) 'data': data,
@@ -218,12 +224,44 @@ class SocketService with WidgetsBindingObserver {
     }
 
     final jsonStr = jsonEncode(payload);
+
+    if (!_isReady || _channel == null) {
+      if (_queueableTypes.contains(type)) {
+        _enqueue(jsonStr);
+        if (kDebugMode) debugPrint('SocketService: queued "$type" (offline)');
+      } else if (kDebugMode) {
+        debugPrint('SocketService: dropped "$type" (socket not ready)');
+      }
+      return;
+    }
+
     try {
       _channel!.sink.add(jsonStr);
       if (kDebugMode) debugPrint('SocketService Sent: $jsonStr');
     } catch (e) {
       if (kDebugMode) debugPrint('SocketService: send failed ($type) → $e');
+      if (_queueableTypes.contains(type)) _enqueue(jsonStr);
       _handleDisconnect();
+    }
+  }
+
+  void _enqueue(String jsonStr) {
+    _pending.add(jsonStr);
+    if (_pending.length > _maxPending) _pending.removeAt(0);
+  }
+
+  /// Flush queued important actions once the socket is ready again.
+  void _flushPending() {
+    if (_pending.isEmpty || !_isReady || _channel == null) return;
+    final toSend = List<String>.from(_pending);
+    _pending.clear();
+    for (final msg in toSend) {
+      try {
+        _channel!.sink.add(msg);
+        if (kDebugMode) debugPrint('SocketService: flushed queued message');
+      } catch (_) {
+        _enqueue(msg); // re-queue if the send fails mid-flush
+      }
     }
   }
 
