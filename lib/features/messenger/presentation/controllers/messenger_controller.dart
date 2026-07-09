@@ -72,11 +72,19 @@ class MessengerController extends _$MessengerController {
     _offerTimeout?.cancel();
     state = state.copyWith(isSubmitting: true, errorMessage: '');
 
-    // 1. Accept — a genuine rejection (403 COD-blocked / 409 taken) bounces home.
+    // 1. Accept.
     try {
       await _repo.acceptOrder(offer.id);
     } catch (e) {
       if (kDebugMode) debugPrint('MessengerController: accept failed → $e');
+      // The driver may already have an active order (capacity = 1). Resume that
+      // job instead of bouncing home — they must finish it before taking a new
+      // one. Only a truly idle driver falls through to the error.
+      final existing = await _safeGetActive();
+      if (existing != null) {
+        _goLive(existing);
+        return;
+      }
       state = state.copyWith(
         isSubmitting: false,
         isModalVisible: false,
@@ -87,16 +95,21 @@ class MessengerController extends _$MessengerController {
       return;
     }
 
-    // 2. Accepted. Fetch full detail; if it lags/fails, fall back to the offer
-    //    we already hold so the live screen still opens.
-    MessengerOrder? order;
-    try {
-      order = await _repo.getActiveOrder();
-    } catch (e) {
-      if (kDebugMode) debugPrint('MessengerController: getActiveOrder after accept failed → $e');
-    }
-    order ??= _orderFromOffer(offer);
+    // 2. Accepted. Fetch full detail; if it lags/fails, fall back to the offer.
+    final order = await _safeGetActive() ?? _orderFromOffer(offer);
+    _goLive(order);
+  }
 
+  Future<MessengerOrder?> _safeGetActive() async {
+    try {
+      return await _repo.getActiveOrder();
+    } catch (e) {
+      if (kDebugMode) debugPrint('MessengerController: getActiveOrder failed → $e');
+      return null;
+    }
+  }
+
+  void _goLive(MessengerOrder order) {
     state = state.copyWith(
       activeOrder: order,
       currentOffer: null,
