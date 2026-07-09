@@ -71,18 +71,12 @@ class MessengerController extends _$MessengerController {
     if (offer == null) return;
     _offerTimeout?.cancel();
     state = state.copyWith(isSubmitting: true, errorMessage: '');
+
+    // 1. Accept — a genuine rejection (403 COD-blocked / 409 taken) bounces home.
     try {
       await _repo.acceptOrder(offer.id);
-      final order = await _repo.getActiveOrder();
-      state = state.copyWith(
-        activeOrder: order,
-        currentOffer: null,
-        isModalVisible: false,
-        isSubmitting: false,
-      );
-      AppRouter.router.go('/messenger-live');
     } catch (e) {
-      // 403 COD-blocked / 409 taken surface here.
+      if (kDebugMode) debugPrint('MessengerController: accept failed → $e');
       state = state.copyWith(
         isSubmitting: false,
         isModalVisible: false,
@@ -90,8 +84,45 @@ class MessengerController extends _$MessengerController {
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
       );
       AppRouter.router.go('/home');
+      return;
     }
+
+    // 2. Accepted. Fetch full detail; if it lags/fails, fall back to the offer
+    //    we already hold so the live screen still opens.
+    MessengerOrder? order;
+    try {
+      order = await _repo.getActiveOrder();
+    } catch (e) {
+      if (kDebugMode) debugPrint('MessengerController: getActiveOrder after accept failed → $e');
+    }
+    order ??= _orderFromOffer(offer);
+
+    state = state.copyWith(
+      activeOrder: order,
+      currentOffer: null,
+      isModalVisible: false,
+      isSubmitting: false,
+    );
+    AppRouter.router.go('/messenger-live');
   }
+
+  /// Minimal order built from the offer, used when the active-detail fetch is
+  /// unavailable right after accept (offer carries no recipient PII).
+  MessengerOrder _orderFromOffer(MessengerOffer o) => MessengerOrder(
+        id: o.id,
+        status: 'ACCEPTED',
+        pickupLat: o.pickupLat,
+        pickupLng: o.pickupLng,
+        pickupAddress: o.pickupAddress,
+        dropoffLat: o.dropoffLat,
+        dropoffLng: o.dropoffLng,
+        dropoffAddress: o.dropoffAddress,
+        packageSizeTier: o.packageSizeTier,
+        codAmount: o.codAmount,
+        paymentMethod: o.paymentMethod,
+        distanceKm: o.distanceKm,
+        fare: o.fare,
+      );
 
   Future<void> rejectOffer() async {
     final offer = state.currentOffer;
