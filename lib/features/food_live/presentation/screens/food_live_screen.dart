@@ -13,6 +13,7 @@ import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_s
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
@@ -627,6 +628,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
                     ChatScreen(
                       jobId: currentJob.jobId,
                       passengerName: currentJob.passengerName,
+                      vertical: ChatVertical.food,
                     ),
                   );
                 },

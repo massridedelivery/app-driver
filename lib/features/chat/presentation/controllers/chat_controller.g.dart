@@ -16,7 +16,7 @@ final class ChatControllerProvider
     extends $NotifierProvider<ChatController, ChatState> {
   const ChatControllerProvider._({
     required ChatControllerFamily super.from,
-    required String super.argument,
+    required (String, ChatVertical) super.argument,
   }) : super(
          retry: null,
          name: r'chatControllerProvider',
@@ -32,7 +32,7 @@ final class ChatControllerProvider
   String toString() {
     return r'chatControllerProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -58,7 +58,7 @@ final class ChatControllerProvider
   }
 }
 
-String _$chatControllerHash() => r'131f07bd54633facef22e9eaf9fcb939ed2bab2b';
+String _$chatControllerHash() => r'278b5256a70abb313038e27df03380ec31180e86';
 
 final class ChatControllerFamily extends $Family
     with
@@ -67,7 +67,7 @@ final class ChatControllerFamily extends $Family
           ChatState,
           ChatState,
           ChatState,
-          String
+          (String, ChatVertical)
         > {
   const ChatControllerFamily._()
     : super(
@@ -78,22 +78,23 @@ final class ChatControllerFamily extends $Family
         isAutoDispose: true,
       );
 
-  ChatControllerProvider call(String jobId) =>
-      ChatControllerProvider._(argument: jobId, from: this);
+  ChatControllerProvider call(String jobId, ChatVertical vertical) =>
+      ChatControllerProvider._(argument: (jobId, vertical), from: this);
 
   @override
   String toString() => r'chatControllerProvider';
 }
 
 abstract class _$ChatController extends $Notifier<ChatState> {
-  late final _$args = ref.$arg as String;
-  String get jobId => _$args;
+  late final _$args = ref.$arg as (String, ChatVertical);
+  String get jobId => _$args.$1;
+  ChatVertical get vertical => _$args.$2;
 
-  ChatState build(String jobId);
+  ChatState build(String jobId, ChatVertical vertical);
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build(_$args);
+    final created = build(_$args.$1, _$args.$2);
     final ref = this.ref as $Ref<ChatState, ChatState>;
     final element =
         ref.element

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/features/chat/data/sources/chat_api_service.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 
 @LazySingleton(as: ChatRepository)
@@ -13,13 +14,15 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<List<ChatMessage>> getChatHistory(
-    String jobId, {
+    String id,
+    ChatVertical vertical, {
     int? limit,
     String? before,
   }) async {
     try {
       final response = await _chatApiService.getChatHistory(
-        jobId,
+        id,
+        vertical,
         limit: limit,
         before: before,
       );
@@ -34,15 +37,15 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<bool> sendMessageRest({
-    required String jobId,
-    required String roomId,
+    required String id,
+    required ChatVertical vertical,
     required String msgType,
     required String text,
   }) async {
     try {
       final response = await _chatApiService.sendMessageRest(
-        jobId: jobId,
-        roomId: roomId,
+        id: id,
+        vertical: vertical,
         msgType: msgType,
         text: text,
       );
@@ -55,7 +58,11 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<String> uploadChatImage({required String jobId, required File file}) async {
+  Future<String> uploadChatImage({
+    required String id,
+    required ChatVertical vertical,
+    required File file,
+  }) async {
     try {
       final ext = file.path.split('.').last.toLowerCase();
       String contentType = 'image/jpeg';
@@ -65,7 +72,8 @@ class ChatRepositoryImpl implements ChatRepository {
       // Step 1: GET pre-signed URL
       final presignedResponse = await _chatApiService.getPresignedUploadUrl(
         contentType: contentType,
-        jobId: jobId,
+        id: id,
+        vertical: vertical,
       );
       final data = presignedResponse.data;
       if (data == null) throw Exception('Failed to get presigned upload URL');

@@ -7,16 +7,19 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/controllers/chat_controller.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String jobId;
   final String passengerName;
+  final ChatVertical vertical;
 
   const ChatScreen({
     super.key,
     required this.jobId,
     this.passengerName = 'ผู้โดยสาร',
+    this.vertical = ChatVertical.ride,
   });
 
   @override
@@ -72,7 +75,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final file = File(pickedFile.path);
         if (mounted) {
           await ref
-              .read(chatControllerProvider(widget.jobId).notifier)
+              .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
               .sendImage(file);
           _scrollToBottom();
         }
@@ -148,7 +151,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    ref.read(chatControllerProvider(widget.jobId).notifier).sendMessage(text);
+    ref.read(chatControllerProvider(widget.jobId, widget.vertical).notifier).sendMessage(text);
     _messageController.clear();
     _scrollToBottom();
   }
@@ -157,7 +160,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     // Scroll to bottom when new messages arrive
-    ref.listen<ChatState>(chatControllerProvider(widget.jobId), (prev, next) {
+    ref.listen<ChatState>(chatControllerProvider(widget.jobId, widget.vertical), (prev, next) {
       if (prev != null && prev.messages.length < next.messages.length) {
         Future.delayed(const Duration(milliseconds: 100), () {
           _scrollToBottom();
@@ -178,7 +181,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Consumer(
               builder: (context, ref, child) {
                 final error = ref.watch(
-                  chatControllerProvider(widget.jobId).select((s) => s.error),
+                  chatControllerProvider(widget.jobId, widget.vertical).select((s) => s.error),
                 );
                 if (error == null) return const SizedBox.shrink();
                 return Container(
@@ -207,12 +210,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 builder: (context, ref, child) {
                   final isLoading = ref.watch(
                     chatControllerProvider(
-                      widget.jobId,
+                      widget.jobId, widget.vertical,
                     ).select((s) => s.isLoading),
                   );
                   final messages = ref.watch(
                     chatControllerProvider(
-                      widget.jobId,
+                      widget.jobId, widget.vertical,
                     ).select((s) => s.messages),
                   );
 
@@ -238,7 +241,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               builder: (context, ref, child) {
                 final isSending = ref.watch(
                   chatControllerProvider(
-                    widget.jobId,
+                    widget.jobId, widget.vertical,
                   ).select((s) => s.isSending),
                 );
                 if (!isSending) return const SizedBox.shrink();
@@ -325,7 +328,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               backgroundColor: AppColors.foundationAlphaWhite100,
               onPressed: () {
                 ref
-                    .read(chatControllerProvider(widget.jobId).notifier)
+                    .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
                     .sendMessage(replyText);
                 _scrollToBottom();
               },

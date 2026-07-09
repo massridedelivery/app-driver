@@ -104,6 +104,10 @@ abstract class Endpoints {
   static const driverJobsActive = '/api/driver/jobs/active';
   static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
 
+  /// Cross-vertical "what am I doing now" index (SCRUM-45, v1.6.0-dev20).
+  /// Lean summary — probe for `type`+`id`, then fetch detail per vertical.
+  static const driverActive = '/api/driver/active';
+
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
@@ -140,6 +144,23 @@ abstract class Endpoints {
   static const foodDriverOrdersDelivered =
       '/api/food/driver/orders/:id/delivered';
   static const foodDriverOrdersActive = '/api/food/driver/orders/active';
+
+  // MARK: Messenger (Package Delivery) — SCRUM-41, driver side
+  static const messengerDriverActive = '/api/messenger/driver/orders/active';
+  static const messengerDriverCompleted =
+      '/api/messenger/driver/orders/completed';
+  static const messengerDriverOffer = '/api/messenger/driver/orders/:id/offer';
+  static const messengerDriverAccept =
+      '/api/messenger/driver/orders/:id/accept';
+  static const messengerDriverReject =
+      '/api/messenger/driver/orders/:id/reject';
+  static const messengerDriverArrived =
+      '/api/messenger/driver/orders/:id/arrived';
+  static const messengerDriverPickedUp =
+      '/api/messenger/driver/orders/:id/picked-up';
+  static const messengerDriverDelivered =
+      '/api/messenger/driver/orders/:id/delivered';
+  static const messengerDriverChat = '/api/messenger/driver/orders/:id/chat';
 
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';

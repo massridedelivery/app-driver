@@ -16,10 +16,14 @@ import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
+import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
@@ -114,69 +118,91 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
         if (kDebugMode) debugPrint('HomeScreen: Error fetching location for active check: $e');
       }
 
-      // Query all 3 endpoints in parallel instead of sequentially
-      final results = await Future.wait([
-        repo.getActiveJob(lat: lat, lng: lng).catchError((_) => null),
-        repo.getActiveOffer(lat: lat, lng: lng).catchError((_) => null),
-        repo.getActiveFoodOrder(lat: lat, lng: lng).catchError((_) => null),
-      ]);
+      // 1. Probe the cross-vertical index once (SCRUM-45) instead of firing
+      //    every per-vertical endpoint and guessing which one wins.
+      final active = await repo.getActiveSummary();
 
-      // Pick the first non-null result
-      dynamic activeData;
-      for (final r in results) {
-        if (r != null) {
-          activeData = r;
-          break;
+      if (active.isEmpty) {
+        // No accepted job — recover a pending (pre-accept) offer if one exists.
+        final offer = await repo.getActiveOffer(lat: lat, lng: lng);
+        final offerJson = _extractJobJson(offer);
+        if (offerJson != null && context.mounted) {
+          final job = IncomingJobModel.fromJson(offerJson);
+          ref.read(incomingJobControllerProvider.notifier).receiveJob(job);
+          context.go(AppRoutes.incomingJobNamedPage);
         }
+        return;
       }
 
-      if (activeData != null) {
-        if (kDebugMode) debugPrint('OnlineStatus: Found active job/order. Redirecting...');
+      // Driver holds 0–1 active items; the list is newest-first.
+      final item = active.first;
+      if (kDebugMode) {
+        debugPrint('OnlineStatus: active ${item.type} (${item.status}) → resuming');
+      }
 
-        Map<String, dynamic>? jobJson;
+      // Messenger has its own model/screen — resume it directly (SCRUM-41).
+      if (item.type == ActiveJobType.messenger) {
+        final order = await getIt<MessengerRepository>().getActiveOrder();
+        if (order == null) return;
+        ref.read(messengerControllerProvider.notifier).setActiveOrder(order);
+        if (context.mounted) context.go('/messenger-live');
+        return;
+      }
 
-        if (activeData is Map<String, dynamic>) {
-          if (activeData.containsKey('job')) {
-            jobJson = activeData['job'];
-          } else {
-            jobJson = activeData;
-          }
-        } else if (activeData is List && activeData.isNotEmpty) {
-          final firstItem = activeData.first;
-          if (firstItem is Map<String, dynamic>) {
-            jobJson = firstItem;
-          }
-        }
-
-        if (jobJson != null) {
-          final job = IncomingJobModel.fromJson(jobJson);
-          ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
-
-          if (context.mounted) {
-            final isFood = job.serviceType.toLowerCase().contains('food');
-            if (isFood) {
-              context.go(AppRoutes.foodLiveNamedPage);
-            } else {
-              context.go('/job-live');
-            }
-          }
-        } else {
+      // 2. Fetch full detail from the endpoint matching the item's vertical.
+      dynamic detail;
+      switch (item.type) {
+        case ActiveJobType.ride:
+          detail = await repo.getActiveJob(lat: lat, lng: lng);
+          break;
+        case ActiveJobType.food:
+          detail = await repo.getActiveFoodOrder(lat: lat, lng: lng);
+          break;
+        case ActiveJobType.messenger:
+        case ActiveJobType.unknown:
           if (kDebugMode) {
-            debugPrint(
-              'OnlineStatus: Active data found but could not parse job JSON.',
-            );
+            debugPrint('OnlineStatus: type ${item.type} not supported yet');
           }
-        }
-      } else {
+          return;
+      }
+
+      final jobJson = _extractJobJson(detail);
+      if (jobJson == null) {
         if (kDebugMode) {
-          debugPrint(
-            'OnlineStatus: Status is BUSY but no active job found on any endpoint.',
-          );
+          debugPrint('OnlineStatus: active ${item.type} found but detail unparseable.');
         }
+        return;
+      }
+
+      final job = IncomingJobModel.fromJson(jobJson);
+      ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
+
+      if (!context.mounted) return;
+      if (item.type == ActiveJobType.food) {
+        context.go(AppRoutes.foodLiveNamedPage);
+      } else {
+        // Phase 3: hand the vertical status to the live screen so it resumes
+        // at the correct trip stage instead of restarting at pickup.
+        context.go('/job-live', extra: item.status);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('OnlineStatus: Error checking active job: $e');
     }
+  }
+
+  /// Extracts the job/order JSON from a per-vertical detail response, which may
+  /// be a bare object, a `{ "job": {...} }` wrapper, or a list.
+  Map<String, dynamic>? _extractJobJson(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final job = data['job'];
+      if (job is Map<String, dynamic>) return job;
+      return data;
+    }
+    if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      if (first is Map<String, dynamic>) return first;
+    }
+    return null;
   }
 
   Future<void> setStatus(
@@ -301,8 +327,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
 
-    // Ensure IncomingJobController is initialized early to catch WebSocket messages
+    // Ensure the offer controllers are initialized early to catch WebSocket
+    // messages (job_offer / food_delivery_offer / messenger_offer).
     ref.watch(incomingJobControllerProvider);
+    ref.watch(messengerControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
@@ -313,6 +341,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
             child: _buildSettingsButton(),
+          ),
+          // Persistent indicator when the driver has a job in progress.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 76,
+            left: 16,
+            right: 16,
+            child: const ActiveJobBanner(),
           ),
           profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()

@@ -96,6 +96,12 @@ import 'package:massdrive/features/job_live/data/sources/job_live_api_service.da
     as _i168;
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart'
     as _i106;
+import 'package:massdrive/features/messenger/data/repositories/messenger_repository_impl.dart'
+    as _i570;
+import 'package:massdrive/features/messenger/data/sources/messenger_api_service.dart'
+    as _i251;
+import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart'
+    as _i41;
 import 'package:massdrive/features/profile/data/repositories/profile_repository_impl.dart'
     as _i448;
 import 'package:massdrive/features/profile/data/repositories/vehicle_repository_impl.dart'
@@ -175,6 +181,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i540.AuthApiService>(
       () => _i425.AuthApiServiceImpl(gh<_i361.Dio>()),
     );
+    gh.lazySingleton<_i251.MessengerApiService>(
+      () => _i251.MessengerApiServiceImpl(gh<_i361.Dio>()),
+    );
     gh.lazySingleton<_i190.ProfileApiService>(
       () => _i190.ProfileApiServiceImpl(gh<_i361.Dio>()),
     );
@@ -240,6 +249,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i8.SosRepository>(
       () => _i354.SosRepositoryImpl(gh<_i503.SosApiService>()),
+    );
+    gh.lazySingleton<_i41.MessengerRepository>(
+      () => _i570.MessengerRepositoryImpl(gh<_i251.MessengerApiService>()),
     );
     gh.factory<_i756.GetWalletOverviewUseCase>(
       () =>

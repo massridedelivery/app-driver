@@ -17,8 +17,26 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
+/// Maps a RIDE vertical status (SCRUM-45 §4) to the live trip stage so a
+/// resumed job continues where it left off instead of restarting at pickup.
+/// RIDE uses `ARRIVED_AT_PICK_UP` (middle underscore) — match it exactly.
+JobLiveState jobLiveStageFromStatus(String? status) {
+  switch (status?.toUpperCase()) {
+    case 'ARRIVED_AT_PICK_UP':
+      return JobLiveState.arrivedAtPickup;
+    case 'PICKED_UP':
+      return JobLiveState.headingToDropoff;
+    case 'ACCEPTED':
+    default:
+      return JobLiveState.headingToPickup;
+  }
+}
+
 class JobLiveScreen extends ConsumerStatefulWidget {
-  const JobLiveScreen({super.key});
+  /// Vertical status to resume from (from the active index). Null → fresh trip.
+  final String? initialStatus;
+
+  const JobLiveScreen({super.key, this.initialStatus});
 
   @override
   ConsumerState<JobLiveScreen> createState() => _JobLiveScreenState();
@@ -31,7 +49,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   StreamSubscription? _socketSub;
   final DirectionsService _directionsService = DirectionsService();
 
-  JobLiveState _currentState = JobLiveState.headingToPickup;
+  late JobLiveState _currentState =
+      jobLiveStageFromStatus(widget.initialStatus);
   Set<Polyline> _polylines = {};
 
   @override
