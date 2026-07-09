@@ -326,8 +326,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
 
-    // Ensure IncomingJobController is initialized early to catch WebSocket messages
+    // Ensure the offer controllers are initialized early to catch WebSocket
+    // messages (job_offer / food_delivery_offer / messenger_offer).
     ref.watch(incomingJobControllerProvider);
+    ref.watch(messengerControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
