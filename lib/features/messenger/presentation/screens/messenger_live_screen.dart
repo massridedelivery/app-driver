@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -54,6 +55,24 @@ class MessengerLiveScreen extends ConsumerWidget {
             zoomControlsEnabled: false,
             myLocationButtonEnabled: false,
           ),
+          // Navigation button — routes to the current target in Google Maps.
+          Positioned(
+            right: 16,
+            top: 160,
+            child: GestureDetector(
+              onTap: () => _openNavigation(context, target),
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: AppColors.semanticSuccessBgHigh,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.navigation,
+                    color: AppColors.semanticGrayNeutralFgWhite),
+              ),
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: _LiveSheet(order: order, isSubmitting: state.isSubmitting),
@@ -61,6 +80,28 @@ class MessengerLiveScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Opens Google Maps turn-by-turn navigation to [dest] (Android navigation
+  /// scheme, with a universal web fallback for iOS).
+  Future<void> _openNavigation(BuildContext context, LatLng dest) async {
+    final navUri = Uri.parse(
+        'google.navigation:q=${dest.latitude},${dest.longitude}&mode=d');
+    final fallbackUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${dest.latitude},${dest.longitude}&travelmode=driving');
+    try {
+      if (await canLaunchUrl(navUri)) {
+        await launchUrl(navUri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถเปิดแอปนำทางได้')),
+        );
+      }
+    }
   }
 }
 
