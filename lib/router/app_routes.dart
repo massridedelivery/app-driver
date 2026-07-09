@@ -148,8 +148,16 @@ class AppRouter {
       ),
       GoRoute(
         path: '/payment',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: PaymentScreen()),
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return NoTransitionPage(
+            child: PaymentScreen(
+              amount: (extra?['amount'] as num?)?.toDouble(),
+              methodLabel: extra?['method'] as String?,
+              title: extra?['title'] as String?,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.documentRegistrationChecklistNamedPage,

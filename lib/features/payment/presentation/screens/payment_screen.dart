@@ -13,10 +13,19 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final String passengerName;
   final double baseFare;
 
+  /// Explicit collect amount/method/title for verticals that don't use the
+  /// ride IncomingJobController (e.g. messenger passes its order `fare`).
+  final double? amount;
+  final String? methodLabel;
+  final String? title;
+
   const PaymentScreen({
     super.key,
     this.passengerName = 'Kittidet',
     this.baseFare = 0.0,
+    this.amount,
+    this.methodLabel,
+    this.title,
   });
 
   @override
@@ -34,6 +43,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   double get _others => double.tryParse(_othersController.text) ?? 0.0;
 
   double get _baseFare =>
+      widget.amount ??
       ref.read(incomingJobControllerProvider).currentJob?.netIncome ??
       widget.baseFare;
 
@@ -70,7 +80,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget build(BuildContext context) {
     final jobState = ref.watch(incomingJobControllerProvider);
     final job = jobState.currentJob;
-    final paymentMethodStr = job?.paymentMethod ?? 'cash';
+    final paymentMethodStr =
+        widget.methodLabel ?? job?.paymentMethod ?? 'cash';
 
     _currentMethod ??=
         (paymentMethodStr.toLowerCase().contains('qr') ||
@@ -89,7 +100,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          "รายการชำระเงินของ ${job?.passengerName ?? widget.passengerName}",
+          "รายการชำระเงินของ ${widget.title ?? job?.passengerName ?? widget.passengerName}",
           style: AppTypography.heading6.copyWith(color: Colors.white),
         ),
         centerTitle: true,

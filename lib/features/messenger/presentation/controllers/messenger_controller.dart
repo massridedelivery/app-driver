@@ -175,9 +175,16 @@ class MessengerController extends _$MessengerController {
   }
 
   Future<void> delivered() async {
+    final order = state.activeOrder;
+    if (order == null) return;
     if (await _runAction((id) => _repo.deliveredOrder(id))) {
       state = state.copyWith(activeOrder: null);
-      AppRouter.router.go('/payment');
+      // Collect the delivery fare (+ COD goods value, if any) in cash.
+      AppRouter.router.go('/payment', extra: {
+        'amount': order.fare + order.codAmount,
+        'method': order.paymentMethod,
+        'title': order.recipientName ?? 'ลูกค้า',
+      });
     }
   }
 
