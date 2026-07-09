@@ -18,6 +18,7 @@ abstract class ChatApiService {
     required ChatVertical vertical,
     required String msgType,
     required String text,
+    String? fileKey,
   });
 
   /// Requests a pre-signed S3/MinIO upload URL for chat media.
@@ -70,6 +71,7 @@ class ChatApiServiceImpl implements ChatApiService {
     required ChatVertical vertical,
     required String msgType,
     required String text,
+    String? fileKey,
   }) async {
     return await _dio.post<Map<String, dynamic>>(
       vertical.chatPath(id),
@@ -77,6 +79,7 @@ class ChatApiServiceImpl implements ChatApiService {
         'room_id': vertical.roomId(id),
         'msg_type': msgType,
         'text': text,
+        if (fileKey != null) 'file_key': fileKey,
       },
     );
   }

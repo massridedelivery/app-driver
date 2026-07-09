@@ -11,7 +11,8 @@ abstract class ChatRepository {
     String? before,
   });
 
-  /// Uploads an image file to S3/MinIO for chat and returns the file view URL.
+  /// Uploads an image file to S3/MinIO for chat and returns its `file_key`
+  /// (to be sent with an `image` message; the backend resolves it to a URL).
   Future<String> uploadChatImage({
     required String id,
     required ChatVertical vertical,
@@ -24,5 +25,6 @@ abstract class ChatRepository {
     required ChatVertical vertical,
     required String msgType,
     required String text,
+    String? fileKey,
   });
 }

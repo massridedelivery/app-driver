@@ -41,6 +41,7 @@ class ChatRepositoryImpl implements ChatRepository {
     required ChatVertical vertical,
     required String msgType,
     required String text,
+    String? fileKey,
   }) async {
     try {
       final response = await _chatApiService.sendMessageRest(
@@ -48,6 +49,7 @@ class ChatRepositoryImpl implements ChatRepository {
         vertical: vertical,
         msgType: msgType,
         text: text,
+        fileKey: fileKey,
       );
       final data = response.data;
       return data?['message'] == 'sent' || response.statusCode == 201;
@@ -97,15 +99,9 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Media confirmation failed for file_key: $fileKey');
       }
 
-      // Step 4: GET pre-signed view URL
-      final viewResponse = await _chatApiService.getMediaViewUrl(fileKey);
-      final viewData = viewResponse.data;
-      final String viewUrl = viewData?['view_url'] as String? ?? '';
-      if (viewUrl.isEmpty) {
-        throw Exception('Failed to get media view URL');
-      }
-
-      return viewUrl;
+      // The image message is sent via REST with this file_key; the backend
+      // resolves it to a view URL when it broadcasts the message back.
+      return fileKey;
     } catch (e) {
       debugPrint('ChatRepository: uploadChatImage error: $e');
       rethrow;
