@@ -16,6 +16,7 @@ import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
+import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -340,6 +341,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
             child: _buildSettingsButton(),
+          ),
+          // Persistent indicator when the driver has a job in progress.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 76,
+            left: 16,
+            right: 16,
+            child: const ActiveJobBanner(),
           ),
           profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()
