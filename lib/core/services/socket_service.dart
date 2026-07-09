@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -15,14 +17,25 @@ part 'socket_service.g.dart';
 @Riverpod(keepAlive: true)
 SocketService socketService(ref) {
   final service = SocketService();
-  ref.onDispose(() => service.disconnect());
+  ref.onDispose(service.dispose);
   return service;
 }
 
-class SocketService {
+class SocketService with WidgetsBindingObserver {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   Timer? _reconnectTimer;
+
+  SocketService() {
+    WidgetsBinding.instance.addObserver(this);
+    // Reconnect the moment the network comes back instead of waiting for the
+    // next backoff tick.
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final hasNetwork = results.any((r) => r != ConnectivityResult.none);
+      if (hasNetwork) _reconnectNow();
+    });
+  }
 
   /// Socket-level ping/pong keep-alive: detects half-open (silently dead)
   /// connections and closes them → onDone → reconnect.
@@ -168,6 +181,21 @@ class SocketService {
     _channel = null;
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Sockets are frozen/killed in the background; re-establish on resume.
+    if (state == AppLifecycleState.resumed) _reconnectNow();
+  }
+
+  /// Reconnect immediately (skip the backoff wait) after a resume / network
+  /// regain — but only if we're meant to be connected.
+  void _reconnectNow() {
+    if (_intentionalClose || _isReady || _connecting) return;
+    _reconnectAttempts = 0;
+    _reconnectTimer?.cancel();
+    connect();
+  }
+
   void sendMessage(String type, [Map<String, dynamic>? data]) {
     if (!_isReady || _channel == null) {
       if (kDebugMode) {
@@ -233,5 +261,14 @@ class SocketService {
     _reconnectTimer = null;
     _reconnectAttempts = 0;
     _cleanupChannel();
+  }
+
+  /// Full teardown when the provider is disposed — also detaches the lifecycle
+  /// observer and connectivity listener.
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    disconnect();
   }
 }
