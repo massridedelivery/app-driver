@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/qr_image.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -350,39 +350,6 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
     return '$m:$s';
   }
 
-  static const _qrFallback = Icon(Icons.qr_code, size: 160, color: Colors.black);
-
-  /// Renders the PromptPay QR from either an http(s) URL (Omise) or a base64
-  /// `data:image/...;base64,…` URI (Beam), per the gateway switcher — SCRUM-42 §2.
-  Widget _buildQrImage(String qrCodeUrl) {
-    if (qrCodeUrl.isEmpty) return _qrFallback;
-
-    if (qrCodeUrl.startsWith('data:')) {
-      try {
-        final commaIndex = qrCodeUrl.indexOf(',');
-        final base64Part =
-            commaIndex >= 0 ? qrCodeUrl.substring(commaIndex + 1) : qrCodeUrl;
-        final bytes = base64Decode(base64Part);
-        return Image.memory(
-          bytes,
-          width: 180,
-          height: 180,
-          gaplessPlayback: true,
-          errorBuilder: (_, _, _) => _qrFallback,
-        );
-      } catch (_) {
-        return _qrFallback;
-      }
-    }
-
-    return Image.network(
-      qrCodeUrl,
-      width: 180,
-      height: 180,
-      errorBuilder: (_, _, _) => _qrFallback,
-    );
-  }
-
   Widget _buildQRScreen(Map<String, dynamic> result) {
     if (_intentStatus == 'PAID') return _buildSuccessScreen();
 
@@ -428,7 +395,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(child: _buildQrImage(qrCodeUrl)),
+                    child: Center(child: QrImage(source: qrCodeUrl)),
                   ),
                   // Dim the QR once it can no longer be paid.
                   if (canRetry)
