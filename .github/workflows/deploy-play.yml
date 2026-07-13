@@ -64,12 +64,13 @@ jobs:
 
       # versionCode = run number + offset. The offset clears the versionCode of
       # the first bundle uploaded manually (1), so this never collides. The run
-      # number keeps every subsequent upload unique and increasing.
+      # number keeps every subsequent upload unique and increasing. Arithmetic
+      # is done in the shell because Actions expressions have no "+" operator.
       - name: Build signed app bundle
         run: |
           flutter build appbundle --release \
             --dart-define-from-file=config/preprod.json \
-            --build-number=${{ github.run_number + 10 }}
+            --build-number=$((GITHUB_RUN_NUMBER + 10))
 
       - name: Upload to Play (internal track)
         uses: r0adkll/upload-google-play@v1
