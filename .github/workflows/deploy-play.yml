@@ -62,13 +62,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Build number = run number guarantees a unique, increasing versionCode
-      # so Play never rejects the upload as a duplicate.
+      # versionCode = run number + offset. The offset clears the versionCode of
+      # the first bundle uploaded manually (1), so this never collides. The run
+      # number keeps every subsequent upload unique and increasing.
       - name: Build signed app bundle
         run: |
           flutter build appbundle --release \
             --dart-define-from-file=config/preprod.json \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ github.run_number + 10 }}
 
       - name: Upload to Play (internal track)
         uses: r0adkll/upload-google-play@v1
