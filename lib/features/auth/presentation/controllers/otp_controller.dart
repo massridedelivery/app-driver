@@ -6,6 +6,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'otp_controller.g.dart';
 
+enum OtpVerifyResult { home, registrationChecklist, error }
+
 @riverpod
 class OtpController extends _$OtpController {
   @override
@@ -15,23 +17,31 @@ class OtpController extends _$OtpController {
     state = state.copyWith(otpCode: code, errorMessage: '');
   }
 
-  Future<bool> verifyOtp(String phone) async {
+  /// [isRegistered] — value from /auth/otp/send response.
+  /// After a successful verify:
+  ///   - isRegistered == true  → navigate to Home
+  ///   - isRegistered == false → navigate to Registration Checklist
+  Future<OtpVerifyResult> verifyOtp(
+    String phone, {
+    bool isRegistered = true,
+    String refId = '',
+  }) async {
     if (state.otpCode.length < 6) {
       state = state.copyWith(errorMessage: 'Please enter 6-digit OTP');
-      return false;
+      return OtpVerifyResult.error;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       final verifyOtpUseCase = getIt<VerifyOtpUseCase>();
-      await verifyOtpUseCase.execute(phone, state.otpCode);
+      await verifyOtpUseCase.execute(phone, state.otpCode, refId: refId);
       state = state.copyWith(isLoading: false);
-      // Trigger Auth update so main app router knows user is logged in
+      // Refresh auth state so the router knows the user is now logged in
       ref.read(authControllerProvider.notifier).refresh();
-      return true; // Navigate to Home
+      return isRegistered ? OtpVerifyResult.home : OtpVerifyResult.registrationChecklist;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
-      return false;
+      return OtpVerifyResult.error;
     }
   }
 }

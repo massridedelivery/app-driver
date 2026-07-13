@@ -28,7 +28,7 @@ class ProfileController extends _$ProfileController {
     }
   }
 
-  Future<bool> updateVehicleDetails(Map<String, dynamic> data) async {
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
     state = state.copyWith(isUpdating: true, errorMessage: null);
     try {
       await _repository.updateProfile(data);

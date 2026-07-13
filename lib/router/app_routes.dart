@@ -18,6 +18,9 @@ import 'package:massdrive/features/payment/presentation/screens/payment_screen.d
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/food_live/presentation/screens/food_live_screen.dart';
+import 'package:massdrive/features/messenger/presentation/screens/messenger_offer_screen.dart';
+import 'package:massdrive/features/messenger/presentation/screens/messenger_live_screen.dart';
+import 'package:massdrive/features/messenger/presentation/screens/messenger_history_screen.dart';
 
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
@@ -59,8 +62,17 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.otpNamedPage,
         pageBuilder: (context, state) {
-          final phone = state.extra as String? ?? '';
-          return NoTransitionPage(child: OtpScreen(phoneNumber: phone));
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final phone = extra['phone'] as String? ?? '';
+          final refId = extra['refId'] as String? ?? '';
+          final isRegistered = extra['isRegistered'] as bool? ?? true;
+          return NoTransitionPage(
+            child: OtpScreen(
+              phoneNumber: phone,
+              refId: refId,
+              isRegistered: isRegistered,
+            ),
+          );
         },
       ),
       GoRoute(
@@ -110,8 +122,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/job-live',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: JobLiveScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: JobLiveScreen(initialStatus: state.extra as String?),
+        ),
       ),
       GoRoute(
         path: AppRoutes.foodLiveNamedPage,
@@ -119,9 +132,32 @@ class AppRouter {
             const NoTransitionPage(child: FoodLiveScreen()),
       ),
       GoRoute(
-        path: '/payment',
+        path: '/messenger-offer',
         pageBuilder: (context, state) =>
-            const NoTransitionPage(child: PaymentScreen()),
+            const NoTransitionPage(child: MessengerOfferScreen()),
+      ),
+      GoRoute(
+        path: '/messenger-live',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: MessengerLiveScreen()),
+      ),
+      GoRoute(
+        path: '/messenger-history',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: MessengerHistoryScreen()),
+      ),
+      GoRoute(
+        path: '/payment',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return NoTransitionPage(
+            child: PaymentScreen(
+              amount: (extra?['amount'] as num?)?.toDouble(),
+              methodLabel: extra?['method'] as String?,
+              title: extra?['title'] as String?,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.documentRegistrationChecklistNamedPage,

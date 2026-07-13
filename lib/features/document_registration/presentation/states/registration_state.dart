@@ -21,6 +21,8 @@ class RegistrationState {
   // Step 4
   final bool isDrivingLicenseComplete;
 
+  final bool isPublicDrivingLicenseComplete;
+
   // Step 5
   final bool isVehicleInfoComplete;
 
@@ -53,6 +55,7 @@ class RegistrationState {
     this.isProfilePhotoComplete = false,
     this.isIdCardComplete = false,
     this.isDrivingLicenseComplete = false,
+    this.isPublicDrivingLicenseComplete = false,
     this.isVehicleInfoComplete = false,
     this.isVehiclePhotoComplete = false,
     this.isInsuranceComplete = false,
@@ -74,21 +77,22 @@ class RegistrationState {
     if (!isProfileComplete ||
         !isIdCardComplete ||
         !isBankAccountComplete ||
-        !isProfilePhotoComplete) {
+        !isProfilePhotoComplete ||
+        !isDrivingLicenseComplete) {
       return false;
     }
 
     // Tier specific requirements
     if (selectedTier == KycTier.food) {
-      return isDrivingLicenseComplete;
+      return true;
     } else if (selectedTier == KycTier.ride) {
-      return isDrivingLicenseComplete &&
+      return isPublicDrivingLicenseComplete &&
           isVehicleInfoComplete &&
           isVehiclePhotoComplete &&
           isInsuranceComplete;
     } else {
       // BOTH
-      return isDrivingLicenseComplete &&
+      return isPublicDrivingLicenseComplete &&
           isVehicleInfoComplete &&
           isVehiclePhotoComplete &&
           isInsuranceComplete;
@@ -102,6 +106,7 @@ class RegistrationState {
     bool? isProfilePhotoComplete,
     bool? isIdCardComplete,
     bool? isDrivingLicenseComplete,
+    bool? isPublicDrivingLicenseComplete,
     bool? isVehicleInfoComplete,
     bool? isVehiclePhotoComplete,
     bool? isInsuranceComplete,
@@ -124,6 +129,8 @@ class RegistrationState {
       isIdCardComplete: isIdCardComplete ?? this.isIdCardComplete,
       isDrivingLicenseComplete:
           isDrivingLicenseComplete ?? this.isDrivingLicenseComplete,
+      isPublicDrivingLicenseComplete:
+          isPublicDrivingLicenseComplete ?? this.isPublicDrivingLicenseComplete,
       isVehicleInfoComplete:
           isVehicleInfoComplete ?? this.isVehicleInfoComplete,
       isVehiclePhotoComplete:

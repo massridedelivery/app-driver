@@ -4,7 +4,10 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
+import 'package:massdrive/core/utils/string_util.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 
 class EditProfileScreen extends ConsumerWidget {
   const EditProfileScreen({super.key});
@@ -21,6 +24,15 @@ class EditProfileScreen extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    String? profilePhotoUrl;
+    for (final doc in profile.documents) {
+      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
+        profilePhotoUrl = doc.mediaUrl;
+        break;
+      }
+    }
+
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
       backgroundColor: const Color(0xFF0F0F0F),
@@ -33,17 +45,32 @@ class EditProfileScreen extends ConsumerWidget {
 
             _SectionHeader(title: "ข้อมูลส่วนตัว"),
 
-            _ProfileImageTile(),
+            _ProfileImageTile(imageUrl: profilePhotoUrl),
 
-            _InfoTile(title: "ชื่อ", value: profile.fullName),
+            _InfoTile(
+              title: "ชื่อ",
+              value: profile.fullName.blindName(),
+              showArrow: true,
+              onTap: () {
+                _showUpdateNameSheet(context, ref, profile.fullName);
+              },
+            ),
 
             _InfoTile(
               title: "หมายเลขโทรศัพท์มือถือ",
-              value: profile.phone ?? "ยังไม่ได้กรอกข้อมูล",
+              value: profile.phone != null
+                  ? profile.phone!.blindPhone()
+                  : "ยังไม่ได้กรอกข้อมูล",
               showArrow: true,
+              onTap: () {
+                _showUpdatePhoneSheet(context, ref, profile.phone ?? "");
+              },
             ),
 
-            _InfoTile(title: "ที่อยู่อีเมล", value: profile.userId),
+            _InfoTile(
+              title: "ที่อยู่อีเมล",
+              value: profile.userId.blindEmailOrUuid(),
+            ),
 
             _InfoTile(
               title: "รายชื่อผู้ติดต่อฉุกเฉิน",
@@ -68,16 +95,16 @@ class EditProfileScreen extends ConsumerWidget {
 
             if (profile.vehiclePlate != null && profile.vehicleModel != null)
               _VehicleTile(
-                plate: profile.vehiclePlate!,
+                plate: profile.vehiclePlate!.blindPlate(),
                 vehicle: profile.vehicleModel!,
                 isPrimary: true,
                 onTap: () {
-                  // _showUpdateVehicleSheet(
-                  //   context,
-                  //   ref,
-                  //   profile.vehiclePlate!,
-                  //   profile.vehicleModel!,
-                  // );
+                  _showUpdateVehicleSheet(
+                    context,
+                    ref,
+                    profile.vehiclePlate!,
+                    profile.vehicleModel!,
+                  );
                 },
               )
             else
@@ -98,6 +125,9 @@ class EditProfileScreen extends ConsumerWidget {
               title: "",
               value: "เลือกเอกสารที่ต้องการอัปเดต",
               showArrow: true,
+              onTap: () {
+                AppNavigator.push(context, const RegistrationChecklistScreen());
+              },
             ),
 
             const SizedBox(height: 24),
@@ -169,13 +199,13 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: AppColors.foundationGreen600,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
                     final success = await ref
                         .read(profileControllerProvider.notifier)
-                        .updateVehicleDetails({
+                        .updateProfile({
                           "vehicle_plate": plateController.text,
                           "vehicle_model": modelController.text,
                         });
@@ -185,7 +215,163 @@ class EditProfileScreen extends ConsumerWidget {
                       ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
                     }
                   },
-                  child: const Text("บันทึก"),
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUpdateNameSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String currentName,
+  ) {
+    final nameController = TextEditingController(text: currentName);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E2F38),
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "อัปเดตชื่อ",
+                style: AppTypography.heading3.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "ชื่อ - นามสกุล",
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.foundationGreen600,
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final success = await ref
+                        .read(profileControllerProvider.notifier)
+                        .updateProfile({
+                      "full_name": nameController.text,
+                    });
+                    if (success) {
+                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
+                    } else {
+                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
+                    }
+                  },
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUpdatePhoneSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String currentPhone,
+  ) {
+    final phoneController = TextEditingController(text: currentPhone);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E2F38),
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "อัปเดตหมายเลขโทรศัพท์มือถือ",
+                style: AppTypography.heading3.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: "หมายเลขโทรศัพท์มือถือ",
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.foundationGreen600,
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final success = await ref
+                        .read(profileControllerProvider.notifier)
+                        .updateProfile({
+                      "phone": phoneController.text,
+                    });
+                    if (success) {
+                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
+                    } else {
+                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
+                    }
+                  },
+                  child: Text(
+                    "บันทึก",
+                    style: AppTypography.heading5.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -217,10 +403,12 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _ProfileImageTile extends StatelessWidget {
-  const _ProfileImageTile();
+  final String? imageUrl;
+  const _ProfileImageTile({this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
@@ -229,9 +417,17 @@ class _ProfileImageTile extends StatelessWidget {
           color: AppColors.semanticGrayNeutralBgWhite,
         ),
       ),
-      trailing: const CircleAvatar(
+      trailing: CircleAvatar(
         radius: 24,
-        backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=3"),
+        backgroundColor: Colors.grey[800],
+        backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
+        child: !hasImage
+            ? const Icon(
+                Icons.person,
+                color: Colors.white70,
+                size: 24,
+              )
+            : null,
       ),
     );
   }
@@ -242,12 +438,14 @@ class _InfoTile extends StatelessWidget {
   final String value;
   final bool showArrow;
   final IconData? leadingIcon;
+  final VoidCallback? onTap;
 
   const _InfoTile({
     required this.title,
     required this.value,
     this.showArrow = false,
     this.leadingIcon,
+    this.onTap,
   });
 
   @override
@@ -279,6 +477,7 @@ class _InfoTile extends StatelessWidget {
                   color: AppColors.semanticGrayNeutralFgLowOnGray,
                 )
               : null,
+          onTap: onTap,
         ),
         const Divider(color: Colors.white12, height: 1),
       ],

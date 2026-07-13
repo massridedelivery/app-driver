@@ -171,9 +171,15 @@ class LoginScreen extends ConsumerWidget {
                                 : () async {
                                     final success = await controller.loginWithPhone();
                                     if (success && context.mounted) {
+                                      // Read fresh state AFTER loginWithPhone() updates refId/isRegistered
+                                      final freshState = ref.read(loginControllerProvider);
                                       context.push(
                                         AppRoutes.otpNamedPage,
-                                        extra: state.phoneNumber,
+                                        extra: {
+                                          'phone': freshState.phoneNumber,
+                                          'refId': freshState.refId,
+                                          'isRegistered': freshState.isRegistered,
+                                        },
                                       );
                                     }
                                   },

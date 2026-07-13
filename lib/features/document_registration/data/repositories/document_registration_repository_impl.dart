@@ -70,10 +70,12 @@ class DocumentRegistrationRepositoryImpl
 
   @override
   Future<void> submitBankDetails(BankAccountInfo info) async {
-    // Currently no API specifically defined in driver_integration.md for submitting Bank Details only
-    // This could also be an updateProfile
-    print("MOCK Action: submitBankDetails for ${info.accountName}");
-    await Future.delayed(const Duration(milliseconds: 500));
+    final docs = await fetchDocuments();
+    final bankPassbookDoc = docs.firstWhere(
+      (d) => d.docType == 'bank_passbook',
+      orElse: () => throw Exception('กรุณาอัปโหลดรูปภาพสมุดบัญชีธนาคารก่อนบันทึก'),
+    );
+    await _api.updatePayoutMethod(info, bankPassbookDoc.imageUrl);
   }
 
   @override
@@ -92,7 +94,7 @@ class DocumentRegistrationRepositoryImpl
     final data = response.data!;
     // is_verified from /api/driver/profile is the single source of truth.
     // Only return approved when the backend explicitly confirms it.
-    final bool isVerified = data['verified'] ?? false;
+    final bool isVerified = data['is_verified'] as bool? ?? false;
 
     if (isVerified) {
       return RegistrationStatusInfo(
@@ -147,5 +149,34 @@ class DocumentRegistrationRepositoryImpl
       rejectedReasons: [],
       missingDocuments: [],
     );
+  }
+
+  @override
+  Future<void> submitBankPayoutDetails(BankAccountInfo info, File file) async {
+    await _api.uploadBankPassbook(file, info);
+  }
+
+  @override
+  Future<BankAccountInfo?> fetchPayoutMethod() async {
+    final response = await _api.fetchPayoutMethod();
+    if (response == null) return null;
+    try {
+      Map<String, dynamic> methodData = response;
+      if (response.containsKey('method') && response['method'] is Map) {
+        methodData = response['method'] as Map<String, dynamic>;
+      }
+      final type = methodData['type'] as String?;
+      if (type != 'bank_transfer') return null;
+      final details = methodData['details'] as Map<String, dynamic>?;
+      if (details == null) return null;
+      return BankAccountInfo(
+        bankName: details['bank_name'] as String? ?? '',
+        accountNumber: details['account_number'] as String? ?? '',
+        accountName: details['account_name'] as String? ?? '',
+      );
+    } catch (e) {
+      debugPrint('Error parsing payout method: $e');
+      return null;
+    }
   }
 }

@@ -12,7 +12,7 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     String? phone,
     @Default(0.0) double rating,
     @JsonKey(name: 'total_trips') @Default(0) int totalTrips,
-    @JsonKey(name: 'verified') @Default(false) bool isVerified,
+    @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
     @Default([]) List<DocumentEntity> documents,
     @JsonKey(name: 'vehicle_type_ids') @Default([]) List<String> vehicleTypeIds,
     @JsonKey(name: 'vehicle_types')

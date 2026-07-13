@@ -51,5 +51,12 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>GMSApiKey</key>
+		<string>$(MAPS_API_KEY)</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>comgooglemaps</string>
+			<string>google.navigation</string>
+		</array>
 	</dict>
 </plist>

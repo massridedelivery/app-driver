@@ -5,8 +5,10 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -180,27 +182,70 @@ class _SettingTile extends StatelessWidget {
   }
 }
 
-class _AccountTile extends StatelessWidget {
+class _AccountTile extends ConsumerWidget {
   const _AccountTile();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(profileControllerProvider);
+    final profile = profileState.profile;
+
+    if (profile == null) {
+      if (!profileState.isLoading) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(profileControllerProvider.notifier).fetchProfile();
+        });
+      }
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        title: const SizedBox(
+          height: 16,
+          width: 120,
+          child: LinearProgressIndicator(
+            backgroundColor: Colors.white10,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white30),
+          ),
+        ),
+        subtitle: const SizedBox(height: 8),
+        trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+        onTap: () {
+          AppNavigator.push(context, const EditProfileScreen());
+        },
+      );
+    }
+
+    final blindedName = profile.fullName.blindName();
+    final phone = profile.phone ?? '';
+    final plate = profile.vehiclePlate ?? '';
+    final blindedPhone = phone.blindPhone();
+    final blindedPlate = plate.blindPlate();
+
+    final subtitleParts = <String>[];
+    if (blindedPlate.isNotEmpty) {
+      subtitleParts.add(blindedPlate);
+    }
+    if (blindedPhone.isNotEmpty) {
+      subtitleParts.add(blindedPhone);
+    }
+    final subtitleText = subtitleParts.isNotEmpty
+        ? subtitleParts.join(' • ')
+        : 'ไม่มีข้อมูลยานพาหนะและเบอร์โทรศัพท์';
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(
-        "(MB)ธนนันต์ อนุรักษ์ศิลปกุล",
+        blindedName,
         style: AppTypography.caption3.copyWith(
           color: AppColors.semanticGrayNeutralBgWhite,
         ),
       ),
       subtitle: Text(
-        "8กส418 • +66 892616445",
+        subtitleText,
         style: AppTypography.caption4.copyWith(
           color: AppColors.foundationAlphaWhite400,
         ),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-
       onTap: () {
         AppNavigator.push(context, const EditProfileScreen());
       },

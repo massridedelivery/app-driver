@@ -99,8 +99,23 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
           .read(registrationControllerProvider.notifier)
           .submitVehicleDetails(info, _selectedImage);
 
-      if (success && mounted) {
-        context.pop();
+      if (mounted) {
+        if (success) {
+          context.pop();
+        } else {
+          final error = ref.read(registrationControllerProvider).errorMessage;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.foundationRed800,
+              content: Text(
+                error ?? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralFgWhite,
+                ),
+              ),
+            ),
+          );
+        }
       }
     }
   }
