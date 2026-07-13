@@ -1,4 +1,4 @@
-package com.example.massdrive
+package com.massapp.massdrive
 
 import io.flutter.embedding.android.FlutterActivity
 

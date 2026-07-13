@@ -1,60 +1,37 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+/// Build-time configuration injected via `--dart-define` /
+/// `--dart-define-from-file` (see `config/*.json`).
+///
+/// Defaults point to the dev environment so a plain `flutter run` works
+/// without any extra flags.
 class EnvironmentConfig {
-  final String flavorName;
-  final String region;
+  static const String env = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: Environments.dev,
+  );
 
-  const EnvironmentConfig({required this.flavorName, required this.region});
+  static const String apiUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://driver-api-dev.nutchaphut.dev',
+  );
 
-  static EnvironmentConfig? _instance;
-
-  static EnvironmentConfig getInstance({
-    required String flavorName,
-    required String region,
-  }) {
-    if (_instance == null) {
-      _instance = EnvironmentConfig(flavorName: flavorName, region: region);
-      return _instance!;
-    }
-    return _instance!;
+  /// WebSocket base URL. Defaults to [apiUrl] with the scheme swapped
+  /// (https -> wss), so a single API_BASE_URL define covers both.
+  static String get wsUrl {
+    const override = String.fromEnvironment('WS_BASE_URL');
+    if (override.isNotEmpty) return override;
+    return apiUrl.replaceFirst('http', 'ws');
   }
 
-  static String get fileName {
-    if (_instance!.flavorName == Environments.dev) {
-      return '.env.dev.${_instance!.region}';
-    } else if (_instance?.flavorName == Environments.uat) {
-      return '.env.uat.${_instance!.region}';
-    } else if (_instance!.flavorName == Environments.prod) {
-      return '.env.prod.${_instance!.region}';
-    } else {
-      return '';
-    }
-  }
+  static const String hostUrl = String.fromEnvironment('HOST_URL');
 
-  static String get env {
-    return _instance?.flavorName ?? '';
-  }
+  static const String schema = String.fromEnvironment('SCHEMA');
 
-  // get value from file .env.*
-  static String get apiUrl {
-    return dotenv.env['API_URL'] ?? 'API_URL not found';
-  }
+  static const String countryCode = String.fromEnvironment(
+    'REGION',
+    defaultValue: Regions.thailand,
+  );
 
-  static String get schema {
-    return dotenv.env['SCHEMA'] ?? '';
-  }
-
-  static String get countryCode {
-    return dotenv.env['REGION'] ?? '';
-  }
-
-  static String get hostUrl {
-    return dotenv.env['HOST_URL'] ?? '';
-  }
-
-  static String get omiseApiKey {
-    return const .fromEnvironment('OMISE_API_KEY');
-  }
+  static const String omiseApiKey = String.fromEnvironment('OMISE_API_KEY');
 }
 
 class Environments {
@@ -66,6 +43,9 @@ class Environments {
 
   /// preset of common env name 'dev'
   static const dev = 'dev';
+
+  /// preset of common env name 'preprod'
+  static const preprod = 'preprod';
 
   /// preset of common env name 'prod'
   static const prod = 'prod';

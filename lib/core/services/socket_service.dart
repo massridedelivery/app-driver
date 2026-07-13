@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -41,8 +42,7 @@ class SocketService {
   bool get isConnected => _channel != null;
 
   String _buildWebSocketUrl(String token) {
-    // Hardcoding development URL to match AuthApiServiceImpl and avoid EnvironmentConfig issues
-    const baseUrl = 'wss://driver-api-dev.nutchaphut.dev';
+    final baseUrl = EnvironmentConfig.wsUrl;
 
     // Ensure token is clean of whitespace/newlines
     final cleanToken = token.trim();

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interceptor.dart';
@@ -19,7 +20,7 @@ abstract class NetworkModule {
   Dio get dio {
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'https://driver-api-dev.nutchaphut.dev',
+        baseUrl: EnvironmentConfig.apiUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {'Content-Type': 'application/json'},
