@@ -31,9 +31,9 @@ class MediaApiServiceImpl implements MediaApiService {
   Future<Response<Map<String, dynamic>>> getUploadUrl(
     Map<String, dynamic> data,
   ) async {
-    return await _dio.post<Map<String, dynamic>>(
+    return await _dio.get<Map<String, dynamic>>(
       Endpoints.documentUploadUrl,
-      data: data,
+      queryParameters: data,
     );
   }
 

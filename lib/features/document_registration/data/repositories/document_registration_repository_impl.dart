@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/core/constants/media_category.dart';
 import '../../domain/models/bank_account_info.dart';
 import '../../domain/models/driver_profile_info.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/models/vehicle_info.dart';
+import '../../domain/models/driver_document_model.dart';
 import '../../domain/repositories/document_registration_repository.dart';
 import '../sources/document_registration_api.dart';
 import '../../../profile/data/sources/profile_api_service.dart';
@@ -29,10 +32,31 @@ class DocumentRegistrationRepositoryImpl
   Future<String> uploadDocument(
     File file,
     DocumentType type, {
-    String purpose = 'driver_document',
+    MediaCategory category = MediaCategory.driverDoc,
+    String? docNumber,
+    bool isUpdate = false,
+    String? docTypeOverride,
   }) async {
-    final response = await _api.uploadDocument(file, type, purpose: purpose);
-    return response['media_url'] as String? ?? '';
+    final response = await _api.uploadDocument(
+      file,
+      type,
+      category: category,
+      docNumber: docNumber,
+      isUpdate: isUpdate,
+      docTypeOverride: docTypeOverride,
+    );
+    return response['image_url'] as String? ?? response['media_url'] as String? ?? '';
+  }
+
+  @override
+  Future<List<DriverDocumentModel>> fetchDocuments() async {
+    final list = await _api.fetchDocuments();
+    return list.map((e) => DriverDocumentModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<String> getTemporaryViewUrl(String fileKey) async {
+    return await _api.getTemporaryViewUrl(fileKey);
   }
 
   @override
@@ -66,12 +90,60 @@ class DocumentRegistrationRepositoryImpl
   Future<RegistrationStatusInfo> fetchRegistrationStatus() async {
     final response = await _profileApi.getProfile();
     final data = response.data!;
-    final bool isVerified = data['is_verified'] ?? false;
-    final List<dynamic> documents = data['documents'] ?? [];
-    
-    // Simplistic mapping for now to RegistrationStatusInfo
+    // is_verified from /api/driver/profile is the single source of truth.
+    // Only return approved when the backend explicitly confirms it.
+    final bool isVerified = data['verified'] ?? false;
+
+    if (isVerified) {
+      return RegistrationStatusInfo(
+        status: RegistrationStateStatus.approved,
+        rejectedReasons: [],
+        missingDocuments: [],
+      );
+    }
+
+    // is_verified = false → driver must go through the checklist.
+    // Inspect document statuses only to pick the correct sub-state
+    // so the checklist screen can render the right view (rejected / inReview / pending).
+    try {
+      final docList = await fetchDocuments();
+
+      final rejectedDocs = docList.where((d) => d.status == 'rejected').toList();
+      if (rejectedDocs.isNotEmpty) {
+        final reasons = rejectedDocs
+            .map((d) => '${d.docType}: ${d.rejectionReason ?? "Rejected"}')
+            .toList();
+        return RegistrationStatusInfo(
+          status: RegistrationStateStatus.rejected,
+          rejectedReasons: reasons,
+          missingDocuments: [],
+        );
+      }
+
+      final hasPending = docList.any((d) => d.status == 'pending');
+      if (hasPending) {
+        return RegistrationStatusInfo(
+          status: RegistrationStateStatus.inReview,
+          rejectedReasons: [],
+          missingDocuments: [],
+        );
+      }
+
+      // Docs uploaded but none are pending/rejected — waiting for admin action.
+      if (docList.isNotEmpty) {
+        return RegistrationStatusInfo(
+          status: RegistrationStateStatus.inReview,
+          rejectedReasons: [],
+          missingDocuments: [],
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching documents status: $e');
+    }
+
+    // No documents uploaded yet.
     return RegistrationStatusInfo(
-      status: isVerified ? RegistrationStateStatus.approved : RegistrationStateStatus.inReview,
+      status: RegistrationStateStatus.pending,
       rejectedReasons: [],
       missingDocuments: [],
     );

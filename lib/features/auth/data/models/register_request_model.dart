@@ -10,6 +10,12 @@ class RegisterRequestModel {
   final String password;
   final String phone;
   final String role;
+  final String appVersion;
+  final String deviceId;
+  final String deviceModel;
+  final String integrityToken;
+  final String os;
+  final String osVersion;
 
   const RegisterRequestModel({
     required this.email,
@@ -17,6 +23,12 @@ class RegisterRequestModel {
     required this.password,
     required this.phone,
     required this.role,
+    required this.appVersion,
+    required this.deviceId,
+    required this.deviceModel,
+    required this.integrityToken,
+    required this.os,
+    required this.osVersion,
   });
 
   factory RegisterRequestModel.fromEntity(RegisterRequest entity) {
@@ -26,6 +38,12 @@ class RegisterRequestModel {
       password: entity.password,
       phone: entity.phone,
       role: entity.role,
+      appVersion: entity.appVersion,
+      deviceId: entity.deviceId,
+      deviceModel: entity.deviceModel,
+      integrityToken: entity.integrityToken,
+      os: entity.os,
+      osVersion: entity.osVersion,
     );
   }
 

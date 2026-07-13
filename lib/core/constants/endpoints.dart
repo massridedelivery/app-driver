@@ -22,7 +22,9 @@ abstract class Endpoints {
   static const driverOffline = '/api/driver/offline';
   static const driverStatus = '/api/driver/status';
   static const documentUploadUrl = '/api/media/upload-url';
+  static const mediaConfirm = '/api/media/confirm';
   static const documentConfirm = '/api/driver/documents';
+  static const mediaView = '/api/media/view';
 
   static const phoneRegister = '/v1/auth/register-phone';
   static const phoneLogin = '/v1/auth/login-phone';
