@@ -18,6 +18,7 @@ jobs:
   build:
     name: Analyze, test & build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +33,17 @@ jobs:
           channel: stable
           cache: true
 
+      # Speeds up the Android build on repeat runs (first run still warms it).
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -43,7 +55,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      # Verifies the release bundle compiles. No signing secrets here, so
-      # Gradle falls back to debug signing (see android/app/build.gradle.kts).
-      - name: Build app bundle (verify)
-        run: flutter build appbundle --release --dart-define-from-file=config/dev.json
+      # A debug APK is enough to catch Gradle/manifest/build breakage and is
+      # far faster than a release bundle. The real signed release AAB is built
+      # by deploy-play.yml on merge to main.
+      - name: Build APK (verify)
+        run: flutter build apk --debug --dart-define-from-file=config/dev.json
