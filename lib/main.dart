@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 import 'package:massdrive/features/dependency_injection.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  configureDependencies('dev');
+  configureDependencies(EnvironmentConfig.env);
   runApp(const ProviderScope(child: MyApp()));
 }
 

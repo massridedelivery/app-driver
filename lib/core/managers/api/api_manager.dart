@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:dio/io.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_constants.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -47,7 +48,7 @@ extension ResponseDataExtension on ResponseData {
 class ApiManager {
   factory ApiManager(Ref ref) => ApiManager._internal(ref, getIt<dio_client.Dio>());
 
-  String baseUrl = 'https://driver-api-dev.nutchaphut.dev';
+  String baseUrl = EnvironmentConfig.apiUrl;
   final dio_client.Dio dio;
   final box = GetStorage();
   final _secureStorage = SecureStorageManager();
