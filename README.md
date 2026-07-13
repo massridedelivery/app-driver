@@ -44,3 +44,36 @@ flutter build appbundle --release --dart-define-from-file=config/preprod.json
 ```
 
 Upload the `.aab` to Play Console → Testing → Internal testing.
+
+## CI/CD (GitHub Actions)
+
+Two workflows live in `.github/workflows/`:
+
+- **`ci.yml`** — runs on every PR to `main` and on branch pushes: `flutter analyze`
+  (errors only for now), `flutter test`, and a release app-bundle build to verify
+  it compiles. No secrets needed (falls back to debug signing).
+- **`deploy-play.yml`** — runs on push to `main` (or manual dispatch): builds a
+  **signed** bundle from `config/preprod.json` and uploads it to the Play
+  **internal** testing track. The `versionCode` is set from the workflow run
+  number, so uploads never collide.
+
+### Required repository secrets
+
+Set these under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -i mass-driver-keystore.jks` output |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore/key password (same value — PKCS12) |
+| `ANDROID_KEY_ALIAS` | key alias (`mass-drive`) |
+| `PLAY_SERVICE_ACCOUNT_JSON` | full JSON of a Play service account with "Release to testing tracks" permission |
+
+### One-time setup before CD works
+
+1. Create the app in Play Console and upload one bundle manually (Play requires
+   the first release for a package to go through the UI).
+2. Create a Google Cloud service account, grant it access in Play Console
+   (Users & permissions), and download its JSON key → `PLAY_SERVICE_ACCOUNT_JSON`.
+3. Add the four secrets above.
+
+After that, merging to `main` publishes to internal testing automatically.
