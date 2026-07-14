@@ -46,11 +46,20 @@ class AppNetworkImage extends StatelessWidget {
       );
     }
 
+    // Decode into memory at (roughly) display resolution instead of the image's
+    // full size — a large avatar/banner decoded full-res can cost several MB
+    // each. Multiply by devicePixelRatio so it still looks sharp.
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final memCacheWidth = width != null ? (width! * dpr).round() : null;
+    final memCacheHeight = height != null ? (height! * dpr).round() : null;
+
     return CachedNetworkImage(
       imageUrl: imageUrl!,
       width: width,
       height: height,
       fit: fit,
+      memCacheWidth: memCacheWidth,
+      memCacheHeight: memCacheHeight,
       placeholder: (context, url) => Image.asset(
         ImageUtils.getImgPath(holderImg),
         width: width,

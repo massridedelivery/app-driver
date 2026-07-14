@@ -11,6 +11,9 @@ import 'package:massdrive/features/dependency_injection.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Cap the in-memory image cache well below Flutter's 100 MB default so the OS
+  // is far less likely to kill the app for memory pressure while backgrounded.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB
   await dotenv.load(fileName: '.env');
   await GetStorage.init();
   await initializeDateFormatting('th_TH', null);
