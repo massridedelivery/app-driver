@@ -15,6 +15,20 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Local setup
+
+`.env` is required for any build. It's a pubspec asset (holds the Directions
+API key) but is gitignored, so it's absent on a fresh checkout — without it the
+asset bundle fails to build (`Failed to bundle asset files`). Create it before
+building; an empty file is enough for analyze/test/build (the key falls back to
+`''`), and a real key is only needed for live Directions API calls:
+
+```sh
+touch .env
+```
+
+CI does the same in its `Create placeholder .env` step.
+
 ## Environments
 
 Runtime configuration is injected at build time via `--dart-define-from-file`
@@ -22,13 +36,18 @@ Runtime configuration is injected at build time via `--dart-define-from-file`
 
 - `config/dev.json` — dev backend (also the compiled-in default, so plain `flutter run` uses dev)
 - `config/preprod.json` — pre-prod backend
+- `config/mass_dev.json` — app identity + Firebase/Omise keys (shared; layered on top of the backend file)
+
+Pass both the backend file and `mass_dev.json` — the second file supplies the
+Firebase config that `lib/firebase_options.dart` reads, so Firebase won't
+initialize without it.
 
 ```sh
 # Run against dev
-flutter run --dart-define-from-file=config/dev.json
+flutter run --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json
 
 # Run against pre-prod
-flutter run --dart-define-from-file=config/preprod.json
+flutter run --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 ```
 
 ## Release build (Google Play)
@@ -39,7 +58,7 @@ or see https://docs.flutter.dev/deployment/android#sign-the-app).
 
 ```sh
 # Bump the build number (+N) in pubspec.yaml first — Play rejects duplicate versionCodes.
-flutter build appbundle --release --dart-define-from-file=config/preprod.json
+flutter build appbundle --release --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 # Output: build/app/outputs/bundle/release/app-release.aab
 ```
 

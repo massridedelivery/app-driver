@@ -1,7 +1,7 @@
 {
     "APP_NAME": "NocNoc DEV",
-    "APP_PACKAGE_NAME": "com.nocnoc.app",
-    "APP_PACKAGE_NAME_SUFFIX": ".dev",
+    "APP_PACKAGE_NAME": "com.massdrive.driverApp",
+    "APP_PACKAGE_NAME_SUFFIX": "",
     "APP_ANDROID_FIREBASE_API_KEY": "AIzaSyCQU4untaiWq5CKkf_7CEpHy_yhN9v1L5E",
     "APP_ANDROID_FIREBASE_APP_ID": "1:237911282104:android:41bbd40ae8fa03c07e3f4d",
     "APP_ANDROID_FIREBASE_MSG_SENDER_ID": "237911282104",
@@ -12,6 +12,6 @@
     "APP_IOS_FIREBASE_MSG_SENDER_ID": "237911282104",
     "APP_IOS_FIREBASE_PROJECT_ID": "rp-nocnoc-dev",
     "APP_IOS_FIREBASE_STORAGE_BUCKET": "rp-nocnoc-dev.firebasestorage.app",
-    "APP_IOS_FIREBASE_BUNDLE_ID": "com.nocnoc.app.dev",
+    "APP_IOS_FIREBASE_BUNDLE_ID": "com.massdrive.driverApp",
     "OMISE_API_KEY": "pkey_test_65andwpqo35fgm6klwu"
 }
