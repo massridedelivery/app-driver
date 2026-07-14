@@ -9,6 +9,4 @@ final splashControllerProvider = FutureProvider<void>((ref) async {
   await GetStorage.init();
   await Hive.initFlutter();
   await HiveManager().openAllBox();
-
-  await Future.delayed(const Duration(seconds: 2));
 });
