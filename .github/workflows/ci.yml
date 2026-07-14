@@ -59,4 +59,4 @@ jobs:
       # far faster than a release bundle. The real signed release AAB is built
       # by deploy-play.yml on merge to main.
       - name: Build APK (verify)
-        run: flutter build apk --debug --dart-define-from-file=config/dev.json
+        run: flutter build apk --debug --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json

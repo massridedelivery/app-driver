@@ -22,13 +22,18 @@ Runtime configuration is injected at build time via `--dart-define-from-file`
 
 - `config/dev.json` — dev backend (also the compiled-in default, so plain `flutter run` uses dev)
 - `config/preprod.json` — pre-prod backend
+- `config/mass_dev.json` — app identity + Firebase/Omise keys (shared; layered on top of the backend file)
+
+Pass both the backend file and `mass_dev.json` — the second file supplies the
+Firebase config that `lib/firebase_options.dart` reads, so Firebase won't
+initialize without it.
 
 ```sh
 # Run against dev
-flutter run --dart-define-from-file=config/dev.json
+flutter run --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json
 
 # Run against pre-prod
-flutter run --dart-define-from-file=config/preprod.json
+flutter run --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 ```
 
 ## Release build (Google Play)
@@ -39,7 +44,7 @@ or see https://docs.flutter.dev/deployment/android#sign-the-app).
 
 ```sh
 # Bump the build number (+N) in pubspec.yaml first — Play rejects duplicate versionCodes.
-flutter build appbundle --release --dart-define-from-file=config/preprod.json
+flutter build appbundle --release --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 # Output: build/app/outputs/bundle/release/app-release.aab
 ```
 
