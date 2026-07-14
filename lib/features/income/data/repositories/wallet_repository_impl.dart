@@ -1,7 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:massdrive/features/income/data/models/wallet_response_model.dart';
 import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
-import 'package:massdrive/features/income/domain/entities/wallet_response.dart';
 import 'package:massdrive/features/income/domain/repositories/wallet_repository.dart';
 
 @LazySingleton(as: WalletRepository)
@@ -11,14 +9,13 @@ class WalletRepositoryImpl implements WalletRepository {
   WalletRepositoryImpl(this._apiService);
 
   @override
-  Future<WalletResponse> getWalletType() async {
-    final response = await _apiService.getWalletType();
-    return WalletResponseModel.fromJson(response).toEntity();
+  Future<Map<String, dynamic>> getPayouts() async {
+    return await _apiService.getPayouts();
   }
 
   @override
-  Future<Map<String, dynamic>> getPayouts() async {
-    return await _apiService.getPayouts();
+  Future<Map<String, dynamic>> getPayoutSummary() async {
+    return await _apiService.getPayoutSummary();
   }
 
   @override
@@ -27,8 +24,18 @@ class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> topup(Map<String, dynamic> data) async {
-    return await _apiService.topup(data);
+  Future<Map<String, dynamic>> settleDebt(Map<String, dynamic> data) async {
+    return await _apiService.settleDebt(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getPaymentIntent(String intentId) async {
+    return await _apiService.getPaymentIntent(intentId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitSettlementSlip(String intentId, Map<String, dynamic> data) async {
+    return await _apiService.submitSettlementSlip(intentId, data);
   }
 
   @override

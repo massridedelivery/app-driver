@@ -16,6 +16,7 @@ _IncomingJobModel _$IncomingJobModelFromJson(Map<String, dynamic> json) =>
       pickupDistanceKm: (json['pickup_distance_km'] as num?)?.toDouble() ?? 0.0,
       dropoffDistanceKm:
           (json['dropoff_distance_km'] as num?)?.toDouble() ?? 0.0,
+      distanceKm: (json['distance_km'] as num?)?.toDouble(),
       pickupLat: (json['pickup_lat'] as num).toDouble(),
       pickupLng: (json['pickup_lng'] as num).toDouble(),
       dropoffLat: (json['dropoff_lat'] as num).toDouble(),
@@ -50,6 +51,7 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'dropoff_address_detail': instance.dropoffAddressDetail,
       'pickup_distance_km': instance.pickupDistanceKm,
       'dropoff_distance_km': instance.dropoffDistanceKm,
+      'distance_km': instance.distanceKm,
       'pickup_lat': instance.pickupLat,
       'pickup_lng': instance.pickupLng,
       'dropoff_lat': instance.dropoffLat,

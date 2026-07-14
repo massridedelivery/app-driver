@@ -122,6 +122,15 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String? profilePhotoUrl;
+    for (final doc in profile.documents) {
+      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
+        profilePhotoUrl = doc.mediaUrl;
+        break;
+      }
+    }
+    final hasImage = profilePhotoUrl != null && profilePhotoUrl.isNotEmpty;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -131,11 +140,17 @@ class _ProfileHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 28,
-                backgroundImage: NetworkImage(
-                  "https://i.pravatar.cc/150?img=3",
-                ),
+                backgroundColor: Colors.grey[800],
+                backgroundImage: hasImage ? NetworkImage(profilePhotoUrl) : null,
+                child: !hasImage
+                    ? const Icon(
+                        Icons.person,
+                        color: Colors.white70,
+                        size: 28,
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
 

@@ -34,8 +34,6 @@ abstract class Endpoints {
   static const logout = '/v1/auth/logout';
   static const refreshToken = '/auth/refresh';
 
-  // MARK: Wallet
-  static const walletType = '/driver/wallet/type';
 
   // MARK: Me
   static const me = '/v1/me';
@@ -106,11 +104,25 @@ abstract class Endpoints {
   static const driverJobsActive = '/api/driver/jobs/active';
   static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
 
+  /// Cross-vertical "what am I doing now" index (SCRUM-45, v1.6.0-dev20).
+  /// Lean summary — probe for `type`+`id`, then fetch detail per vertical.
+  static const driverActive = '/api/driver/active';
+
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
-  static const driverTopup = '/api/driver/topup';
+  static const driverPayoutsMethod = '/api/driver/payouts/method';
+  static const driverPayoutsSummary = '/api/driver/payouts/summary';
+  static const driverSettleDebt = '/api/driver/settle-debt';
+  static String driverSettleDebtSlip(String intentId) =>
+      '/api/driver/settle-debt/$intentId/slip';
   static const driverCodStatus = '/api/driver/cod-status';
+
+  // MARK: Payment Intent (shared poll endpoint — SCRUM-35 §2.2)
+  static String paymentIntent(String intentId) =>
+      '/api/payment/intent/$intentId';
   static const driverEarnings = '/api/driver/earnings';
+  static const driverEarningsTransactions = '/api/driver/earnings/transactions';
+  static const driverEarningsTrips = '/api/driver/earnings/trips';
   static const driverTransactions = '/api/driver/transactions';
 
   // MARK: Quests & Tiers
@@ -132,6 +144,23 @@ abstract class Endpoints {
   static const foodDriverOrdersDelivered =
       '/api/food/driver/orders/:id/delivered';
   static const foodDriverOrdersActive = '/api/food/driver/orders/active';
+
+  // MARK: Messenger (Package Delivery) — SCRUM-41, driver side
+  static const messengerDriverActive = '/api/messenger/driver/orders/active';
+  static const messengerDriverCompleted =
+      '/api/messenger/driver/orders/completed';
+  static const messengerDriverOffer = '/api/messenger/driver/orders/:id/offer';
+  static const messengerDriverAccept =
+      '/api/messenger/driver/orders/:id/accept';
+  static const messengerDriverReject =
+      '/api/messenger/driver/orders/:id/reject';
+  static const messengerDriverArrived =
+      '/api/messenger/driver/orders/:id/arrived';
+  static const messengerDriverPickedUp =
+      '/api/messenger/driver/orders/:id/picked-up';
+  static const messengerDriverDelivered =
+      '/api/messenger/driver/orders/:id/delivered';
+  static const messengerDriverChat = '/api/messenger/driver/orders/:id/chat';
 
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';

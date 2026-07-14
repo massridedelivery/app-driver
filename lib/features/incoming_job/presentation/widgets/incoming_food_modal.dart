@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
@@ -399,7 +397,6 @@ class IncomingFoodModal extends ConsumerWidget {
               ref
                   .read(incomingJobControllerProvider.notifier)
                   .declineJob();
-              context.go('/');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.semanticSupportRedBgHigh,
@@ -423,7 +420,6 @@ class IncomingFoodModal extends ConsumerWidget {
               ref
                   .read(incomingJobControllerProvider.notifier)
                   .acceptFoodJob();
-              context.go(AppRoutes.foodLiveNamedPage);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.foundationOrange600,

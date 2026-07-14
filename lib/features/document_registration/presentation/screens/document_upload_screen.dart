@@ -38,7 +38,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
 
   bool get _needsDocNumber =>
       widget.type == DocumentType.idCard ||
-      widget.type == DocumentType.drivingLicense;
+      widget.type == DocumentType.drivingLicense ||
+      widget.type == DocumentType.publicDrivingLicense;
 
   @override
   void initState() {
@@ -123,6 +124,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       return;
     }
 
+    debugPrint('[Upload] Starting upload for ${widget.type}...');
     final success = await ref
         .read(registrationControllerProvider.notifier)
         .uploadDocument(
@@ -130,8 +132,24 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           widget.type,
           docNumber: _needsDocNumber ? _docNumberController.text.trim() : null,
         );
-    if (success && mounted) {
+
+    if (!mounted) return;
+
+    if (success) {
+      debugPrint('[Upload] Success for ${widget.type}');
       context.pop();
+    } else {
+      // Show error from controller state
+      final errorMsg = ref.read(registrationControllerProvider).errorMessage
+          ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+      debugPrint('[Upload] Failed for ${widget.type}: $errorMsg');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 

@@ -7,8 +7,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../features/dependency_injection.dart';
 import '../../domain/models/bank_account_info.dart';
 import '../../domain/models/registration_status.dart';
+import '../../domain/repositories/document_registration_repository.dart';
+import '../../../income/presentation/controllers/wallet_controller.dart';
 import '../controllers/registration_controller.dart';
 
 class BankAccountFormScreen extends ConsumerStatefulWidget {
@@ -26,13 +29,21 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   final _accountNumberController = TextEditingController();
 
   File? _selectedImage;
+  String? _remoteImageUrl;
+  bool _isLoadingRemoteImage = false;
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 1. Fetch the latest status which includes the payout method from /api/driver/payouts/method
+      await ref.read(registrationControllerProvider.notifier).fetchStatus();
+      if (!mounted) return;
+
       final state = ref.read(registrationControllerProvider);
+      
+      // 2. Pre-populate form text fields with registered bank details
       final bankInfo = state.bankAccountInfo;
       if (bankInfo != null) {
         _bankNameController.text = bankInfo.bankName;
@@ -40,12 +51,44 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
         _accountNumberController.text = bankInfo.accountNumber;
       }
 
+      // 3. Check for existing remote passbook image and retrieve temporary S3 view URL
+      final remoteDoc = state.remoteDocuments[DocumentType.bankPassbook];
+      if (remoteDoc != null && remoteDoc.imageUrl.isNotEmpty) {
+        setState(() {
+          _isLoadingRemoteImage = true;
+        });
+        try {
+          final repository = getIt<DocumentRegistrationRepository>();
+          final viewUrl = await repository.getTemporaryViewUrl(remoteDoc.imageUrl);
+          if (mounted) {
+            setState(() {
+              _remoteImageUrl = viewUrl;
+            });
+          }
+        } catch (e) {
+          debugPrint('Error fetching remote passbook URL: $e');
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isLoadingRemoteImage = false;
+            });
+          }
+        }
+      }
+
+      // 4. Restore local temporary path if file physically exists
       final savedDocumentPath =
           state.uploadedDocuments[DocumentType.bankPassbook];
-      if (savedDocumentPath != null && savedDocumentPath.isNotEmpty) {
-        setState(() {
-          _selectedImage = File(savedDocumentPath);
-        });
+      if (savedDocumentPath != null &&
+          savedDocumentPath.isNotEmpty &&
+          _selectedImage == null &&
+          _remoteImageUrl == null) {
+        final tempFile = File(savedDocumentPath);
+        if (await tempFile.exists()) {
+          setState(() {
+            _selectedImage = tempFile;
+          });
+        }
       }
     });
   }
@@ -69,7 +112,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
 
   void _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      if (_selectedImage == null) {
+      if (_selectedImage == null && _remoteImageUrl == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.foundationRed800,
@@ -94,8 +137,25 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
           .read(registrationControllerProvider.notifier)
           .submitBankDetails(info, _selectedImage);
 
-      if (success && mounted) {
-        context.pop();
+      if (mounted) {
+        if (success) {
+          // Re-fetch payouts / balance on wallet controller if available
+          ref.invalidate(walletControllerProvider);
+          context.pop();
+        } else {
+          final error = ref.read(registrationControllerProvider).errorMessage;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.foundationRed800,
+              content: Text(
+                error ?? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralFgWhite,
+                ),
+              ),
+            ),
+          );
+        }
       }
     }
   }
@@ -166,23 +226,30 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: Image.file(_selectedImage!, fit: BoxFit.cover),
                       )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.cloud_upload_outlined,
-                            size: 40,
-                            color: AppColors.semanticGrayNeutralFgLowOnWhite,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'แตะเพื่ออัปโหลดรูปภาพ',
-                            style: AppTypography.caption3.copyWith(
-                              color: AppColors.semanticGrayNeutralFgLowOnWhite,
-                            ),
-                          ),
-                        ],
-                      ),
+                    : _remoteImageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(_remoteImageUrl!, fit: BoxFit.cover),
+                          )
+                        : _isLoadingRemoteImage
+                            ? const Center(child: CircularProgressIndicator())
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    size: 40,
+                                    color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'แตะเพื่ออัปโหลดรูปภาพ',
+                                    style: AppTypography.caption3.copyWith(
+                                      color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                                    ),
+                                  ),
+                                ],
+                              ),
               ),
             ),
             const SizedBox(height: 40),

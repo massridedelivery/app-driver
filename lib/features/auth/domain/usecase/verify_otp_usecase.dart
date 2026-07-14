@@ -8,7 +8,7 @@ class VerifyOtpUseCase {
 
   VerifyOtpUseCase(this._repository);
 
-  Future<UserEntity> execute(String phone, String otp) async {
-    return _repository.verifyOtp(phone, otp);
+  Future<UserEntity> execute(String phone, String otp, {String refId = ''}) async {
+    return _repository.verifyOtp(phone, otp, refId: refId);
   }
 }

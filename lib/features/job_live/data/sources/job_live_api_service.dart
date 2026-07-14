@@ -8,9 +8,10 @@ abstract class JobLiveApiService {
   Future<Response> arriveAtStop(String jobId, String stopId);
   Future<Response> departFromStop(String jobId, String stopId);
   Future<Response> updateJobStatus(String jobId, Map<String, dynamic> data);
-  Future<Response> getActiveJob();
-  Future<Response> getActiveOffer();
-  Future<Response> getActiveFoodOrder();
+  Future<Response> getActiveSummary();
+  Future<Response> getActiveJob({double? lat, double? lng});
+  Future<Response> getActiveOffer({double? lat, double? lng});
+  Future<Response> getActiveFoodOrder({double? lat, double? lng});
 }
 
 @LazySingleton(as: JobLiveApiService)
@@ -49,17 +50,34 @@ class JobLiveApiServiceImpl extends BaseApiService implements JobLiveApiService 
   }
 
   @override
-  Future<Response> getActiveJob() async {
-    return await get(Endpoints.driverJobsActive);
+  Future<Response> getActiveSummary() async {
+    return await get(Endpoints.driverActive);
   }
 
   @override
-  Future<Response> getActiveOffer() async {
-    return await get(Endpoints.driverJobsActiveOffer);
+  Future<Response> getActiveJob({double? lat, double? lng}) async {
+    final queryParameters = {
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    };
+    return await get(Endpoints.driverJobsActive, queryParameters: queryParameters);
   }
 
   @override
-  Future<Response> getActiveFoodOrder() async {
-    return await get(Endpoints.foodDriverOrdersActive);
+  Future<Response> getActiveOffer({double? lat, double? lng}) async {
+    final queryParameters = {
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    };
+    return await get(Endpoints.driverJobsActiveOffer, queryParameters: queryParameters);
+  }
+
+  @override
+  Future<Response> getActiveFoodOrder({double? lat, double? lng}) async {
+    final queryParameters = {
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    };
+    return await get(Endpoints.foodDriverOrdersActive, queryParameters: queryParameters);
   }
 }

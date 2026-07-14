@@ -23,15 +23,19 @@ class IncomingJobController extends _$IncomingJobController {
 
     _socketSubscription?.cancel();
     _socketSubscription = socket.messages.listen((msg) {
-      debugPrint('IncomingJobController Received Message: type=${msg.type}');
+      if (kDebugMode) {
+        debugPrint('IncomingJobController Received Message: type=${msg.type}');
+      }
 
       if (msg.type == 'job_offer') {
-        debugPrint('IncomingJobController: 📥 RECEIVED job_offer message');
+        if (kDebugMode) debugPrint('IncomingJobController: 📥 RECEIVED job_offer message');
         _handleJobOffer(msg.raw, msg.data);
       } else if (msg.type == 'food_delivery_offer') {
-        debugPrint(
-          'IncomingJobController: 🍔 RECEIVED food_delivery_offer message',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: 🍔 RECEIVED food_delivery_offer message',
+          );
+        }
         _handleFoodDeliveryOffer(msg.raw, msg.data);
       } else if (msg.type == 'job_accepted') {
         // Notification that the job is confirmed to us
@@ -41,20 +45,24 @@ class IncomingJobController extends _$IncomingJobController {
           if (jobData is Map<String, dynamic>) {
             final job = IncomingJobModel.fromJson(jobData);
             state = state.copyWith(currentJob: job);
-            debugPrint(
-              'IncomingJobController: Job officially accepted: ${job.jobId}',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                'IncomingJobController: Job officially accepted: ${job.jobId}',
+              );
+            }
           }
         } catch (e) {
-          debugPrint('IncomingJobController Parse Error (job_accepted): $e');
+          if (kDebugMode) debugPrint('IncomingJobController Parse Error (job_accepted): $e');
         }
       } else if (msg.type == 'job_status') {
         final jobId = msg.raw['job_id'] ?? msg.data?['job_id'];
         final status = msg.raw['status'] ?? msg.data?['status'];
 
-        debugPrint(
-          'IncomingJobController Status Change: job=$jobId, status=$status',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController Status Change: job=$jobId, status=$status',
+          );
+        }
 
         if (state.currentJob?.jobId == jobId && status == 'CANCELLED') {
           dismissModal();
@@ -76,23 +84,27 @@ class IncomingJobController extends _$IncomingJobController {
   ) {
     try {
       final jobData = raw['job'] ?? data?['job'] ?? data ?? raw;
-      debugPrint('IncomingJobController: Job Data extracted: $jobData');
+      if (kDebugMode) debugPrint('IncomingJobController: Job Data extracted: $jobData');
 
       if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
         final job = IncomingJobModel.fromJson(jobData);
-        debugPrint(
-          'IncomingJobController: ✅ Ride Job parsed. ID=${job.jobId}',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: ✅ Ride Job parsed. ID=${job.jobId}',
+          );
+        }
 
         receiveJob(job);
         AppRouter.router.go(AppRoutes.incomingJobNamedPage);
       } else {
-        debugPrint(
-          'IncomingJobController: ⚠️ job_offer data invalid. Data: $jobData',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: ⚠️ job_offer data invalid. Data: $jobData',
+          );
+        }
       }
     } catch (e) {
-      debugPrint('IncomingJobController: ❌ Parse Error (job_offer): $e');
+      if (kDebugMode) debugPrint('IncomingJobController: ❌ Parse Error (job_offer): $e');
     }
   }
 
@@ -103,9 +115,11 @@ class IncomingJobController extends _$IncomingJobController {
   ) {
     try {
       final jobData = raw['order'] ?? data?['order'] ?? data ?? raw;
-      debugPrint(
-        'IncomingJobController: Food Order Data extracted: $jobData',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'IncomingJobController: Food Order Data extracted: $jobData',
+        );
+      }
 
       if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
         // Ensure service_type marks it as food if not already set
@@ -113,22 +127,28 @@ class IncomingJobController extends _$IncomingJobController {
         enrichedData['service_type'] ??= 'MassFood';
 
         final job = IncomingJobModel.fromJson(enrichedData);
-        debugPrint(
-          'IncomingJobController: 🍔 Food Job parsed. ID=${job.jobId}, '
-          'restaurant=${job.restaurantName}, items=${job.orderItems.length}',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: 🍔 Food Job parsed. ID=${job.jobId}, '
+            'restaurant=${job.restaurantName}, items=${job.orderItems.length}',
+          );
+        }
 
         receiveJob(job);
         AppRouter.router.go(AppRoutes.incomingJobNamedPage);
       } else {
-        debugPrint(
-          'IncomingJobController: ⚠️ food_delivery_offer data invalid. Data: $jobData',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: ⚠️ food_delivery_offer data invalid. Data: $jobData',
+          );
+        }
       }
     } catch (e) {
-      debugPrint(
-        'IncomingJobController: ❌ Parse Error (food_delivery_offer): $e',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'IncomingJobController: ❌ Parse Error (food_delivery_offer): $e',
+        );
+      }
     }
   }
 
@@ -146,8 +166,17 @@ class IncomingJobController extends _$IncomingJobController {
     if (job != null) {
       ref.read(socketServiceProvider).acceptJob(job.jobId);
       _sendLocationUpdate();
+      
+      state = state.copyWith(isModalVisible: false);
+      final isFood = job.serviceType.toLowerCase().contains('food');
+      if (isFood) {
+        AppRouter.router.go(AppRoutes.foodLiveNamedPage);
+      } else {
+        AppRouter.router.go('/job-live');
+      }
+    } else {
+      state = state.copyWith(isModalVisible: false);
     }
-    state = state.copyWith(isModalVisible: false);
   }
 
   /// Accept a food delivery job via REST API
@@ -158,14 +187,18 @@ class IncomingJobController extends _$IncomingJobController {
     try {
       final apiService = getIt<FoodDeliveryApiService>();
       await apiService.acceptOrder(job.jobId);
-      debugPrint(
-        'IncomingJobController: 🍔 Food job accepted via REST API: ${job.jobId}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'IncomingJobController: 🍔 Food job accepted via REST API: ${job.jobId}',
+        );
+      }
       _sendLocationUpdate();
+      
+      state = state.copyWith(isModalVisible: false);
+      AppRouter.router.go(AppRoutes.foodLiveNamedPage);
     } catch (e) {
-      debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
+      if (kDebugMode) debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
     }
-    state = state.copyWith(isModalVisible: false);
   }
 
   void declineJob() {
@@ -175,6 +208,7 @@ class IncomingJobController extends _$IncomingJobController {
       _sendLocationUpdate();
     }
     state = state.copyWith(isModalVisible: false, currentJob: null);
+    AppRouter.router.go('/');
   }
 
   void dismissModal() {
@@ -187,15 +221,19 @@ class IncomingJobController extends _$IncomingJobController {
       final socketService = ref.read(socketServiceProvider);
       if (socketService.isConnected) {
         final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         socketService.sendLocationUpdate(position.latitude, position.longitude);
-        debugPrint(
-          'IncomingJobController: Sent location_update after job flow',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'IncomingJobController: Sent location_update after job flow',
+          );
+        }
       }
     } catch (e) {
-      debugPrint('IncomingJobController: Error sending location update: $e');
+      if (kDebugMode) debugPrint('IncomingJobController: Error sending location update: $e');
     }
   }
 }
