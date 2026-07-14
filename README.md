@@ -15,6 +15,20 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Local setup
+
+`.env` is required for any build. It's a pubspec asset (holds the Directions
+API key) but is gitignored, so it's absent on a fresh checkout — without it the
+asset bundle fails to build (`Failed to bundle asset files`). Create it before
+building; an empty file is enough for analyze/test/build (the key falls back to
+`''`), and a real key is only needed for live Directions API calls:
+
+```sh
+touch .env
+```
+
+CI does the same in its `Create placeholder .env` step.
+
 ## Environments
 
 Runtime configuration is injected at build time via `--dart-define-from-file`
