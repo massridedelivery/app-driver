@@ -47,6 +47,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # `.env` is gitignored (holds secrets) so it's absent on CI. It's
+      # declared as a pubspec asset and loaded at boot, so the asset bundle
+      # fails to build without it. An empty file satisfies the bundle; the
+      # Directions API key falls back to '' — fine for analyze/test/build.
+      - name: Create placeholder .env
+        run: touch .env
+
       # Only errors fail the build. The codebase carries pre-existing
       # warnings/infos (lint debt); tighten this once they are cleared.
       - name: Analyze
