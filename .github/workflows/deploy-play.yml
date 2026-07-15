@@ -1,7 +1,10 @@
 name: Deploy to Play (internal)
 
 # Builds a signed app bundle and ships it to the Play Console "internal"
-# testing track. Triggered on every push to main, or manually.
+# testing track. Manual trigger only for now (Actions tab -> Run workflow) —
+# auto-deploy on push to main is temporarily disabled until the Play secrets and
+# the first manual Play Console upload are in place. Re-enable by restoring the
+# `push: branches: [main]` trigger below.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   ANDROID_KEYSTORE_BASE64     base64 of mass-driver-keystore.jks
@@ -15,8 +18,9 @@ name: Deploy to Play (internal)
 # Play Console UI once. After that this workflow can publish updates.
 
 on:
-  push:
-    branches: [main]
+  # Manual only for now. To re-enable auto-deploy, uncomment the push trigger:
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 concurrency:
