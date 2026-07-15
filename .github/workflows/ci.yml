@@ -62,8 +62,10 @@ jobs:
       - name: Test
         run: flutter test
 
-      # A debug APK is enough to catch Gradle/manifest/build breakage and is
-      # far faster than a release bundle. The real signed release AAB is built
-      # by deploy-play.yml on merge to main.
-      - name: Build APK (verify)
-        run: flutter build apk --debug --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json
+      # Build the release app bundle the same way deploy-play.yml does, so a
+      # broken release/bundle build (release-mode compile, resource shrinking,
+      # manifest merge) is caught at PR time instead of on merge to main. No
+      # signing secrets on CI, so build.gradle.kts falls back to debug signing —
+      # fine for build verification; deploy-play.yml produces the real signed AAB.
+      - name: Build app bundle (verify)
+        run: flutter build appbundle --release --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
