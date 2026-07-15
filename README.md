@@ -66,15 +66,43 @@ Upload the `.aab` to Play Console → Testing → Internal testing.
 
 ## CI/CD (GitHub Actions)
 
-Two workflows live in `.github/workflows/`:
+Two workflows live in `.github/workflows/`: `ci.yml` verifies every change, and
+`deploy-play.yml` ships to Play once a change reaches `main`.
 
-- **`ci.yml`** — runs on every PR to `main` and on branch pushes: `flutter analyze`
-  (errors only for now), `flutter test`, and a release app-bundle build to verify
-  it compiles. No secrets needed (falls back to debug signing).
-- **`deploy-play.yml`** — runs on push to `main` (or manual dispatch): builds a
-  **signed** bundle from `config/preprod.json` and uploads it to the Play
-  **internal** testing track. The `versionCode` is set from the workflow run
-  number, so uploads never collide.
+### When each runs (flow)
+
+```
+feature branch ──push──▶ [ci.yml]  analyze · test · build release AAB (verify)
+     │
+     ▼ PR + merge
+  develop ──────push──▶ [ci.yml]  (same checks)
+     │
+     ▼ PR to main ────▶ [ci.yml]  (same checks — the merge gate)
+     │
+     ▼ merge to main
+   main ─────push─────▶ [deploy-play.yml]  build SIGNED AAB ─▶ Play internal track
+```
+
+| Git event | Workflow | What happens |
+| --- | --- | --- |
+| Push to any non-`main` branch (feature, `develop`) | `ci.yml` | `flutter analyze` → `flutter test` → release AAB build (verify) |
+| PR targeting `main` | `ci.yml` | same checks, as the pre-merge gate |
+| Merge / push to `main` | `deploy-play.yml` | build **signed** AAB → upload to Play **internal** track |
+| Manual (Actions tab → Run workflow) | `deploy-play.yml` | same, via `workflow_dispatch` |
+
+> PRs into `develop` are covered by the branch-push trigger (CI runs on the
+> feature branch's pushes); the `pull_request` trigger fires specifically for PRs
+> into `main`. Nothing runs on `main` except the deploy.
+
+### Workflows
+
+- **`ci.yml`** — `flutter analyze` (errors only for now), `flutter test`, and a
+  **release app-bundle** build to verify it compiles the same way the deploy does.
+  No secrets needed — `android/app/build.gradle.kts` falls back to debug signing.
+- **`deploy-play.yml`** — builds a **signed** bundle from `config/preprod.json`
+  (+ `config/mass_dev.json`) and uploads it to the Play **internal** testing
+  track. The `versionCode` is set from the workflow run number, so uploads never
+  collide.
 
 ### Required repository secrets
 
