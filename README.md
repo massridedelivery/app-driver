@@ -80,19 +80,26 @@ feature branch ──push──▶ [ci.yml]  analyze · test · build release AA
      ▼ PR to main ────▶ [ci.yml]  (same checks — the merge gate)
      │
      ▼ merge to main
-   main ─────push─────▶ [deploy-play.yml]  build SIGNED AAB ─▶ Play internal track
+   main            (no auto-deploy for now)
+     │
+     ▼ manual: Actions tab → Run workflow
+  [deploy-play.yml]  build SIGNED AAB ─▶ Play internal track
 ```
 
 | Git event | Workflow | What happens |
 | --- | --- | --- |
 | Push to any non-`main` branch (feature, `develop`) | `ci.yml` | `flutter analyze` → `flutter test` → release AAB build (verify) |
 | PR targeting `main` | `ci.yml` | same checks, as the pre-merge gate |
-| Merge / push to `main` | `deploy-play.yml` | build **signed** AAB → upload to Play **internal** track |
-| Manual (Actions tab → Run workflow) | `deploy-play.yml` | same, via `workflow_dispatch` |
+| **Manual** (Actions tab → Run workflow) | `deploy-play.yml` | build **signed** AAB → upload to Play **internal** track |
 
+> **Auto-deploy on push to `main` is temporarily disabled** — `deploy-play.yml`
+> runs by manual `workflow_dispatch` only, until the Play secrets and the first
+> manual Play Console upload are in place. Re-enable by restoring the
+> `push: branches: [main]` trigger in the workflow.
+>
 > PRs into `develop` are covered by the branch-push trigger (CI runs on the
 > feature branch's pushes); the `pull_request` trigger fires specifically for PRs
-> into `main`. Nothing runs on `main` except the deploy.
+> into `main`.
 
 ### Workflows
 
@@ -123,4 +130,6 @@ Set these under **Settings → Secrets and variables → Actions**:
    (Users & permissions), and download its JSON key → `PLAY_SERVICE_ACCOUNT_JSON`.
 3. Add the four secrets above.
 
-After that, merging to `main` publishes to internal testing automatically.
+After that, run **`deploy-play.yml`** manually (Actions tab → Run workflow) to
+publish to internal testing. Once it's proven out, re-enable the `push: [main]`
+trigger to make merges to `main` deploy automatically.
