@@ -22,6 +22,7 @@ class MediaApiServiceImpl implements MediaApiService {
     _directUploadDio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 120),
         receiveTimeout: const Duration(seconds: 30),
       ),
     );
@@ -45,11 +46,11 @@ class MediaApiServiceImpl implements MediaApiService {
   ) async {
     return await _directUploadDio.put(
       uploadUrl,
-      data: Stream.fromIterable([fileBytes]),
+      data: fileBytes,
       options: Options(
+        contentType: contentType,
         headers: {
-          'Content-Type': contentType,
-          'Content-Length': fileBytes.length.toString(),
+          'Content-Length': fileBytes.length,
         },
       ),
     );

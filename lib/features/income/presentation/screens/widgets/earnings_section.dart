@@ -18,7 +18,6 @@ class EarningsSection extends StatefulWidget {
 
 class _EarningsSectionState extends State<EarningsSection> {
   late final PageController _controller;
-  double currentPage = 0;
 
   List<Map<String, double>> get items => [
     {"today": widget.earningsToday, "week": widget.earningsWeek},
@@ -29,11 +28,6 @@ class _EarningsSectionState extends State<EarningsSection> {
   void initState() {
     super.initState();
     _controller = PageController(viewportFraction: 0.88, initialPage: 0);
-    _controller.addListener(() {
-      setState(() {
-        currentPage = _controller.page ?? 0;
-      });
-    });
   }
 
   @override
@@ -48,21 +42,27 @@ class _EarningsSectionState extends State<EarningsSection> {
       children: [
         SizedBox(
           height: 130,
-          child: PageView.builder(
-            controller: _controller,
-            padEnds: false,
-            itemCount: items.length,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (context, index) {
-              final offset = currentPage - index;
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final currentPage = _controller.hasClients ? (_controller.page ?? 0.0) : 0.0;
+              return PageView.builder(
+                controller: _controller,
+                padEnds: false,
+                itemCount: items.length,
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final offset = currentPage - index;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: ParallaxCard(
-                  today: items[index]["today"]!,
-                  week: items[index]["week"]!,
-                  offset: offset,
-                ),
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: ParallaxCard(
+                      today: items[index]["today"]!,
+                      week: items[index]["week"]!,
+                      offset: offset,
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -70,24 +70,30 @@ class _EarningsSectionState extends State<EarningsSection> {
 
         const SizedBox(height: 16),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(items.length, (index) {
-            final isActive = currentPage.round() == index;
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final currentPageRound = _controller.hasClients ? (_controller.page ?? 0.0).round() : 0;
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(items.length, (index) {
+                final isActive = currentPageRound == index;
 
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              height: 6,
-              width: isActive ? 20 : 6,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppColors.foundationOrange600
-                    : AppColors.semanticGrayNeutralFgMidOnWhite,
-                borderRadius: BorderRadius.circular(6),
-              ),
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 6,
+                  width: isActive ? 20 : 6,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppColors.foundationOrange600
+                        : AppColors.semanticGrayNeutralFgMidOnWhite,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
       ],
     );

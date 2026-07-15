@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_service.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
 ///
@@ -31,12 +36,16 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   StreamSubscription? _socketSub;
   FoodLiveState _currentState = FoodLiveState.headingToRestaurant;
   bool _isLoading = false;
+  final DirectionsService _directionsService = DirectionsService();
+  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRoute();
+
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
         if (msg.type == 'job_status' || msg.type == 'ORDER_STATUS_UPDATED') {
@@ -55,6 +64,59 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           }
         }
       });
+    });
+  }
+
+  /// Fetches the route polyline from Directions API based on current food state.
+  /// Uses driver's current GPS location as origin.
+  Future<void> _loadRoute() async {
+    final currentJob = ref.read(incomingJobControllerProvider).currentJob;
+    if (currentJob == null) return;
+
+    final restaurantLatLng = LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    final customerLatLng = LatLng(currentJob.dropoffLat, currentJob.dropoffLng);
+
+    LatLng origin;
+    LatLng destination;
+
+    if (_currentState == FoodLiveState.delivering) {
+      // Route: restaurant → customer
+      origin = restaurantLatLng;
+      destination = customerLatLng;
+    } else {
+      // Route: driver location → restaurant
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        );
+        origin = LatLng(position.latitude, position.longitude);
+      } catch (_) {
+        origin = restaurantLatLng;
+      }
+      destination = restaurantLatLng;
+    }
+
+    final points = await _directionsService.getRoutePolyline(
+      origin: origin,
+      destination: destination,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _polylines = {
+        if (points.isNotEmpty)
+          Polyline(
+            polylineId: const PolylineId('route'),
+            points: points,
+            color: AppColors.foundationOrange600,
+            width: 5,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            jointType: JointType.round,
+          ),
+      };
     });
   }
 
@@ -129,6 +191,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: target, zoom: 16),
       markers: markers,
+      polylines: _polylines,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: false,
       myLocationEnabled: true,
@@ -550,10 +613,26 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   // CONTACT ROW
   // =========================================================================
   Widget _buildContactRow() {
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _bottomAction(Icons.chat_bubble_outline, 'แชท'),
+        _bottomAction(
+          Icons.chat_bubble_outline,
+          'แชท',
+          onTap: currentJob == null
+              ? null
+              : () {
+                  AppNavigator.push(
+                    context,
+                    ChatScreen(
+                      jobId: currentJob.jobId,
+                      passengerName: currentJob.passengerName,
+                      vertical: ChatVertical.food,
+                    ),
+                  );
+                },
+        ),
         _bottomAction(Icons.phone_outlined, 'โทรฟรี'),
         _bottomAction(Icons.help_outline, 'ช่วยเหลือ'),
         _bottomAction(Icons.more_horiz, 'อื่นๆ'),
@@ -561,16 +640,23 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
     );
   }
 
-  Widget _bottomAction(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: AppTypography.caption4.copyWith(color: Colors.white70),
+  Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white70),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTypography.caption4.copyWith(color: Colors.white70),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -647,6 +733,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
             _currentState = FoodLiveState.atRestaurant;
           });
           debugPrint('FoodLiveScreen: ✅ Arrived at restaurant');
+          // Keep same route (still heading to restaurant area)
           break;
 
         case FoodLiveState.atRestaurant:
@@ -655,6 +742,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           setState(() {
             _currentState = FoodLiveState.delivering;
           });
+          _loadRoute(); // Reload: restaurant → customer
           debugPrint('FoodLiveScreen: ✅ Food picked up via REST API');
           break;
 

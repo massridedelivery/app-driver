@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart' as dio_client;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/default_circular_progress_indicator.dart';
@@ -14,10 +16,14 @@ import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
+import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
@@ -43,20 +49,29 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
   static const double defaultLat = 13.7563;
   static const double defaultLng = 100.5018;
 
+  // Keep subscription so we can cancel it on dispose — prevents memory leak
+  StreamSubscription<bool>? _connectionSubscription;
+
   @override
   OnlineStatusState build() {
-    ref.listen(socketServiceProvider.select((s) => s.onConnectionStatus), (
-      previous,
-      next,
-    ) {
-      (next as Stream<bool>).listen((connected) {
-        if (connected && state.isOnline) {
+    // Cancel previous subscription before creating a new one
+    _connectionSubscription?.cancel();
+
+    final socket = ref.read(socketServiceProvider);
+    _connectionSubscription = socket.onConnectionStatus.listen((connected) {
+      if (connected && state.isOnline) {
+        if (kDebugMode) {
           debugPrint(
             'OnlineStatus: Connection successful and driver is online. Starting location updates.',
           );
-          ref.read(locationServiceProvider).startLocationUpdates();
         }
-      });
+        ref.read(locationServiceProvider).startLocationUpdates();
+      }
+    });
+
+    ref.onDispose(() {
+      _connectionSubscription?.cancel();
+      _connectionSubscription = null;
     });
 
     return const OnlineStatusState();
@@ -68,7 +83,7 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
       final res = await ref.read(homeApiServiceProvider).fetchDriverStatus();
       if (res.isSuccessful && res.data != null) {
         final status = res.data['status']?.toString().toUpperCase();
-        debugPrint('OnlineStatus: Driver Initial Status (Normalized): $status');
+        if (kDebugMode) debugPrint('OnlineStatus: Driver Initial Status (Normalized): $status');
 
         if (status == 'BUSY' || status == 'ON_TRIP') {
           // Check for active job and redirect
@@ -80,7 +95,7 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
         }
       }
     } catch (e) {
-      debugPrint('Fetch Driver Status Error: $e');
+      if (kDebugMode) debugPrint('Fetch Driver Status Error: $e');
     } finally {
       state = state.copyWith(isLoading: false);
     }
@@ -90,58 +105,104 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
     try {
       final repo = getIt<JobLiveRepository>();
 
-      // 1. Try Active Job (Ride)
-      dynamic activeData = await repo.getActiveJob();
+      double? lat;
+      double? lng;
+      try {
+        final position = await Geolocator.getLastKnownPosition() ??
+            await Geolocator.getCurrentPosition(
+              timeLimit: const Duration(seconds: 3),
+            );
+        lat = position.latitude;
+        lng = position.longitude;
+      } catch (e) {
+        if (kDebugMode) debugPrint('HomeScreen: Error fetching location for active check: $e');
+      }
 
-      // 2. Try Active Offer (Ride) if 1 fails
-      activeData ??= await repo.getActiveOffer();
+      // 1. Probe the cross-vertical index once (SCRUM-45) instead of firing
+      //    every per-vertical endpoint and guessing which one wins.
+      final active = await repo.getActiveSummary();
 
-      // 3. Try Active Food Order if others fail
-      activeData ??= await repo.getActiveFoodOrder();
-
-      if (activeData != null) {
-        debugPrint('OnlineStatus: Found active job/order. Redirecting...');
-
-        Map<String, dynamic>? jobJson;
-
-        if (activeData is Map<String, dynamic>) {
-          if (activeData.containsKey('job')) {
-            jobJson = activeData['job'];
-          } else {
-            jobJson = activeData;
-          }
-        } else if (activeData is List && activeData.isNotEmpty) {
-          final firstItem = activeData.first;
-          if (firstItem is Map<String, dynamic>) {
-            jobJson = firstItem;
-          }
+      if (active.isEmpty) {
+        // No accepted job — recover a pending (pre-accept) offer if one exists.
+        final offer = await repo.getActiveOffer(lat: lat, lng: lng);
+        final offerJson = _extractJobJson(offer);
+        if (offerJson != null && context.mounted) {
+          final job = IncomingJobModel.fromJson(offerJson);
+          ref.read(incomingJobControllerProvider.notifier).receiveJob(job);
+          context.go(AppRoutes.incomingJobNamedPage);
         }
+        return;
+      }
 
-        if (jobJson != null) {
-          final job = IncomingJobModel.fromJson(jobJson);
-          ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
+      // Driver holds 0–1 active items; the list is newest-first.
+      final item = active.first;
+      if (kDebugMode) {
+        debugPrint('OnlineStatus: active ${item.type} (${item.status}) → resuming');
+      }
 
-          if (context.mounted) {
-            final isFood = job.serviceType.toLowerCase().contains('food');
-            if (isFood) {
-              context.go(AppRoutes.foodLiveNamedPage);
-            } else {
-              context.go('/job-live');
-            }
+      // Messenger has its own model/screen — resume it directly (SCRUM-41).
+      if (item.type == ActiveJobType.messenger) {
+        final order = await getIt<MessengerRepository>().getActiveOrder();
+        if (order == null) return;
+        ref.read(messengerControllerProvider.notifier).setActiveOrder(order);
+        if (context.mounted) context.go('/messenger-live');
+        return;
+      }
+
+      // 2. Fetch full detail from the endpoint matching the item's vertical.
+      dynamic detail;
+      switch (item.type) {
+        case ActiveJobType.ride:
+          detail = await repo.getActiveJob(lat: lat, lng: lng);
+          break;
+        case ActiveJobType.food:
+          detail = await repo.getActiveFoodOrder(lat: lat, lng: lng);
+          break;
+        case ActiveJobType.messenger:
+        case ActiveJobType.unknown:
+          if (kDebugMode) {
+            debugPrint('OnlineStatus: type ${item.type} not supported yet');
           }
-        } else {
-          debugPrint(
-            'OnlineStatus: Active data found but could not parse job JSON.',
-          );
+          return;
+      }
+
+      final jobJson = _extractJobJson(detail);
+      if (jobJson == null) {
+        if (kDebugMode) {
+          debugPrint('OnlineStatus: active ${item.type} found but detail unparseable.');
         }
+        return;
+      }
+
+      final job = IncomingJobModel.fromJson(jobJson);
+      ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
+
+      if (!context.mounted) return;
+      if (item.type == ActiveJobType.food) {
+        context.go(AppRoutes.foodLiveNamedPage);
       } else {
-        debugPrint(
-          'OnlineStatus: Status is BUSY but no active job found on any endpoint.',
-        );
+        // Phase 3: hand the vertical status to the live screen so it resumes
+        // at the correct trip stage instead of restarting at pickup.
+        context.go('/job-live', extra: item.status);
       }
     } catch (e) {
-      debugPrint('OnlineStatus: Error checking active job: $e');
+      if (kDebugMode) debugPrint('OnlineStatus: Error checking active job: $e');
     }
+  }
+
+  /// Extracts the job/order JSON from a per-vertical detail response, which may
+  /// be a bare object, a `{ "job": {...} }` wrapper, or a list.
+  Map<String, dynamic>? _extractJobJson(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final job = data['job'];
+      if (job is Map<String, dynamic>) return job;
+      return data;
+    }
+    if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      if (first is Map<String, dynamic>) return first;
+    }
+    return null;
   }
 
   Future<void> setStatus(
@@ -164,7 +225,7 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
             final res = await ref.read(homeApiServiceProvider).goOnline();
             if (!res.isSuccessful) throw Exception('Failed to go online');
           } catch (e) {
-            debugPrint('Go Online API Error: $e');
+            if (kDebugMode) debugPrint('Go Online API Error: $e');
             rethrow;
           }
         }
@@ -172,7 +233,7 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
         // Connect WebSocket
         await socketService.connect();
 
-        // Start precise 5s location updates
+        // Start location stream updates
         await locationService.startLocationUpdates();
 
         state = state.copyWith(isOnline: true);
@@ -184,7 +245,7 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
           try {
             await ref.read(homeApiServiceProvider).goOffline();
           } catch (e) {
-            debugPrint('Go Offline API Error: $e');
+            if (kDebugMode) debugPrint('Go Offline API Error: $e');
           }
         }
 
@@ -225,9 +286,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   late DraggableScrollableController _sheetController;
-  GoogleMapController? _mapController;
-
-  double _sheetSize = 0.35;
 
   final double _minSize = 0.25;
   final double _maxSize = 0.85;
@@ -237,28 +295,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
 
     _sheetController = DraggableScrollableController();
-
-    _sheetController.addListener(() {
-      setState(() {
-        _sheetSize = _sheetController.size;
-      });
-    });
+    // NOTE: Removed the _sheetSize listener — it was calling setState on every
+    // pixel of scroll but _sheetSize was never used in build(), causing
+    // unnecessary full widget-tree rebuilds.
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      debugPrint('HomeScreen: initState - Calling fetchProfile()');
+      if (kDebugMode) debugPrint('HomeScreen: initState - Calling fetchProfile()');
       final profileNotifier = ref.read(profileControllerProvider.notifier);
       await profileNotifier.fetchProfile();
 
       final profile = ref.read(profileControllerProvider).profile;
-      debugPrint(
-        'HomeScreen: fetchProfile() finished. Verified: ${profile?.isVerified}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'HomeScreen: fetchProfile() finished. Verified: ${profile?.isVerified}',
+        );
+      }
 
       if (profile?.isVerified == true) {
-        debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
-        ref.read(onlineStatusProvider.notifier).initStatus(context);
+        if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
+        if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
       } else {
-        debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
+        if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
       }
     });
   }
@@ -270,18 +327,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
 
-    // Ensure IncomingJobController is initialized early to catch WebSocket messages
+    // Ensure the offer controllers are initialized early to catch WebSocket
+    // messages (job_offer / food_delivery_offer / messenger_offer).
     ref.watch(incomingJobControllerProvider);
+    ref.watch(messengerControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(
         children: [
-          _buildMap(),
+          const _HomeMap(),
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
             child: _buildSettingsButton(),
+          ),
+          // Persistent indicator when the driver has a job in progress.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 76,
+            left: 16,
+            right: 16,
+            child: const ActiveJobBanner(),
           ),
           profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()
@@ -474,24 +540,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ================= MAP =================
 
-  Widget _buildMap() {
-    return SizedBox.expand(
-      child: GoogleMap(
-        onMapCreated: (controller) {
-          _mapController = controller;
-          ref.read(mapControllerProvider.notifier).setController(controller);
-        },
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
-          zoom: 14,
-        ),
-        myLocationEnabled: true,
-        zoomControlsEnabled: false,
-        myLocationButtonEnabled: false,
-      ),
-    );
-  }
-
   // ================= BOTTOM SHEET =================
 
   Widget _buildBottomSheet() {
@@ -530,7 +578,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildStatusCard(),
+                      const _StatusCard(),
                       _buildMenuRow(),
                       const SizedBox(height: 500),
                     ],
@@ -539,11 +587,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
 
-            Positioned(
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: Center(child: _buildOnlineButton()),
+              child: Center(child: _OnlineButton()),
             ),
           ],
         );
@@ -551,97 +599,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  void _showUnverifiedDocsDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E2F38),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.foundationOrange500,
-                size: 64,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'เอกสารของคุณยังไม่ได้รับการอนุมัติ',
-                style: AppTypography.heading5.copyWith(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบถ้วนและรอการตรวจสอบให้เรียบร้อยเพื่อเริ่มต้นรับงาน',
-                style: AppTypography.caption3.copyWith(
-                  color: Colors.white70,
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white30),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Text(
-                        'ยกเลิก',
-                        style: AppTypography.label2.copyWith(color: Colors.white70),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        context.push(
-                          AppRoutes.documentRegistrationChecklistNamedPage,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.foundationOrange600,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'ตรวจสอบเอกสาร',
-                        style: AppTypography.label2.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+  // ================= MENU =================
+
+  Widget _buildMenuRow() {
+    // Use a simple Row instead of GridView to avoid shrinkWrap layout cost
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _circleMenu(Icons.card_giftcard, "รายได้", () {
+            AppNavigator.push(context, IncomeScreen());
+          }),
+          _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
+            AppNavigator.push(context, ServiceTypeScreen());
+          }),
+          _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
+            AppNavigator.push(context, ProfileScreen());
+          }),
+          _circleMenu(Icons.settings_sharp, "การตั้งค่า", () {
+            AppNavigator.push(context, SettingScreen());
+          }),
+        ],
+      ),
     );
   }
 
-  Widget _buildOnlineButton() {
-    final onlineStatus = ref.watch(onlineStatusProvider);
-    final isOnline = onlineStatus.isOnline;
+  Widget _circleMenu(IconData icon, String text, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white10,
+            ),
+            child: Icon(icon, color: AppColors.foundationOrange700),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: 90,
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: AppTypography.caption5.copyWith(
+                color: AppColors.semanticGrayNeutralBgWhite,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Extracted ConsumerWidgets — rebuild independently from HomeScreen
+// ─────────────────────────────────────────────────────────────
+
+/// Online/Offline toggle button — extracted so only this widget rebuilds
+/// when onlineStatusProvider changes, not the entire HomeScreen tree.
+class _OnlineButton extends ConsumerWidget {
+  const _OnlineButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(onlineStatusProvider).isOnline;
+
     return GestureDetector(
       onTap: () async {
         final current = ref.read(onlineStatusProvider).isOnline;
@@ -650,7 +678,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         try {
           await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
-          if (mounted && newValue && ref.read(onlineStatusProvider).isOnline) {
+          if (context.mounted && newValue && ref.read(onlineStatusProvider).isOnline) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -664,7 +692,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             );
           }
         } catch (e) {
-          if (mounted && newValue) {
+          if (context.mounted && newValue) {
             bool isDocError = false;
             if (e is dio_client.DioException) {
               final resp = e.response;
@@ -674,12 +702,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   isDocError = true;
                 }
               }
-            } else if (e.toString().contains('documents_not_verified') || e.toString().contains('403')) {
+            } else if (e.toString().contains('documents_not_verified') ||
+                e.toString().contains('403')) {
               isDocError = true;
             }
 
             if (isDocError) {
-              _showUnverifiedDocsDialog();
+              _showUnverifiedDocsDialogStatic(context);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -737,10 +766,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
+}
 
-  // ================= STATUS CARD =================
+/// Status text card ("ระบบกำลังค้นหางาน" / "คุณปิดรับงาน") — extracted so
+/// only this widget rebuilds when online status changes.
+class _StatusCard extends ConsumerWidget {
+  const _StatusCard();
 
-  Widget _buildStatusCard() {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(onlineStatusProvider).isOnline;
     return Container(
       padding: const EdgeInsets.all(10),
@@ -767,63 +801,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
+}
 
-  // ================= MENU =================
-
-  Widget _buildMenuRow() {
-    return GridView.count(
-      padding: EdgeInsets.symmetric(vertical: 16),
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 2,
-      childAspectRatio: 1,
-      children: [
-        _circleMenu(Icons.card_giftcard, "รายได้", () {
-          AppNavigator.push(context, IncomeScreen());
-        }),
-        _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
-          AppNavigator.push(context, ServiceTypeScreen());
-        }),
-        // _circleMenu(Icons.location_on, "ปลายทางของฉัน", () {}),
-        _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
-          AppNavigator.push(context, ProfileScreen());
-        }),
-        _circleMenu(Icons.settings_sharp, "การตั้งค่า", () {
-          AppNavigator.push(context, SettingScreen());
-        }),
-      ],
-    );
-  }
-
-  Widget _circleMenu(IconData icon, String text, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
-      child: Column(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white10,
+// Reusable static dialog — called from _OnlineButton which is outside the
+// _HomeScreenState, so we expose it as a top-level helper.
+void _showUnverifiedDocsDialogStatic(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E2F38),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.foundationOrange500,
+              size: 64,
             ),
-            child: Icon(icon, color: AppColors.foundationOrange700),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: 90,
-            child: Text(
-              text,
+            const SizedBox(height: 16),
+            Text(
+              'เอกสารของคุณยังไม่ได้รับการอนุมัติ',
+              style: AppTypography.heading5.copyWith(color: Colors.white),
               textAlign: TextAlign.center,
-              style: AppTypography.caption5.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
-              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              'กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบถ้วนและรอการตรวจสอบให้เรียบร้อยเพื่อเริ่มต้นรับงาน',
+              style: AppTypography.caption3.copyWith(
+                color: Colors.white70,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white30),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      'ยกเลิก',
+                      style: AppTypography.label2.copyWith(color: Colors.white70),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.push(
+                        AppRoutes.documentRegistrationChecklistNamedPage,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.foundationOrange600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'ตรวจสอบเอกสาร',
+                      style: AppTypography.label2.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _HomeMap extends ConsumerWidget {
+  const _HomeMap();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox.expand(
+      child: GoogleMap(
+        onMapCreated: (controller) {
+          ref.read(mapControllerProvider.notifier).setController(controller);
+        },
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
+          zoom: 14,
+        ),
+        myLocationEnabled: true,
+        zoomControlsEnabled: false,
+        myLocationButtonEnabled: false,
       ),
     );
   }

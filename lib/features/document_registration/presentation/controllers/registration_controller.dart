@@ -50,6 +50,7 @@ class RegistrationController extends _$RegistrationController {
     try {
       final statusInfo = await _repository.fetchRegistrationStatus();
       final docList = await _repository.fetchDocuments();
+      final activePayout = await _repository.fetchPayoutMethod();
       
       final profileNotifier = ref.read(profileControllerProvider.notifier);
       await profileNotifier.fetchProfile();
@@ -62,8 +63,10 @@ class RegistrationController extends _$RegistrationController {
           type = DocumentType.profilePhoto;
         } else if (doc.docType == 'id_card') {
           type = DocumentType.idCard;
-        } else if (doc.docType == 'driver_license' || doc.docType == 'public_transport_license') {
+        } else if (doc.docType == 'driver_license') {
           type = DocumentType.drivingLicense;
+        } else if (doc.docType == 'public_transport_license') {
+          type = DocumentType.publicDrivingLicense;
         } else if (doc.docType == 'vehicle_registration') {
           type = DocumentType.vehicleRegistration;
         } else if (doc.docType == 'insurance') {
@@ -93,6 +96,9 @@ class RegistrationController extends _$RegistrationController {
       final isDrivingLicenseComplete = remoteDocs[DocumentType.drivingLicense]?.status == 'approved' ||
           remoteDocs[DocumentType.drivingLicense]?.status == 'pending';
 
+      final isPublicDrivingLicenseComplete = remoteDocs[DocumentType.publicDrivingLicense]?.status == 'approved' ||
+          remoteDocs[DocumentType.publicDrivingLicense]?.status == 'pending';
+
       final isVehicleRegistrationComplete = remoteDocs[DocumentType.vehicleRegistration]?.status == 'approved' ||
           remoteDocs[DocumentType.vehicleRegistration]?.status == 'pending';
 
@@ -120,10 +126,12 @@ class RegistrationController extends _$RegistrationController {
         isProfilePhotoComplete: isProfilePhotoComplete,
         isIdCardComplete: isIdCardComplete,
         isDrivingLicenseComplete: isDrivingLicenseComplete,
+        isPublicDrivingLicenseComplete: isPublicDrivingLicenseComplete,
         isVehicleInfoComplete: isVehicleInfoComplete,
         isVehiclePhotoComplete: isVehiclePhotoComplete,
         isInsuranceComplete: isInsuranceComplete,
         isBankAccountComplete: isBankAccountComplete,
+        bankAccountInfo: activePayout ?? state.bankAccountInfo,
         profileInfo: profile != null
             ? DriverProfileInfo(
                 firstName: profile.fullName.split(' ').first,
@@ -176,15 +184,6 @@ class RegistrationController extends _$RegistrationController {
       }
 
       final isUpdate = state.remoteDocuments.containsKey(type);
-      
-      String? docTypeOverride;
-      if (type == DocumentType.drivingLicense) {
-        if (state.selectedTier == KycTier.food) {
-          docTypeOverride = 'driver_license';
-        } else {
-          docTypeOverride = 'public_transport_license';
-        }
-      }
 
       await _repository.uploadDocument(
         file,
@@ -192,7 +191,6 @@ class RegistrationController extends _$RegistrationController {
         category: category,
         docNumber: docNumber,
         isUpdate: isUpdate,
-        docTypeOverride: docTypeOverride,
       );
 
       final updatedDocs = Map<DocumentType, String>.from(
@@ -255,19 +253,20 @@ class RegistrationController extends _$RegistrationController {
     BankAccountInfo info,
     File? passbookFile,
   ) async {
+    if (passbookFile == null) {
+      final remoteDoc = state.remoteDocuments[DocumentType.bankPassbook];
+      if (remoteDoc == null || remoteDoc.imageUrl.isEmpty) {
+        state = state.copyWith(errorMessage: 'กรุณาอัปโหลดรูปภาพก่อนบันทึก');
+        return false;
+      }
+    }
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (passbookFile != null) {
-        final isUpdate = state.remoteDocuments.containsKey(DocumentType.bankPassbook);
-        await _repository.uploadDocument(
-          passbookFile,
-          DocumentType.bankPassbook,
-          category: MediaCategory.driverDoc,
-          docNumber: info.accountNumber,
-          isUpdate: isUpdate,
-        );
+        await _repository.submitBankPayoutDetails(info, passbookFile);
+      } else {
+        await _repository.submitBankDetails(info);
       }
-      await _repository.submitBankDetails(info);
 
       final updatedDocs = Map<DocumentType, String>.from(
         state.uploadedDocuments,

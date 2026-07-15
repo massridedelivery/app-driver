@@ -71,6 +71,7 @@ jobs:
         run: |
           flutter build appbundle --release \
             --dart-define-from-file=config/preprod.json \
+            --dart-define-from-file=config/mass_dev.json \
             --build-number=$((GITHUB_RUN_NUMBER + 10))
 
       - name: Upload to Play (internal track)

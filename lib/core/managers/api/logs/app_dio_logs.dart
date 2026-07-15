@@ -67,10 +67,47 @@ class AppDioRequestLog extends DioRequestLog {
         final prettyHeaders = _encoder.convert(headers);
         msg += '\nHeaders: ${prettyHeaders.truncateTo(300)}';
       }
+
+      // Build curl command for easy copy-paste debugging
+      msg += '\nCurl: ${_buildCurlCommand(requestOptions)}';
     } catch (_) {
       msg = super.generateTextMessage(timeFormat: timeFormat);
     }
     return msg;
+  }
+
+  String _buildCurlCommand(RequestOptions options) {
+    final method = options.method.toUpperCase();
+    final uri = options.uri.toString();
+
+    // Header flags: -H 'key: value' joined inline (skip internal Dio keys)
+    final headerFlags = options.headers.entries
+        .where((e) => !e.key.toString().startsWith('_'))
+        .map((e) => "-H '${e.key}: ${e.value}'")
+        .join(' ');
+
+    // Body flag
+    String bodyFlag = '';
+    final data = options.data;
+    if (data != null) {
+      if (data is FormData) {
+        final formParts = <String>[
+          for (final field in data.fields) "-F '${field.key}=${field.value}'",
+          for (final file in data.files)
+            "-F '${file.key}=@${file.value.filename ?? 'file'}'",
+        ];
+        bodyFlag = ' ${formParts.join(' ')}';
+      } else {
+        try {
+          bodyFlag = " -d '${json.encode(data)}'";
+        } catch (_) {
+          bodyFlag = " -d '$data'";
+        }
+      }
+    }
+
+    final headerPart = headerFlags.isNotEmpty ? ' $headerFlags' : '';
+    return "curl -X $method '$uri'$headerPart$bodyFlag";
   }
 
   void _replaceHiddenHeaders(Map<dynamic, dynamic> headers) {

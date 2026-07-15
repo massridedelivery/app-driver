@@ -22,6 +22,7 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'dropoff_distance_km')
     @Default(0.0)
     double dropoffDistanceKm,
+    @JsonKey(name: 'distance_km') double? distanceKm,
     @JsonKey(name: 'pickup_lat') required double pickupLat,
     @JsonKey(name: 'pickup_lng') required double pickupLng,
     @JsonKey(name: 'dropoff_lat') required double dropoffLat,

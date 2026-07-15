@@ -1,18 +1,42 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
+/// Maps a RIDE vertical status (SCRUM-45 §4) to the live trip stage so a
+/// resumed job continues where it left off instead of restarting at pickup.
+/// RIDE uses `ARRIVED_AT_PICK_UP` (middle underscore) — match it exactly.
+JobLiveState jobLiveStageFromStatus(String? status) {
+  switch (status?.toUpperCase()) {
+    case 'ARRIVED_AT_PICK_UP':
+      return JobLiveState.arrivedAtPickup;
+    case 'PICKED_UP':
+      return JobLiveState.headingToDropoff;
+    case 'ACCEPTED':
+    default:
+      return JobLiveState.headingToPickup;
+  }
+}
+
 class JobLiveScreen extends ConsumerStatefulWidget {
-  const JobLiveScreen({super.key});
+  /// Vertical status to resume from (from the active index). Null → fresh trip.
+  final String? initialStatus;
+
+  const JobLiveScreen({super.key, this.initialStatus});
 
   @override
   ConsumerState<JobLiveScreen> createState() => _JobLiveScreenState();
@@ -23,24 +47,19 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       DraggableScrollableController();
 
   StreamSubscription? _socketSub;
+  final DirectionsService _directionsService = DirectionsService();
 
-  final double _minSize = 0.12;
-  final double _initialSize = 0.45;
-  final double _maxSize = 0.85;
-
-  double _currentSize = 0.45;
-  JobLiveState _currentState = JobLiveState.headingToPickup;
+  late JobLiveState _currentState =
+      jobLiveStageFromStatus(widget.initialStatus);
+  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
     super.initState();
-    _sheetController.addListener(() {
-      setState(() {
-        _currentSize = _sheetController.size;
-      });
-    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRoute();
+
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
         if (msg.type == 'job_status') {
@@ -60,6 +79,112 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         }
       });
     });
+  }
+
+  /// Fetches the route polyline from Directions API based on current job state.
+  /// Uses driver's current GPS location as origin.
+  Future<void> _loadRoute() async {
+    final currentJob = ref.read(incomingJobControllerProvider).currentJob;
+    if (currentJob == null) return;
+
+    // Try to get driver's current location as route origin
+    LatLng origin;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      origin = LatLng(position.latitude, position.longitude);
+    } catch (_) {
+      // Fallback to pickup if location unavailable
+      origin = LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    }
+
+    final pickupLatLng = LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    final dropoffLatLng = LatLng(currentJob.dropoffLat, currentJob.dropoffLng);
+
+    // Determine destination based on current state
+    final LatLng destination =
+        (_currentState == JobLiveState.headingToDropoff)
+            ? dropoffLatLng
+            : pickupLatLng;
+
+    final points = await _directionsService.getRoutePolyline(
+      origin: origin,
+      destination: destination,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _polylines = {
+        if (points.isNotEmpty)
+          Polyline(
+            polylineId: const PolylineId('route'),
+            points: points,
+            color: AppColors.semanticSuccessBgHigh,
+            width: 5,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            jointType: JointType.round,
+          ),
+      };
+    });
+  }
+
+  /// Opens the external Google Maps app in turn-by-turn navigation mode,
+  /// routing to the current destination (pickup or dropoff) by car.
+  Future<void> _openGoogleMapsNavigation() async {
+    final currentJob = ref.read(incomingJobControllerProvider).currentJob;
+
+    LatLng? destination;
+    if (currentJob != null) {
+      destination = (_currentState == JobLiveState.headingToDropoff)
+          ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
+          : LatLng(currentJob.pickupLat, currentJob.pickupLng);
+    } else if (kDebugMode) {
+      // No active job while testing — use a fixed destination so the
+      // Google Maps launch can still be verified. Not used in release.
+      destination = const LatLng(13.7563, 100.5018); // Bangkok
+      debugPrint('NAV: no active job → using debug test destination');
+    }
+
+    if (destination == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยังไม่มีงานที่กำลังทำอยู่')),
+      );
+      return;
+    }
+
+    final lat = destination.latitude;
+    final lng = destination.longitude;
+
+    // Android: launches directly into navigation mode.
+    final Uri navUri = Uri.parse('google.navigation:q=$lat,$lng&mode=d');
+    // Universal fallback (iOS / no navigation scheme available).
+    final Uri fallbackUri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
+    );
+
+    final bool canNav = await canLaunchUrl(navUri);
+    debugPrint('NAV: dest=$lat,$lng  canLaunch(google.navigation)=$canNav');
+
+    try {
+      if (canNav) {
+        await launchUrl(navUri, mode: LaunchMode.externalApplication);
+      } else {
+        final ok =
+            await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+        debugPrint('NAV: fallback https launch result=$ok');
+      }
+    } catch (e) {
+      debugPrint('NAV: launch error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถเปิดแอปนำทางได้')),
+      );
+    }
   }
 
   @override
@@ -128,8 +253,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: target, zoom: 16),
       markers: markers,
+      polylines: _polylines,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: false,
+      myLocationEnabled: true,
       compassEnabled: false,
     );
   }
@@ -196,6 +323,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       top: 160,
       child: Column(
         children: [
+          _circleButton(
+            Icons.navigation,
+            onTap: _openGoogleMapsNavigation,
+            color: AppColors.semanticSuccessBgHigh,
+          ),
+          const SizedBox(height: 12),
           _circleButton(Icons.shield_outlined),
           const SizedBox(height: 12),
           _circleButton(Icons.notifications_none),
@@ -204,15 +337,18 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  Widget _circleButton(IconData icon) {
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgHigh,
-        shape: BoxShape.circle,
+  Widget _circleButton(IconData icon, {VoidCallback? onTap, Color? color}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: color ?? AppColors.semanticGrayNeutralFgHigh,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: AppColors.semanticGrayNeutralFgWhite),
       ),
-      child: Icon(icon, color: AppColors.semanticGrayNeutralFgWhite),
     );
   }
 
@@ -309,10 +445,25 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   Widget _buildContactRow() {
+    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _bottomAction(Icons.chat_bubble_outline, "แชท"),
+        _bottomAction(
+          Icons.chat_bubble_outline,
+          "แชท",
+          onTap: currentJob == null
+              ? null
+              : () {
+                  AppNavigator.push(
+                    context,
+                    ChatScreen(
+                      jobId: currentJob.jobId,
+                      passengerName: currentJob.passengerName,
+                    ),
+                  );
+                },
+        ),
         _bottomAction(Icons.phone_outlined, "โทรฟรี"),
         _bottomAction(Icons.help_outline, "ช่วยเหลือ"),
         _bottomAction(Icons.more_horiz, "อื่นๆ"),
@@ -320,16 +471,23 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  Widget _bottomAction(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: AppTypography.caption4.copyWith(color: Colors.white70),
+  Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white70),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTypography.caption4.copyWith(color: Colors.white70),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -378,6 +536,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               break;
           }
         });
+        // Reload route whenever state changes
+        _loadRoute();
       },
       child: Container(
         width: double.infinity,
