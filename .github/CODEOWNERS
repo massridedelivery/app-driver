@@ -1,0 +1,11 @@
+# Code owners — changes to the paths below require review from a listed owner.
+# Enforced when branch protection has "Require review from Code Owners" enabled.
+# Any one of the listed owners approving satisfies the requirement.
+
+# Config code is gated (per team policy).
+/config/**                       @bossTawee @bankzapse
+/.github/workflows/**            @bossTawee @bankzapse
+
+# Android release signing config.
+/android/app/build.gradle.kts    @bossTawee @bankzapse
+/android/key.properties          @bossTawee @bankzapse
