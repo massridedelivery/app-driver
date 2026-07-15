@@ -20,6 +20,15 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
   GoogleMapController? _mapController;
 
   @override
+  void dispose() {
+    // Release the native map controller so it (and its camera-animation
+    // closure) can be garbage-collected instead of leaking on every job.
+    _mapController?.dispose();
+    _mapController = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final incomingJobState = ref.watch(incomingJobControllerProvider);
     final job = incomingJobState.currentJob;

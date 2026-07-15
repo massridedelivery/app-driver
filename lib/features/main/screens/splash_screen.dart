@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart'; // This import is used
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/features/splash_screen/presentation/controllers/app_startup_controller.dart';
 import 'package:massdrive/router/startup_destination.dart';
 
@@ -23,7 +24,8 @@ class SplashScreen extends ConsumerWidget {
               context.go(AppRoutes.loginNamedPage);
               break;
             case StartupDestination.home:
-              context.go(AppRoutes.homeNamedPage);
+              final restored = RouteRestorationService.instance.lastRoute;
+              context.go(restored ?? AppRoutes.homeNamedPage);
               break;
           }
         });

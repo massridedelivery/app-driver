@@ -321,6 +321,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   @override
+  void dispose() {
+    _sheetController.dispose();
+    // Drop the app-wide GoogleMapController reference so the native map can be
+    // released instead of being held for the app's lifetime.
+    final mapController = ref.read(mapControllerProvider);
+    mapController?.dispose();
+    ref.read(mapControllerProvider.notifier).setController(null);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final onlineStatus = ref.watch(onlineStatusProvider);

@@ -14,9 +14,6 @@ part 'app_startup_controller.g.dart';
 class AppStartupController extends _$AppStartupController {
   @override
   Future<StartupDestination> build() async {
-    // delay for splash animation
-    await Future.delayed(const Duration(milliseconds: 1500));
-
     final authState = await ref.read(authControllerProvider.future);
     final isLoggedIn = authState.isLogin;
 
