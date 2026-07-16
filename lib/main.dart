@@ -9,6 +9,7 @@ import 'package:massdrive/features/dependency_injection.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  EnvironmentConfig.assertConfigured();
   await dotenv.load(fileName: '.env');
   await initializeDateFormatting('th_TH', null);
   configureDependencies(EnvironmentConfig.env);

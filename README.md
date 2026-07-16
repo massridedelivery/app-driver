@@ -34,13 +34,17 @@ CI does the same in its `Create placeholder .env` step.
 Runtime configuration is injected at build time via `--dart-define-from-file`
 (see `lib/core/configs/environment_config.dart`). Config files live in `config/`:
 
-- `config/dev.json` — dev backend (also the compiled-in default, so plain `flutter run` uses dev)
+- `config/dev.json` — dev backend (the backend URL/env also has a compiled-in default)
 - `config/preprod.json` — pre-prod backend
 - `config/mass_dev.json` — app identity + Firebase/Omise keys (shared; layered on top of the backend file)
 
 Pass both the backend file and `mass_dev.json` — the second file supplies the
-Firebase config that `lib/firebase_options.dart` reads, so Firebase won't
-initialize without it.
+Firebase/Omise config that `lib/firebase_options.dart` and the payment code
+read. `EnvironmentConfig.assertConfigured()` runs at boot and throws if any of
+those defines are missing, so a build without `mass_dev.json` fails fast with a
+clear message rather than breaking later inside Firebase. This means plain
+`flutter run` (no `--dart-define-from-file`) will not boot — always pass both
+files.
 
 ```sh
 # Run against dev
