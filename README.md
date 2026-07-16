@@ -34,11 +34,25 @@ CI does the same in its `Create placeholder .env` step.
 Runtime configuration is injected at build time via `--dart-define-from-file`
 (see `lib/core/configs/environment_config.dart`). Config files live in `config/`:
 
+Two kinds of file, layered together: a **backend** file (env + API URL) and an
+**app-identity** file (name, package, Firebase/Omise keys).
+
+Backend files:
+
 - `config/dev.json` — dev backend (the backend URL/env also has a compiled-in default)
 - `config/preprod.json` — pre-prod backend
-- `config/mass_dev.json` — app identity + Firebase/Omise keys (shared; layered on top of the backend file)
+- `config/prod.json` — prod backend — ⚠️ `API_BASE_URL` is a `REPLACE_ME_…` placeholder; fill in the real URL before any prod build
 
-Pass both the backend file and `mass_dev.json` — the second file supplies the
+App-identity files (pick the one matching the target):
+
+- `config/mass_dev.json` — dev/pre-prod app identity + Firebase/Omise keys
+- `config/mass_prod.json` — prod app identity — ⚠️ Firebase/Omise values are `REPLACE_ME_…` placeholders (separate prod Firebase project + Omise **live** key); fill them in before any prod build
+
+> The `REPLACE_ME_…` placeholders are non-empty on purpose so `assertConfigured()`
+> still passes and the structure builds, but they are **not** real credentials —
+> a prod build with them left in will boot yet fail against Firebase/Omise.
+
+Pass both the backend file and the matching app-identity file — the second file supplies the
 Firebase/Omise config that `lib/firebase_options.dart` and the payment code
 read. `EnvironmentConfig.assertConfigured()` runs at boot and throws if any of
 those defines are missing, so a build without `mass_dev.json` fails fast with a
@@ -52,6 +66,9 @@ flutter run --dart-define-from-file=config/dev.json --dart-define-from-file=conf
 
 # Run against pre-prod
 flutter run --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
+
+# Run against prod (once the placeholders in config/prod.json + config/mass_prod.json are filled in)
+flutter run --dart-define-from-file=config/prod.json --dart-define-from-file=config/mass_prod.json
 ```
 
 ## Release build (Google Play)

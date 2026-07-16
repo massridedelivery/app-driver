@@ -1,0 +1,4 @@
+{
+    "APP_ENV": "prod",
+    "API_BASE_URL": "REPLACE_ME_PROD_API_BASE_URL"
+}
