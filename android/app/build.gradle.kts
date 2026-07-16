@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -24,7 +25,28 @@ val localProperties = Properties().apply {
 }
 val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
 
+// Flutter forwards --dart-define / --dart-define-from-file values to Gradle as a
+// comma-separated list of base64-encoded "key=value" pairs in the "dart-defines"
+// project property. Decode them so native build config (applicationId) is driven
+// by the same config/*.json files as the Dart code, instead of being hardcoded.
+val dartDefines: Map<String, String> = (project.findProperty("dart-defines") as String?)
+    ?.split(",")
+    ?.mapNotNull { encoded ->
+        val decoded = String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)
+        val sep = decoded.indexOf('=')
+        if (sep < 0) null else decoded.substring(0, sep) to decoded.substring(sep + 1)
+    }
+    ?.toMap()
+    ?: emptyMap()
+
+// Defaults keep a plain `./gradlew` build (no dart-defines) working and match
+// prod (no suffix). A Flutter build always supplies these via config/*.json.
+val appPackageName: String = dartDefines["APP_PACKAGE_NAME"] ?: "com.massapp.massdrive"
+val appPackageNameSuffix: String = dartDefines["APP_PACKAGE_NAME_SUFFIX"] ?: ""
+
 android {
+    // namespace stays fixed — it's the compile-time package of the generated R
+    // class, not the installed app id (which is applicationId below).
     namespace = "com.massapp.massdrive"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -39,7 +61,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.massapp.massdrive"
+        // dev/pre-prod -> com.massapp.massdrive.dev, prod -> com.massapp.massdrive
+        // (suffix comes from config/mass_dev.json vs config/mass_prod.json).
+        applicationId = appPackageName + appPackageNameSuffix
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

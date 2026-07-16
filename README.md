@@ -45,8 +45,28 @@ Backend files:
 
 App-identity files (pick the one matching the target):
 
-- `config/mass_dev.json` — dev/pre-prod app identity + Firebase/Omise keys
+- `config/mass_dev.json` — dev/pre-prod app identity + Firebase/Omise keys (`APP_PACKAGE_NAME_SUFFIX` is `.dev`)
 - `config/mass_prod.json` — prod app identity — ⚠️ Firebase/Omise values are `REPLACE_ME_…` placeholders (separate prod Firebase project + Omise **live** key); fill them in before any prod build
+
+### Android application id
+
+The Android `applicationId` is derived at build time from `APP_PACKAGE_NAME` +
+`APP_PACKAGE_NAME_SUFFIX` (decoded from the dart-defines in
+`android/app/build.gradle.kts`), so it tracks the app-identity file:
+
+- dev / pre-prod (`mass_dev.json`, suffix `.dev`) → **`com.massapp.massdrive.dev`**
+- prod (`mass_prod.json`, no suffix) → **`com.massapp.massdrive`**
+
+This lets a dev and a prod build coexist on one device. The Gradle `namespace`
+stays `com.massapp.massdrive` (it's the compiled R-class package, not the
+installed id). iOS bundle-id separation is not wired yet — it needs Xcode
+scheme/xcconfig work and is a follow-up.
+
+> ⚠️ **CI / Play impact:** `deploy-play.yml` builds with `preprod.json` +
+> `mass_dev.json`, which now produces `com.massapp.massdrive.dev`. A Play
+> Console listing for that id must exist, or the deploy config must be pointed
+> at a prod identity file, before the next upload — otherwise the upload
+> targets an app id that isn't registered.
 
 > The `REPLACE_ME_…` placeholders are non-empty on purpose so `assertConfigured()`
 > still passes and the structure builds, but they are **not** real credentials —
