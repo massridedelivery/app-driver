@@ -1,9 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
+import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 import 'package:massdrive/features/dependency_injection.dart';
@@ -27,6 +29,18 @@ Future<void> main() async {
     await dotenv.load(fileName: '.env');
   } catch (e, s) {
     debugPrint('main: dotenv.load failed: $e\n$s');
+  }
+
+  // Firebase options come from --dart-define (see firebase_options.dart /
+  // config/mass_*.json). A plain `flutter run` without those defines leaves the
+  // fields empty and init throws — kept isolated so it can never block startup,
+  // and FCM (app_startup_controller) already tolerates an uninitialized app.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e, s) {
+    debugPrint('main: Firebase.initializeApp failed: $e\n$s');
   }
 
   try {
