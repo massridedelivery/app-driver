@@ -16,6 +16,9 @@ name: Deploy to Play (internal)
 #
 # Note: the very first release for a package must be uploaded through the
 # Play Console UI once. After that this workflow can publish updates.
+# This applies to com.massapp.massdrive.dev, which is a new package that has
+# never been published — create the Play app and upload one bundle by hand
+# before running this workflow, or the upload step will fail.
 
 on:
   # Manual only for now. To re-enable auto-deploy, uncomment the push trigger:
@@ -30,7 +33,11 @@ concurrency:
 env:
   FLUTTER_VERSION: "3.41.6"
   JAVA_VERSION: "17"
-  PACKAGE_NAME: "com.massapp.massdrive"
+  # Must match the applicationId the build below actually produces. The build
+  # uses config/preprod.json, whose APP_PACKAGE_NAME_SUFFIX is ".dev", so this
+  # ships the dev-suffixed package — a separate Play app from the prod one
+  # (com.massapp.massdrive), which is built from config/prod.json.
+  PACKAGE_NAME: "com.massapp.massdrive.dev"
 
 jobs:
   deploy:
