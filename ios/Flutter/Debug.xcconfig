@@ -1,3 +1,8 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
 #include? "Secrets.xcconfig"
+
+// Debug builds are the dev app — appended to PRODUCT_BUNDLE_IDENTIFIER in the
+// Xcode project so it becomes com.massapp.massdrive.dev and can coexist with a
+// prod install. Release/Profile (Release.xcconfig) leave it empty -> prod id.
+BUNDLE_ID_SUFFIX = .dev
