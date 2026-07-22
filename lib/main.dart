@@ -32,15 +32,23 @@ Future<void> main() async {
   }
 
   // Firebase options come from --dart-define (see firebase_options.dart /
-  // config/mass_*.json). A plain `flutter run` without those defines leaves the
-  // fields empty and init throws — kept isolated so it can never block startup,
-  // and FCM (app_startup_controller) already tolerates an uninitialized app.
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+  // config/mass_*.json). A build without those defines leaves every field
+  // empty; on iOS, native FIRApp configuration then aborts with an
+  // Objective-C exception (SIGABRT) that a Dart try/catch cannot catch, so
+  // the app crashes on launch. Guard on the required fields and skip init
+  // entirely when they are absent — FCM (app_startup_controller) already
+  // tolerates an uninitialized app and falls back to a dummy token.
+  final firebaseOptions = DefaultFirebaseOptions.currentPlatform;
+  if (firebaseOptions.appId.isNotEmpty && firebaseOptions.projectId.isNotEmpty) {
+    try {
+      await Firebase.initializeApp(options: firebaseOptions);
+    } catch (e, s) {
+      debugPrint('main: Firebase.initializeApp failed: $e\n$s');
+    }
+  } else {
+    debugPrint(
+      'main: Firebase options empty (no --dart-define?) — skipping init',
     );
-  } catch (e, s) {
-    debugPrint('main: Firebase.initializeApp failed: $e\n$s');
   }
 
   try {
