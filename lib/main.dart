@@ -1,9 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
@@ -37,11 +39,16 @@ Future<void> main() async {
   // Objective-C exception (SIGABRT) that a Dart try/catch cannot catch, so
   // the app crashes on launch. Guard on the required fields and skip init
   // entirely when they are absent — FCM (app_startup_controller) already
-  // tolerates an uninitialized app and falls back to a dummy token.
+  // tolerates an uninitialized app and simply skips token registration.
   final firebaseOptions = DefaultFirebaseOptions.currentPlatform;
   if (firebaseOptions.appId.isNotEmpty && firebaseOptions.projectId.isNotEmpty) {
     try {
       await Firebase.initializeApp(options: firebaseOptions);
+      // Register the background/terminated handler before runApp, then wire up
+      // foreground/tap handling. Kept in the same isolated step so a Firebase
+      // failure can never block startup.
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      await PushNotificationService.instance.init();
     } catch (e, s) {
       debugPrint('main: Firebase.initializeApp failed: $e\n$s');
     }
