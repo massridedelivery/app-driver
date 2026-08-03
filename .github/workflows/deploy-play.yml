@@ -13,6 +13,9 @@ name: Deploy to Play (internal)
 #   ANDROID_KEY_ALIAS           key alias (e.g. mass-drive)
 #   PLAY_SERVICE_ACCOUNT_JSON   full JSON of a Play Console service account
 #                               with "Release to testing tracks" permission
+#   MAPS_API_KEY                Android Google Maps API key. Must be restricted
+#                               to package com.massapp.massdrive.dev with the
+#                               upload keystore's SHA-1, or the map renders grey.
 #
 # Note: the very first release for a package must be uploaded through the
 # Play Console UI once. After that this workflow can publish updates.
@@ -74,6 +77,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # build.gradle.kts reads MAPS_API_KEY from local.properties (exactly like a
+      # dev machine) and injects it into the manifest's com.google.android.geo.API_KEY.
+      # Without it the release map renders grey. `flutter pub get` above already
+      # created local.properties; appending the key lets the build below pick it up
+      # (the flutter tool preserves unknown keys when it rewrites the file).
+      - name: Inject Maps API key
+        run: echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> android/local.properties
+
       # versionCode = run number + offset. The offset clears the versionCode of
       # the first bundle uploaded manually (1), so this never collides. The run
       # number keeps every subsequent upload unique and increasing. Arithmetic
@@ -96,4 +107,4 @@ jobs:
 
       - name: Clean up secrets
         if: always()
-        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks"
+        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks" "${{ github.workspace }}/android/local.properties"
