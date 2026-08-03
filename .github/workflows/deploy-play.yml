@@ -16,6 +16,10 @@ name: Deploy to Play (internal)
 #   MAPS_API_KEY                Android Google Maps API key. Must be restricted
 #                               to package com.massapp.massdrive.dev with the
 #                               upload keystore's SHA-1, or the map renders grey.
+#   GOOGLE_DIRECTIONS_API_KEY   Google Directions API key. Written into .env,
+#                               which DirectionsService reads at runtime to draw
+#                               route polylines. .env is also a required pubspec
+#                               asset, so the build fails outright if it is absent.
 #
 # Note: the very first release for a package must be uploaded through the
 # Play Console UI once. After that this workflow can publish updates.
@@ -85,6 +89,14 @@ jobs:
       - name: Inject Maps API key
         run: echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> android/local.properties
 
+      # .env is gitignored but declared as a pubspec asset, so the build fails to
+      # bundle assets if it is missing. main.dart loads it via dotenv and
+      # DirectionsService reads GOOGLE_DIRECTIONS_API_KEY from it to draw route
+      # polylines — an empty key would ship a build with no routes. Write the real
+      # key here (overwrite, not append, so reruns stay clean).
+      - name: Create .env
+        run: echo "GOOGLE_DIRECTIONS_API_KEY=${{ secrets.GOOGLE_DIRECTIONS_API_KEY }}" > .env
+
       # versionCode = run number + offset. The offset clears the versionCode of
       # the first bundle uploaded manually (1), so this never collides. The run
       # number keeps every subsequent upload unique and increasing. Arithmetic
@@ -107,4 +119,4 @@ jobs:
 
       - name: Clean up secrets
         if: always()
-        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks" "${{ github.workspace }}/android/local.properties"
+        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks" "${{ github.workspace }}/android/local.properties" "${{ github.workspace }}/.env"
