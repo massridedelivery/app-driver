@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_service.dart';
@@ -149,11 +150,11 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
 
     final LatLng pickupLatLng = currentJob != null
         ? LatLng(currentJob.pickupLat, currentJob.pickupLng)
-        : const LatLng(13.7563, 100.5018);
+        : MapDefaults.center;
 
     final LatLng dropoffLatLng = currentJob != null
         ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
-        : const LatLng(13.7563, 100.5018);
+        : MapDefaults.center;
 
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;

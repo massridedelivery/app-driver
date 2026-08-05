@@ -16,6 +16,10 @@ HistoryModel _$HistoryModelFromJson(Map<String, dynamic> json) => HistoryModel(
   total: (json['total'] as num).toDouble(),
   paymentMethod: json['payment_method'] as String,
   driverNet: (json['driver_net'] as num).toDouble(),
+  pickupLat: (json['pickup_lat'] as num?)?.toDouble(),
+  pickupLng: (json['pickup_lng'] as num?)?.toDouble(),
+  dropoffLat: (json['dropoff_lat'] as num?)?.toDouble(),
+  dropoffLng: (json['dropoff_lng'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$HistoryModelToJson(HistoryModel instance) =>
@@ -29,4 +33,8 @@ Map<String, dynamic> _$HistoryModelToJson(HistoryModel instance) =>
       'total': instance.total,
       'payment_method': instance.paymentMethod,
       'driver_net': instance.driverNet,
+      'pickup_lat': instance.pickupLat,
+      'pickup_lng': instance.pickupLng,
+      'dropoff_lat': instance.dropoffLat,
+      'dropoff_lng': instance.dropoffLng,
     };
