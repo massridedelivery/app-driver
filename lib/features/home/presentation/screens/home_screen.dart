@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/default_circular_progress_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/location_service.dart';
@@ -45,10 +46,6 @@ class OnlineStatusState {
 }
 
 class OnlineStatus extends Notifier<OnlineStatusState> {
-  // Default Bangkok center for emulator testing
-  static const double defaultLat = 13.7563;
-  static const double defaultLng = 100.5018;
-
   // Keep subscription so we can cancel it on dispose — prevents memory leak
   StreamSubscription<bool>? _connectionSubscription;
 
@@ -353,9 +350,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             right: 16,
             child: _buildSettingsButton(),
           ),
-          // Persistent indicator when the driver has a job in progress.
           Positioned(
             top: MediaQuery.of(context).padding.top + 76,
+            right: 16,
+            child: const _RecenterButton(),
+          ),
+          // Persistent indicator when the driver has a job in progress.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 136,
             left: 16,
             right: 16,
             child: const ActiveJobBanner(),
@@ -904,23 +906,153 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
   );
 }
 
-class _HomeMap extends ConsumerWidget {
+class _HomeMap extends ConsumerStatefulWidget {
   const _HomeMap();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HomeMap> createState() => _HomeMapState();
+}
+
+class _HomeMapState extends ConsumerState<_HomeMap> {
+  static const double _driverZoom = 16;
+
+  GoogleMapController? _controller;
+  StreamSubscription<Position>? _positionSub;
+
+  /// Stops the first-fix listener from yanking the camera back after the
+  /// driver has already been centered (and possibly panned away since).
+  bool _hasCentered = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // The one-shot below can come back empty on a cold start (no last known
+    // fix, GPS still warming up). Going online starts the tracking session, so
+    // adopt its first fix instead of leaving the driver on the default view.
+    _positionSub = ref.read(locationServiceProvider).onPosition.listen((pos) {
+      if (_hasCentered) return;
+      _moveTo(LatLng(pos.latitude, pos.longitude));
+    });
+  }
+
+  @override
+  void dispose() {
+    _positionSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox.expand(
       child: GoogleMap(
         onMapCreated: (controller) {
+          _controller = controller;
           ref.read(mapControllerProvider.notifier).setController(controller);
+          _centerOnDriver();
         },
         initialCameraPosition: const CameraPosition(
-          target: LatLng(OnlineStatus.defaultLat, OnlineStatus.defaultLng),
+          target: MapDefaults.center,
           zoom: 14,
         ),
         myLocationEnabled: true,
         zoomControlsEnabled: false,
         myLocationButtonEnabled: false,
+      ),
+    );
+  }
+
+  /// The map opens on [MapDefaults.center] because no fix exists at build time.
+  /// Move onto the driver as soon as one is available — without this the driver
+  /// always sees the default city center.
+  Future<void> _centerOnDriver() async {
+    final pos = await ref.read(locationServiceProvider).currentPosition();
+    if (pos == null) return; // No fix / no permission — default view stays.
+    _moveTo(LatLng(pos.latitude, pos.longitude));
+  }
+
+  Future<void> _moveTo(LatLng target) async {
+    final controller = _controller;
+    if (controller == null || !mounted) return;
+    _hasCentered = true;
+    await controller.animateCamera(
+      CameraUpdate.newLatLngZoom(target, _driverZoom),
+    );
+  }
+}
+
+/// Recenters the Home map on the driver. Lives outside [_HomeMap] because it
+/// sits in the screen's Stack, above the map, and drives it through
+/// [mapControllerProvider].
+class _RecenterButton extends ConsumerStatefulWidget {
+  const _RecenterButton();
+
+  @override
+  ConsumerState<_RecenterButton> createState() => _RecenterButtonState();
+}
+
+class _RecenterButtonState extends ConsumerState<_RecenterButton> {
+  bool _locating = false;
+
+  Future<void> _recenter() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+
+    try {
+      // Returns the live fix while online, a fresh lookup otherwise.
+      final pos = await ref.read(locationServiceProvider).currentPosition();
+      final controller = ref.read(mapControllerProvider);
+
+      if (!mounted) return;
+      if (pos == null || controller == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ยังไม่พบตำแหน่งของคุณ')),
+        );
+        return;
+      }
+
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(pos.latitude, pos.longitude),
+          _HomeMapState._driverZoom,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _recenter,
+      child: Container(
+        height: 50,
+        width: 50,
+        decoration: BoxDecoration(
+          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.7),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: _locating
+            ? const Padding(
+                padding: EdgeInsets.all(15),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                ),
+              )
+            : const Icon(
+                Icons.my_location,
+                color: Colors.white,
+                size: 24,
+              ),
       ),
     );
   }
