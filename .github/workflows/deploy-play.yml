@@ -13,9 +13,19 @@ name: Deploy to Play (internal)
 #   ANDROID_KEY_ALIAS           key alias (e.g. mass-drive)
 #   PLAY_SERVICE_ACCOUNT_JSON   full JSON of a Play Console service account
 #                               with "Release to testing tracks" permission
+#   MAPS_API_KEY                Android Google Maps API key. Must be restricted
+#                               to package com.massapp.massdrive.dev with the
+#                               upload keystore's SHA-1, or the map renders grey.
+#   GOOGLE_DIRECTIONS_API_KEY   Google Directions API key. Written into .env,
+#                               which DirectionsService reads at runtime to draw
+#                               route polylines. .env is also a required pubspec
+#                               asset, so the build fails outright if it is absent.
 #
 # Note: the very first release for a package must be uploaded through the
 # Play Console UI once. After that this workflow can publish updates.
+# This applies to com.massapp.massdrive.dev, which is a new package that has
+# never been published — create the Play app and upload one bundle by hand
+# before running this workflow, or the upload step will fail.
 
 on:
   # Manual only for now. To re-enable auto-deploy, uncomment the push trigger:
@@ -30,7 +40,11 @@ concurrency:
 env:
   FLUTTER_VERSION: "3.41.6"
   JAVA_VERSION: "17"
-  PACKAGE_NAME: "com.massapp.massdrive"
+  # Must match the applicationId the build below actually produces. The build
+  # uses config/preprod.json, whose APP_PACKAGE_NAME_SUFFIX is ".dev", so this
+  # ships the dev-suffixed package — a separate Play app from the prod one
+  # (com.massapp.massdrive), which is built from config/prod.json.
+  PACKAGE_NAME: "com.massapp.massdrive.dev"
 
 jobs:
   deploy:
@@ -67,6 +81,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # build.gradle.kts reads MAPS_API_KEY from local.properties (exactly like a
+      # dev machine) and injects it into the manifest's com.google.android.geo.API_KEY.
+      # Without it the release map renders grey. `flutter pub get` above already
+      # created local.properties; appending the key lets the build below pick it up
+      # (the flutter tool preserves unknown keys when it rewrites the file).
+      - name: Inject Maps API key
+        run: echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> android/local.properties
+
+      # .env is gitignored but declared as a pubspec asset, so the build fails to
+      # bundle assets if it is missing. main.dart loads it via dotenv and
+      # DirectionsService reads GOOGLE_DIRECTIONS_API_KEY from it to draw route
+      # polylines — an empty key would ship a build with no routes. Write the real
+      # key here (overwrite, not append, so reruns stay clean).
+      - name: Create .env
+        run: echo "GOOGLE_DIRECTIONS_API_KEY=${{ secrets.GOOGLE_DIRECTIONS_API_KEY }}" > .env
+
       # versionCode = run number + offset. The offset clears the versionCode of
       # the first bundle uploaded manually (1), so this never collides. The run
       # number keeps every subsequent upload unique and increasing. Arithmetic
@@ -89,4 +119,4 @@ jobs:
 
       - name: Clean up secrets
         if: always()
-        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks"
+        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks" "${{ github.workspace }}/android/local.properties" "${{ github.workspace }}/.env"

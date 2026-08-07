@@ -1,7 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
-import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
@@ -14,9 +12,6 @@ part 'app_startup_controller.g.dart';
 class AppStartupController extends _$AppStartupController {
   @override
   Future<StartupDestination> build() async {
-    // delay for splash animation
-    await Future.delayed(const Duration(milliseconds: 1500));
-
     final authState = await ref.read(authControllerProvider.future);
     final isLoggedIn = authState.isLogin;
 
@@ -30,30 +25,58 @@ class AppStartupController extends _$AppStartupController {
 
   Future<void> _registerNotificationToken() async {
     try {
-      final api = getIt<NotificationApiService>();
-      
-      String? fcmToken;
-      try {
-        fcmToken = await FirebaseMessaging.instance.getToken();
-        debugPrint('FCM Token retrieved: $fcmToken');
-      } catch (e) {
-        debugPrint('FCM: Failed to get real FCM token: $e');
+      final messaging = FirebaseMessaging.instance;
+
+      // iOS requires explicit authorization before APNs will vend a device
+      // token; without it getToken() returns null and push never arrives.
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('FCM: notification permission denied');
+        return;
       }
 
-      String token = fcmToken ?? '';
-      if (token.isEmpty) {
-        final secureStorage = SecureStorageManager();
-        final savedAccessToken = await secureStorage.read(SecureStorageKey.accessToken);
-        token = savedAccessToken ?? 'dummy_fcm_token_123456';
+      // On iOS the APNs token must be set before getToken() will succeed. On a
+      // cold start it can be momentarily null, so wait briefly for it.
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        String? apnsToken;
+        for (var i = 0; i < 5 && apnsToken == null; i++) {
+          apnsToken = await messaging.getAPNSToken();
+          if (apnsToken == null) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+        }
+        if (apnsToken == null) {
+          debugPrint('FCM: APNs token unavailable, skip register');
+          return;
+        }
       }
-      
-      await api.registerDevice({
-        'token': token,
-        'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-      });
-      debugPrint('FCM: Device registered successfully with token: $token');
+
+      final fcmToken = await messaging.getToken();
+      if (fcmToken == null || fcmToken.isEmpty) {
+        debugPrint('FCM: token unavailable, skip register');
+        return;
+      }
+
+      await _sendTokenToBackend(fcmToken);
+
+      // FCM tokens rotate (reinstall, restore, invalidation); keep the backend
+      // in sync when that happens.
+      messaging.onTokenRefresh.listen(_sendTokenToBackend);
     } catch (e) {
       debugPrint('FCM Error: $e');
     }
+  }
+
+  Future<void> _sendTokenToBackend(String token) async {
+    final api = getIt<NotificationApiService>();
+    await api.registerDevice({
+      'token': token,
+      'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+    });
+    debugPrint('FCM: device registered: $token');
   }
 }

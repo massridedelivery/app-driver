@@ -1,5 +1,6 @@
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
+import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/features/auth/presentation/states/auth_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/dependency_injection.dart' as massdrive_di;
@@ -35,6 +36,7 @@ class AuthController extends _$AuthController {
   Future<void> logout() async {
     final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
     await usecase.execute();
+    await RouteRestorationService.instance.clear();
     await refresh();
   }
 }

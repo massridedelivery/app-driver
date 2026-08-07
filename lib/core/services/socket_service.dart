@@ -308,5 +308,7 @@ class SocketService with WidgetsBindingObserver {
     _connectivitySub?.cancel();
     _connectivitySub = null;
     disconnect();
+    _messageController.close();
+    _connectionStatusController.close();
   }
 }

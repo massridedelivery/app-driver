@@ -1,4 +1,5 @@
 {
     "APP_ENV": "dev",
-    "API_BASE_URL": "https://driver-api-dev.nutchaphut.dev"
+    "API_BASE_URL": "https://driver-api-dev.nutchaphut.dev",
+    "APP_PACKAGE_NAME_SUFFIX": ".dev"
 }

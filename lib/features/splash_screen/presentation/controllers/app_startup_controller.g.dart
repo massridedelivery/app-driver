@@ -34,7 +34,7 @@ final class AppStartupControllerProvider
 }
 
 String _$appStartupControllerHash() =>
-    r'c8661edd69c55067c024a32fae088d24ce95ec00';
+    r'024daa17431389098b7c5b377079896d7fafc7a8';
 
 abstract class _$AppStartupController
     extends $AsyncNotifier<StartupDestination> {

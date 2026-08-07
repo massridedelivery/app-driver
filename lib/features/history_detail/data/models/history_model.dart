@@ -31,6 +31,18 @@ class HistoryModel {
   @JsonKey(name: 'driver_net')
   final double driverNet;
 
+  @JsonKey(name: 'pickup_lat')
+  final double? pickupLat;
+
+  @JsonKey(name: 'pickup_lng')
+  final double? pickupLng;
+
+  @JsonKey(name: 'dropoff_lat')
+  final double? dropoffLat;
+
+  @JsonKey(name: 'dropoff_lng')
+  final double? dropoffLng;
+
   HistoryModel({
     required this.id,
     required this.dateTime,
@@ -41,6 +53,10 @@ class HistoryModel {
     required this.total,
     required this.paymentMethod,
     required this.driverNet,
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffLat,
+    this.dropoffLng,
   });
 
   /// ---------- JSON ----------
@@ -63,6 +79,10 @@ class HistoryModel {
       total: total,
       paymentMethod: paymentMethod,
       driverNet: driverNet,
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
     );
   }
 
@@ -79,6 +99,10 @@ class HistoryModel {
       total: entity.total,
       paymentMethod: entity.paymentMethod,
       driverNet: entity.driverNet,
+      pickupLat: entity.pickupLat,
+      pickupLng: entity.pickupLng,
+      dropoffLat: entity.dropoffLat,
+      dropoffLng: entity.dropoffLng,
     );
   }
 }

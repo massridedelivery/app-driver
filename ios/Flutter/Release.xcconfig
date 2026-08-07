@@ -1,3 +1,12 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
 #include? "Secrets.xcconfig"
+
+// Release/Profile builds are prod: no suffix, so PRODUCT_BUNDLE_IDENTIFIER
+// stays com.massapp.massdrive. (Debug.xcconfig sets .dev for dev builds.)
+BUNDLE_ID_SUFFIX =
+
+// APNs environment for prod (Release/Profile): the production gateway, which is
+// what TestFlight and the App Store use. Substituted into Runner.entitlements as
+// $(APS_ENVIRONMENT). A committed static "development" would break prod push.
+APS_ENVIRONMENT = production

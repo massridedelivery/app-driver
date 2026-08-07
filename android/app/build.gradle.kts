@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -24,12 +25,35 @@ val localProperties = Properties().apply {
 }
 val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
 
+// Flutter forwards every --dart-define to Gradle as the `dart-defines` property:
+// a comma-separated list of base64-encoded KEY=VALUE pairs. Decoding it here lets
+// config/*.json stay the single source of truth for the package suffix, so no
+// --flavor argument (and no CI change) is needed. Absent on non-Flutter
+// invocations (e.g. plain `gradlew`), hence the empty-map fallback.
+val dartDefines: Map<String, String> =
+    (project.findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.mapNotNull { entry ->
+            runCatching { String(Base64.getDecoder().decode(entry)) }.getOrNull()
+        }
+        ?.mapNotNull { decoded ->
+            decoded.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] }
+        }
+        ?.toMap()
+        ?: emptyMap()
+
+// e.g. ".dev" so a dev build installs alongside prod instead of replacing it.
+val packageNameSuffix: String = dartDefines["APP_PACKAGE_NAME_SUFFIX"].orEmpty()
+
 android {
     namespace = "com.massapp.massdrive"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications (uses java.time APIs on older
+        // Android versions via desugaring).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -40,6 +64,11 @@ android {
 
     defaultConfig {
         applicationId = "com.massapp.massdrive"
+        // Driven by APP_PACKAGE_NAME_SUFFIX in config/*.json (empty for
+        // preprod/prod so the Play package stays com.massapp.massdrive).
+        if (packageNameSuffix.isNotEmpty()) {
+            applicationIdSuffix = packageNameSuffix
+        }
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -78,4 +107,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Backport of java.time etc. for flutter_local_notifications on API < 26.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
