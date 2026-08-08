@@ -27,7 +27,7 @@ _IncomingJobModel _$IncomingJobModelFromJson(Map<String, dynamic> json) =>
       serviceType: json['service_type'] as String? ?? 'Saver Bike',
       passengerName: json['passenger_name'] as String? ?? 'Passenger',
       itemSummary: json['item_summary'] as String? ?? '',
-      timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 30,
+      timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 15,
       surgeMultiplier: (json['surge_multiplier'] as num?)?.toDouble() ?? 1.0,
       surgeActive: json['surge_active'] as bool? ?? false,
       isScheduled: json['is_scheduled'] as bool? ?? false,

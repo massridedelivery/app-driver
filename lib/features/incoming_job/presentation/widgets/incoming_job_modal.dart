@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -6,17 +8,75 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 
-class IncomingJobModal extends ConsumerWidget {
+class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
 
   const IncomingJobModal({super.key, required this.job});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IncomingJobModal> createState() => _IncomingJobModalState();
+}
+
+class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
+  Timer? _timer;
+
+  /// Total window (seconds) the driver has to accept, from the offer.
+  late final int _totalSeconds;
+
+  /// Seconds left on the accept window; drives the button label + progress bar.
+  late int _remaining;
+
+  /// Guards against firing accept/decline twice (e.g. tap racing the timeout).
+  bool _resolved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalSeconds = widget.job.timeoutSeconds > 0
+        ? widget.job.timeoutSeconds
+        : 15;
+    _remaining = _totalSeconds;
+    _startCountdown();
+  }
+
+  void _startCountdown() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_remaining <= 1) {
+        // Window elapsed — let the offer expire (auto-decline).
+        _decline();
+      } else {
+        setState(() => _remaining--);
+      }
+    });
+  }
+
+  void _accept() {
+    if (_resolved) return;
+    _resolved = true;
+    _timer?.cancel();
+    ref.read(incomingJobControllerProvider.notifier).acceptJob();
+  }
+
+  void _decline() {
+    if (_resolved) return;
+    _resolved = true;
+    _timer?.cancel();
+    ref.read(incomingJobControllerProvider.notifier).declineJob();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final job = widget.job;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        // Dark slightly purplish background from mockup
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppSpacing.s4),
           topRight: Radius.circular(AppSpacing.s4),
@@ -207,18 +267,31 @@ class IncomingJobModal extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: AppSpacing.s5),
+              const SizedBox(height: AppSpacing.s4),
+
+              // Accept window progress bar — depletes as the countdown runs.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: _totalSeconds == 0 ? 0 : _remaining / _totalSeconds,
+                  minHeight: 4,
+                  backgroundColor: Colors.white12,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _remaining <= 5
+                        ? AppColors.semanticSupportRedBgHigh
+                        : AppColors.semanticSuccessBgHigh,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.s3),
 
               // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        ref
-                            .read(incomingJobControllerProvider.notifier)
-                            .declineJob();
-                      },
+                      onPressed: _decline,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.semanticSupportRedBgHigh,
                         padding: const EdgeInsets.symmetric(
@@ -238,12 +311,9 @@ class IncomingJobModal extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppSpacing.s3),
                   Expanded(
+                    flex: 2,
                     child: ElevatedButton(
-                      onPressed: () {
-                        ref
-                            .read(incomingJobControllerProvider.notifier)
-                            .acceptJob();
-                      },
+                      onPressed: _accept,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.semanticSuccessBgHigh,
                         padding: const EdgeInsets.symmetric(
@@ -254,7 +324,7 @@ class IncomingJobModal extends ConsumerWidget {
                         ),
                       ),
                       child: Text(
-                        'รับงาน',
+                        'รับงาน ($_remaining)',
                         style: AppTypography.heading6.copyWith(
                           color: AppColors.semanticGrayNeutralFgWhite,
                         ),
