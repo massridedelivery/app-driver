@@ -43,8 +43,8 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       if (_remaining <= 1) {
-        // Window elapsed — let the offer expire (auto-decline).
-        _decline();
+        // Window elapsed — auto-accept the offer (รับโดยอัตโนมัติ).
+        _accept();
       } else {
         setState(() => _remaining--);
       }
@@ -268,6 +268,26 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
               ),
 
               const SizedBox(height: AppSpacing.s4),
+
+              // Tells the driver the offer will be taken automatically at 0.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.bolt,
+                    color: AppColors.semanticSuccessBgHigh,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'รับงานอัตโนมัติใน $_remaining วินาที',
+                    style: AppTypography.caption4.copyWith(
+                      color: AppColors.foundationAlphaWhite500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s2),
 
               // Accept window progress bar — depletes as the countdown runs.
               ClipRRect(
