@@ -2,33 +2,127 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/router/app_routes.dart';
 
-/// Android notification channel used both by the local-notification display
-/// (foreground) and by FCM's system-drawn notifications (background/terminated).
-/// The id MUST match `default_notification_channel_id` in AndroidManifest.xml.
+/// Generic channel for ordinary notifications (system-drawn by FCM in the
+/// background). The id MUST match `default_notification_channel_id` in
+/// AndroidManifest.xml.
 const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
   'high_importance_channel',
   'Notifications',
-  description: 'ใช้สำหรับการแจ้งเตือนสำคัญ เช่น งานเข้าใหม่',
+  description: 'ใช้สำหรับการแจ้งเตือนสำคัญ',
   importance: Importance.high,
+);
+
+/// Dedicated channel for job offers — loud custom sound (res/raw/job_alert),
+/// max importance, vibration, and heads-up (full-screen) so a driver notices a
+/// new job like Grab/LineMan. The channel id is versioned because a channel's
+/// sound is immutable once created: bump `_vN` to roll out a new sound.
+const AndroidNotificationChannel _jobChannel = AndroidNotificationChannel(
+  'job_offer_channel_v1',
+  'งานเข้าใหม่',
+  description: 'แจ้งเตือนเมื่อมีงานเข้าใหม่ (เสียงดังพิเศษ)',
+  importance: Importance.max,
+  sound: RawResourceAndroidNotificationSound('job_alert'),
+  playSound: true,
+  enableVibration: true,
+  audioAttributesUsage: AudioAttributesUsage.alarm,
 );
 
 final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
+/// True when a push is a job/offer that should ring with the loud alert. The
+/// backend must send job offers as **data messages** (so this app draws the
+/// notification with the custom-sound channel); a `notification`-type message
+/// would be drawn by the OS on the default channel instead.
+bool _isJobOffer(RemoteMessage message) {
+  final type = message.data['type']?.toString() ?? '';
+  return type.endsWith('offer') || message.data['sound'] == 'job_alert';
+}
+
+/// Builds the loud job-offer AndroidNotificationDetails.
+AndroidNotificationDetails _jobAndroidDetails() {
+  return AndroidNotificationDetails(
+    _jobChannel.id,
+    _jobChannel.name,
+    channelDescription: _jobChannel.description,
+    icon: 'ic_stat_notification',
+    importance: Importance.max,
+    priority: Priority.max,
+    category: AndroidNotificationCategory.call,
+    fullScreenIntent: true,
+    sound: const RawResourceAndroidNotificationSound('job_alert'),
+    playSound: true,
+    audioAttributesUsage: AudioAttributesUsage.alarm,
+  );
+}
+
+/// Shows the loud job-offer notification. Title/body are read from the data
+/// payload (data-only messages carry no `notification`), falling back to the
+/// `notification` block if present.
+Future<void> _showJobNotification(
+  FlutterLocalNotificationsPlugin plugin,
+  RemoteMessage message,
+) async {
+  final title = message.data['title'] as String? ??
+      message.notification?.title ??
+      'มีงานเข้าใหม่';
+  final body = message.data['body'] as String? ??
+      message.notification?.body ??
+      'แตะเพื่อดูรายละเอียดงาน';
+
+  await plugin.show(
+    id: message.messageId?.hashCode ?? 0,
+    title: title,
+    body: body,
+    notificationDetails: NotificationDetails(
+      android: _jobAndroidDetails(),
+      iOS: const DarwinNotificationDetails(
+        sound: 'job_alert.caf',
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      ),
+    ),
+    payload: message.data['route'] as String? ?? AppRoutes.incomingJobNamedPage,
+  );
+}
+
 /// Handles messages delivered while the app is in the background or terminated.
 ///
 /// This MUST be a top-level (or static) function so the AOT tree-shaker keeps
-/// it, and it runs in its own isolate — keep the work light and self-contained.
-/// The plugin auto-initializes Firebase for this isolate. Registered from
-/// [main] via [FirebaseMessaging.onBackgroundMessage]. Notification messages are
-/// drawn by the OS automatically; nothing extra is needed here.
+/// it, and it runs in its own isolate. For a job offer we draw the loud
+/// custom-sound notification ourselves (the OS would otherwise use the default
+/// channel/sound). Registered from [main] via
+/// [FirebaseMessaging.onBackgroundMessage].
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint(
-    'FCM(bg): id=${message.messageId} data=${message.data}',
+  debugPrint('FCM(bg): id=${message.messageId} data=${message.data}');
+  if (!_isJobOffer(message)) return;
+
+  // The background isolate has its own plugin instance — initialize it and make
+  // sure the job channel exists before showing (the main isolate may not have
+  // run yet on a cold, push-launched start).
+  final plugin = FlutterLocalNotificationsPlugin();
+  await plugin.initialize(
+    settings: const InitializationSettings(
+      android: AndroidInitializationSettings('ic_stat_notification'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+    ),
   );
+  await plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(_jobChannel);
+  await _showJobNotification(plugin, message);
 }
 
 /// Wires up foreground / tap / launch message handling and the local
@@ -95,12 +189,12 @@ class PushNotificationService {
       },
     );
 
-    // Register the channel up front so its importance is honoured (Android 8+).
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_androidChannel);
+    // Register both channels up front so their importance/sound is honoured
+    // (Android 8+). Channel sound is immutable after creation.
+    final android = _localNotifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(_androidChannel);
+    await android?.createNotificationChannel(_jobChannel);
   }
 
   void _onForegroundMessage(RemoteMessage message) {
@@ -109,9 +203,15 @@ class PushNotificationService {
       'title=${message.notification?.title} data=${message.data}',
     );
 
-    // iOS presents the notification itself via the foreground options above.
-    // Android does not display notification messages while foregrounded, so
-    // draw one with a local notification.
+    // A job offer rings loudly on both platforms via the local notification.
+    if (_isJobOffer(message)) {
+      _showJobNotification(_localNotifications, message);
+      return;
+    }
+
+    // iOS presents ordinary notifications itself via the foreground options
+    // above. Android does not display notification messages while foregrounded,
+    // so draw one with a local notification.
     if (defaultTargetPlatform != TargetPlatform.android) return;
 
     final notification = message.notification;
