@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/router/startup_destination.dart';
@@ -11,16 +12,35 @@ part 'app_startup_controller.g.dart';
 @riverpod
 class AppStartupController extends _$AppStartupController {
   @override
-  Future<StartupDestination> build() async {
+  Future<StartupResult> build() async {
     final authState = await ref.read(authControllerProvider.future);
     final isLoggedIn = authState.isLogin;
 
-    if (!isLoggedIn) return StartupDestination.onboarding;
+    if (!isLoggedIn) return StartupResult.onboarding;
 
     // Trigger FCM Registration
     _registerNotificationToken();
 
-    return StartupDestination.home;
+    // Kill-and-reopen recovery: on every cold launch, check whether the driver
+    // has an in-progress job and route straight to it, regardless of which
+    // screen route-restoration would otherwise land on. Bounded so a slow/dead
+    // backend never blocks startup.
+    try {
+      final resume = await resolveActiveJob(ref).timeout(
+        const Duration(seconds: 8),
+      );
+      if (resume != null) {
+        return StartupResult(
+          StartupDestination.home,
+          resumeRoute: resume.route,
+          resumeExtra: resume.extra,
+        );
+      }
+    } catch (e) {
+      debugPrint('Startup: active-job resolve skipped: $e');
+    }
+
+    return StartupResult.home;
   }
 
   Future<void> _registerNotificationToken() async {

@@ -58,5 +58,12 @@
 			<string>comgooglemaps</string>
 			<string>google.navigation</string>
 		</array>
+		<!-- Wake the app in the background to handle FCM data messages (job
+		     offers) so the loud alert can be drawn. -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+			<string>fetch</string>
+		</array>
 	</dict>
 </plist>
