@@ -33,7 +33,7 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'service_type') @Default('Saver Bike') String serviceType,
     @JsonKey(name: 'passenger_name') @Default('Passenger') String passengerName,
     @JsonKey(name: 'item_summary') @Default('') String itemSummary,
-    @JsonKey(name: 'timeout_seconds') @Default(30) int timeoutSeconds,
+    @JsonKey(name: 'timeout_seconds') @Default(15) int timeoutSeconds,
     @JsonKey(name: 'surge_multiplier') @Default(1.0) double surgeMultiplier,
     @JsonKey(name: 'surge_active') @Default(false) bool surgeActive,
     @JsonKey(name: 'is_scheduled') @Default(false) bool isScheduled,
