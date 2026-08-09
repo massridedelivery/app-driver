@@ -13,7 +13,7 @@ part of 'app_startup_controller.dart';
 const appStartupControllerProvider = AppStartupControllerProvider._();
 
 final class AppStartupControllerProvider
-    extends $AsyncNotifierProvider<AppStartupController, StartupDestination> {
+    extends $AsyncNotifierProvider<AppStartupController, StartupResult> {
   const AppStartupControllerProvider._()
     : super(
         from: null,
@@ -34,22 +34,20 @@ final class AppStartupControllerProvider
 }
 
 String _$appStartupControllerHash() =>
-    r'024daa17431389098b7c5b377079896d7fafc7a8';
+    r'd5fe7e158412a12526e8e8d04f08ba521dba0000';
 
-abstract class _$AppStartupController
-    extends $AsyncNotifier<StartupDestination> {
-  FutureOr<StartupDestination> build();
+abstract class _$AppStartupController extends $AsyncNotifier<StartupResult> {
+  FutureOr<StartupResult> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref =
-        this.ref as $Ref<AsyncValue<StartupDestination>, StartupDestination>;
+    final ref = this.ref as $Ref<AsyncValue<StartupResult>, StartupResult>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<StartupDestination>, StartupDestination>,
-              AsyncValue<StartupDestination>,
+              AnyNotifier<AsyncValue<StartupResult>, StartupResult>,
+              AsyncValue<StartupResult>,
               Object?,
               Object?
             >;

@@ -16,10 +16,15 @@ class SplashScreen extends ConsumerWidget {
     final startupAsync = ref.watch(appStartupControllerProvider);
 
     startupAsync.when(
-      data: (destination) {
+      data: (result) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
-          switch (destination) {
+          // An in-progress job found on cold launch wins over normal routing.
+          if (result.resumeRoute != null) {
+            context.go(result.resumeRoute!, extra: result.resumeExtra);
+            return;
+          }
+          switch (result.destination) {
             case StartupDestination.onboarding:
               context.go(AppRoutes.loginNamedPage);
               break;
