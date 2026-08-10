@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
@@ -29,7 +30,18 @@ class AuthController extends _$AuthController {
   /// longer treated as logged in; if a later refresh fails the API layer flips
   /// the session to logged-out via [SessionNotifier].
   Future<bool> _hasValidSession() async {
-    final token = await _secureStorage.read(SecureStorageKey.accessToken);
+    // Keychain reads can fail outright — notably right after the app is
+    // re-signed or updated (TestFlight), where iOS can return -34018. Letting
+    // that throw propagates all the way to the splash screen, which has no
+    // recovery path and simply sits there. No readable token means no usable
+    // session, so answer "logged out" and let the driver sign in again.
+    final String? token;
+    try {
+      token = await _secureStorage.read(SecureStorageKey.accessToken);
+    } catch (e) {
+      debugPrint('AuthController: access token read failed: $e');
+      return false;
+    }
     if (token == null || token.isEmpty) return false;
 
     bool expired;
@@ -41,8 +53,13 @@ class AuthController extends _$AuthController {
     }
     if (!expired) return true;
 
-    final refresh = await _secureStorage.read(SecureStorageKey.refreshToken);
-    return refresh != null && refresh.isNotEmpty;
+    try {
+      final refresh = await _secureStorage.read(SecureStorageKey.refreshToken);
+      return refresh != null && refresh.isNotEmpty;
+    } catch (e) {
+      debugPrint('AuthController: refresh token read failed: $e');
+      return false;
+    }
   }
 
   bool get isLogin {

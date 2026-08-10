@@ -36,7 +36,16 @@ class SplashScreen extends ConsumerWidget {
         });
       },
       loading: () {},
-      error: (e, _) => debugPrint('Startup Error: $e'),
+      // Last line of defence. The controller already converts its own failures
+      // into a destination, but anything that still errors must not leave the
+      // driver staring at the splash with no way forward.
+      error: (e, _) {
+        debugPrint('Startup Error: $e');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          context.go(AppRoutes.loginNamedPage);
+        });
+      },
     );
 
     return Scaffold(

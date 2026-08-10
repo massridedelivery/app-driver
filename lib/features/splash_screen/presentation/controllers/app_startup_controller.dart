@@ -13,8 +13,20 @@ part 'app_startup_controller.g.dart';
 class AppStartupController extends _$AppStartupController {
   @override
   Future<StartupResult> build() async {
-    final authState = await ref.read(authControllerProvider.future);
-    final isLoggedIn = authState.isLogin;
+    // Startup must always produce a destination. Throwing here leaves the
+    // splash screen with nowhere to go and the app sits on it forever, so a
+    // failed or hung session check falls back to the login flow — the driver
+    // can act on that, a frozen splash they cannot.
+    bool isLoggedIn;
+    try {
+      final authState = await ref
+          .read(authControllerProvider.future)
+          .timeout(const Duration(seconds: 5));
+      isLoggedIn = authState.isLogin;
+    } catch (e) {
+      debugPrint('Startup: session check failed, sending to login: $e');
+      return StartupResult.onboarding;
+    }
 
     if (!isLoggedIn) return StartupResult.onboarding;
 
