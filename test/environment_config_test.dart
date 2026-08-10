@@ -20,4 +20,26 @@ void main() {
       expect(EnvironmentConfig.countryCode, Regions.thailand);
     });
   });
+
+  group('EnvironmentConfig.assertConfigured', () {
+    // `flutter test` runs with no --dart-define, so the required Firebase/
+    // Omise defines are all empty — the same state as a build missing
+    // config/mass_dev.json. The guard must reject it.
+    test('throws when required defines are missing', () {
+      expect(
+        EnvironmentConfig.assertConfigured,
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            allOf(
+              contains('OMISE_API_KEY'),
+              contains('APP_ANDROID_FIREBASE_API_KEY'),
+              contains('config/mass_dev.json'),
+            ),
+          ),
+        ),
+      );
+    });
+  });
 }
