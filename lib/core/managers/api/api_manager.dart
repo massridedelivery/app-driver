@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:dio/io.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_constants.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
@@ -56,6 +57,27 @@ class ApiManager {
   late final Ref ref;
 
   ApiManager._internal(this.ref, this.dio);
+
+  /// Builds a [ResponseData] and, on a 401 for a request that actually carried a
+  /// bearer token, tears down the session. Writes use `validateStatus: (_) =>
+  /// true`, so their 401s never reach Dio's `onError` (and thus never hit the
+  /// refresh interceptor); the refresh interceptor already had its chance to
+  /// renew the token in `onRequest`, so a 401 here means the session is dead.
+  /// Signalling [SessionNotifier] makes the router redirect back to login.
+  /// Auth calls (login/OTP) carry no bearer token, so their 401s are left alone.
+  ResponseData _toResponseData(dio_client.Response response) {
+    final code = response.statusCode ?? 0;
+    final isSuccessful = code == 200 || code == 201;
+    if (code == 401 &&
+        response.requestOptions.headers['Authorization'] != null) {
+      unawaited(SessionNotifier.instance.notifySessionExpired());
+    }
+    return ResponseData(
+      data: response.data,
+      isSuccessful: isSuccessful,
+      errorStatusCode: code,
+    );
+  }
 
   Future<ResponseData> fetchApi({
     required String endPoint,
@@ -112,14 +134,7 @@ class ApiManager {
             ),
           );
 
-          var decodedData = response.data;
-          final isSuccessful =
-              response.statusCode == 200 || response.statusCode == 201;
-          return ResponseData(
-            data: decodedData,
-            isSuccessful: isSuccessful,
-            errorStatusCode: response.statusCode ?? 0,
-          );
+          return _toResponseData(response);
 
         case 'POST':
           dynamic finalBody;
@@ -140,14 +155,7 @@ class ApiManager {
               extra: {'feature': feature, 'endPoint': endPoint},
             ),
           );
-          var decodedData = response.data;
-          final isSuccessful =
-              response.statusCode == 200 || response.statusCode == 201;
-          return ResponseData(
-            data: decodedData,
-            isSuccessful: isSuccessful,
-            errorStatusCode: response.statusCode ?? 0,
-          );
+          return _toResponseData(response);
 
         case 'PUT':
           var response = await dio.put(
@@ -163,14 +171,7 @@ class ApiManager {
             ),
           );
 
-          var decodedData = response.data;
-          final isSuccessful =
-              response.statusCode == 200 || response.statusCode == 201;
-          return ResponseData(
-            data: decodedData,
-            isSuccessful: isSuccessful,
-            errorStatusCode: response.statusCode ?? 0,
-          );
+          return _toResponseData(response);
 
         case 'PATCH':
           var response = await dio.patch(
@@ -186,14 +187,7 @@ class ApiManager {
             ),
           );
 
-          var decodedData = response.data;
-          final isSuccessful =
-              response.statusCode == 200 || response.statusCode == 201;
-          return ResponseData(
-            data: decodedData,
-            isSuccessful: isSuccessful,
-            errorStatusCode: response.statusCode ?? 0,
-          );
+          return _toResponseData(response);
 
         case 'DELETE':
           var response = await dio.delete(
@@ -209,14 +203,7 @@ class ApiManager {
             ),
           );
 
-          var decodedData = response.data;
-          final isSuccessful =
-              response.statusCode == 200 || response.statusCode == 201;
-          return ResponseData(
-            data: decodedData,
-            isSuccessful: isSuccessful,
-            errorStatusCode: response.statusCode ?? 0,
-          );
+          return _toResponseData(response);
       }
     } on SocketException {
       throw const AppException('No Internet Connection');
@@ -275,13 +262,7 @@ class ApiManager {
         ),
         onSendProgress: onSendProgress,
       );
-      final isSuccessful =
-          response.statusCode == 200 || response.statusCode == 201;
-      return ResponseData(
-        data: response.data,
-        isSuccessful: isSuccessful,
-        errorStatusCode: response.statusCode ?? 0,
-      );
+      return _toResponseData(response);
     } catch (exc) {
       throw ApiException.fromDioError(exc);
     }
