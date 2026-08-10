@@ -2,4 +2,5 @@
 <resources>
     <!-- Accent color applied to the status-bar notification icon. -->
     <color name="notification_color">#FF1976D2</color>
+	<color name="ic_launcher_background">#B4312E</color>
 </resources>
