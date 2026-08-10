@@ -15,6 +15,7 @@ import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -322,14 +323,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     return Positioned(
       right: 16,
       top: 160,
+      // Navigation lives in the bottom sheet action row, not up here.
       child: Column(
         children: [
-          _circleButton(
-            Icons.navigation,
-            onTap: _openGoogleMapsNavigation,
-            color: AppColors.semanticSuccessBgHigh,
-          ),
-          const SizedBox(height: 12),
           _circleButton(Icons.shield_outlined),
           const SizedBox(height: 12),
           _circleButton(Icons.notifications_none),
@@ -466,8 +462,16 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                 },
         ),
         _bottomAction(Icons.phone_outlined, "โทรฟรี"),
-        _bottomAction(Icons.help_outline, "ช่วยเหลือ"),
-        _bottomAction(Icons.more_horiz, "อื่นๆ"),
+        _bottomAction(
+          Icons.navigation_outlined,
+          "นำทาง",
+          onTap: _openGoogleMapsNavigation,
+        ),
+        _bottomAction(
+          Icons.help_outline,
+          "ช่วยเหลือ",
+          onTap: () => showHelpSheet(context),
+        ),
       ],
     );
   }

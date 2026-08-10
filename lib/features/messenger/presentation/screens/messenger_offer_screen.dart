@@ -59,11 +59,13 @@ class _MessengerOfferScreenState extends ConsumerState<MessengerOfferScreen> {
           GoogleMap(
             initialCameraPosition: CameraPosition(target: pickup, zoom: 14),
             markers: {
+              // Same pin convention as the ride flow (incoming_job_screen):
+              // green = pickup, red = dropoff.
               Marker(
                 markerId: const MarkerId('pickup'),
                 position: pickup,
                 icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueOrange,
+                  BitmapDescriptor.hueGreen,
                 ),
               ),
               Marker(

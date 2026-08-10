@@ -10,6 +10,7 @@ import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
+import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 
 /// Active messenger delivery — advances arrived → picked-up → delivered via the
 /// per-vertical REST actions (SCRUM-41 §7).
@@ -44,10 +45,12 @@ class MessengerLiveScreen extends ConsumerWidget {
               Marker(
                 markerId: MarkerId(headingToDropoff ? 'dropoff' : 'pickup'),
                 position: target,
+                // Same pin convention as the ride flow: green = pickup,
+                // red = dropoff.
                 icon: BitmapDescriptor.defaultMarkerWithHue(
                   headingToDropoff
                       ? BitmapDescriptor.hueRed
-                      : BitmapDescriptor.hueOrange,
+                      : BitmapDescriptor.hueGreen,
                 ),
               ),
             },
@@ -55,27 +58,14 @@ class MessengerLiveScreen extends ConsumerWidget {
             zoomControlsEnabled: false,
             myLocationButtonEnabled: false,
           ),
-          // Navigation button — routes to the current target in Google Maps.
-          Positioned(
-            right: 16,
-            top: 160,
-            child: GestureDetector(
-              onTap: () => _openNavigation(context, target),
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  color: AppColors.semanticSuccessBgHigh,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.navigation,
-                    color: AppColors.semanticGrayNeutralFgWhite),
-              ),
-            ),
-          ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: _LiveSheet(order: order, isSubmitting: state.isSubmitting),
+            child: _LiveSheet(
+              order: order,
+              isSubmitting: state.isSubmitting,
+              // Navigation lives in the sheet's action row, not on the map.
+              onNavigate: () => _openNavigation(context, target),
+            ),
           ),
         ],
       ),
@@ -108,8 +98,13 @@ class MessengerLiveScreen extends ConsumerWidget {
 class _LiveSheet extends ConsumerWidget {
   final MessengerOrder order;
   final bool isSubmitting;
+  final VoidCallback onNavigate;
 
-  const _LiveSheet({required this.order, required this.isSubmitting});
+  const _LiveSheet({
+    required this.order,
+    required this.isSubmitting,
+    required this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -155,10 +150,17 @@ class _LiveSheet extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(order.isCod ? 'COD ฿${order.codAmount.toInt()}' : 'เงินสด',
                   style: AppTypography.heading6.copyWith(color: Colors.white70)),
-              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
               // Chat is available once ACCEPTED — there is a counterparty.
-              IconButton(
-                onPressed: () => AppNavigator.push(
+              _sheetAction(
+                Icons.chat_bubble_outline,
+                'แชท',
+                () => AppNavigator.push(
                   context,
                   ChatScreen(
                     jobId: order.id,
@@ -166,11 +168,16 @@ class _LiveSheet extends ConsumerWidget {
                     vertical: ChatVertical.messenger,
                   ),
                 ),
-                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+              ),
+              _sheetAction(Icons.navigation_outlined, 'นำทาง', onNavigate),
+              _sheetAction(
+                Icons.help_outline,
+                'ช่วยเหลือ',
+                () => showHelpSheet(context),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -195,6 +202,26 @@ class _LiveSheet extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sheetAction(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white70),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTypography.caption4.copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
