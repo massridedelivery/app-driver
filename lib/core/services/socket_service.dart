@@ -41,6 +41,10 @@ class SocketService with WidgetsBindingObserver {
   /// connections and closes them → onDone → reconnect.
   static const Duration _pingInterval = Duration(seconds: 15);
 
+  /// Upper bound on the initial WS handshake so a stalled upgrade can't hang
+  /// connect() (and the UI loader that waits on it) forever.
+  static const Duration _readyTimeout = Duration(seconds: 10);
+
   /// Reconnect backoff is capped so a driver never stops trying to reconnect.
   static const int _maxBackoffSeconds = 30;
 
@@ -120,7 +124,13 @@ class SocketService with WidgetsBindingObserver {
       );
       _channel = channel;
 
-      await channel.ready;
+      // Bound the WS handshake. `channel.ready` can hang forever if the server
+      // accepts the TCP connection but never completes the upgrade — and the
+      // caller's loading flag (OnlineStatus.isLoading) is cleared only after
+      // connect() returns, so an unbounded wait spins the home-screen loader
+      // indefinitely. On timeout this throws → caught below → reconnect is
+      // scheduled with backoff, and the loader clears.
+      await channel.ready.timeout(_readyTimeout);
       if (kDebugMode) debugPrint('✅ SocketService: Connected successfully to the backend.');
 
       _isReady = true;
