@@ -57,6 +57,7 @@
 		<array>
 			<string>comgooglemaps</string>
 			<string>google.navigation</string>
+			<string>tel</string>
 		</array>
 		<!-- Wake the app in the background to handle FCM data messages (job
 		     offers) so the loud alert can be drawn. -->
