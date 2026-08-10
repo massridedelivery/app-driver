@@ -76,11 +76,21 @@ class AuthController extends _$AuthController {
     state = AsyncValue.data(await _state);
   }
 
+  /// Ends the session and drives the app back to login. The session teardown
+  /// runs in a `finally` so a failing network logout (expired token, offline)
+  /// can never strand the driver on a protected screen: local tokens are
+  /// wiped and the router redirect fires regardless. Works the same for phone
+  /// and email sessions, since both funnel through [SessionNotifier].
   Future<void> logout() async {
-    final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
-    await usecase.execute();
-    await RouteRestorationService.instance.clear();
-    SessionNotifier.instance.setAuthenticated(false);
-    await refresh();
+    try {
+      final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
+      await usecase.execute();
+    } catch (e) {
+      debugPrint('AuthController: logout call failed, forcing local logout: $e');
+    } finally {
+      await RouteRestorationService.instance.clear();
+      SessionNotifier.instance.setAuthenticated(false);
+      await refresh();
+    }
   }
 }

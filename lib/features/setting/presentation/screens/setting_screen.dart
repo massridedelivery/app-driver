@@ -85,8 +85,10 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
             Navigator.pop(dialogContext); // ปิด popup ก่อน
             await ref.read(authControllerProvider.notifier).logout();
 
+            // context.go replaces the whole stack, so no manual pop of the
+            // setting route is needed (a stray pop could fire before the go
+            // and land somewhere unexpected).
             if (parentContext.mounted) {
-              AppNavigator.pop(parentContext); // ปิดหน้า setting
               AppNavigator.go(parentContext, AppRoutes.loginNamedPage);
             }
           },

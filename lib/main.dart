@@ -16,6 +16,11 @@ import 'package:massdrive/features/dependency_injection.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Crash immediately with a clear message if the build is missing required
+  // Firebase/Omise defines (usually a forgotten config/mass_dev.json), rather
+  // than failing obscurely later inside Firebase/payment init.
+  EnvironmentConfig.assertConfigured();
+
   // If a widget throws, show the actual error instead of a blank black screen
   // (release builds otherwise render nothing useful).
   ErrorWidget.builder = (details) => _StartupErrorApp(
