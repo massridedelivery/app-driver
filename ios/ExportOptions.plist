@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- TestFlight / App Store distribution. Xcode 16+ calls this
+       "app-store-connect"; older toolchains use "app-store". -->
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>Q7742Z74Q3</string>
+  <!-- Let Xcode resolve the distribution provisioning profile automatically. -->
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadSymbols</key>
+  <true/>
+  <!-- Produce the .ipa only; uploading to App Store Connect is a separate,
+       credential-authenticated step done by a human (Transporter/Xcode). -->
+  <key>destination</key>
+  <string>export</string>
+</dict>
+</plist>
