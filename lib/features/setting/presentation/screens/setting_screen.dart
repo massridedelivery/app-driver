@@ -81,9 +81,9 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
               color: AppColors.semanticErrorFgHigh,
             ),
           ),
-          onPressed: () {
+          onPressed: () async {
             Navigator.pop(dialogContext); // ปิด popup ก่อน
-            ref.read(authControllerProvider.notifier).logout();
+            await ref.read(authControllerProvider.notifier).logout();
 
             if (parentContext.mounted) {
               AppNavigator.pop(parentContext); // ปิดหน้า setting

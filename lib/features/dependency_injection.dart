@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
@@ -34,10 +35,11 @@ abstract class NetworkModule {
       AppDioRefreshTokenInterceptor(
         secureStorage: secureStorage,
         dio: dio,
-        // No authController here to avoid circular dependency in GetIt
-        onTokenExpired: () {
-          // Add global logout or navigation logic if needed
-        },
+        // Can't inject the Riverpod AuthController here (circular dep in GetIt),
+        // so signal the dependency-free SessionNotifier instead. A failed token
+        // refresh already cleared storage; flipping the flag makes the router
+        // redirect the driver back to login.
+        onTokenExpired: () => SessionNotifier.instance.setAuthenticated(false),
       ),
       AppDioLoggerInterceptor(LoggerManager.instance.talker),
       ProfileErrorInterceptor(),

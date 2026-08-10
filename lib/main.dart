@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -68,6 +69,15 @@ Future<void> main() async {
     configureDependencies(EnvironmentConfig.env);
   } catch (e, s) {
     debugPrint('main: configureDependencies failed: $e\n$s');
+  }
+
+  // On the first launch after a fresh install, clear any secure-storage token
+  // that iOS Keychain kept from a previous install so we never cold-start into
+  // a stale session. Best-effort — must never block startup.
+  try {
+    await FirstRunGuard.clearSecureStorageOnFreshInstall();
+  } catch (e, s) {
+    debugPrint('main: first-run guard failed: $e\n$s');
   }
 
   // Route restoration is best-effort — never let its storage block startup.

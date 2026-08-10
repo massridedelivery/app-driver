@@ -12,6 +12,12 @@ class SecureStorageManager {
   SecureStorageManager._internal() {
     _storage = const FlutterSecureStorage(
       aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      // Keep tokens off iCloud Keychain and tied to this device only. Combined
+      // with FirstRunGuard (which clears storage on a fresh install), this
+      // stops a token from surviving an uninstall/reinstall on iOS.
+      iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock_this_device,
+      ),
     );
   }
 

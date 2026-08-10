@@ -1,3 +1,5 @@
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -14,9 +16,33 @@ class AuthController extends _$AuthController {
   late final SecureStorageManager _secureStorage;
 
   Future<AuthState> get _state async {
-    return AuthState(
-      await _secureStorage.isContain(SecureStorageKey.accessToken),
-    );
+    final loggedIn = await _hasValidSession();
+    // Seed the router's session source of truth from the real (expiry-aware)
+    // state so a redirect is in effect from the first frame.
+    SessionNotifier.instance.setAuthenticated(loggedIn);
+    return AuthState(loggedIn);
+  }
+
+  /// A session is valid when a non-expired access token exists — or the access
+  /// token is expired but a refresh token is present for the interceptor to
+  /// exchange. Merely having a stored (possibly expired/revoked) token is no
+  /// longer treated as logged in; if a later refresh fails the API layer flips
+  /// the session to logged-out via [SessionNotifier].
+  Future<bool> _hasValidSession() async {
+    final token = await _secureStorage.read(SecureStorageKey.accessToken);
+    if (token == null || token.isEmpty) return false;
+
+    bool expired;
+    try {
+      expired = JwtDecoder.isExpired(token);
+    } catch (_) {
+      // Unparseable token -> treat as a dead session rather than trust it.
+      return false;
+    }
+    if (!expired) return true;
+
+    final refresh = await _secureStorage.read(SecureStorageKey.refreshToken);
+    return refresh != null && refresh.isNotEmpty;
   }
 
   bool get isLogin {
@@ -37,6 +63,7 @@ class AuthController extends _$AuthController {
     final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
     await usecase.execute();
     await RouteRestorationService.instance.clear();
+    SessionNotifier.instance.setAuthenticated(false);
     await refresh();
   }
 }
