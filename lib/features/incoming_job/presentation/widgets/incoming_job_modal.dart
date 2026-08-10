@@ -7,6 +7,7 @@ import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
 class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -43,8 +44,13 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       if (_remaining <= 1) {
-        // Window elapsed — auto-accept the offer (รับโดยอัตโนมัติ).
-        _accept();
+        // Window elapsed. Auto-accept only if the driver opted in; otherwise
+        // the offer auto-cancels.
+        if (ref.read(autoAcceptProvider)) {
+          _accept();
+        } else {
+          _decline();
+        }
       } else {
         setState(() => _remaining--);
       }
@@ -74,6 +80,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
+    final autoAccept = ref.watch(autoAcceptProvider);
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.semanticGrayNeutralFgMidOnBlack,
@@ -154,9 +161,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ],
               ),
 
-              const SizedBox(height: AppSpacing.s2),
-              const Divider(color: Colors.white24, thickness: 1),
-              const SizedBox(height: AppSpacing.s2),
+              const SizedBox(height: AppSpacing.s4),
 
               // Service Type
               Row(
@@ -176,9 +181,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ],
               ),
 
-              const SizedBox(height: AppSpacing.s3),
-              const Divider(color: Colors.white24, thickness: 1),
-              const SizedBox(height: AppSpacing.s3),
+              const SizedBox(height: AppSpacing.s4),
 
               // Timeline
               IntrinsicHeight(
@@ -269,18 +272,23 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
 
               const SizedBox(height: AppSpacing.s4),
 
-              // Tells the driver the offer will be taken automatically at 0.
+              // What happens when the countdown hits 0, driven by the
+              // auto-accept preference.
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.bolt,
-                    color: AppColors.semanticSuccessBgHigh,
+                  Icon(
+                    autoAccept ? Icons.bolt : Icons.timer_outlined,
+                    color: autoAccept
+                        ? AppColors.semanticSuccessBgHigh
+                        : AppColors.foundationAlphaWhite500,
                     size: 16,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'รับงานอัตโนมัติใน $_remaining วินาที',
+                    autoAccept
+                        ? 'รับงานอัตโนมัติใน $_remaining วินาที'
+                        : 'ยกเลิกอัตโนมัติใน $_remaining วินาที',
                     style: AppTypography.caption4.copyWith(
                       color: AppColors.foundationAlphaWhite500,
                     ),
@@ -306,25 +314,25 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
 
               const SizedBox(height: AppSpacing.s3),
 
-              // Action Buttons
+              // Action Buttons — large, thumb-friendly pills.
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: _decline,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.semanticSupportRedBgHigh,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.s3,
+                    child: SizedBox(
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: _decline,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.semanticSupportRedBgHigh,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.s5),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.s4),
-                        ),
-                      ),
-                      child: Text(
-                        'ยกเลิก',
-                        style: AppTypography.heading6.copyWith(
-                          color: AppColors.semanticGrayNeutralFgWhite,
+                        child: Text(
+                          'ยกเลิก',
+                          style: AppTypography.heading5.copyWith(
+                            color: AppColors.semanticGrayNeutralFgWhite,
+                          ),
                         ),
                       ),
                     ),
@@ -332,21 +340,21 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                   const SizedBox(width: AppSpacing.s3),
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton(
-                      onPressed: _accept,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.semanticSuccessBgHigh,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.s3,
+                    child: SizedBox(
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: _accept,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.semanticSuccessBgHigh,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.s5),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.s4),
-                        ),
-                      ),
-                      child: Text(
-                        'รับงาน ($_remaining)',
-                        style: AppTypography.heading6.copyWith(
-                          color: AppColors.semanticGrayNeutralFgWhite,
+                        child: Text(
+                          'รับงาน ($_remaining)',
+                          style: AppTypography.heading5.copyWith(
+                            color: AppColors.semanticGrayNeutralFgWhite,
+                          ),
                         ),
                       ),
                     ),
