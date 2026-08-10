@@ -39,7 +39,15 @@ class RouteRestorationService {
     AppRoutes.registerNamedPage,
     AppRoutes.otpNamedPage,
     '/payment',
+    // Live/offer screens whose state lives only in memory (the current job /
+    // offer). Restoring to them after a kill lands on a screen with no job —
+    // e.g. IncomingJobScreen shows a bare spinner forever. Route to home
+    // instead and let the active-job probe recover any real in-progress job.
     '/job-live',
+    AppRoutes.incomingJobNamedPage,
+    AppRoutes.foodLiveNamedPage,
+    '/messenger-live',
+    '/messenger-offer',
   };
 
   String? _lastSaved;
