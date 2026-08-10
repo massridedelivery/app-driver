@@ -9,6 +9,7 @@ import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -30,13 +31,12 @@ class SettingScreen extends ConsumerWidget {
 
             const _Divider(),
 
-            // SectionHeader(
-            //   title: "การตั้งค่าการให้บริการ",
-            //   textColor: AppColors.semanticGrayNeutralBgWhite,
-            //   onTap: () => {},
-            // ),
+            SectionHeader(
+              title: "การตั้งค่าการให้บริการ",
+              textColor: AppColors.semanticGrayNeutralBgWhite,
+            ),
 
-            // const _AutoAcceptCard(),
+            const _AutoAcceptCard(),
             const _Divider(),
 
             SectionHeader(
@@ -253,18 +253,12 @@ class _AccountTile extends ConsumerWidget {
   }
 }
 
-class _AutoAcceptCard extends StatefulWidget {
+class _AutoAcceptCard extends ConsumerWidget {
   const _AutoAcceptCard();
 
   @override
-  State<_AutoAcceptCard> createState() => _AutoAcceptCardState();
-}
-
-class _AutoAcceptCardState extends State<_AutoAcceptCard> {
-  bool isEnabled = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isEnabled = ref.watch(autoAcceptProvider);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -275,28 +269,27 @@ class _AutoAcceptCardState extends State<_AutoAcceptCard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "รับงานอัตโนมัติ",
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              SizedBox(height: 4),
-              Text(
-                "ระบบจะรับรายการให้โดยอัตโนมัติ",
-                style: TextStyle(color: Colors.white54, fontSize: 13),
-              ),
-            ],
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "รับงานอัตโนมัติ",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ],
+            ),
           ),
           Switch(
             value: isEnabled,
-            activeColor: Colors.green,
-            onChanged: (value) {
-              setState(() {
-                isEnabled = value;
-              });
-            },
+            activeThumbColor: Colors.green,
+            onChanged: (value) =>
+                ref.read(autoAcceptProvider.notifier).setEnabled(value),
           ),
         ],
       ),
