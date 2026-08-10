@@ -461,7 +461,13 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                   );
                 },
         ),
-        _bottomAction(Icons.phone_outlined, "โทรฟรี"),
+        _bottomAction(
+          Icons.phone_outlined,
+          "โทรฟรี",
+          onTap: (currentJob == null || currentJob.passengerPhone.isEmpty)
+              ? null
+              : () => _callPassenger(currentJob.passengerPhone),
+        ),
         _bottomAction(
           Icons.navigation_outlined,
           "นำทาง",
@@ -474,6 +480,17 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _callPassenger(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถโทรออกได้')),
+      );
+    }
   }
 
   Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {
