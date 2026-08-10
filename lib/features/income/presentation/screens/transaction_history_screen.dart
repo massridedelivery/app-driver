@@ -36,17 +36,19 @@ class _TransactionHistoryScreenState
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      String? mappedType = widget.transactionType;
-      if (mappedType == 'payout') {
-        mappedType = 'WITHDRAWAL';
-      } else if (mappedType == 'topup') {
-        mappedType = 'TOPUP';
-      }
-      ref.read(transactionControllerProvider.notifier).fetchTransactions(
-            TransactionQuery(type: mappedType),
-          );
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  void _load() {
+    String? mappedType = widget.transactionType;
+    if (mappedType == 'payout') {
+      mappedType = 'WITHDRAWAL';
+    } else if (mappedType == 'topup') {
+      mappedType = 'TOPUP';
+    }
+    ref.read(transactionControllerProvider.notifier).fetchTransactions(
+          TransactionQuery(type: mappedType),
+        );
   }
 
   @override
@@ -93,9 +95,13 @@ class _TransactionHistoryScreenState
           Expanded(
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : state.transactions.isEmpty
-                    ? _buildEmptyState()
-                    : _buildList(state.transactions, state.isLoadingMore),
+                // A failed fetch is not an empty ledger — saying "no history"
+                // when the request errored is as misleading as inventing rows.
+                : state.errorMessage.isNotEmpty && state.transactions.isEmpty
+                    ? _buildErrorState(state.errorMessage)
+                    : state.transactions.isEmpty
+                        ? _buildEmptyState()
+                        : _buildList(state.transactions, state.isLoadingMore),
           ),
         ],
       ),
@@ -119,6 +125,51 @@ class _TransactionHistoryScreenState
         }
         return _TransactionTile(transaction: transactions[index]);
       },
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: AppColors.foundationAlphaWhite400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'โหลดประวัติไม่สำเร็จ',
+              style: AppTypography.heading5.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message.replaceFirst('Exception: ', ''),
+              textAlign: TextAlign.center,
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationAlphaWhite400,
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: _load,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'ลองใหม่',
+                style: AppTypography.label2.copyWith(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
