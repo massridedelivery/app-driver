@@ -175,13 +175,14 @@ class RegistrationController extends _$RegistrationController {
   Future<bool> uploadDocument(File file, DocumentType type, {String? docNumber}) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      // Map DocumentType to the correct MediaCategory
-      MediaCategory category;
-      if (type == DocumentType.profilePhoto) {
-        category = MediaCategory.avatar;
-      } else {
-        category = MediaCategory.driverDoc;
-      }
+      // Everything uploaded here is a driver verification document, including
+      // the profile photo — it is registered as the `selfie` doc_type via
+      // POST /api/driver/documents (SCRUM-16 §III). Its binary therefore has to
+      // live in the private `driver_doc` category like every other document.
+      // Sending it as `avatar` produced an `avatar/...` file_key that the
+      // document endpoint rejects with 422, and capped it at the avatar
+      // category's 2 MB instead of the 5 MB documents are allowed.
+      const category = MediaCategory.driverDoc;
 
       final isUpdate = state.remoteDocuments.containsKey(type);
 
