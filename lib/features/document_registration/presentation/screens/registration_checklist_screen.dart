@@ -450,7 +450,17 @@ class _ApprovedView extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () {
+                    // This screen can be reached as an imperative route (e.g.
+                    // from Edit Profile), which context.go alone won't clear —
+                    // it would leave this screen covering Home. Pop every
+                    // imperative route first, then land on Home.
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).popUntil((route) => route.isFirst);
+                    context.go('/home');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.foundationOrange600,
                     shape: RoundedRectangleBorder(
