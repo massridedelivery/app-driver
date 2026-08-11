@@ -277,74 +277,37 @@ During high demand, fares are multiplied by surge multiplier (up to 2.5x).
 
 ## 2. Document Upload
 
-### Step 1: Request Presigned Upload URL
+> **Superseded by [SCRUM-16 — Implement Driver Verification Frontend Flow](https://massapp.atlassian.net/browse/SCRUM-16).**
+> SCRUM-16 §I–III is the authoritative contract for media upload and driver
+> documents. The step-by-step walkthrough that used to be here described an
+> older API and no longer matches the backend, so it is removed rather than
+> updated — one source of truth.
 
-`POST /api/media/upload-url`
+What changed, for anyone who already built against the old text:
 
-**Request:**
+| Old text here | Actual contract (SCRUM-16) |
+| --- | --- |
+| `POST /api/media/upload-url` with a JSON body (`file_type`, `file_size`, `purpose`, `document_type`) | `GET /api/media/upload-url` with query params `category` and `content_type` (`room_id` for chat only) — §I.1 |
+| Presign, then register the document | Presign → binary `PUT` → `POST /api/media/confirm`, *then* register the document — §I.1 |
+| `POST /api/driver/documents` body `{ "document_type", "file_key" }` | body `{ "type", "file_key", "doc_number" }` — §III.2.B |
+| — | `PUT /api/driver/documents/{type}` for corrections; resets status to `pending` — §III.2.C |
+| — | Private files (a `driver_doc/...` path, no protocol prefix) must be exchanged via `GET /api/media/view?key=` before rendering — §II |
+| Required-documents list below said `drivers_license` | the enum is `driver_license` — §III.1 (corrected below) |
 
-```json
-{
-  "file_type": "image/jpeg",
-  "file_size": 1024000,
-  "purpose": "driver_document",
-  "document_type": "id_card" // id_card|driver_license|vehicle_registration|insurance|selfie|public_transport_license
-}
-```
+Also in SCRUM-16 and not repeated here: per-category size limits and allowed
+MIME types (§I.2), and the `403 documents_not_verified` guard on going online
+(§IV.2).
 
-**Response:**
-
-```json
-{
-  "upload_url": "https://storage.r2.cloudflarestorage.com/bucket/key?X-Amz-Signature=...",
-  "file_key": "uploads/drivers/uuid/timestamp.jpg",
-  "media_id": "uuid",
-  "expires_in": 3600
-}
-```
-
-### Step 2: Upload File Directly to Storage
-
-Make a PUT request to the `upload_url`:
-
-```http
-PUT {upload_url}
-Content-Type: image/jpeg
-
-{file-binary-data}
-```
-
-### Step 3: Confirm Document Upload
-
-`POST /api/driver/documents`
-
-**Request:**
-
-```json
-{
-  "document_type": "id_card",
-  "file_key": "uploads/drivers/uuid/timestamp.jpg"
-}
-```
-
-**Response:**
-
-```json
-{
-  "id": "uuid",
-  "type": "id_card",
-  "status": "pending",
-  "media_url": "https://storage.example.com/doc.jpg",
-  "created_at": "2026-03-01T10:00:00Z"
-}
-```
+Open question against this spec: `vehicle_photo` and `bank_passbook` are used by
+the app but appear in no §III.1 enum — tracked in
+[SCRUM-59](https://massapp.atlassian.net/browse/SCRUM-59).
 
 ### Required Documents
 
 All 4 documents must be `approved` before driver can go online:
 
 1. **ID Card** (`id_card`)
-2. **Driver's License** (`drivers_license`)
+2. **Driver's License** (`driver_license`)
 3. **Vehicle Registration** (`vehicle_registration`)
 4. **Insurance** (`insurance`)
 
