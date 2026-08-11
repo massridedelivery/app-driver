@@ -5,7 +5,6 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
-import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
@@ -85,10 +84,14 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
             Navigator.pop(dialogContext); // ปิด popup ก่อน
             await ref.read(authControllerProvider.notifier).logout();
 
-            // context.go replaces the whole stack, so no manual pop of the
-            // setting route is needed (a stray pop could fire before the go
-            // and land somewhere unexpected).
+            // The setting screen is opened as an imperative route on top of
+            // the go_router stack, so context.go alone leaves it covering the
+            // login page. Clear every imperative route first, then go to login.
             if (parentContext.mounted) {
+              Navigator.of(
+                parentContext,
+                rootNavigator: true,
+              ).popUntil((route) => route.isFirst);
               AppNavigator.go(parentContext, AppRoutes.loginNamedPage);
             }
           },
@@ -216,18 +219,16 @@ class _AccountTile extends ConsumerWidget {
       );
     }
 
-    final blindedName = profile.fullName.blindName();
+    final fullName = profile.fullName;
     final phone = profile.phone ?? '';
     final plate = profile.vehiclePlate ?? '';
-    final blindedPhone = phone.blindPhone();
-    final blindedPlate = plate.blindPlate();
 
     final subtitleParts = <String>[];
-    if (blindedPlate.isNotEmpty) {
-      subtitleParts.add(blindedPlate);
+    if (plate.isNotEmpty) {
+      subtitleParts.add(plate);
     }
-    if (blindedPhone.isNotEmpty) {
-      subtitleParts.add(blindedPhone);
+    if (phone.isNotEmpty) {
+      subtitleParts.add(phone);
     }
     final subtitleText = subtitleParts.isNotEmpty
         ? subtitleParts.join(' • ')
@@ -236,7 +237,7 @@ class _AccountTile extends ConsumerWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(
-        blindedName,
+        fullName,
         style: AppTypography.caption3.copyWith(
           color: AppColors.semanticGrayNeutralBgWhite,
         ),
@@ -271,18 +272,22 @@ class _AutoAcceptCard extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "รับงานอัตโนมัติ",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: AppTypography.caption3.copyWith(
+                    color: AppColors.semanticGrayNeutralBgWhite,
+                  ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.foundationAlphaWhite400,
+                  ),
                 ),
               ],
             ),

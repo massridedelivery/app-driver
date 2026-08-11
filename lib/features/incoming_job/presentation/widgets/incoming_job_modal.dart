@@ -329,7 +329,9 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                           ),
                         ),
                         child: Text(
-                          'ยกเลิก',
+                          // Countdown sits on whichever action fires at 0:
+                          // the cancel button when auto-accept is off.
+                          autoAccept ? 'ยกเลิก' : 'ยกเลิก ($_remaining)',
                           style: AppTypography.heading5.copyWith(
                             color: AppColors.semanticGrayNeutralFgWhite,
                           ),
@@ -351,7 +353,9 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                           ),
                         ),
                         child: Text(
-                          'รับงาน ($_remaining)',
+                          // Countdown shows here only when auto-accept is on
+                          // (this is the action that fires at 0).
+                          autoAccept ? 'รับงาน ($_remaining)' : 'รับงาน',
                           style: AppTypography.heading5.copyWith(
                             color: AppColors.semanticGrayNeutralFgWhite,
                           ),
