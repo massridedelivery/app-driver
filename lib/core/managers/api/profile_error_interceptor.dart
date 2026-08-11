@@ -13,23 +13,22 @@ class ProfileErrorInterceptor extends Interceptor {
     final path = err.requestOptions.path;
     final statusCode = err.response?.statusCode;
 
-    // Specific logic for /api/driver/profile
-    if (path.contains(Endpoints.driverProfile)) {
-      if (statusCode == 400 || statusCode == 401) {
-        // 1. Clear Shared Preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.clear();
-
-        // 2. Clear Secure Storage (tokens, etc.)
-        await _secureStorage.deleteAll();
-
-        // 3. Navigate to Login Flow
-        AppRouter.router.go(AppRoutes.loginNamedPage);
-        
-        // Return to prevent further error handling for this specific case if needed
-        // but we usually want to let the error bubble up or resolve it.
-        // Since we are redirecting, the current context will be destroyed anyway.
-      }
+    // Only a genuine 401 on the profile endpoint means the session is dead and
+    // the driver must sign in again. A 400 here is NOT an auth failure — it's a
+    // business state (profile incomplete / not yet approved) that a freshly
+    // verified driver legitimately hits, and the home/registration flow already
+    // handles it via `isVerified`. Logging out on 400 was bouncing drivers
+    // straight back to the phone-entry screen right after a successful OTP.
+    //
+    // This 401 branch fires only after the refresh-token interceptor (earlier in
+    // the chain) has already tried and failed to renew the token, so it is a
+    // last resort, not a first response to a 401.
+    if (path.contains(Endpoints.driverProfile) && statusCode == 401) {
+      // Clear any stored session, then send the driver to the login flow.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      await _secureStorage.deleteAll();
+      AppRouter.router.go(AppRoutes.loginNamedPage);
     }
 
     super.onError(err, handler);
