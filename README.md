@@ -29,6 +29,37 @@ touch .env
 
 CI does the same in its `Create placeholder .env` step.
 
+### Google Maps API key
+
+The Maps key is gitignored on both platforms, so a fresh checkout — **including
+a new git worktree** — has no key until you add one. The failure is not obvious:
+
+- **iOS crashes on launch of any map screen.** The Maps SDK aborts in
+  `+[GMSServices checkServicePreconditions]` (SIGABRT, shows up as `Lost
+  connection to device`) because `AppDelegate` never got a key to hand to
+  `GMSServices.provideAPIKey`.
+- **Android renders a blank grey map** and logs an authorization failure.
+
+Create both files with a key that has **Maps SDK for iOS** / **Maps SDK for
+Android** enabled (Google Cloud Console → the project's API credentials). If the
+key is restricted to iOS apps, allow bundle ids `com.massapp.massdrive.dev`
+(debug) and `com.massapp.massdrive` (release):
+
+```sh
+# iOS — read into Info.plist as $(MAPS_API_KEY) (GMSApiKey) via Debug/Release.xcconfig
+echo 'MAPS_API_KEY = YOUR_IOS_KEY' > ios/Flutter/Secrets.xcconfig
+
+# Android — read by app/build.gradle.kts into the AndroidManifest placeholder
+echo 'MAPS_API_KEY=YOUR_ANDROID_KEY' >> android/local.properties
+```
+
+An iOS-restricted key will not work for Android (and vice versa); restricted
+keys need one per platform. After adding the iOS key, `flutter clean` before
+rebuilding — `Info.plist` is cached and keeps the empty substitution otherwise.
+
+This is separate from `GOOGLE_DIRECTIONS_API_KEY` in `.env`, which is the
+runtime key `DirectionsService` uses for route drawing.
+
 ## Environments
 
 Runtime configuration is injected at build time via `--dart-define-from-file`
