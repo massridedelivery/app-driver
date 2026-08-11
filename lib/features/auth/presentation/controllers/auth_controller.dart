@@ -48,8 +48,15 @@ class AuthController extends _$AuthController {
     try {
       expired = JwtDecoder.isExpired(token);
     } catch (_) {
-      // Unparseable token -> treat as a dead session rather than trust it.
-      return false;
+      // The access token isn't a decodable JWT (e.g. an opaque token the
+      // backend issues). We can't read an expiry from it, so we must not judge
+      // the session dead on that basis — doing so logged the driver straight
+      // back out the moment after a successful OTP/email login (the stored
+      // token bypasses this check during the login request, then fails it on
+      // the post-login re-check). Treat the mere presence of a token as a live
+      // session; if it's actually dead, the API layer flips the session to
+      // logged-out on the first 401 via [SessionNotifier].
+      return true;
     }
     if (!expired) return true;
 
@@ -73,7 +80,17 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> refresh() async {
-    state = AsyncValue.data(await _state);
+    // This controller is autoDispose and often has no listener when refresh()
+    // is triggered (e.g. right after OTP verify, where the OTP screen watches
+    // its own controller, not this one). Riverpod can dispose it during the
+    // await below; the routing-critical work — SessionNotifier being updated
+    // inside [_state] — has already happened by then, so only guard the state
+    // assignment. Writing to a disposed notifier throws ("Cannot use the Ref
+    // ... after it has been disposed"), which previously surfaced as an error
+    // on the OTP screen.
+    final next = await _state;
+    if (!ref.mounted) return;
+    state = AsyncValue.data(next);
   }
 
   /// Ends the session and drives the app back to login. The session teardown

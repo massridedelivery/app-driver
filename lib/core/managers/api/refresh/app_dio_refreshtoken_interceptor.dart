@@ -38,7 +38,16 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       return handler.next(options);
     }
 
-    final isTokenExpired = JwtDecoder.isExpired(accessToken);
+    bool isTokenExpired;
+    try {
+      isTokenExpired = JwtDecoder.isExpired(accessToken);
+    } catch (_) {
+      // Opaque (non-JWT) access token — there's no readable `exp` to check.
+      // Don't throw here (that would fail every authenticated request) and
+      // don't force a refresh on every call; attach the token as-is and let a
+      // real 401 drive the refresh/logout path in onError.
+      isTokenExpired = false;
+    }
 
     if (isTokenExpired) {
       try {
