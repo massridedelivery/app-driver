@@ -32,6 +32,10 @@
         <string>This app needs location access</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>This app needs location access to track your drive.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และแนบรูปในแชท</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ และสลิปโอนเงินสำหรับการลงทะเบียนและยืนยันการชำระเงิน</string>
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>
