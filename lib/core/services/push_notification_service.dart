@@ -67,13 +67,17 @@ const AndroidNotificationChannel _jobChannel = AndroidNotificationChannel(
 final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
-/// True when a push is a job/offer that should ring with the loud alert. The
-/// backend must send job offers as **data messages** (so this app draws the
-/// notification with the custom-sound channel); a `notification`-type message
-/// would be drawn by the OS on the default channel instead.
+/// Routes that represent a new job/ride/messenger *offer* — these ring with
+/// the loud, custom-sound job-alert channel. Other routes (e.g. `/job-live`,
+/// already-accepted work) use the default channel/sound. Mirrors the "Allowed
+/// route values" table in fcm_push_notification_spec.md.
+const _jobOfferRoutes = {AppRoutes.incomingJobNamedPage, '/messenger-offer'};
+
+/// True when a push is a job/offer that should ring with the loud alert.
+/// `data.route` is the only data key the backend contract guarantees (see
+/// fcm_push_notification_spec.md), so detection keys off that.
 bool _isJobOffer(RemoteMessage message) {
-  final type = message.data['type']?.toString() ?? '';
-  return type.endsWith('offer') || message.data['sound'] == 'job_alert';
+  return _jobOfferRoutes.contains(message.data['route']);
 }
 
 /// Builds the loud job-offer AndroidNotificationDetails.
@@ -93,9 +97,10 @@ AndroidNotificationDetails _jobAndroidDetails() {
   );
 }
 
-/// Shows the loud job-offer notification. Title/body are read from the data
-/// payload (data-only messages carry no `notification`), falling back to the
-/// `notification` block if present.
+/// Shows the loud job-offer notification (Android foreground only — see
+/// [_onForegroundMessage]). Title/body come from the `notification` block the
+/// backend always sends; `data.title`/`data.body` are read first only as a
+/// defensive fallback.
 Future<void> _showJobNotification(
   FlutterLocalNotificationsPlugin plugin,
   RemoteMessage message,
@@ -128,10 +133,14 @@ Future<void> _showJobNotification(
 /// Handles messages delivered while the app is in the background or terminated.
 ///
 /// This MUST be a top-level (or static) function so the AOT tree-shaker keeps
-/// it, and it runs in its own isolate. For a job offer we draw the loud
-/// custom-sound notification ourselves (the OS would otherwise use the default
-/// channel/sound). Registered from [main] via
-/// [FirebaseMessaging.onBackgroundMessage].
+/// it, and it runs in its own isolate. Per fcm_push_notification_spec.md the
+/// backend always sends a `notification` block and sets
+/// `android.notification.channel_id` / `apns.payload.aps.sound` directly on
+/// the FCM message, so the OS renders the (correctly loud, for offers) push
+/// itself while backgrounded/terminated — this handler only needs to run for
+/// side effects (logging, future data-sync work), never to draw a
+/// notification, or the driver would see the job offer twice. Registered from
+/// [main] via [FirebaseMessaging.onBackgroundMessage].
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM(bg): id=${message.messageId} data=${message.data}');
@@ -140,34 +149,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await GetStorage.init();
   } catch (_) {}
-  FcmDebugLog.log('Background message received: id=${message.messageId} data=${message.data}');
-  if (!_isJobOffer(message)) return;
-
-  // The background isolate has its own plugin instance — initialize it and make
-  // sure the job channel exists before showing (the main isolate may not have
-  // run yet on a cold, push-launched start).
-  final plugin = FlutterLocalNotificationsPlugin();
-  await plugin.initialize(
-    settings: const InitializationSettings(
-      android: AndroidInitializationSettings('ic_stat_notification'),
-      iOS: DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      ),
-    ),
+  FcmDebugLog.log(
+    'Background message received: id=${message.messageId} data=${message.data}',
   );
-  await plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >()
-      ?.createNotificationChannel(_jobChannel);
-  await _showJobNotification(plugin, message);
 }
 
 /// Wires up foreground / tap / launch message handling and the local
 /// notification used to display foreground messages on Android. Token
-/// registration is handled separately in the app-startup controller.
+/// registration is handled separately by [PushTokenRegistrar].
 class PushNotificationService {
   PushNotificationService._();
 
@@ -246,16 +235,17 @@ class PushNotificationService {
       'Foreground message received: id=${message.messageId} data=${message.data}',
     );
 
-    // A job offer rings loudly on both platforms via the local notification.
+    // iOS presents notifications itself via the foreground options above,
+    // including the loud job-alert sound set in `apns.payload.aps.sound` — no
+    // local draw needed, and drawing one too would double the alert. Android
+    // does not display notification messages while foregrounded, so this app
+    // draws one itself, using the loud channel for job offers.
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+
     if (_isJobOffer(message)) {
       _showJobNotification(_localNotifications, message);
       return;
     }
-
-    // iOS presents ordinary notifications itself via the foreground options
-    // above. Android does not display notification messages while foregrounded,
-    // so draw one with a local notification.
-    if (defaultTargetPlatform != TargetPlatform.android) return;
 
     final notification = message.notification;
     if (notification == null) return;
