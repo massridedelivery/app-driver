@@ -213,19 +213,6 @@ class LoginScreen extends ConsumerWidget {
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-
-                        // Email Login Button
-                        TextButton(
-                          onPressed: () => context.push(AppRoutes.emailLoginNamedPage),
-                          child: Text(
-                            'หรือ เข้าสู่ระบบด้วยอีเมล',
-                            style: AppTypography.caption3.copyWith(
-                              color: AppColors.semanticGrayNeutralFgHigh,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

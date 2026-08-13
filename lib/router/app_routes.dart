@@ -30,6 +30,7 @@ import 'package:massdrive/features/document_registration/presentation/screens/do
 import 'package:massdrive/features/document_registration/presentation/screens/vehicle_info_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
+import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -219,6 +220,11 @@ class AppRouter {
         path: AppRoutes.documentRegistrationConsentNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ConsentScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.fcmDebugNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: FcmDebugScreen()),
       ),
     ],
     errorBuilder: (context, state) => const HomeScreen(),

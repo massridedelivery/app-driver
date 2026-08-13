@@ -2,7 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 /// Generic channel for ordinary notifications (system-drawn by FCM in the
@@ -101,6 +103,12 @@ Future<void> _showJobNotification(
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM(bg): id=${message.messageId} data=${message.data}');
+  // This isolate never runs main(), so GetStorage needs its own init before
+  // FcmDebugLog (backed by GetStorage) can persist an entry here.
+  try {
+    await GetStorage.init();
+  } catch (_) {}
+  FcmDebugLog.log('Background message received: id=${message.messageId} data=${message.data}');
   if (!_isJobOffer(message)) return;
 
   // The background isolate has its own plugin instance — initialize it and make
@@ -202,6 +210,9 @@ class PushNotificationService {
       'FCM(fg): id=${message.messageId} '
       'title=${message.notification?.title} data=${message.data}',
     );
+    FcmDebugLog.log(
+      'Foreground message received: id=${message.messageId} data=${message.data}',
+    );
 
     // A job offer rings loudly on both platforms via the local notification.
     if (_isJobOffer(message)) {
@@ -240,8 +251,26 @@ class PushNotificationService {
   /// the message data; unknown or missing routes are ignored.
   void _handleTap(RemoteMessage message) {
     debugPrint('FCM(tap): id=${message.messageId} data=${message.data}');
+    FcmDebugLog.log('Notification tapped: id=${message.messageId} route=${message.data['route']}');
     final route = message.data['route'];
     if (route is String) _navigateTo(route);
+  }
+
+  /// Manually re-fetch the current FCM token and log it, without going
+  /// through the permission-request flow again. Used by the FCM debug
+  /// screen's "Refresh token" action.
+  Future<void> refreshTokenForDebug() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null || token.isEmpty) {
+        FcmDebugLog.log('Refresh: token unavailable (Simulator or no APNs token)');
+        return;
+      }
+      FcmDebugLog.setToken(token);
+      FcmDebugLog.log('Refresh: token = ${FcmDebugLog.truncate(token, 24)}...');
+    } catch (e) {
+      FcmDebugLog.log('Refresh: ERROR $e');
+    }
   }
 
   void _navigateTo(String route) {
