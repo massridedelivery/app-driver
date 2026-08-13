@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -48,18 +50,33 @@ class FcmDebugLog {
     }
   }
 
+  /// Fires an async GetStorage op (write/remove) and swallows any failure.
+  /// GetStorage debounces its actual disk flush behind an internal Timer, so
+  /// a failure (e.g. no Flutter binding to resolve the storage path, as in a
+  /// plain `flutter test`) can surface after this call returns and outside
+  /// any Future this code awaits — a synchronous try/catch, or even
+  /// `.catchError` on the returned Future, doesn't see it. Running the whole
+  /// op in its own error zone catches it regardless of when or how it
+  /// surfaces, since a zone-created Timer's callback errors route to that
+  /// zone's handler instead of crashing the caller (fatal in tests, where an
+  /// unhandled zone error fails whatever test happens to be running then).
+  static void _fireAndForget(Future<void> Function() op) {
+    runZonedGuarded(
+      () => op(),
+      (e, _) => debugPrint('FcmDebugLog: write failed: $e'),
+    );
+  }
+
   static void log(String message) {
     debugPrint('FCM_LOG: $message');
-    try {
+    _fireAndForget(() async {
       final entries = read();
       entries.insert(0, FcmLogEntry(DateTime.now(), message));
       if (entries.length > _maxEntries) {
         entries.removeRange(_maxEntries, entries.length);
       }
-      _storage().write(_logKey, entries.map((e) => e.toJson()).toList());
-    } catch (e) {
-      debugPrint('FcmDebugLog: write failed: $e');
-    }
+      await _storage().write(_logKey, entries.map((e) => e.toJson()).toList());
+    });
   }
 
   static List<FcmLogEntry> read() {
@@ -75,15 +92,11 @@ class FcmDebugLog {
   }
 
   static void clear() {
-    try {
-      _storage().remove(_logKey);
-    } catch (_) {}
+    _fireAndForget(() => _storage().remove(_logKey));
   }
 
   static void setToken(String? token) {
-    try {
-      _storage().write(_tokenKey, token);
-    } catch (_) {}
+    _fireAndForget(() => _storage().write(_tokenKey, token));
   }
 
   static String? get token {
@@ -95,9 +108,7 @@ class FcmDebugLog {
   }
 
   static void setPermissionStatus(String status) {
-    try {
-      _storage().write(_permissionKey, status);
-    } catch (_) {}
+    _fireAndForget(() => _storage().write(_permissionKey, status));
   }
 
   static String? get permissionStatus {
