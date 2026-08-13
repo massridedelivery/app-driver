@@ -9,6 +9,8 @@ import 'package:massdrive/features/auth/presentation/controllers/auth_controller
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/features/setting/presentation/controllers/notification_permission_controller.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -36,6 +38,14 @@ class SettingScreen extends ConsumerWidget {
             ),
 
             const _AutoAcceptCard(),
+            const _Divider(),
+
+            SectionHeader(
+              title: "การแจ้งเตือน",
+              textColor: AppColors.semanticGrayNeutralBgWhite,
+            ),
+
+            const _NotificationSettingsTile(),
             const _Divider(),
 
             SectionHeader(
@@ -300,6 +310,83 @@ class _AutoAcceptCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Shows whether OS notification permission is currently granted, and taps
+/// through to the system app-settings page to toggle it — the app itself
+/// can never re-show the permission dialog once the driver has answered it
+/// once, so this is the only way back in if they said no by mistake.
+///
+/// Re-checks on every app resume: returning from the system Settings screen
+/// after toggling it there is the only moment this can change while the app
+/// is alive, and neither platform notifies the app when it happens.
+class _NotificationSettingsTile extends ConsumerStatefulWidget {
+  const _NotificationSettingsTile();
+
+  @override
+  ConsumerState<_NotificationSettingsTile> createState() =>
+      _NotificationSettingsTileState();
+}
+
+class _NotificationSettingsTileState
+    extends ConsumerState<_NotificationSettingsTile>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(notificationPermissionControllerProvider.notifier).refresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusAsync = ref.watch(notificationPermissionControllerProvider);
+    final isGranted = statusAsync.value?.isGranted ?? false;
+    final isLoading = statusAsync.isLoading && statusAsync.value == null;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      leading: Icon(
+        isGranted ? Icons.notifications_active : Icons.notifications_off,
+        color: isGranted
+            ? AppColors.semanticSuccessFgHigh
+            : AppColors.semanticErrorFgHigh,
+      ),
+      title: Text(
+        "การแจ้งเตือน",
+        style: AppTypography.caption3.copyWith(
+          color: AppColors.semanticGrayNeutralBgWhite,
+        ),
+      ),
+      subtitle: Text(
+        isLoading
+            ? "กำลังตรวจสอบ..."
+            : (isGranted ? "เปิดอยู่" : "ปิดอยู่ — แตะเพื่อเปิด"),
+        style: AppTypography.caption4.copyWith(
+          color: isGranted
+              ? AppColors.foundationAlphaWhite400
+              : AppColors.semanticErrorFgHigh,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: AppColors.semanticGrayNeutralFgLowOnGray,
+      ),
+      onTap: () => ph.openAppSettings(),
     );
   }
 }
