@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/services/fcm_debug_log.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
 
@@ -124,6 +126,7 @@ class PushTokenRegistrar {
       );
     } catch (e) {
       debugPrint('FCM Error: $e');
+      FcmDebugLog.log('ERROR during registration: $e');
     } finally {
       _registering = false;
     }
@@ -136,6 +139,7 @@ class PushTokenRegistrar {
       await _send(token);
     } catch (e) {
       debugPrint('FCM: token refresh register failed: $e');
+      FcmDebugLog.log('ERROR registering refreshed token: $e');
     }
   }
 
@@ -145,9 +149,15 @@ class PushTokenRegistrar {
     // Unchanged since the last successful POST; skip the round trip.
     if (token == _registeredToken) return;
 
-    await _postToken(token);
+    try {
+      await _postToken(token);
+    } catch (e) {
+      FcmDebugLog.log('ERROR registering with backend: $e');
+      rethrow;
+    }
     _registeredToken = token;
     debugPrint('FCM: device registered');
+    FcmDebugLog.log('Registered with backend OK');
   }
 }
 
@@ -156,14 +166,13 @@ Future<String?> _firebaseToken() async {
   final messaging = FirebaseMessaging.instance;
 
   // iOS requires explicit authorization before APNs will vend a device token;
-  // without it getToken() returns null and push never arrives. Already-granted
-  // permission resolves without re-prompting.
-  final settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-  if (settings.authorizationStatus == AuthorizationStatus.denied) {
+  // without it getToken() returns null and push never arrives. On Android
+  // this also drives the POST_NOTIFICATIONS runtime-permission dialog via
+  // permission_handler — FirebaseMessaging.requestPermission() alone doesn't
+  // reliably prompt for it on every plugin/OS combination. Already-granted
+  // permission resolves without re-prompting either way.
+  final authorizationStatus = await requestNotificationPermission();
+  if (authorizationStatus == AuthorizationStatus.denied.name) {
     debugPrint('FCM: notification permission denied');
     return null;
   }
@@ -180,15 +189,23 @@ Future<String?> _firebaseToken() async {
     }
     if (apnsToken == null) {
       debugPrint('FCM: APNs token unavailable, skip register');
+      FcmDebugLog.log(
+        'APNs token unavailable (Simulator has no real APNs token; '
+        'a real device is required)',
+      );
       return null;
     }
+    FcmDebugLog.log('APNs token obtained');
   }
 
   final token = await messaging.getToken();
   if (token == null || token.isEmpty) {
     debugPrint('FCM: token unavailable, skip register');
+    FcmDebugLog.log('FCM token unavailable, skip register');
     return null;
   }
+  FcmDebugLog.setToken(token);
+  FcmDebugLog.log('FCM token obtained: ${FcmDebugLog.truncate(token, 24)}...');
   return token;
 }
 
