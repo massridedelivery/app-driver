@@ -18,6 +18,7 @@ class FcmDebugScreen extends StatefulWidget {
 
 class _FcmDebugScreenState extends State<FcmDebugScreen> {
   bool _refreshing = false;
+  bool _requestingPermission = false;
 
   void _copyToken(String token) {
     Clipboard.setData(ClipboardData(text: token));
@@ -30,6 +31,12 @@ class _FcmDebugScreenState extends State<FcmDebugScreen> {
     setState(() => _refreshing = true);
     await PushNotificationService.instance.refreshTokenForDebug();
     if (mounted) setState(() => _refreshing = false);
+  }
+
+  Future<void> _requestPermission() async {
+    setState(() => _requestingPermission = true);
+    await requestNotificationPermission();
+    if (mounted) setState(() => _requestingPermission = false);
   }
 
   @override
@@ -48,11 +55,35 @@ class _FcmDebugScreenState extends State<FcmDebugScreen> {
           children: [
             _SectionCard(
               title: 'สิทธิ์แจ้งเตือน',
-              child: Text(
-                permission ?? '(ยังไม่เคยขอสิทธิ์ในเซสชันนี้)',
-                style: AppTypography.body2.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    permission ?? '(ยังไม่เคยขอสิทธิ์ในเซสชันนี้)',
+                    style: AppTypography.body2.copyWith(
+                      color: AppColors.semanticGrayNeutralBgWhite,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _requestingPermission ? null : _requestPermission,
+                    icon: _requestingPermission
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notifications_active_outlined, size: 16),
+                    label: const Text('ขอสิทธิ์แจ้งเตือน'),
+                  ),
+                  Text(
+                    'ถ้าเคยกดปฏิเสธไปแล้ว ระบบจะไม่เด้ง dialog ซ้ำ '
+                    'ต้องไปเปิดเองใน Settings ของเครื่อง',
+                    style: AppTypography.caption5.copyWith(
+                      color: AppColors.foundationAlphaWhite400,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),

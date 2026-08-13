@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/services/fcm_debug_log.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
@@ -60,16 +61,12 @@ class AppStartupController extends _$AppStartupController {
     try {
       final messaging = FirebaseMessaging.instance;
 
-      // iOS requires explicit authorization before APNs will vend a device
-      // token; without it getToken() returns null and push never arrives.
-      final settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      FcmDebugLog.setPermissionStatus(settings.authorizationStatus.name);
-      FcmDebugLog.log('Permission: ${settings.authorizationStatus.name}');
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      // Requests the OS permission (Android 13+ POST_NOTIFICATIONS via
+      // permission_handler + the iOS/Firebase authorization dialog) so a
+      // fresh install — or a session that was restored without ever having
+      // been asked — always gets prompted here on first login.
+      final authorizationStatus = await requestNotificationPermission();
+      if (authorizationStatus == AuthorizationStatus.denied.name) {
         debugPrint('FCM: notification permission denied');
         return;
       }
