@@ -65,6 +65,15 @@ class PushTokenRegistrar {
     _onSessionChanged();
   }
 
+  /// Re-attempt registration for the signed-in driver. Used when something
+  /// that previously blocked it has changed — notably the driver granting
+  /// notification permission from system settings, where the first attempt
+  /// bailed out with no token. No-op while logged out.
+  Future<void> retry() async {
+    if (!SessionNotifier.instance.isAuthenticated) return;
+    await _register();
+  }
+
   /// Detach from the session. Only needed so tests don't leak listeners onto
   /// the [SessionNotifier] singleton between cases.
   @visibleForTesting
@@ -96,6 +105,15 @@ class PushTokenRegistrar {
     try {
       final token = await _acquireToken();
       if (token == null || token.isEmpty) return;
+
+      // Debug builds print the token so it can be pasted into the Firebase
+      // console / an HTTP v1 call to fire a test push at this device. Logged
+      // before the POST so it is still available when the backend is down.
+      // Anyone holding a token can push to that device, so release builds log
+      // only that registration happened.
+      if (kDebugMode) {
+        debugPrint('FCM_TOKEN: $token');
+      }
 
       await _send(token);
 
