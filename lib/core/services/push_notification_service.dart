@@ -3,9 +3,41 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/router/app_routes.dart';
+
+/// Requests notification permission and returns the resulting iOS/Firebase
+/// [AuthorizationStatus] name for display. Shared by app startup and the FCM
+/// debug screen's manual "request permission" action.
+///
+/// On Android 13+ (API 33+), POST_NOTIFICATIONS is a runtime permission that
+/// FirebaseMessaging.requestPermission() alone does not reliably prompt for
+/// on every plugin/OS combination — a silent no-op there leaves the OS
+/// blocking every notification with no dialog ever shown, and the app has no
+/// way to ask again later. permission_handler's request() is the version
+/// Android actually guarantees shows the system dialog when the permission
+/// has never been decided.
+Future<String> requestNotificationPermission() async {
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final status = await ph.Permission.notification.status;
+    FcmDebugLog.log('Android notification permission (before): $status');
+    if (!status.isGranted) {
+      final requested = await ph.Permission.notification.request();
+      FcmDebugLog.log('Android notification permission (after request): $requested');
+    }
+  }
+
+  final settings = await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  FcmDebugLog.setPermissionStatus(settings.authorizationStatus.name);
+  FcmDebugLog.log('Permission: ${settings.authorizationStatus.name}');
+  return settings.authorizationStatus.name;
+}
 
 /// Generic channel for ordinary notifications (system-drawn by FCM in the
 /// background). The id MUST match `default_notification_channel_id` in
