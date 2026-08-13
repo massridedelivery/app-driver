@@ -7,6 +7,11 @@
 // prod install. Release/Profile (Release.xcconfig) leave it empty -> prod id.
 BUNDLE_ID_SUFFIX = .dev
 
+// Home-screen name, substituted into Info.plist as $(APP_DISPLAY_NAME). Marks
+// the dev app apart from a prod install sitting next to it, matching APP_NAME
+// in config/mass_dev.json (which drives the same label on Android).
+APP_DISPLAY_NAME = Massdrive DEV
+
 // APNs environment for the dev app: the sandbox (development) gateway, matching
 // a development/ad-hoc provisioning profile. Substituted into Runner.entitlements
 // as $(APS_ENVIRONMENT). Release.xcconfig uses production for prod/TestFlight.

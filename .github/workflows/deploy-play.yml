@@ -101,11 +101,17 @@ jobs:
       # the first bundle uploaded manually (1), so this never collides. The run
       # number keeps every subsequent upload unique and increasing. Arithmetic
       # is done in the shell because Actions expressions have no "+" operator.
+      # APP_NAME is overridden last, on purpose: the identity file here is
+      # mass_dev.json (dev Firebase), whose APP_NAME is "Massdrive DEV". That
+      # label is right for a local dev build but wrong on the Play listing,
+      # which is the real com.massapp.massdrive app. A later --dart-define wins
+      # over the ones loaded from files.
       - name: Build signed app bundle
         run: |
           flutter build appbundle --release \
             --dart-define-from-file=config/preprod.json \
             --dart-define-from-file=config/mass_dev.json \
+            --dart-define=APP_NAME=massdrive \
             --build-number=$((GITHUB_RUN_NUMBER + 10))
 
       - name: Upload to Play (internal track)
