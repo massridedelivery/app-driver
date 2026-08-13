@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -46,6 +47,33 @@ class SettingScreen extends ConsumerWidget {
             ),
 
             const _NotificationSettingsTile(),
+            const _Divider(),
+
+            SectionHeader(
+              title: "นักพัฒนา",
+              textColor: AppColors.semanticGrayNeutralBgWhite,
+            ),
+
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              title: Text(
+                "FCM Debug Log",
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              subtitle: Text(
+                "ดู token / สิทธิ์แจ้งเตือน / log การรับ-ส่ง push",
+                style: AppTypography.caption4.copyWith(
+                  color: AppColors.foundationAlphaWhite400,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: AppColors.semanticGrayNeutralFgLowOnGray,
+              ),
+              onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
+            ),
             const _Divider(),
 
             SectionHeader(
