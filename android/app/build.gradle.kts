@@ -45,6 +45,12 @@ val dartDefines: Map<String, String> =
 // e.g. ".dev" so a dev build installs alongside prod instead of replacing it.
 val packageNameSuffix: String = dartDefines["APP_PACKAGE_NAME_SUFFIX"].orEmpty()
 
+// Mirrors the same suffix flag so the launcher label tells the two apart too —
+// without it both installs show as "massdrive" and are indistinguishable on
+// the home screen. Matches the display name iOS's `make deploy-dev` sets for
+// the equivalent .dev build (see ios/Runner/Info.plist / the Makefile).
+val appLabel: String = if (packageNameSuffix.isNotEmpty()) "MassDriverDev" else "Massdrive"
+
 android {
     namespace = "com.massapp.massdrive"
     compileSdk = flutter.compileSdkVersion
@@ -76,8 +82,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Injected into AndroidManifest.xml as ${MAPS_API_KEY}
+        // Injected into AndroidManifest.xml as ${MAPS_API_KEY} / ${appLabel}
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        manifestPlaceholders["appLabel"] = appLabel
     }
 
     signingConfigs {
