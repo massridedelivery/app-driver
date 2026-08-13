@@ -144,4 +144,30 @@ void main() {
 
     expect(posted, isEmpty);
   });
+
+  test('retry() registers once permission is granted mid-session', () async {
+    // Denied permission yields no token, so signing in registers nothing.
+    currentToken = null;
+    registrar = build()..start();
+    SessionNotifier.instance.setAuthenticated(true);
+    await pumpEventQueue();
+    expect(posted, isEmpty);
+
+    // The driver enables notifications in system settings; the setting screen
+    // sees the resume and calls retry().
+    currentToken = 'token-a';
+    await registrar.retry();
+    await pumpEventQueue();
+
+    expect(posted, ['token-a']);
+  });
+
+  test('retry() does nothing while logged out', () async {
+    registrar = build()..start();
+
+    await registrar.retry();
+    await pumpEventQueue();
+
+    expect(posted, isEmpty);
+  });
 }

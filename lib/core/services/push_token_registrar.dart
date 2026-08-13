@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/services/fcm_debug_log.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
 
@@ -65,6 +67,15 @@ class PushTokenRegistrar {
     _onSessionChanged();
   }
 
+  /// Re-attempt registration for the signed-in driver. Used when something
+  /// that previously blocked it has changed — notably the driver granting
+  /// notification permission from system settings, where the first attempt
+  /// bailed out with no token. No-op while logged out.
+  Future<void> retry() async {
+    if (!SessionNotifier.instance.isAuthenticated) return;
+    await _register();
+  }
+
   /// Detach from the session. Only needed so tests don't leak listeners onto
   /// the [SessionNotifier] singleton between cases.
   @visibleForTesting
@@ -96,6 +107,15 @@ class PushTokenRegistrar {
     try {
       final token = await _acquireToken();
       if (token == null || token.isEmpty) return;
+
+      // Debug builds print the token so it can be pasted into the Firebase
+      // console / an HTTP v1 call to fire a test push at this device. Logged
+      // before the POST so it is still available when the backend is down.
+      // Anyone holding a token can push to that device, so release builds log
+      // only that registration happened.
+      if (kDebugMode) {
+        debugPrint('FCM_TOKEN: $token');
+      }
 
       await _send(token);
 
@@ -137,15 +157,12 @@ class PushTokenRegistrar {
 Future<String?> _firebaseToken() async {
   final messaging = FirebaseMessaging.instance;
 
-  // iOS requires explicit authorization before APNs will vend a device token;
-  // without it getToken() returns null and push never arrives. Already-granted
-  // permission resolves without re-prompting.
-  final settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-  if (settings.authorizationStatus == AuthorizationStatus.denied) {
+  // Prompts on both platforms, including the Android 13+ POST_NOTIFICATIONS
+  // runtime permission that FirebaseMessaging.requestPermission() alone does
+  // not reliably raise. iOS additionally needs this authorization before APNs
+  // will vend a device token at all.
+  final authorizationStatus = await requestNotificationPermission();
+  if (authorizationStatus == AuthorizationStatus.denied.name) {
     debugPrint('FCM: notification permission denied');
     return null;
   }
@@ -162,24 +179,45 @@ Future<String?> _firebaseToken() async {
     }
     if (apnsToken == null) {
       debugPrint('FCM: APNs token unavailable, skip register');
+      FcmDebugLog.log(
+        'APNs token unavailable (Simulator has no real APNs token; '
+        'a real device is required)',
+      );
       return null;
     }
+    FcmDebugLog.log('APNs token obtained');
   }
 
   final token = await messaging.getToken();
   if (token == null || token.isEmpty) {
     debugPrint('FCM: token unavailable, skip register');
+    FcmDebugLog.log('FCM token unavailable, skip register');
     return null;
   }
+  FcmDebugLog.setToken(token);
+  FcmDebugLog.log('FCM token obtained: ${FcmDebugLog.truncate(token, 24)}...');
   return token;
 }
 
-Stream<String> _firebaseTokenRefreshes() =>
-    FirebaseMessaging.instance.onTokenRefresh;
+Stream<String> _firebaseTokenRefreshes() {
+  return FirebaseMessaging.instance.onTokenRefresh.map((token) {
+    FcmDebugLog.log('Token refreshed: ${FcmDebugLog.truncate(token, 24)}...');
+    return token;
+  });
+}
 
 Future<void> _postToBackend(String token) async {
-  await getIt<NotificationApiService>().registerDevice({
-    'token': token,
-    'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-  });
+  try {
+    await getIt<NotificationApiService>().registerDevice({
+      'token': token,
+      'platform': defaultTargetPlatform == TargetPlatform.iOS
+          ? 'ios'
+          : 'android',
+    });
+    FcmDebugLog.setToken(token);
+    FcmDebugLog.log('Registered with backend OK');
+  } catch (e) {
+    FcmDebugLog.log('ERROR registering with backend: $e');
+    rethrow;
+  }
 }
