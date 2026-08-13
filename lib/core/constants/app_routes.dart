@@ -43,6 +43,8 @@ class AppRoutes {
   static const documentRegistrationConsentNamedPage =
       '/document-registration/consent';
 
+  static const fcmDebugNamedPage = '/fcm-debug';
+
   static Widget errorWidget(BuildContext context, GoRouterState state) =>
       const HomeScreen();
 

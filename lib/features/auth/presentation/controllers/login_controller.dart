@@ -32,17 +32,24 @@ class LoginController extends _$LoginController {
       debugPrint('LoginController: Calling use case...');
       final loginUseCase = getIt<LoginWithPhoneUseCase>();
 
-      // Get device ID
-      final deviceInfo = DeviceInfoPlugin();
+      // Get device ID. Isolated in its own try/catch: some emulator/device
+      // images return a null field the plugin doesn't guard against
+      // internally, throwing a raw TypeError that would otherwise abort the
+      // whole login. deviceId is informational only, so an empty fallback is
+      // safe.
       String deviceId = '';
-      if (kIsWeb) {
-        deviceId = 'web';
-      } else if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? '';
+      try {
+        if (kIsWeb) {
+          deviceId = 'web';
+        } else if (Platform.isAndroid) {
+          final androidInfo = await DeviceInfoPlugin().androidInfo;
+          deviceId = androidInfo.id;
+        } else if (Platform.isIOS) {
+          final iosInfo = await DeviceInfoPlugin().iosInfo;
+          deviceId = iosInfo.identifierForVendor ?? '';
+        }
+      } catch (e) {
+        debugPrint('LoginController: device info unavailable: $e');
       }
 
       final otpResponse = await loginUseCase.execute(state.phoneNumber, deviceId);

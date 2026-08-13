@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
@@ -66,6 +67,8 @@ class AppStartupController extends _$AppStartupController {
         badge: true,
         sound: true,
       );
+      FcmDebugLog.setPermissionStatus(settings.authorizationStatus.name);
+      FcmDebugLog.log('Permission: ${settings.authorizationStatus.name}');
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         debugPrint('FCM: notification permission denied');
         return;
@@ -83,32 +86,51 @@ class AppStartupController extends _$AppStartupController {
         }
         if (apnsToken == null) {
           debugPrint('FCM: APNs token unavailable, skip register');
+          FcmDebugLog.log(
+            'APNs token unavailable (Simulator has no real APNs token; '
+            'a real device is required)',
+          );
           return;
         }
+        FcmDebugLog.log('APNs token obtained');
       }
 
       final fcmToken = await messaging.getToken();
       if (fcmToken == null || fcmToken.isEmpty) {
         debugPrint('FCM: token unavailable, skip register');
+        FcmDebugLog.log('FCM token unavailable, skip register');
         return;
       }
+      FcmDebugLog.setToken(fcmToken);
+      FcmDebugLog.log('FCM token obtained: ${FcmDebugLog.truncate(fcmToken, 24)}...');
 
       await _sendTokenToBackend(fcmToken);
 
       // FCM tokens rotate (reinstall, restore, invalidation); keep the backend
       // in sync when that happens.
-      messaging.onTokenRefresh.listen(_sendTokenToBackend);
+      messaging.onTokenRefresh.listen((token) {
+        FcmDebugLog.log('Token refreshed: ${FcmDebugLog.truncate(token, 24)}...');
+        _sendTokenToBackend(token);
+      });
     } catch (e) {
       debugPrint('FCM Error: $e');
+      FcmDebugLog.log('ERROR during registration: $e');
     }
   }
 
   Future<void> _sendTokenToBackend(String token) async {
     final api = getIt<NotificationApiService>();
-    await api.registerDevice({
-      'token': token,
-      'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-    });
-    debugPrint('FCM: device registered: $token');
+    try {
+      await api.registerDevice({
+        'token': token,
+        'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      });
+      debugPrint('FCM: device registered: $token');
+      FcmDebugLog.setToken(token);
+      FcmDebugLog.log('Registered with backend OK');
+    } catch (e) {
+      FcmDebugLog.log('ERROR registering with backend: $e');
+      rethrow;
+    }
   }
 }
