@@ -55,8 +55,8 @@ help:
 	@echo   aab           Signed release bundle for Play
 	@echo   apk           Release APK for sideloading
 	@echo   apk-dev       Release APK built against dev, to hand to testers
-	@echo   deploy-dev    iOS - build the .ipa and ship it to TestFlight
-	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=20
+	@echo   deploy-dev    iOS - build + ship to TestFlight - the MassDriverDev app
+	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=2
 	@echo   clean         flutter clean + pub get
 	@echo   ---
 	@echo   Pass extra flutter args with ARGS, e.g. make run ARGS=-v
@@ -138,14 +138,22 @@ apk-dev: env
 
 # ---------------------------------------------------------------- ship (iOS)
 
-# The TestFlight round trip in one command: build the signed .ipa and upload it,
-# replacing "flutter build ipa" followed by dragging the file into Transporter.
-# macOS only — the recipe drives Xcode's toolchain, so unlike the rest of this
-# file it assumes a POSIX shell.
+# The TestFlight round trip in one command: build the signed .ipa and upload it
+# to the MassDriverDev app in App Store Connect, replacing "flutter build ipa"
+# followed by dragging the file into Transporter. macOS only — the recipe
+# drives Xcode's toolchain, so unlike the rest of this file it assumes a POSIX
+# shell.
 #
-# This ships com.massapp.massdrive: Release leaves BUNDLE_ID_SUFFIX empty, so
-# the .dev suffix is a debug-only thing and this goes to the same App Store
-# Connect app every previous upload went to.
+# Ships com.massapp.massdrive.dev, a *separate* App Store Connect app
+# (MassDriverDev) from the com.massapp.massdrive one every other TestFlight
+# upload goes to. Release leaves BUNDLE_ID_SUFFIX empty by default (so a plain
+# `flutter build ipa` ships com.massapp.massdrive, matching the prod-driver
+# Firebase project) — this target temporarily overrides it to .dev for the
+# single build, via ios/Flutter/Release.local.xcconfig, and always reverts
+# (trap on EXIT), even if the build fails. Release.local.xcconfig is
+# gitignored and #included from Release.xcconfig with #include? (silently
+# a no-op when absent), so this can never leak into a normal `flutter build
+# ipa`/CI run — only this recipe ever creates the file.
 #
 # BUILD is required. App Store Connect rejects a build number it has already
 # seen, and pubspec's number trails what has been uploaded, so deriving it from
@@ -158,15 +166,20 @@ apk-dev: env
 # ~/.appstoreconnect/private_keys/ (or ~/private_keys/), where altool looks.
 ifeq ($(filter deploy-dev,$(MAKECMDGOALS)),deploy-dev)
 ifndef BUILD
-$(error BUILD is required and must beat the last TestFlight build, e.g. make deploy-dev BUILD=20)
+$(error BUILD is required and must beat the last MassDriverDev TestFlight build, e.g. make deploy-dev BUILD=2)
 endif
 endif
 
 deploy-dev: env
+	@set -e; \
+	cp ios/Runner/Info.plist ios/Runner/Info.plist.bak; \
+	trap 'rm -f ios/Flutter/Release.local.xcconfig; mv ios/Runner/Info.plist.bak ios/Runner/Info.plist' EXIT; \
+	echo "BUNDLE_ID_SUFFIX = .dev" > ios/Flutter/Release.local.xcconfig; \
+	sed -i '' 's/<string>Massdrive<\/string>/<string>MassDriverDev<\/string>/' ios/Runner/Info.plist; \
 	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
-	  --export-options-plist=ios/ExportOptions.plist
-	@if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
-	  echo "Uploading build $(BUILD) to TestFlight..."; \
+	  --export-options-plist=ios/ExportOptions.plist; \
+	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
+	  echo "Uploading build $(BUILD) to TestFlight (MassDriverDev)..."; \
 	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
 	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
 	else \
