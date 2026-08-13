@@ -10,3 +10,10 @@ BUNDLE_ID_SUFFIX =
 // what TestFlight and the App Store use. Substituted into Runner.entitlements as
 // $(APS_ENVIRONMENT). A committed static "development" would break prod push.
 APS_ENVIRONMENT = production
+
+// Local, gitignored override for `make deploy-dev` (see Makefile) — sets
+// BUNDLE_ID_SUFFIX = .dev for that one build, to ship the separate
+// MassDriverDev App Store Connect app. #include? is silently a no-op when the
+// file doesn't exist, so a plain `flutter build ipa`/CI run is unaffected.
+// Must stay last so it can override BUNDLE_ID_SUFFIX above.
+#include? "Release.local.xcconfig"
