@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
+import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
@@ -44,8 +45,8 @@ Future<void> main() async {
   // empty; on iOS, native FIRApp configuration then aborts with an
   // Objective-C exception (SIGABRT) that a Dart try/catch cannot catch, so
   // the app crashes on launch. Guard on the required fields and skip init
-  // entirely when they are absent — FCM (app_startup_controller) already
-  // tolerates an uninitialized app and simply skips token registration.
+  // entirely when they are absent — the app then simply runs without push.
+  var firebaseReady = false;
   final firebaseOptions = DefaultFirebaseOptions.currentPlatform;
   if (firebaseOptions.appId.isNotEmpty && firebaseOptions.projectId.isNotEmpty) {
     try {
@@ -55,6 +56,7 @@ Future<void> main() async {
       // failure can never block startup.
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await PushNotificationService.instance.init();
+      firebaseReady = true;
     } catch (e, s) {
       debugPrint('main: Firebase.initializeApp failed: $e\n$s');
     }
@@ -74,6 +76,15 @@ Future<void> main() async {
     configureDependencies(EnvironmentConfig.env);
   } catch (e, s) {
     debugPrint('main: configureDependencies failed: $e\n$s');
+  }
+
+  // Mirror the FCM device token onto the backend for whoever is signed in.
+  // Started after DI (it resolves the notification API from getIt) and only
+  // with Firebase up, since it reads FirebaseMessaging.instance. It registers
+  // nothing until the session turns authenticated, so ordering against the
+  // router below does not matter.
+  if (firebaseReady) {
+    PushTokenRegistrar.instance.start();
   }
 
   // On the first launch after a fresh install, clear any secure-storage token

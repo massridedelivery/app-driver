@@ -1,0 +1,185 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/setting/data/sources/notification_api_service.dart';
+
+/// Resolves the current FCM token, or null when push can't be set up (denied
+/// permission, no APNs token yet, no token vended).
+typedef TokenSource = Future<String?> Function();
+
+/// Fires whenever FCM rotates the device token.
+typedef TokenRefreshes = Stream<String> Function();
+
+/// Hands a token to the backend for the signed-in driver.
+typedef TokenSink = Future<void> Function(String token);
+
+/// Keeps the backend's FCM device token in sync with the **current** session.
+///
+/// Registration is driven by [SessionNotifier] rather than by app startup. The
+/// previous splash-only version never ran on a fresh login: the startup
+/// controller had already returned "logged out" and been disposed, and login
+/// navigates straight to /home without passing through the splash again — so a
+/// newly signed-in driver received no push at all until the next cold start
+/// (and on Android 13+/iOS was never even shown the permission prompt).
+/// Listening to the session covers both paths, and re-registers when a
+/// different driver signs in on the same device.
+class PushTokenRegistrar {
+  PushTokenRegistrar._()
+    : _acquireToken = _firebaseToken,
+      _tokenRefreshes = _firebaseTokenRefreshes,
+      _postToken = _postToBackend;
+
+  /// Builds a registrar over fakes so the session-driven behaviour can be
+  /// tested without Firebase or a live backend.
+  @visibleForTesting
+  PushTokenRegistrar.withSources({
+    required TokenSource acquireToken,
+    required TokenRefreshes tokenRefreshes,
+    required TokenSink postToken,
+  }) : _acquireToken = acquireToken,
+       _tokenRefreshes = tokenRefreshes,
+       _postToken = postToken;
+
+  static final PushTokenRegistrar instance = PushTokenRegistrar._();
+
+  final TokenSource _acquireToken;
+  final TokenRefreshes _tokenRefreshes;
+  final TokenSink _postToken;
+
+  StreamSubscription<String>? _refreshSub;
+  bool _listening = false;
+  bool _registering = false;
+  String? _registeredToken;
+
+  /// Begin tracking the session. Call once, after Firebase and DI are ready;
+  /// repeat calls are no-ops.
+  void start() {
+    if (_listening) return;
+    _listening = true;
+    SessionNotifier.instance.addListener(_onSessionChanged);
+    // The session can already be authenticated by the time we get here (cold
+    // start with a live token), and that flip fires no notification.
+    _onSessionChanged();
+  }
+
+  /// Detach from the session. Only needed so tests don't leak listeners onto
+  /// the [SessionNotifier] singleton between cases.
+  @visibleForTesting
+  void stop() {
+    if (!_listening) return;
+    _listening = false;
+    SessionNotifier.instance.removeListener(_onSessionChanged);
+    _refreshSub?.cancel();
+    _refreshSub = null;
+    _registeredToken = null;
+  }
+
+  void _onSessionChanged() {
+    if (SessionNotifier.instance.isAuthenticated) {
+      unawaited(_register());
+      return;
+    }
+    // Logged out: stop mirroring token refreshes onto a session that no longer
+    // exists, and forget what we sent so the next sign-in registers again even
+    // if FCM hands back the same token (it must be re-bound to the new driver).
+    _refreshSub?.cancel();
+    _refreshSub = null;
+    _registeredToken = null;
+  }
+
+  Future<void> _register() async {
+    if (_registering) return;
+    _registering = true;
+    try {
+      final token = await _acquireToken();
+      if (token == null || token.isEmpty) return;
+
+      await _send(token);
+
+      // FCM tokens rotate (reinstall, restore, invalidation); keep the backend
+      // in sync when that happens. Torn down on logout by [_onSessionChanged].
+      _refreshSub ??= _tokenRefreshes().listen(
+        (refreshed) => unawaited(_sendQuietly(refreshed)),
+      );
+    } catch (e) {
+      debugPrint('FCM Error: $e');
+    } finally {
+      _registering = false;
+    }
+  }
+
+  /// Token-refresh path: a failed POST here has no caller to surface it, and an
+  /// uncaught async error from a stream listener would crash the zone.
+  Future<void> _sendQuietly(String token) async {
+    try {
+      await _send(token);
+    } catch (e) {
+      debugPrint('FCM: token refresh register failed: $e');
+    }
+  }
+
+  Future<void> _send(String token) async {
+    // A refresh can land after logout — the token belongs to no session then.
+    if (!SessionNotifier.instance.isAuthenticated) return;
+    // Unchanged since the last successful POST; skip the round trip.
+    if (token == _registeredToken) return;
+
+    await _postToken(token);
+    _registeredToken = token;
+    debugPrint('FCM: device registered');
+  }
+}
+
+/// Production [TokenSource]: permission prompt, then the platform token.
+Future<String?> _firebaseToken() async {
+  final messaging = FirebaseMessaging.instance;
+
+  // iOS requires explicit authorization before APNs will vend a device token;
+  // without it getToken() returns null and push never arrives. Already-granted
+  // permission resolves without re-prompting.
+  final settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  if (settings.authorizationStatus == AuthorizationStatus.denied) {
+    debugPrint('FCM: notification permission denied');
+    return null;
+  }
+
+  // On iOS the APNs token must be set before getToken() will succeed. On a
+  // cold start it can be momentarily null, so wait briefly for it.
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    String? apnsToken;
+    for (var i = 0; i < 5 && apnsToken == null; i++) {
+      apnsToken = await messaging.getAPNSToken();
+      if (apnsToken == null) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+    if (apnsToken == null) {
+      debugPrint('FCM: APNs token unavailable, skip register');
+      return null;
+    }
+  }
+
+  final token = await messaging.getToken();
+  if (token == null || token.isEmpty) {
+    debugPrint('FCM: token unavailable, skip register');
+    return null;
+  }
+  return token;
+}
+
+Stream<String> _firebaseTokenRefreshes() =>
+    FirebaseMessaging.instance.onTokenRefresh;
+
+Future<void> _postToBackend(String token) async {
+  await getIt<NotificationApiService>().registerDevice({
+    'token': token,
+    'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+  });
+}
