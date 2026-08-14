@@ -308,6 +308,15 @@ class _NotificationPermissionCardState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Re-read the real OS status every time Settings is opened — the provider
+    // is built once and cached, so without this the card can show a stale
+    // "notifications off" from an earlier check even though the driver has
+    // since turned them on in the phone's Settings.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(notificationPermissionProvider.notifier).refresh();
+      }
+    });
   }
 
   @override

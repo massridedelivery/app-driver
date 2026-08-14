@@ -11,6 +11,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
@@ -226,6 +227,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
         : MapDefaults.center;
 
+    // Custom pins matching the customer app's ride flow; fall back to the
+    // default hue marker until the bitmap finishes rasterizing.
+    final pickupIcon =
+        ref.watch(pickupMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+    final dropoffIcon =
+        ref.watch(dropoffMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;
 
@@ -236,9 +246,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         Marker(
           markerId: const MarkerId('pickup'),
           position: pickupLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
-          ),
+          icon: pickupIcon,
         ),
       );
     } else {
@@ -247,7 +255,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         Marker(
           markerId: const MarkerId('dropoff'),
           position: dropoffLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: dropoffIcon,
         ),
       );
     }

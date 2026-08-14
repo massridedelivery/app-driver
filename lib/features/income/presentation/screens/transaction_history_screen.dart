@@ -254,6 +254,17 @@ class _TransactionTile extends StatelessWidget {
                     color: AppColors.foundationAlphaWhite400,
                   ),
                 ),
+                // Money breakdown so a rider can see what the trip earned vs.
+                // what was taken as commission/fees — e.g. "ยอดงาน ฿60 · หักค่าคอม ฿12".
+                if (_breakdown(transaction) != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _breakdown(transaction)!,
+                    style: AppTypography.caption5.copyWith(
+                      color: AppColors.foundationAlphaWhite400,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -283,6 +294,24 @@ class _TransactionTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// A one-line earnings breakdown from whatever the API provides, so a rider
+  /// can read a fare row without guessing what was deducted. Null when there's
+  /// nothing meaningful to show (e.g. a plain top-up/withdrawal).
+  String? _breakdown(Transaction t) {
+    String money(double v) => '฿${v.toStringAsFixed(0)}';
+    final parts = <String>[];
+    if (t.subtotal != null && t.subtotal! > 0) {
+      parts.add('ยอดงาน ${money(t.subtotal!)}');
+    }
+    if (t.commission != null && t.commission! > 0) {
+      parts.add('หักค่าคอม ${money(t.commission!)}');
+    }
+    if (t.platformFee != null && t.platformFee! > 0) {
+      parts.add('ค่าธรรมเนียม ${money(t.platformFee!)}');
+    }
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   IconData _typeIcon(TransactionType type) {

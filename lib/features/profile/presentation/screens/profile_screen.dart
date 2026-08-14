@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
@@ -7,11 +5,9 @@ import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
-import 'package:massdrive/core/utils/app_util.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -71,18 +67,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           const SizedBox(height: 32),
                         ],
 
-                        Text(
-                          'บัญชีของฉัน',
-                          style: AppTypography.caption4.copyWith(
-                            color: AppColors.semanticGrayNeutralBgWhite,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        const _MyAccountSection(),
-
-                        const SizedBox(height: 32),
+                        // "บัญชีของฉัน" quick-actions section hidden for now — the
+                        // tiles (กล่องข้อความ / ตารางรายได้ / เช่ารถ / …) aren't wired
+                        // to anything yet.
                       ],
                     ),
                   ),
@@ -103,14 +90,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: const Center(child: BaseWaveDotsIndicator()),
       ),
     );
-  }
-
-  void _inAppUpdate() {
-    final appId = AppUtil.getPackageInfo().packageName;
-    final url = Platform.isAndroid
-        ? 'https://play.google.com/store/apps/details?id=$appId'
-        : 'https://apps.apple.com/app/id$appId';
-    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 }
 
@@ -227,12 +206,20 @@ class _WeeklyOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // acceptance_rate / cancellation_rate come straight from the
+              // profile API. งานสำเร็จ (weekly_completed_jobs) is the real weekly
+              // count, shown so the card is informative even before the backend
+              // populates the two rates.
               _StatItem(
-                value: "${profile.acceptanceRate.toStringAsFixed(1)}%",
+                value: "${profile.weeklyCompletedJobs}",
+                label: "งานสำเร็จ",
+              ),
+              _StatItem(
+                value: "${profile.acceptanceRate.toStringAsFixed(0)}%",
                 label: "เปอร์เซ็นต์รับ",
               ),
               _StatItem(
-                value: "${profile.cancellationRate.toStringAsFixed(1)}%",
+                value: "${profile.cancellationRate.toStringAsFixed(0)}%",
                 label: "เปอร์เซ็นต์ยกเลิก",
               ),
             ],
@@ -271,82 +258,3 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _MyAccountSection extends StatelessWidget {
-  const _MyAccountSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        _AccountMenuItem(
-          icon: Icons.chat_bubble_outline,
-          label: "กล่องข้อความ",
-          showDot: true,
-        ),
-        _AccountMenuItem(
-          icon: Icons.receipt_long_outlined,
-          label: "ตารางรายได้",
-        ),
-        _AccountMenuItem(icon: Icons.directions_car_outlined, label: "เช่ารถ"),
-        _AccountMenuItem(
-          icon: Icons.lightbulb_outline,
-          label: "สิ่งที่น่าสนใจ",
-        ),
-        _AccountMenuItem(icon: Icons.more_horiz, label: "เพิ่มเติม"),
-      ],
-    );
-  }
-}
-
-class _AccountMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool showDot;
-
-  const _AccountMenuItem({
-    required this.icon,
-    required this.label,
-    this.showDot = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF2A2A2A),
-              ),
-              child: Icon(icon, color: Colors.white70),
-            ),
-            if (showDot)
-              const Positioned(
-                right: 6,
-                top: 6,
-                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 60,
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppTypography.caption4.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-}

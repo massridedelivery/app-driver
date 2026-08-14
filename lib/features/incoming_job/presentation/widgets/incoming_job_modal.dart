@@ -328,12 +328,19 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                             borderRadius: BorderRadius.circular(AppSpacing.s5),
                           ),
                         ),
-                        child: Text(
-                          // Countdown sits on whichever action fires at 0:
-                          // the cancel button when auto-accept is off.
-                          autoAccept ? 'ยกเลิก' : 'ยกเลิก ($_remaining)',
-                          style: AppTypography.heading5.copyWith(
-                            color: AppColors.semanticGrayNeutralFgWhite,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            // Countdown sits on whichever action fires at 0:
+                            // the cancel button when auto-accept is off. Keep it
+                            // on one line — the narrow cancel button otherwise
+                            // wraps "ยกเลิก (14)" onto two lines.
+                            autoAccept ? 'ยกเลิก' : 'ยกเลิก ($_remaining)',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: AppTypography.heading5.copyWith(
+                              color: AppColors.semanticGrayNeutralFgWhite,
+                            ),
                           ),
                         ),
                       ),
@@ -352,12 +359,17 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                             borderRadius: BorderRadius.circular(AppSpacing.s5),
                           ),
                         ),
-                        child: Text(
-                          // Countdown shows here only when auto-accept is on
-                          // (this is the action that fires at 0).
-                          autoAccept ? 'รับงาน ($_remaining)' : 'รับงาน',
-                          style: AppTypography.heading5.copyWith(
-                            color: AppColors.semanticGrayNeutralFgWhite,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            // Countdown shows here only when auto-accept is on
+                            // (this is the action that fires at 0).
+                            autoAccept ? 'รับงาน ($_remaining)' : 'รับงาน',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: AppTypography.heading5.copyWith(
+                              color: AppColors.semanticGrayNeutralFgWhite,
+                            ),
                           ),
                         ),
                       ),

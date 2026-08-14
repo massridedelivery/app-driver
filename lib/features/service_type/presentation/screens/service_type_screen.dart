@@ -5,6 +5,24 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/service_type/presentation/widget/service_toggle_tile.dart';
 
+/// Thai copy for the service types. The backend sends English display
+/// names/descriptions, so map the known values to Thai here; anything not in
+/// the map falls back to whatever the API sent.
+const Map<String, String> _serviceLabelTh = {
+  'Motorcycle (Ride Only)': 'มอเตอร์ไซค์ (รับส่งคน)',
+  'Standard motorcycle taxi for passenger rides only. Public transport license required.':
+      'มอเตอร์ไซค์รับจ้างสำหรับรับส่งผู้โดยสารเท่านั้น ต้องมีใบอนุญาตขับขี่สาธารณะ',
+  'Motorcycle (Food Only)': 'มอเตอร์ไซค์ (ส่งอาหาร)',
+  'Standard motorcycle for food delivery only. No public transport license required.':
+      'มอเตอร์ไซค์สำหรับส่งอาหารเท่านั้น ไม่ต้องมีใบอนุญาตขับขี่สาธารณะ',
+  'Messenger Bike': 'มอเตอร์ไซค์รับส่งของ',
+  'Motorcycle courier for small-to-medium packages':
+      'รับส่งพัสดุขนาดเล็กถึงกลาง',
+};
+
+String _th(String? value) =>
+    value == null ? '' : (_serviceLabelTh[value.trim()] ?? value);
+
 class ServiceTypeScreen extends ConsumerWidget {
   const ServiceTypeScreen({super.key});
 
@@ -12,7 +30,6 @@ class ServiceTypeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
     final vehicleTypes = profileState.profile?.vehicleTypes ?? [];
-    print('vehicleTypes : $vehicleTypes');
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ประเภทการบริการ', showLeftIcon: true),
@@ -30,8 +47,8 @@ class ServiceTypeScreen extends ConsumerWidget {
                   final service = vehicleTypes[index];
 
                   return ServiceToggleTile(
-                    title: service.displayName,
-                    description: service.description,
+                    title: _th(service.displayName),
+                    description: _th(service.description),
                     // vehicleTypes use displayName from backend
                     isEnabled: service.isEnabled,
                     onToggle: () {
