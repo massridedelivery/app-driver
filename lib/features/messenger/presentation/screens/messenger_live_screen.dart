@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
@@ -45,13 +46,17 @@ class MessengerLiveScreen extends ConsumerWidget {
               Marker(
                 markerId: MarkerId(headingToDropoff ? 'dropoff' : 'pickup'),
                 position: target,
-                // Same pin convention as the ride flow: green = pickup,
-                // red = dropoff.
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  headingToDropoff
-                      ? BitmapDescriptor.hueRed
-                      : BitmapDescriptor.hueGreen,
-                ),
+                // Same custom pins as the ride flow: green = pickup,
+                // red = dropoff (fall back to hue until the bitmap is ready).
+                icon:
+                    (headingToDropoff
+                        ? ref.watch(dropoffMarkerProvider).value
+                        : ref.watch(pickupMarkerProvider).value) ??
+                    BitmapDescriptor.defaultMarkerWithHue(
+                      headingToDropoff
+                          ? BitmapDescriptor.hueRed
+                          : BitmapDescriptor.hueGreen,
+                    ),
               ),
             },
             myLocationEnabled: true,
