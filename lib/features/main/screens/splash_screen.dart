@@ -4,7 +4,6 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -15,8 +14,7 @@ import 'package:massdrive/router/startup_destination.dart';
 
 /// Splash styled to match the MassCustomer app (blurred brand auras, a gently
 /// breathing gradient logo tile, and a fixed minimum dwell time before routing
-/// on). The palette is pulled to the driver's own indigo so the white "M"
-/// mark reads exactly like the launcher icon.
+/// on). Uses the shared Mass brand red and the official MassDriver "M" mark.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -168,20 +166,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ),
                         ],
                       ),
-                      child: SvgPicture.asset(
-                        'assets/images/app_logo.svg',
+                      // The official MassDriver "M" mark (white, on the red
+                      // tile) — the same brand mark as the store icon.
+                      child: Image.asset(
+                        'assets/images/app_logo_mark.png',
                         fit: BoxFit.contain,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'Mass Rider',
+                  'MassDriver',
                   style: AppTypography.heading1.copyWith(
                     fontSize: 44,
                     fontWeight: FontWeight.w900,
