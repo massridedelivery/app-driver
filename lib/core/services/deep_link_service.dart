@@ -207,29 +207,33 @@ final AppLinks _appLinks = AppLinks();
 
 /// Opens a deep-linked route with somewhere to go back to.
 ///
-/// `go` replaces the stack, so a link followed on a cold start left the
-/// destination as the only page and the app bar's `Navigator.maybePop` had
-/// nothing to pop — the back arrow did nothing. Seeding home underneath first
-/// gives the driver the way out they expect.
+/// Pushed, not `go`: `go` replaces the stack, which left the destination as the
+/// only page, so the app bar's `Navigator.maybePop` had nothing to pop and the
+/// back arrow did nothing. Pushing puts the screen above whatever the app was
+/// showing — home on a cold start, or the driver's current screen — and back
+/// returns there.
 ///
-/// When the app is already running and sitting on a pushed screen there is a
-/// stack to return to, so the link is pushed onto it and the driver's place is
-/// left alone.
-void _goTo(String route) {
-  final router = AppRouter.router;
+/// The wait matters as much as the push. On a cold start the splash screen
+/// holds the stack for a couple of seconds and then calls `go` itself; anything
+/// pushed before that hand-off is discarded by it, which looks exactly like the
+/// link doing nothing.
+void _goTo(String route) => _pushOnceSettled(route, 0);
 
-  // Home is the bottom of the stack; pushing it on top of itself would leave a
-  // back arrow that goes nowhere sensible.
-  if (_pathOf(route) == AppRoutes.homeNamedPage) {
-    router.go(route);
+/// Splash resolves in ~2s; poll a little beyond that, then push regardless
+/// rather than swallow the link.
+const int _settleAttempts = 40;
+const Duration _settleInterval = Duration(milliseconds: 100);
+
+void _pushOnceSettled(String route, int attempt) {
+  final router = AppRouter.router;
+  final onSplash = router.state.uri.path == AppRoutes.splashNamedPage;
+
+  if (onSplash && attempt < _settleAttempts) {
+    Future.delayed(
+      _settleInterval,
+      () => _pushOnceSettled(route, attempt + 1),
+    );
     return;
   }
-
-  if (!router.canPop()) router.go(AppRoutes.homeNamedPage);
   router.push(route);
-}
-
-String _pathOf(String route) {
-  final q = route.indexOf('?');
-  return q == -1 ? route : route.substring(0, q);
 }
