@@ -51,6 +51,9 @@ class SettingScreen extends ConsumerWidget {
 
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const _LeadingIconBadge(
+                icon: Icons.bug_report_outlined,
+              ),
               title: Text(
                 "FCM Debug Log",
                 style: AppTypography.caption3.copyWith(
@@ -182,40 +185,36 @@ class _Divider extends StatelessWidget {
   }
 }
 
-class _SettingTile extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final String? trailingText;
+/// A rounded-square icon chip used as a leading glyph on setting rows/cards,
+/// so the screen reads like a modern settings list instead of bare text rows.
+class _LeadingIconBadge extends StatelessWidget {
+  final IconData icon;
+  final Color? background;
+  final Color? iconColor;
+  final double size;
 
-  const _SettingTile({required this.title, this.subtitle, this.trailingText});
+  const _LeadingIconBadge({
+    required this.icon,
+    this.background,
+    this.iconColor,
+    this.size = 40,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: background ?? AppColors.foundationAlphaWhite100,
+        borderRadius: BorderRadius.circular(12),
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
-            )
-          : null,
-      trailing: trailingText != null
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  trailingText!,
-                  style: const TextStyle(color: Colors.white54),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, color: Colors.white54),
-              ],
-            )
-          : const Icon(Icons.chevron_right, color: Colors.white54),
+      child: Icon(
+        icon,
+        size: size * 0.5,
+        color: iconColor ?? AppColors.semanticGrayNeutralBgWhite,
+      ),
     );
   }
 }
@@ -236,6 +235,7 @@ class _AccountTile extends ConsumerWidget {
       }
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: const _LeadingIconBadge(icon: Icons.person_outline_rounded),
         title: const SizedBox(
           height: 16,
           width: 120,
@@ -269,6 +269,7 @@ class _AccountTile extends ConsumerWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: const _LeadingIconBadge(icon: Icons.person_outline_rounded),
       title: Text(
         fullName,
         style: AppTypography.caption3.copyWith(
@@ -354,12 +355,13 @@ class _NotificationPermissionCardState
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.notifications_off_outlined,
-                color: AppColors.semanticWarningFgLow,
-                size: 20,
+              _LeadingIconBadge(
+                icon: Icons.notifications_off_rounded,
+                size: 36,
+                background: Colors.white.withOpacity(0.12),
+                iconColor: Colors.white,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   "การแจ้งเตือนถูกปิดอยู่",
@@ -423,6 +425,13 @@ class _AutoAcceptCard extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          _LeadingIconBadge(
+            icon: Icons.bolt_rounded,
+            size: 36,
+            background: Colors.white.withOpacity(0.15),
+            iconColor: Colors.white,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
