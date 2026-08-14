@@ -205,4 +205,31 @@ class DeepLinkService {
 
 final AppLinks _appLinks = AppLinks();
 
-void _goTo(String route) => AppRouter.router.go(route);
+/// Opens a deep-linked route with somewhere to go back to.
+///
+/// `go` replaces the stack, so a link followed on a cold start left the
+/// destination as the only page and the app bar's `Navigator.maybePop` had
+/// nothing to pop — the back arrow did nothing. Seeding home underneath first
+/// gives the driver the way out they expect.
+///
+/// When the app is already running and sitting on a pushed screen there is a
+/// stack to return to, so the link is pushed onto it and the driver's place is
+/// left alone.
+void _goTo(String route) {
+  final router = AppRouter.router;
+
+  // Home is the bottom of the stack; pushing it on top of itself would leave a
+  // back arrow that goes nowhere sensible.
+  if (_pathOf(route) == AppRoutes.homeNamedPage) {
+    router.go(route);
+    return;
+  }
+
+  if (!router.canPop()) router.go(AppRoutes.homeNamedPage);
+  router.push(route);
+}
+
+String _pathOf(String route) {
+  final q = route.indexOf('?');
+  return q == -1 ? route : route.substring(0, q);
+}
