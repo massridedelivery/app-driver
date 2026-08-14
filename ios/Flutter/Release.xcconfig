@@ -15,8 +15,15 @@ APP_DISPLAY_NAME = Massdrive
 // $(APS_ENVIRONMENT). A committed static "development" would break prod push.
 APS_ENVIRONMENT = production
 
+// Deep-link URL scheme for prod, substituted into Info.plist's
+// CFBundleURLTypes. Debug.xcconfig uses massdrivedev for the dev app, and
+// `make deploy-dev` overrides this below. Mirrors deepLinkScheme in
+// android/app/build.gradle.kts.
+DEEPLINK_SCHEME = massdrive
+
 // Local, gitignored override for `make deploy-dev` (see Makefile) — sets
-// BUNDLE_ID_SUFFIX = .dev and APP_DISPLAY_NAME for that one build, to ship the
+// BUNDLE_ID_SUFFIX = .dev, APP_DISPLAY_NAME and DEEPLINK_SCHEME for that one
+// build, to ship the
 // separate MassDriverDev App Store Connect app. #include? is silently a no-op
 // when the file doesn't exist, so a plain `flutter build ipa`/CI run is
 // unaffected. Must stay last so it can override the values above.

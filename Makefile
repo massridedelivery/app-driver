@@ -174,7 +174,7 @@ endif
 deploy-dev: env
 	@set -e; \
 	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
-	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\n' \
+	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\nDEEPLINK_SCHEME = massdrivedev\n' \
 	  > ios/Flutter/Release.local.xcconfig; \
 	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
 	  --export-options-plist=ios/ExportOptions.plist; \

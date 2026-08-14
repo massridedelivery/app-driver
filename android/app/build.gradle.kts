@@ -63,6 +63,11 @@ val mapsApiKey: String = if (packageNameSuffix == ".dev") {
 // plain `gradlew` invocations (no dart-defines) building.
 val appLabel: String = dartDefines["APP_NAME"].orEmpty().ifEmpty { "massdrive" }
 
+// Deep-link scheme, kept distinct per install for the same reason as the label:
+// with both apps registering "massdrive", Android picks one and a dev link can
+// open the prod app. Mirrored on iOS by DEEPLINK_SCHEME in the xcconfigs.
+val deepLinkScheme: String = if (packageNameSuffix.isNotEmpty()) "massdrivedev" else "massdrive"
+
 android {
     namespace = "com.massapp.massdrive"
     compileSdk = flutter.compileSdkVersion
@@ -94,10 +99,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Injected into AndroidManifest.xml as ${MAPS_API_KEY} / ${appLabel}
+        // Injected into AndroidManifest.xml as ${MAPS_API_KEY} / ${appName} /
+        // ${deepLinkScheme}
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
-        // Injected into AndroidManifest.xml as ${appName}
         manifestPlaceholders["appName"] = appLabel
+        manifestPlaceholders["deepLinkScheme"] = deepLinkScheme
     }
 
     signingConfigs {

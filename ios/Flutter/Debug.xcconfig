@@ -16,3 +16,9 @@ APP_DISPLAY_NAME = Massdrive DEV
 // a development/ad-hoc provisioning profile. Substituted into Runner.entitlements
 // as $(APS_ENVIRONMENT). Release.xcconfig uses production for prod/TestFlight.
 APS_ENVIRONMENT = development
+
+// Deep-link URL scheme for the dev app, substituted into Info.plist's
+// CFBundleURLTypes. Distinct from prod's so a dev and prod install don't both
+// answer massdrive:// — iOS leaves which one wins undefined. Mirrors
+// deepLinkScheme in android/app/build.gradle.kts.
+DEEPLINK_SCHEME = massdrivedev

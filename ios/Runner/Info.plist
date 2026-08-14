@@ -14,6 +14,23 @@
 		<string>6.0</string>
 		<key>CFBundleName</key>
 		<string>massdrive</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<!-- massdrive:// (massdrivedev:// for Debug and the
+					     make deploy-dev build) — set per build config so a dev
+					     and prod install don't both answer the same scheme.
+					     Mirrors deepLinkScheme in android/app/build.gradle.kts. -->
+					<string>$(DEEPLINK_SCHEME)</string>
+				</array>
+			</dict>
+		</array>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

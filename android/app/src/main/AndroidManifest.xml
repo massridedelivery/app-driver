@@ -33,6 +33,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep links: massdrive://<route> (massdrivedev:// for the .dev
+                 build, so the two installs don't both claim the same scheme and
+                 leave Android to pick one). Routes are allowlisted app-side in
+                 DeepLinkService — a scheme is claimable by any app, so nothing
+                 here is trusted on its own. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${deepLinkScheme}" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

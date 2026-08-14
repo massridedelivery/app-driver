@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
+import 'package:massdrive/core/services/deep_link_service.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -103,6 +106,15 @@ Future<void> main() async {
   } catch (e, s) {
     debugPrint('main: route restoration init failed: $e\n$s');
   }
+
+  // massdrive:// links. Started before runApp so a link that launched the app
+  // is picked up, but deliberately not awaited: it only navigates once the
+  // session is live, and a slow platform channel must not delay first paint.
+  unawaited(
+    DeepLinkService.instance.start().catchError(
+      (Object e) => debugPrint('main: deep link init failed: $e'),
+    ),
+  );
 
   runApp(const ProviderScope(child: MyApp()));
 }
