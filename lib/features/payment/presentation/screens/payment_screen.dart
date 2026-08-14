@@ -21,7 +21,7 @@ class PaymentScreen extends ConsumerStatefulWidget {
 
   const PaymentScreen({
     super.key,
-    this.passengerName = 'Kittidet',
+    this.passengerName = 'ลูกค้า',
     this.baseFare = 0.0,
     this.amount,
     this.methodLabel,
@@ -304,7 +304,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 const Icon(Icons.qr_code_scanner, color: Colors.white),
                 const SizedBox(width: 8),
                 Text(
-                  "THAI QR PAYMENT",
+                  "ชำระผ่าน QR พร้อมเพย์",
                   style: AppTypography.heading5.copyWith(color: Colors.white),
                 ),
               ],
@@ -324,7 +324,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           const SizedBox(height: 20),
           Text(
-            "Expires in 598",
+            "สแกน QR นี้เพื่อชำระเงิน",
             style: AppTypography.body2.copyWith(color: Colors.white70),
           ),
 

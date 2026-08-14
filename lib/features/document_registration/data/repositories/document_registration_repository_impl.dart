@@ -83,8 +83,8 @@ class DocumentRegistrationRepositoryImpl
     String driverId,
     bool criminalCheckConsent,
   ) async {
-     // No specific final consent API listed, potentially mapped to updateProfile later
-    print("MOCK Action: submitFinalConsent for $driverId");
+    // No specific final consent API listed, potentially mapped to updateProfile later
+    debugPrint("MOCK Action: submitFinalConsent for $driverId");
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
