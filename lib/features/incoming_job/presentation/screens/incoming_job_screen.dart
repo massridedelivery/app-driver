@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -45,7 +46,7 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
       });
       return const Scaffold(
         backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: MassLoadingM(size: 72)),
       );
     }
 

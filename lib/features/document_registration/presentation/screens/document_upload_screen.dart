@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -164,7 +165,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         child: Image.file(_selectedImage!, fit: BoxFit.cover),
       );
     } else if (_isLoadingRemoteImage) {
-      previewWidget = const Center(child: CircularProgressIndicator());
+      previewWidget = const Center(child: MassLoadingM(size: 56));
     } else if (_remoteImageUrl != null && _remoteImageUrl!.isNotEmpty) {
       previewWidget = ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -173,7 +174,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           fit: BoxFit.cover,
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: MassLoadingM(size: 56));
           },
           errorBuilder: (context, error, stackTrace) {
             debugPrint('Remote image load error: $error');

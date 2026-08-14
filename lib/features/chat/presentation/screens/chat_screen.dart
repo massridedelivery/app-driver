@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
@@ -220,7 +221,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   );
 
                   return isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: MassLoadingM(size: 72))
                       : messages.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(

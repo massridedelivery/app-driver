@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/dependency_injection.dart';
@@ -74,7 +75,7 @@ class _MessengerHistoryScreenState extends State<MessengerHistoryScreen> {
         showLeftIcon: true,
       ),
       body: _orders.isEmpty && _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MassLoadingM(size: 72))
           : _orders.isEmpty
               ? _buildEmpty()
               : ListView.separated(

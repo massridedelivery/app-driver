@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/service_type/presentation/widget/service_toggle_tile.dart';
@@ -36,7 +37,7 @@ class ServiceTypeScreen extends ConsumerWidget {
       body: Container(
         color: AppColors.semanticGrayNeutralFgHigh,
         child: profileState.isLoading || profileState.profile == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: MassLoadingM(size: 72))
             : ListView.separated(
                 itemCount: vehicleTypes.length,
                 separatorBuilder: (context, index) => const Divider(
