@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -232,7 +233,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                             child: Image.network(_remoteImageUrl!, fit: BoxFit.cover),
                           )
                         : _isLoadingRemoteImage
-                            ? const Center(child: CircularProgressIndicator())
+                            ? const Center(child: MassLoadingM(size: 56))
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -23,7 +24,7 @@ class EditProfileScreen extends ConsumerWidget {
       return Scaffold(
         appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
         backgroundColor: const Color(0xFF0F0F0F),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: MassLoadingM(size: 72)),
       );
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -21,7 +22,7 @@ class IncomeScreen extends ConsumerWidget {
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MassLoadingM(size: 72))
           // Zeros from a failed fetch look exactly like a genuinely empty
           // wallet — say the load failed instead.
           : state.errorMessage.isNotEmpty

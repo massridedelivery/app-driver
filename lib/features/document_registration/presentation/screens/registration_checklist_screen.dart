@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -60,7 +61,7 @@ class _RegistrationChecklistScreenState
         ),
       ),
       body: state.isLoading && !state.isProfileComplete
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MassLoadingM(size: 72))
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),

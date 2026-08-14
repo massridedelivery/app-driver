@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
@@ -26,7 +27,7 @@ class MessengerLiveScreen extends ConsumerWidget {
     if (order == null) {
       return const Scaffold(
         backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: MassLoadingM(size: 72)),
       );
     }
 

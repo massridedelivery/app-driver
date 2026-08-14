@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
@@ -94,7 +95,7 @@ class _TransactionHistoryScreenState
           // ── List / Loading / Empty ───────────────────────────────────
           Expanded(
             child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: MassLoadingM(size: 72))
                 // A failed fetch is not an empty ledger — saying "no history"
                 // when the request errored is as misleading as inventing rows.
                 : state.errorMessage.isNotEmpty && state.transactions.isEmpty
