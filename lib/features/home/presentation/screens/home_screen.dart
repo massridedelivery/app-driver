@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:massdrive/common/widgets/indicator/default_circular_progress_indicator.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
@@ -370,7 +370,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           if (onlineStatus.isLoading)
             Container(
               color: Colors.black.withOpacity(0.3),
-              child: const Center(child: DefaultCircularProgressIndicator()),
+              child: const Center(child: MassLoadingM(size: 72)),
             ),
         ],
       ),
