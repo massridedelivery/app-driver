@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -241,9 +241,22 @@ void _pushOnceSettled(String route, int attempt) {
     return;
   }
 
-  debugPrint('DeepLink: pushing $route from $at (waited ${attempt * 100}ms)');
-  router.push(route);
-  debugPrint('DeepLink: now at ${_currentPath(router)}');
+  debugPrint('DeepLink: at $at, opening $route (waited ${attempt * 100}ms)');
+
+  // Reset to home before pushing. The app drives some screens with go_router
+  // and dismisses them with Navigator.pop, which leaves go_router's location
+  // pointing at a screen that is no longer shown (seen in the wild: location
+  // /incoming-job while home was on screen). Pushing onto that stale stack
+  // does nothing visible. Going home first makes the stack match reality, and
+  // doubles as the page for back to return to.
+  if (at != AppRoutes.homeNamedPage) router.go(AppRoutes.homeNamedPage);
+
+  // Next frame, not this one: `go` rebuilds the stack asynchronously and a
+  // push issued in the same frame is lost to it.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    router.push(route);
+    debugPrint('DeepLink: opened, now at ${_currentPath(router)}');
+  });
 }
 
 /// The router's current path, or null before it has resolved a route.
