@@ -1,10 +1,24 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/widgets.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/basic_profile_form_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
+import 'package:massdrive/features/document_registration/presentation/screens/vehicle_info_form_screen.dart';
+import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
+import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_screen.dart';
+import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
+import 'package:massdrive/features/messenger/presentation/screens/messenger_history_screen.dart';
+import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
+import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
+import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 /// Yields the link the app was launched from, if any.
@@ -35,24 +49,38 @@ typedef Navigate = void Function(String route);
 /// Note this is *not* the push-notification allowlist. A push naming
 /// `/incoming-job` is legitimate — the backend just assigned that job — so
 /// PushNotificationService accepts routes this rejects.
-const Set<String> deepLinkableRoutes = {
-  AppRoutes.homeNamedPage,
-  AppRoutes.incomeNamedPage,
-  AppRoutes.cashWalletNamedPage,
-  AppRoutes.creditWalletNamedPage,
-  AppRoutes.profileNamedPage,
-  AppRoutes.editProfileNamedPage,
-  AppRoutes.serviceTypeNamedPage,
-  AppRoutes.settingNamedPage,
-  '/messenger-history',
-  AppRoutes.documentRegistrationChecklistNamedPage,
-  AppRoutes.documentRegistrationProfileNamedPage,
-  AppRoutes.documentRegistrationUploadNamedPage,
-  AppRoutes.documentRegistrationVehicleNamedPage,
-  AppRoutes.documentRegistrationBankNamedPage,
-  AppRoutes.documentRegistrationConsentNamedPage,
-  AppRoutes.fcmDebugNamedPage,
+///
+/// Also the screens themselves, because a link opens them on the root
+/// navigator rather than through go_router — see [_goTo]. Same widgets the
+/// router builds for these paths; keep the two in step.
+///
+/// `/document-registration/upload-document` is absent although the router
+/// serves it: it needs a `DocumentType` passed as `extra`, which a URI cannot
+/// carry, so a link could only ever open it on the wrong document.
+final Map<String, WidgetBuilder> deepLinkScreens = {
+  AppRoutes.homeNamedPage: (_) => const HomeScreen(),
+  AppRoutes.incomeNamedPage: (_) => const IncomeScreen(),
+  AppRoutes.cashWalletNamedPage: (_) => const CashWalletScreen(),
+  AppRoutes.creditWalletNamedPage: (_) => const CreditWalletScreen(),
+  AppRoutes.profileNamedPage: (_) => const ProfileScreen(),
+  AppRoutes.editProfileNamedPage: (_) => const EditProfileScreen(),
+  AppRoutes.serviceTypeNamedPage: (_) => const ServiceTypeScreen(),
+  AppRoutes.settingNamedPage: (_) => const SettingScreen(),
+  '/messenger-history': (_) => const MessengerHistoryScreen(),
+  AppRoutes.documentRegistrationChecklistNamedPage: (_) =>
+      const RegistrationChecklistScreen(),
+  AppRoutes.documentRegistrationProfileNamedPage: (_) =>
+      const BasicProfileFormScreen(),
+  AppRoutes.documentRegistrationVehicleNamedPage: (_) =>
+      const VehicleInfoFormScreen(),
+  AppRoutes.documentRegistrationBankNamedPage: (_) =>
+      const BankAccountFormScreen(),
+  AppRoutes.documentRegistrationConsentNamedPage: (_) => const ConsentScreen(),
+  AppRoutes.fcmDebugNamedPage: (_) => const FcmDebugScreen(),
 };
+
+/// The paths [resolveDeepLink] will accept.
+Set<String> get deepLinkableRoutes => deepLinkScreens.keys.toSet();
 
 /// Schemes whose host is a domain name rather than part of the route.
 const Set<String> _webSchemes = {'http', 'https'};
@@ -206,82 +234,101 @@ class DeepLinkService {
 
 final AppLinks _appLinks = AppLinks();
 
-/// Opens a deep-linked route with somewhere to go back to.
-///
-/// Pushed, not `go`: `go` replaces the stack, which left the destination as the
-/// only page, so the app bar's `Navigator.maybePop` had nothing to pop and the
-/// back arrow did nothing. Pushing puts the screen above whatever the app was
-/// showing — home on a cold start, or the driver's current screen — and back
-/// returns there.
-///
-/// The wait matters as much as the push. On a cold start the splash screen
-/// holds the stack for a couple of seconds and then calls `go` itself; anything
-/// pushed before that hand-off is discarded by it, which looks exactly like the
-/// link doing nothing.
-void _goTo(String route) => _pushOnceSettled(route, 0);
 
-/// How long to wait for the app to be ready to navigate.
+/// Opens a deep-linked screen on the root navigator.
 ///
-/// Generous on purpose. A link that launches the app is handled from `main`
-/// before `runApp`, so the router does not exist yet, and on a cold debug start
-/// Firebase init, DI and storage can hold that up for several seconds — then
-/// splash sits for ~2s more. An earlier 4s cap expired before the router was
-/// ever built and the link was pushed into nothing.
+/// Deliberately not go_router. This app's go_router location does not reliably
+/// describe what is on screen — some flows navigate with `go` and dismiss with
+/// `Navigator.pop`, and `errorBuilder` renders HomeScreen so a bad location
+/// still looks right. A `push` onto that state was repeatedly accepted and
+/// then discarded, leaving the driver on home with the log claiming success.
+///
+/// Pushing a route onto the root navigator is what the app already does to open
+/// these screens from home (see AppNavigator.push), so it behaves identically —
+/// including the app bar's `Navigator.maybePop`, which now has a page to pop
+/// back to.
+void _goTo(String route) => _openWhenReady(route, 0);
+
+/// How long to wait for the navigator to exist.
+///
+/// A link that launches the app is handled from `main` before `runApp`, so
+/// there is no navigator yet, and a cold debug start spends several seconds in
+/// Firebase init, DI and storage before there is one.
 const int _settleAttempts = 200;
 const Duration _settleInterval = Duration(milliseconds: 100);
 
-void _pushOnceSettled(String route, int attempt) {
-  final router = AppRouter.router;
-  final at = _currentPath(router);
+/// Consecutive unchanged readings before the app counts as settled.
+const int _stableReadings = 10; // 1s at _settleInterval
 
-  // Null means the router has not resolved its first route yet — the same
-  // "not ready" case as sitting on splash, and pushing into it does nothing.
-  if ((at == null || at == AppRoutes.splashNamedPage) &&
-      attempt < _settleAttempts) {
-    if (attempt == 0) debugPrint('DeepLink: waiting for the router to settle');
+void _openWhenReady(
+  String route,
+  int attempt, {
+  String? lastPath,
+  int stable = 0,
+}) {
+  final navigator = AppRouter.router.routerDelegate.navigatorKey.currentState;
+  final path = _currentLocation();
+
+  // Waiting for a navigator is not enough. Launching by link restarts the
+  // activity, and the navigator from the previous run is still there while the
+  // app replays its startup — splash then calls `go` about two seconds later
+  // and wipes whatever was pushed in the meantime. Wait for the location to
+  // hold still instead, which covers both a cold start and that replay.
+  final ready = navigator != null &&
+      path != null &&
+      path != AppRoutes.splashNamedPage &&
+      path == lastPath;
+  final nextStable = ready ? stable + 1 : 0;
+
+  if (nextStable < _stableReadings && attempt < _settleAttempts) {
+    if (attempt == 0) debugPrint('DeepLink: waiting for the app to settle');
     Future.delayed(
       _settleInterval,
-      () => _pushOnceSettled(route, attempt + 1),
+      () => _openWhenReady(
+        route,
+        attempt + 1,
+        lastPath: path,
+        stable: nextStable,
+      ),
     );
     return;
   }
-
-  if (at == null) {
-    debugPrint('DeepLink: gave up waiting for the router, dropping $route');
+  if (navigator == null) {
+    debugPrint('DeepLink: no navigator, dropping $route');
     return;
   }
 
-  debugPrint('DeepLink: at $at, opening $route (waited ${attempt * 100}ms)');
+  final target = _pathOf(route);
 
-  // Reset to home before pushing. The app drives some screens with go_router
-  // and dismisses them with Navigator.pop, which leaves go_router's location
-  // pointing at a screen that is no longer shown (seen in the wild: location
-  // /incoming-job while home was on screen). Pushing onto that stale stack
-  // does nothing visible. Going home first makes the stack match reality, and
-  // doubles as the page for back to return to.
-  if (at != AppRoutes.homeNamedPage) router.go(AppRoutes.homeNamedPage);
+  // Home is the screen everything else sits on; pushing a second copy above it
+  // would leave a back arrow that goes nowhere useful.
+  if (target == AppRoutes.homeNamedPage) {
+    debugPrint('DeepLink: going home (waited ${attempt * 100}ms)');
+    AppRouter.router.go(AppRoutes.homeNamedPage);
+    return;
+  }
 
-  // Next frame, not this one: `go` rebuilds the stack asynchronously and a
-  // push issued in the same frame is lost to it.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    router.push(route);
-    // Settled state, not the mid-flight one: `push` completes asynchronously,
-    // so reading straight after it reports the location it is leaving.
-    Future.delayed(const Duration(milliseconds: 600), () {
-      debugPrint(
-        'DeepLink: settled at ${_currentPath(router)} '
-        '(canPop=${router.canPop()})',
-      );
-    });
-  });
+  final builder = deepLinkScreens[target];
+  if (builder == null) {
+    debugPrint('DeepLink: no screen registered for $target, dropping');
+    return;
+  }
+
+  debugPrint('DeepLink: opening $target from $path (waited ${attempt * 100}ms)');
+  navigator.push(MaterialPageRoute<void>(builder: builder));
+}
+
+String _pathOf(String route) {
+  final q = route.indexOf('?');
+  return q == -1 ? route : route.substring(0, q);
 }
 
 /// The router's current path, or null before it has resolved a route.
 ///
-/// Read off `currentConfiguration` rather than `GoRouter.state`, which is
+/// Read off `currentConfiguration`, not `GoRouter.state`, which is
 /// `currentConfiguration.last` and throws "Bad state: No element" on the empty
 /// configuration a link handled at launch runs into.
-String? _currentPath(GoRouter router) {
-  final config = router.routerDelegate.currentConfiguration;
+String? _currentLocation() {
+  final config = AppRouter.router.routerDelegate.currentConfiguration;
   return config.isEmpty ? null : config.uri.path;
 }
