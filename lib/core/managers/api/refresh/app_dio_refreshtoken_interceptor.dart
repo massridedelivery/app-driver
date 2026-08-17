@@ -33,6 +33,18 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       return handler.next(options);
     }
 
+    // A caller that set Authorization itself knows something storage doesn't
+    // yet. Sign-in is the case that matters: verifyOtp fetches the driver
+    // profile with the token the verify call just returned, before it has been
+    // persisted. Overwriting that with the stale token still in storage made
+    // the profile call 401, which drove a refresh with the previous refresh
+    // token — already revoked by the sign-in — so the app wiped the session and
+    // bounced the driver back to the phone screen moments after a successful
+    // OTP.
+    if (options.headers.containsKey('Authorization')) {
+      return handler.next(options);
+    }
+
     final accessToken = await secureStorage.read(SecureStorageKey.accessToken);
     if (accessToken == null) {
       return handler.next(options);
