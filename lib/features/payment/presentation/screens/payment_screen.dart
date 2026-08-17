@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
@@ -70,9 +71,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     // setStatus(true, force: true) will automatically call connect() and start location updates
     ref.read(onlineStatusProvider.notifier).setStatus(true, force: true);
 
-    // 4. Return to home
+    // 4. Return to home. Not '/', which matches no route and only looks right
+    // because errorBuilder renders HomeScreen.
     if (mounted) {
-      context.go('/');
+      context.go(AppRoutes.homeNamedPage);
     }
   }
 
