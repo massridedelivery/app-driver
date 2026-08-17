@@ -220,9 +220,14 @@ final AppLinks _appLinks = AppLinks();
 /// link doing nothing.
 void _goTo(String route) => _pushOnceSettled(route, 0);
 
-/// Splash resolves in ~2s; poll a little beyond that, then push regardless
-/// rather than swallow the link.
-const int _settleAttempts = 40;
+/// How long to wait for the app to be ready to navigate.
+///
+/// Generous on purpose. A link that launches the app is handled from `main`
+/// before `runApp`, so the router does not exist yet, and on a cold debug start
+/// Firebase init, DI and storage can hold that up for several seconds — then
+/// splash sits for ~2s more. An earlier 4s cap expired before the router was
+/// ever built and the link was pushed into nothing.
+const int _settleAttempts = 200;
 const Duration _settleInterval = Duration(milliseconds: 100);
 
 void _pushOnceSettled(String route, int attempt) {
@@ -241,6 +246,11 @@ void _pushOnceSettled(String route, int attempt) {
     return;
   }
 
+  if (at == null) {
+    debugPrint('DeepLink: gave up waiting for the router, dropping $route');
+    return;
+  }
+
   debugPrint('DeepLink: at $at, opening $route (waited ${attempt * 100}ms)');
 
   // Reset to home before pushing. The app drives some screens with go_router
@@ -255,7 +265,14 @@ void _pushOnceSettled(String route, int attempt) {
   // push issued in the same frame is lost to it.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     router.push(route);
-    debugPrint('DeepLink: opened, now at ${_currentPath(router)}');
+    // Settled state, not the mid-flight one: `push` completes asynchronously,
+    // so reading straight after it reports the location it is leaving.
+    Future.delayed(const Duration(milliseconds: 600), () {
+      debugPrint(
+        'DeepLink: settled at ${_currentPath(router)} '
+        '(canPop=${router.canPop()})',
+      );
+    });
   });
 }
 
