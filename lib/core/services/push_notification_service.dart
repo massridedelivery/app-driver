@@ -54,7 +54,7 @@ const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
 /// new job like Grab/LineMan. The channel id is versioned because a channel's
 /// sound is immutable once created: bump `_vN` to roll out a new sound.
 const AndroidNotificationChannel _jobChannel = AndroidNotificationChannel(
-  'job_offer_channel_v1',
+  'job_offer_channel_v2',
   'งานเข้าใหม่',
   description: 'แจ้งเตือนเมื่อมีงานเข้าใหม่ (เสียงดังพิเศษ)',
   importance: Importance.max,
