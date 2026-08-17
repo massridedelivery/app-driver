@@ -147,6 +147,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.black,
+        // App default font is IBM Plex Thai — Thai text rendered by a bare
+        // TextStyle (no fontFamily) inherits this instead of falling back to
+        // Roboto. AppTypography styles that set Poppins explicitly still win.
+        fontFamily: 'Ibm',
       ),
     );
   }
