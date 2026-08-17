@@ -77,125 +77,146 @@ class LoginScreen extends ConsumerWidget {
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  Text(
-                    'กรอกเบอร์โทรศัพท์ที่เคยสมัครไว้',
-                    style: AppTypography.heading3.copyWith(color: _kTextPrimary),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'โปรดเพิ่มหมายเลขโทรศัพท์ของคุณ',
-                    style: AppTypography.body1.copyWith(
-                      color: _kTextSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-
-                  // Phone input
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
-                    child: Text(
-                      'เบอร์โทรศัพท์',
-                      style: TextStyle(
-                        color: _kTextSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  TextField(
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
-                    buildCounter:
-                        (_, {required currentLength, maxLength, required isFocused}) =>
-                            null,
-                    onChanged: controller.updatePhone,
-                    style: AppTypography.body1.copyWith(color: _kTextPrimary),
-                    decoration: InputDecoration(
-                      hintText: '08X-XXX-XXXX',
-                      hintStyle: AppTypography.caption3.copyWith(
-                        color: _kTextSecondary.withValues(alpha: 0.5),
-                      ),
-                      filled: true,
-                      fillColor: _kFieldFill,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: _kBrand, width: 1),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Continue button (gradient when enabled).
-                  _ContinueButton(
-                    label: 'รับรหัสยืนยัน',
-                    enabled: isPhoneValid && !state.isLoading,
-                    loading: state.isLoading,
-                    onTap: () async {
-                      final success = await controller.loginWithPhone();
-                      if (success && context.mounted) {
-                        // Read fresh state AFTER loginWithPhone() updates
-                        // refId/isRegistered.
-                        final fresh = ref.read(loginControllerProvider);
-                        context.push(
-                          AppRoutes.otpNamedPage,
-                          extra: {
-                            'phone': fresh.phoneNumber,
-                            'refId': fresh.refId,
-                            'isRegistered': fresh.isRegistered,
-                          },
-                        );
-                      }
-                    },
-                  ),
-
-                  if (error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Text(
-                        error,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.caption4.copyWith(
-                          color: AppColors.semanticErrorFgHigh,
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 84),
-
-                  // Version footer.
-                  Center(
-                    child: Text(
-                      ref.watch(appVersionProvider).maybeWhen(
-                            data: (v) => 'เวอร์ชัน $v',
-                            orElse: () => '',
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          Text(
+                            'กรอกเบอร์โทรศัพท์ที่เคยสมัครไว้',
+                            style: AppTypography.heading3.copyWith(
+                              color: _kTextPrimary,
+                            ),
                           ),
-                      textAlign: TextAlign.center,
-                      style: AppTypography.body3.copyWith(
-                        color: _kTextSecondary.withValues(alpha: 0.5),
-                        height: 1.5,
+                          const SizedBox(height: 12),
+                          Text(
+                            'โปรดเพิ่มหมายเลขโทรศัพท์ของคุณ',
+                            style: AppTypography.body1.copyWith(
+                              color: _kTextSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+
+                          // Phone input
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'เบอร์โทรศัพท์',
+                              style: AppTypography.caption4.copyWith(
+                                color: _kTextSecondary,
+                              ),
+                            ),
+                          ),
+                          TextField(
+                            keyboardType: TextInputType.phone,
+                            maxLength: 10,
+                            buildCounter:
+                                (
+                                  _, {
+                                  required currentLength,
+                                  maxLength,
+                                  required isFocused,
+                                }) => null,
+                            onChanged: controller.updatePhone,
+                            style: AppTypography.body1.copyWith(
+                              color: _kTextPrimary,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '08X-XXX-XXXX',
+                              hintStyle: AppTypography.caption3.copyWith(
+                                color: _kTextSecondary.withValues(alpha: 0.5),
+                              ),
+                              filled: true,
+                              fillColor: _kFieldFill,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 18,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: _kBrand,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Push the button + footer toward the bottom.
+                          const Spacer(),
+
+                          _ContinueButton(
+                            label: 'รับรหัสยืนยัน',
+                            enabled: isPhoneValid && !state.isLoading,
+                            loading: state.isLoading,
+                            onTap: () async {
+                              final success = await controller.loginWithPhone();
+                              if (success && context.mounted) {
+                                // Read fresh state AFTER loginWithPhone()
+                                // updates refId/isRegistered.
+                                final fresh = ref.read(loginControllerProvider);
+                                context.push(
+                                  AppRoutes.otpNamedPage,
+                                  extra: {
+                                    'phone': fresh.phoneNumber,
+                                    'refId': fresh.refId,
+                                    'isRegistered': fresh.isRegistered,
+                                  },
+                                );
+                              }
+                            },
+                          ),
+
+                          if (error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(
+                                error,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.caption4.copyWith(
+                                  color: AppColors.semanticErrorFgHigh,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 24),
+
+                          // Version footer.
+                          Center(
+                            child: Text(
+                              ref
+                                  .watch(appVersionProvider)
+                                  .maybeWhen(
+                                    data: (v) => 'เวอร์ชัน $v',
+                                    orElse: () => '',
+                                  ),
+                              textAlign: TextAlign.center,
+                              style: AppTypography.body3.copyWith(
+                                color: _kTextSecondary.withValues(alpha: 0.5),
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
