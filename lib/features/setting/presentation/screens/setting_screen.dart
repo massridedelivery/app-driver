@@ -10,7 +10,6 @@ import 'package:massdrive/features/auth/presentation/controllers/auth_controller
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
-import 'package:massdrive/features/setting/presentation/controllers/notification_permission_controller.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -23,10 +22,6 @@ class SettingScreen extends ConsumerWidget {
         color: AppColors.semanticGrayNeutralFgHigh,
         child: ListView(
           children: [
-            // Only rendered when notifications are off, so it sits above the
-            // account section without pushing anything down in the normal case.
-            const _NotificationPermissionCard(),
-
             SectionHeader(
               title: "บัญชี",
               textColor: AppColors.semanticGrayNeutralBgWhite,
@@ -286,125 +281,6 @@ class _AccountTile extends ConsumerWidget {
       onTap: () {
         AppNavigator.push(context, const EditProfileScreen());
       },
-    );
-  }
-}
-
-/// Nudge shown when the OS is blocking notifications. A driver who declined
-/// the permission prompt gets no job alerts and no second prompt — Android and
-/// iOS both refuse to re-ask — so the only way back is system settings.
-/// Invisible while permission is granted.
-class _NotificationPermissionCard extends ConsumerStatefulWidget {
-  const _NotificationPermissionCard();
-
-  @override
-  ConsumerState<_NotificationPermissionCard> createState() =>
-      _NotificationPermissionCardState();
-}
-
-class _NotificationPermissionCardState
-    extends ConsumerState<_NotificationPermissionCard>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    // Re-read the real OS status every time Settings is opened — the provider
-    // is built once and cached, so without this the card can show a stale
-    // "notifications off" from an earlier check even though the driver has
-    // since turned them on in the phone's Settings.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(notificationPermissionProvider.notifier).refresh();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Coming back from system settings is the only way the answer changes
-    // while this screen is up, and it always routes through a resume.
-    if (state == AppLifecycleState.resumed) {
-      ref.read(notificationPermissionProvider.notifier).refresh();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final granted = ref.watch(notificationPermissionProvider);
-
-    // Stay hidden while the status is loading or unreadable — a card that
-    // flashes up and vanishes reads as a glitch.
-    if (granted.value != false) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF5E0B1E),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _LeadingIconBadge(
-                icon: Icons.notifications_off_rounded,
-                size: 36,
-                background: Colors.white.withOpacity(0.12),
-                iconColor: Colors.white,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "การแจ้งเตือนถูกปิดอยู่",
-                  style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "คุณจะไม่ได้รับแจ้งเตือนเมื่อมีงานเข้าใหม่ "
-            "เปิดการแจ้งเตือนในตั้งค่าเครื่องเพื่อไม่ให้พลาดงาน",
-            style: AppTypography.caption4.copyWith(
-              color: AppColors.foundationAlphaWhite400,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.semanticGrayNeutralBgWhite,
-                foregroundColor: AppColors.semanticErrorBgHigh,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => ref
-                  .read(notificationPermissionProvider.notifier)
-                  .openSettings(),
-              child: Text(
-                "เปิดการตั้งค่า",
-                style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticErrorBgHigh,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

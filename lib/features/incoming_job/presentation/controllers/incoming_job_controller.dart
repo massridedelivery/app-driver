@@ -208,7 +208,9 @@ class IncomingJobController extends _$IncomingJobController {
       _sendLocationUpdate();
     }
     state = state.copyWith(isModalVisible: false, currentJob: null);
-    AppRouter.router.go('/');
+    // '/' matches no route: it lands in the router's error state, which only
+    // *looks* right because errorBuilder renders HomeScreen.
+    AppRouter.router.go(AppRoutes.homeNamedPage);
   }
 
   void dismissModal() {
