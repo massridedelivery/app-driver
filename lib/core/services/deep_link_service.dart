@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/router/app_routes.dart';
@@ -226,14 +227,31 @@ const Duration _settleInterval = Duration(milliseconds: 100);
 
 void _pushOnceSettled(String route, int attempt) {
   final router = AppRouter.router;
-  final onSplash = router.state.uri.path == AppRoutes.splashNamedPage;
+  final at = _currentPath(router);
 
-  if (onSplash && attempt < _settleAttempts) {
+  // Null means the router has not resolved its first route yet — the same
+  // "not ready" case as sitting on splash, and pushing into it does nothing.
+  if ((at == null || at == AppRoutes.splashNamedPage) &&
+      attempt < _settleAttempts) {
+    if (attempt == 0) debugPrint('DeepLink: waiting for the router to settle');
     Future.delayed(
       _settleInterval,
       () => _pushOnceSettled(route, attempt + 1),
     );
     return;
   }
+
+  debugPrint('DeepLink: pushing $route from $at (waited ${attempt * 100}ms)');
   router.push(route);
+  debugPrint('DeepLink: now at ${_currentPath(router)}');
+}
+
+/// The router's current path, or null before it has resolved a route.
+///
+/// Read off `currentConfiguration` rather than `GoRouter.state`, which is
+/// `currentConfiguration.last` and throws "Bad state: No element" on the empty
+/// configuration a link handled at launch runs into.
+String? _currentPath(GoRouter router) {
+  final config = router.routerDelegate.currentConfiguration;
+  return config.isEmpty ? null : config.uri.path;
 }
