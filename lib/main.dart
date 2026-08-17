@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
+import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
@@ -14,6 +16,11 @@ import 'package:massdrive/features/dependency_injection.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Crash immediately with a clear message if the build is missing required
+  // Firebase/Omise defines (usually a forgotten config/mass_dev.json), rather
+  // than failing obscurely later inside Firebase/payment init.
+  EnvironmentConfig.assertConfigured();
 
   // If a widget throws, show the actual error instead of a blank black screen
   // (release builds otherwise render nothing useful).
@@ -38,8 +45,8 @@ Future<void> main() async {
   // empty; on iOS, native FIRApp configuration then aborts with an
   // Objective-C exception (SIGABRT) that a Dart try/catch cannot catch, so
   // the app crashes on launch. Guard on the required fields and skip init
-  // entirely when they are absent — FCM (app_startup_controller) already
-  // tolerates an uninitialized app and simply skips token registration.
+  // entirely when they are absent — the app then simply runs without push.
+  var firebaseReady = false;
   final firebaseOptions = DefaultFirebaseOptions.currentPlatform;
   if (firebaseOptions.appId.isNotEmpty && firebaseOptions.projectId.isNotEmpty) {
     try {
@@ -49,6 +56,7 @@ Future<void> main() async {
       // failure can never block startup.
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await PushNotificationService.instance.init();
+      firebaseReady = true;
     } catch (e, s) {
       debugPrint('main: Firebase.initializeApp failed: $e\n$s');
     }
@@ -68,6 +76,24 @@ Future<void> main() async {
     configureDependencies(EnvironmentConfig.env);
   } catch (e, s) {
     debugPrint('main: configureDependencies failed: $e\n$s');
+  }
+
+  // Mirror the FCM device token onto the backend for whoever is signed in.
+  // Started after DI (it resolves the notification API from getIt) and only
+  // with Firebase up, since it reads FirebaseMessaging.instance. It registers
+  // nothing until the session turns authenticated, so ordering against the
+  // router below does not matter.
+  if (firebaseReady) {
+    PushTokenRegistrar.instance.start();
+  }
+
+  // On the first launch after a fresh install, clear any secure-storage token
+  // that iOS Keychain kept from a previous install so we never cold-start into
+  // a stale session. Best-effort — must never block startup.
+  try {
+    await FirstRunGuard.clearSecureStorageOnFreshInstall();
+  } catch (e, s) {
+    debugPrint('main: first-run guard failed: $e\n$s');
   }
 
   // Route restoration is best-effort — never let its storage block startup.
@@ -121,6 +147,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.black,
+        // App default font is IBM Plex Thai — Thai text rendered by a bare
+        // TextStyle (no fontFamily) inherits this instead of falling back to
+        // Roboto. AppTypography styles that set Poppins explicitly still win.
+        fontFamily: 'Ibm',
       ),
     );
   }

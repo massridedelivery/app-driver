@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -21,7 +22,15 @@ class IncomeScreen extends ConsumerWidget {
       backgroundColor: AppColors.semanticGrayNeutralFgHigh,
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MassLoadingM(size: 72))
+          // Zeros from a failed fetch look exactly like a genuinely empty
+          // wallet — say the load failed instead.
+          : state.errorMessage.isNotEmpty
+          ? _ErrorState(
+              message: state.errorMessage,
+              onRetry: () =>
+                  ref.read(walletControllerProvider.notifier).fetchAll(),
+            )
           : RefreshIndicator(
               onRefresh: () =>
                   ref.read(walletControllerProvider.notifier).fetchAll(),
@@ -31,9 +40,12 @@ class IncomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Total balance ────────────────────────────────
+                    // ── Today's total earnings ───────────────────────
+                    // Shows what the driver earned today, not the running
+                    // wallet balance — `state.balance` goes negative on COD
+                    // debt, which read as "you have -฿12.83" on the headline.
                     _TotalBalanceCard(
-                      balance: state.balance,
+                      balance: state.earningsToday,
                       currency: state.currency,
                       isVerified: state.isVerified,
                       lastUpdated: state.lastUpdated,
@@ -101,6 +113,62 @@ class IncomeScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Error state
+// ─────────────────────────────────────────────────────────────────────────────
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: AppColors.foundationAlphaWhite400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'โหลดข้อมูลรายได้ไม่สำเร็จ',
+              style: AppTypography.heading5.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message.replaceFirst('Exception: ', ''),
+              textAlign: TextAlign.center,
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationAlphaWhite400,
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: onRetry,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'ลองใหม่',
+                style: AppTypography.label2.copyWith(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Shared card decoration
 // ─────────────────────────────────────────────────────────────────────────────
 BoxDecoration _cardDecoration({double radius = 20}) => BoxDecoration(
@@ -152,7 +220,7 @@ class _TotalBalanceCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'ยอดเงินรวม',
+                'ยอดเงินรวมวันนี้',
                 style: AppTypography.caption4.copyWith(
                   color: AppColors.semanticGrayNeutralFgMidOnWhite,
                 ),

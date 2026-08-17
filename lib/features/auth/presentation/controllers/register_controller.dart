@@ -47,7 +47,6 @@ class RegisterController extends _$RegisterController {
       final registerUseCase = getIt<RegisterUseCase>();
 
       // Collect device & app info
-      final deviceInfo = DeviceInfoPlugin();
       final packageInfo = await PackageInfo.fromPlatform();
 
       String deviceId = '';
@@ -55,18 +54,27 @@ class RegisterController extends _$RegisterController {
       String os = '';
       String osVersion = '';
 
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id;
-        deviceModel = androidInfo.model;
-        os = 'android';
-        osVersion = androidInfo.version.release;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? '';
-        deviceModel = iosInfo.model;
-        os = 'ios';
-        osVersion = iosInfo.systemVersion;
+      // Isolated in its own try/catch: some emulator/device images return a
+      // null field the plugin doesn't guard against internally, throwing a
+      // raw TypeError that would otherwise abort the whole registration.
+      // These fields are informational only, so empty fallbacks are safe.
+      try {
+        final deviceInfo = DeviceInfoPlugin();
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfo.androidInfo;
+          deviceId = androidInfo.id;
+          deviceModel = androidInfo.model;
+          os = 'android';
+          osVersion = androidInfo.version.release;
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfo.iosInfo;
+          deviceId = iosInfo.identifierForVendor ?? '';
+          deviceModel = iosInfo.model;
+          os = 'ios';
+          osVersion = iosInfo.systemVersion;
+        }
+      } catch (e) {
+        debugPrint('RegisterController: device info unavailable: $e');
       }
 
       final request = RegisterRequest(

@@ -23,7 +23,6 @@ val localProperties = Properties().apply {
         file.inputStream().use { load(it) }
     }
 }
-val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
 
 // Flutter forwards every --dart-define to Gradle as the `dart-defines` property:
 // a comma-separated list of base64-encoded KEY=VALUE pairs. Decoding it here lets
@@ -44,6 +43,25 @@ val dartDefines: Map<String, String> =
 
 // e.g. ".dev" so a dev build installs alongside prod instead of replacing it.
 val packageNameSuffix: String = dartDefines["APP_PACKAGE_NAME_SUFFIX"].orEmpty()
+
+// Google Maps Android key, chosen by build so dev and prod keys can live
+// side-by-side in one local.properties, each restricted to its own package
+// (a Maps key locked to com.massapp.massdrive can't authorise the .dev build,
+// and vice versa). A .dev build prefers MAPS_API_KEY_DEV and falls back to
+// MAPS_API_KEY when it isn't set; prod/preprod (no suffix) always uses
+// MAPS_API_KEY — the value CI injects from the MAPS_API_KEY secret, so the
+// release path is unchanged.
+val mapsApiKey: String = if (packageNameSuffix == ".dev") {
+    localProperties.getProperty("MAPS_API_KEY_DEV")
+        ?: localProperties.getProperty("MAPS_API_KEY", "")
+} else {
+    localProperties.getProperty("MAPS_API_KEY", "")
+}
+
+// Home-screen label. Comes from APP_NAME in config/mass_*.json so a dev build
+// is distinguishable from prod on a device carrying both. The fallback keeps
+// plain `gradlew` invocations (no dart-defines) building.
+val appLabel: String = dartDefines["APP_NAME"].orEmpty().ifEmpty { "massdrive" }
 
 android {
     namespace = "com.massapp.massdrive"
@@ -76,8 +94,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Injected into AndroidManifest.xml as ${MAPS_API_KEY}
+        // Injected into AndroidManifest.xml as ${MAPS_API_KEY} / ${appLabel}
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        // Injected into AndroidManifest.xml as ${appName}
+        manifestPlaceholders["appName"] = appLabel
     }
 
     signingConfigs {

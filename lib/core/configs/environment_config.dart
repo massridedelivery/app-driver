@@ -32,6 +32,54 @@ class EnvironmentConfig {
   );
 
   static const String omiseApiKey = String.fromEnvironment('OMISE_API_KEY');
+
+  /// Build-time defines with no safe default. Missing any of these silently
+  /// yields '' at runtime — the usual cause is forgetting to layer
+  /// `config/mass_dev.json` on the build command, which breaks Firebase init
+  /// and payments in non-obvious ways. All of these live in `mass_dev.json`.
+  static const Map<String, String> _requiredDefines = {
+    'OMISE_API_KEY': omiseApiKey,
+    'APP_ANDROID_FIREBASE_API_KEY':
+        String.fromEnvironment('APP_ANDROID_FIREBASE_API_KEY'),
+    'APP_ANDROID_FIREBASE_APP_ID':
+        String.fromEnvironment('APP_ANDROID_FIREBASE_APP_ID'),
+    'APP_ANDROID_FIREBASE_MSG_SENDER_ID':
+        String.fromEnvironment('APP_ANDROID_FIREBASE_MSG_SENDER_ID'),
+    'APP_ANDROID_FIREBASE_PROJECT_ID':
+        String.fromEnvironment('APP_ANDROID_FIREBASE_PROJECT_ID'),
+    'APP_ANDROID_FIREBASE_STORAGE_BUCKET':
+        String.fromEnvironment('APP_ANDROID_FIREBASE_STORAGE_BUCKET'),
+    'APP_IOS_FIREBASE_API_KEY':
+        String.fromEnvironment('APP_IOS_FIREBASE_API_KEY'),
+    'APP_IOS_FIREBASE_APP_ID':
+        String.fromEnvironment('APP_IOS_FIREBASE_APP_ID'),
+    'APP_IOS_FIREBASE_MSG_SENDER_ID':
+        String.fromEnvironment('APP_IOS_FIREBASE_MSG_SENDER_ID'),
+    'APP_IOS_FIREBASE_PROJECT_ID':
+        String.fromEnvironment('APP_IOS_FIREBASE_PROJECT_ID'),
+    'APP_IOS_FIREBASE_STORAGE_BUCKET':
+        String.fromEnvironment('APP_IOS_FIREBASE_STORAGE_BUCKET'),
+    'APP_IOS_FIREBASE_BUNDLE_ID':
+        String.fromEnvironment('APP_IOS_FIREBASE_BUNDLE_ID'),
+  };
+
+  /// Fail fast at boot if any required define is missing, so a mis-built
+  /// binary crashes immediately with a clear message instead of failing
+  /// later inside Firebase/payment code.
+  static void assertConfigured() {
+    final missing = [
+      for (final entry in _requiredDefines.entries)
+        if (entry.value.isEmpty) entry.key,
+    ];
+    if (missing.isEmpty) return;
+    throw StateError(
+      'Missing required build-time config: ${missing.join(', ')}.\n'
+      'These are provided by config/mass_dev.json. Build with both a backend '
+      'file and mass_dev.json, e.g.:\n'
+      '  --dart-define-from-file=config/dev.json '
+      '--dart-define-from-file=config/mass_dev.json',
+    );
+  }
 }
 
 class Environments {

@@ -17,7 +17,6 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/managers/deeplink_manager.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:massdrive/router/app_routes.dart';
 
 class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   const ScaffoldWithNavBar({required this.navigationShell, super.key});
@@ -229,6 +228,12 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
               context.pop();
               await ref.read(authControllerProvider.notifier).logout();
               if (context.mounted) {
+                // Clear any imperative routes stacked on top before landing on
+                // login, so nothing covers the login page after logout.
+                Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).popUntil((route) => route.isFirst);
                 AppNavigator.go(context, AppRoutes.loginNamedPage);
               }
             },

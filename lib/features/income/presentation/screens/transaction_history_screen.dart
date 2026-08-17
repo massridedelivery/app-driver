@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
@@ -36,17 +37,19 @@ class _TransactionHistoryScreenState
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      String? mappedType = widget.transactionType;
-      if (mappedType == 'payout') {
-        mappedType = 'WITHDRAWAL';
-      } else if (mappedType == 'topup') {
-        mappedType = 'TOPUP';
-      }
-      ref.read(transactionControllerProvider.notifier).fetchTransactions(
-            TransactionQuery(type: mappedType),
-          );
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  void _load() {
+    String? mappedType = widget.transactionType;
+    if (mappedType == 'payout') {
+      mappedType = 'WITHDRAWAL';
+    } else if (mappedType == 'topup') {
+      mappedType = 'TOPUP';
+    }
+    ref.read(transactionControllerProvider.notifier).fetchTransactions(
+          TransactionQuery(type: mappedType),
+        );
   }
 
   @override
@@ -92,10 +95,14 @@ class _TransactionHistoryScreenState
           // ── List / Loading / Empty ───────────────────────────────────
           Expanded(
             child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.transactions.isEmpty
-                    ? _buildEmptyState()
-                    : _buildList(state.transactions, state.isLoadingMore),
+                ? const Center(child: MassLoadingM(size: 72))
+                // A failed fetch is not an empty ledger — saying "no history"
+                // when the request errored is as misleading as inventing rows.
+                : state.errorMessage.isNotEmpty && state.transactions.isEmpty
+                    ? _buildErrorState(state.errorMessage)
+                    : state.transactions.isEmpty
+                        ? _buildEmptyState()
+                        : _buildList(state.transactions, state.isLoadingMore),
           ),
         ],
       ),
@@ -119,6 +126,51 @@ class _TransactionHistoryScreenState
         }
         return _TransactionTile(transaction: transactions[index]);
       },
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: AppColors.foundationAlphaWhite400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'โหลดประวัติไม่สำเร็จ',
+              style: AppTypography.heading5.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message.replaceFirst('Exception: ', ''),
+              textAlign: TextAlign.center,
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationAlphaWhite400,
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: _load,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'ลองใหม่',
+                style: AppTypography.label2.copyWith(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -203,6 +255,17 @@ class _TransactionTile extends StatelessWidget {
                     color: AppColors.foundationAlphaWhite400,
                   ),
                 ),
+                // Money breakdown so a rider can see what the trip earned vs.
+                // what was taken as commission/fees — e.g. "ยอดงาน ฿60 · หักค่าคอม ฿12".
+                if (_breakdown(transaction) != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _breakdown(transaction)!,
+                    style: AppTypography.caption5.copyWith(
+                      color: AppColors.foundationAlphaWhite400,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -232,6 +295,24 @@ class _TransactionTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// A one-line earnings breakdown from whatever the API provides, so a rider
+  /// can read a fare row without guessing what was deducted. Null when there's
+  /// nothing meaningful to show (e.g. a plain top-up/withdrawal).
+  String? _breakdown(Transaction t) {
+    String money(double v) => '฿${v.toStringAsFixed(0)}';
+    final parts = <String>[];
+    if (t.subtotal != null && t.subtotal! > 0) {
+      parts.add('ยอดงาน ${money(t.subtotal!)}');
+    }
+    if (t.commission != null && t.commission! > 0) {
+      parts.add('หักค่าคอม ${money(t.commission!)}');
+    }
+    if (t.platformFee != null && t.platformFee! > 0) {
+      parts.add('ค่าธรรมเนียม ${money(t.platformFee!)}');
+    }
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   IconData _typeIcon(TransactionType type) {

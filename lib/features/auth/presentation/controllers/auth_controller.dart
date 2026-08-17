@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -14,9 +17,56 @@ class AuthController extends _$AuthController {
   late final SecureStorageManager _secureStorage;
 
   Future<AuthState> get _state async {
-    return AuthState(
-      await _secureStorage.isContain(SecureStorageKey.accessToken),
-    );
+    final loggedIn = await _hasValidSession();
+    // Seed the router's session source of truth from the real (expiry-aware)
+    // state so a redirect is in effect from the first frame.
+    SessionNotifier.instance.setAuthenticated(loggedIn);
+    return AuthState(loggedIn);
+  }
+
+  /// A session is valid when a non-expired access token exists — or the access
+  /// token is expired but a refresh token is present for the interceptor to
+  /// exchange. Merely having a stored (possibly expired/revoked) token is no
+  /// longer treated as logged in; if a later refresh fails the API layer flips
+  /// the session to logged-out via [SessionNotifier].
+  Future<bool> _hasValidSession() async {
+    // Keychain reads can fail outright — notably right after the app is
+    // re-signed or updated (TestFlight), where iOS can return -34018. Letting
+    // that throw propagates all the way to the splash screen, which has no
+    // recovery path and simply sits there. No readable token means no usable
+    // session, so answer "logged out" and let the driver sign in again.
+    final String? token;
+    try {
+      token = await _secureStorage.read(SecureStorageKey.accessToken);
+    } catch (e) {
+      debugPrint('AuthController: access token read failed: $e');
+      return false;
+    }
+    if (token == null || token.isEmpty) return false;
+
+    bool expired;
+    try {
+      expired = JwtDecoder.isExpired(token);
+    } catch (_) {
+      // The access token isn't a decodable JWT (e.g. an opaque token the
+      // backend issues). We can't read an expiry from it, so we must not judge
+      // the session dead on that basis — doing so logged the driver straight
+      // back out the moment after a successful OTP/email login (the stored
+      // token bypasses this check during the login request, then fails it on
+      // the post-login re-check). Treat the mere presence of a token as a live
+      // session; if it's actually dead, the API layer flips the session to
+      // logged-out on the first 401 via [SessionNotifier].
+      return true;
+    }
+    if (!expired) return true;
+
+    try {
+      final refresh = await _secureStorage.read(SecureStorageKey.refreshToken);
+      return refresh != null && refresh.isNotEmpty;
+    } catch (e) {
+      debugPrint('AuthController: refresh token read failed: $e');
+      return false;
+    }
   }
 
   bool get isLogin {
@@ -30,13 +80,34 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> refresh() async {
-    state = AsyncValue.data(await _state);
+    // This controller is autoDispose and often has no listener when refresh()
+    // is triggered (e.g. right after OTP verify, where the OTP screen watches
+    // its own controller, not this one). Riverpod can dispose it during the
+    // await below; the routing-critical work — SessionNotifier being updated
+    // inside [_state] — has already happened by then, so only guard the state
+    // assignment. Writing to a disposed notifier throws ("Cannot use the Ref
+    // ... after it has been disposed"), which previously surfaced as an error
+    // on the OTP screen.
+    final next = await _state;
+    if (!ref.mounted) return;
+    state = AsyncValue.data(next);
   }
 
+  /// Ends the session and drives the app back to login. The session teardown
+  /// runs in a `finally` so a failing network logout (expired token, offline)
+  /// can never strand the driver on a protected screen: local tokens are
+  /// wiped and the router redirect fires regardless. Works the same for phone
+  /// and email sessions, since both funnel through [SessionNotifier].
   Future<void> logout() async {
-    final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
-    await usecase.execute();
-    await RouteRestorationService.instance.clear();
-    await refresh();
+    try {
+      final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
+      await usecase.execute();
+    } catch (e) {
+      debugPrint('AuthController: logout call failed, forcing local logout: $e');
+    } finally {
+      await RouteRestorationService.instance.clear();
+      SessionNotifier.instance.setAuthenticated(false);
+      await refresh();
+    }
   }
 }

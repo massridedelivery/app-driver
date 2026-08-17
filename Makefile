@@ -29,7 +29,7 @@ ARGS ?=
 
 .DEFAULT_GOAL := help
 .PHONY: help setup env deps run run-preprod run-prod gen watch analyze test \
-        format check aab apk clean devices
+        format check aab apk apk-dev deploy-dev clean devices
 
 # Plain echo lines, one per target: cmd.exe has no grep/awk, and `echo.` for a
 # blank line is not something Make can spawn on Windows.
@@ -54,6 +54,9 @@ help:
 	@echo   ---
 	@echo   aab           Signed release bundle for Play
 	@echo   apk           Release APK for sideloading
+	@echo   apk-dev       Release APK built against dev, to hand to testers
+	@echo   deploy-dev    iOS - build + ship to TestFlight - the MassDriverDev app
+	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=2
 	@echo   clean         flutter clean + pub get
 	@echo   ---
 	@echo   Pass extra flutter args with ARGS, e.g. make run ARGS=-v
@@ -121,6 +124,69 @@ aab: env
 apk: env
 	flutter build apk --release $(PREPROD)
 	@echo Output: build/app/outputs/flutter-apk/app-release.apk
+
+# A dev-backend Android build to hand to testers, not a Play upload. Publishing
+# is deploy-play.yml (Actions tab -> Run workflow), which builds pre-prod and
+# needs the Play service account; there is no dev track. An APK rather than a
+# bundle because this is meant to be installed directly, and because the release
+# build is only signed with the real upload key when android/key.properties
+# exists — without it Gradle falls back to debug signing, which sideloads fine
+# but Play rejects.
+apk-dev: env
+	flutter build apk --release $(DEV)
+	@echo Output: build/app/outputs/flutter-apk/app-release.apk
+
+# ---------------------------------------------------------------- ship (iOS)
+
+# The TestFlight round trip in one command: build the signed .ipa and upload it
+# to the MassDriverDev app in App Store Connect, replacing "flutter build ipa"
+# followed by dragging the file into Transporter. macOS only — the recipe
+# drives Xcode's toolchain, so unlike the rest of this file it assumes a POSIX
+# shell.
+#
+# Ships com.massapp.massdrive.dev, a *separate* App Store Connect app
+# (MassDriverDev) from the com.massapp.massdrive one every other TestFlight
+# upload goes to. Release leaves BUNDLE_ID_SUFFIX empty by default (so a plain
+# `flutter build ipa` ships com.massapp.massdrive, matching the prod-driver
+# Firebase project) — this target temporarily overrides it to .dev, along with
+# APP_DISPLAY_NAME (Info.plist's CFBundleDisplayName, so the installed app reads
+# "Massdrive DEV"), via ios/Flutter/Release.local.xcconfig, and always reverts
+# (trap on EXIT), even if the build fails. Release.local.xcconfig is
+# gitignored and #included from Release.xcconfig with #include? (silently
+# a no-op when absent), so this can never leak into a normal `flutter build
+# ipa`/CI run — only this recipe ever creates the file.
+#
+# BUILD is required. App Store Connect rejects a build number it has already
+# seen, and pubspec's number trails what has been uploaded, so deriving it from
+# pubspec would produce a rejected build — pass the next one explicitly.
+#
+# Uploading needs an App Store Connect API key (Users and Access -> Integrations
+# -> App Store Connect API). Set both variables and this uploads; leave them
+# unset and it stops at the .ipa and prints the manual step, i.e. exactly the
+# flow this target replaces. AuthKey_$(ASC_KEY_ID).p8 must be readable at
+# ~/.appstoreconnect/private_keys/ (or ~/private_keys/), where altool looks.
+ifeq ($(filter deploy-dev,$(MAKECMDGOALS)),deploy-dev)
+ifndef BUILD
+$(error BUILD is required and must beat the last MassDriverDev TestFlight build, e.g. make deploy-dev BUILD=2)
+endif
+endif
+
+deploy-dev: env
+	@set -e; \
+	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
+	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\n' \
+	  > ios/Flutter/Release.local.xcconfig; \
+	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
+	  --export-options-plist=ios/ExportOptions.plist; \
+	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
+	  echo "Uploading build $(BUILD) to TestFlight (MassDriverDev)..."; \
+	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
+	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
+	else \
+	  echo "Built build/ios/ipa/*.ipa (build $(BUILD))."; \
+	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
+	  echo "or set them to have this target upload too."; \
+	fi
 
 clean:
 	flutter clean

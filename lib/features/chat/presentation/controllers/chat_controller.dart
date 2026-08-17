@@ -52,6 +52,14 @@ class ChatController extends _$ChatController {
 
   String get _roomId => _vertical.roomId(_jobId);
 
+  /// Oldest-first ordering, so the list renders in stable chronological order
+  /// no matter what order the history endpoint or the socket delivers them in.
+  List<ChatMessage> _chronological(List<ChatMessage> list) {
+    final sorted = [...list]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return sorted;
+  }
+
   @override
   ChatState build(String jobId, ChatVertical vertical) {
     _jobId = jobId;
@@ -80,7 +88,9 @@ class ChatController extends _$ChatController {
     try {
       final newMessage = ChatMessage.fromJson(data);
       if (!state.messages.any((m) => m.id == newMessage.id)) {
-        state = state.copyWith(messages: [...state.messages, newMessage]);
+        state = state.copyWith(
+          messages: _chronological([...state.messages, newMessage]),
+        );
       }
     } catch (e) {
       if (kDebugMode) debugPrint('ChatController: parse chat_message error: $e');
@@ -96,7 +106,10 @@ class ChatController extends _$ChatController {
         limit: limit,
         before: before,
       );
-      state = state.copyWith(messages: history, isLoading: false);
+      state = state.copyWith(
+        messages: _chronological(history),
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }

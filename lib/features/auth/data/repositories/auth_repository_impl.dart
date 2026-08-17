@@ -1,4 +1,5 @@
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
 import 'package:massdrive/features/auth/domain/entities/user_entity.dart';
 import 'package:massdrive/features/auth/domain/repositories/auth_repository.dart';
@@ -38,6 +39,9 @@ class AuthRepositoryImpl implements AuthRepository {
       await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
     }
 
+    // Session is now live — let the router know so any auth redirect clears.
+    SessionNotifier.instance.setAuthenticated(true);
+
     return user;
   }
 
@@ -50,6 +54,8 @@ class AuthRepositoryImpl implements AuthRepository {
     // Clear Shared Preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+
+    SessionNotifier.instance.setAuthenticated(false);
   }
 
   @override
@@ -65,6 +71,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (refreshToken != null) {
       await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
     }
+
+    // Session is now live — let the router know so any auth redirect clears.
+    SessionNotifier.instance.setAuthenticated(true);
 
     return user;
   }
@@ -84,6 +93,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (refreshToken != null) {
       await secureStorage.write(SecureStorageKey.refreshToken, refreshToken);
     }
+
+    // Session is now live — let the router know so any auth redirect clears.
+    SessionNotifier.instance.setAuthenticated(true);
 
     return user;
   }

@@ -2,7 +2,7 @@ name: massdrive
 description: "Mass Drive App"
 publish_to: 'none'
 
-version: 1.0.0+10
+version: 1.0.0+12
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -82,6 +82,22 @@ dev_dependencies:
   riverpod_generator: ^3.0.0-dev.17
   injectable_generator: ^2.6.2
   flutter_launcher_icons: ^0.14.4
+
+# App launcher icon (run: dart run flutter_launcher_icons)
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#B4312E"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
 
 flutter:
   uses-material-design: true

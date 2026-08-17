@@ -36,8 +36,12 @@ class OtpController extends _$OtpController {
       final verifyOtpUseCase = getIt<VerifyOtpUseCase>();
       await verifyOtpUseCase.execute(phone, state.otpCode, refId: refId);
       state = state.copyWith(isLoading: false);
-      // Refresh auth state so the router knows the user is now logged in
-      ref.read(authControllerProvider.notifier).refresh();
+      // Refresh auth state and WAIT for it to settle before navigating. This
+      // re-derives the session from the freshly stored token and pushes the
+      // result into SessionNotifier (the router's refreshListenable). If we
+      // navigate first and let this run un-awaited, a late session flip can
+      // redirect the just-opened protected screen straight back to /login.
+      await ref.read(authControllerProvider.notifier).refresh();
       return isRegistered ? OtpVerifyResult.home : OtpVerifyResult.registrationChecklist;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());

@@ -2,9 +2,11 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_food_modal.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_job_modal.dart';
@@ -34,10 +36,17 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
     final job = incomingJobState.currentJob;
 
     if (job == null) {
-      // Safety fallback
+      // No job in memory — e.g. the app was route-restored here after a kill,
+      // when the offer state is gone. Don't strand the driver on a spinner:
+      // bounce to home, where the active-job probe recovers any real job.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(incomingJobControllerProvider).currentJob != null) return;
+        context.go(AppRoutes.homeNamedPage);
+      });
       return const Scaffold(
         backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: MassLoadingM(size: 72)),
       );
     }
 

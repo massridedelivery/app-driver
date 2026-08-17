@@ -75,6 +75,62 @@ The backend stores the latest token per driver and sends to it on job assignment
 - Channel id `job_offer_channel_v1` is versioned: a channel's sound is immutable
   once created, so bump `_vN` when the sound file changes.
 
+## Troubleshooting: token registers fine, but nothing arrives
+
+Don't debug delivery with the Firebase console's "send test message" — it
+reports success whether or not APNs accepted the message, so an iOS rejection
+looks identical to a delivered push nobody saw. Send through the HTTP v1 API
+instead, which returns the real error:
+
+```
+tools/fcm_test_push.sh <credential> <fcm-token> plain
+```
+
+(`plain` isolates "does push work at all"; `job` exercises the loud job-offer
+payload. The script header documents the credential options — note the org
+policy blocks service-account key creation, so use a `gcloud auth
+print-access-token` value, e.g. from Cloud Shell.)
+
+Grab the FCM token from the in-app **Settings → นักพัฒนา → FCM Debug Log**
+screen, which also shows the whole registration story (permission → APNs
+token → FCM token → backend registration).
+
+| v1 API error | Meaning | Where to look |
+| --- | --- | --- |
+| `THIRD_PARTY_AUTH_ERROR` / `InvalidProviderToken` | APNs rejected Firebase's auth key | See below — this is the big one |
+| `UNREGISTERED` | Token is dead (app reinstalled/cleared) | Refresh the token in FCM Debug Log |
+| `SENDER_ID_MISMATCH` | Token belongs to another Firebase project | App built against the wrong config/*.json |
+| `INVALID_ARGUMENT` | Malformed payload | The `detail` field names the offending key |
+| 200 + nothing shows | Delivered to APNs; dropped on-device | Focus mode, notification summary, per-app settings |
+
+### `InvalidProviderToken` (hit 2026-08-13, dev)
+
+Everything client-side can be correct — bundle id, team id, entitlements,
+capabilities, APNs token obtained, backend registration OK — and iOS still
+gets nothing, because this failure happens between Firebase and Apple. Android
+is unaffected (it never touches APNs), which is exactly the confusing
+"Android works, iOS silent" symptom.
+
+The console listing a key under Cloud Messaging → Apple app configuration
+proves only that a file was uploaded; Firebase never validates it against
+Apple. In particular the team has two APNs keys created the same day (Driver
+`37DK9D46T6`, Customer `2Q72LZL55C`) — uploading one key's `.p8` with the
+other's Key ID typed in produces exactly this error.
+
+Checklist, in order:
+
+1. Apple Developer portal → Keys: the Key ID exists, isn't revoked, lists
+   APNs in services, and the portal's team matches the Team ID typed into
+   Firebase.
+2. Find the original `AuthKey_<KeyID>.p8` and confirm its filename matches
+   the Key ID entered in Firebase. Delete + re-upload if unsure.
+3. No original file → revoke and create a new key. Apple caps a team at
+   **two** APNs auth keys, so the old one must be revoked first — and every
+   Firebase project using it (prod too) must get the replacement.
+4. Re-run the test send: success looks like
+   `{"name": "projects/<project>/messages/<id>"}` plus a notification on the
+   device.
+
 ## Out of scope
 
 Carrying full job details in the push (e.g. `job_id`) — the app ignores extra

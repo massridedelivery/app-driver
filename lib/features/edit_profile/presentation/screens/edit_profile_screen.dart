@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
-import 'package:massdrive/core/utils/string_util.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 
@@ -21,7 +24,7 @@ class EditProfileScreen extends ConsumerWidget {
       return Scaffold(
         appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
         backgroundColor: const Color(0xFF0F0F0F),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: MassLoadingM(size: 72)),
       );
     }
 
@@ -45,11 +48,24 @@ class EditProfileScreen extends ConsumerWidget {
 
             _SectionHeader(title: "ข้อมูลส่วนตัว"),
 
-            _ProfileImageTile(imageUrl: profilePhotoUrl),
+            _ProfileImageTile(
+              imageUrl: profilePhotoUrl,
+              onTap: () {
+                // Re-use the existing document-upload flow/API to change the
+                // driver's profile photo.
+                context.push(
+                  AppRoutes.documentRegistrationUploadNamedPage,
+                  extra: {
+                    'type': DocumentType.profilePhoto,
+                    'title': 'รูปถ่ายโปรไฟล์',
+                  },
+                );
+              },
+            ),
 
             _InfoTile(
               title: "ชื่อ",
-              value: profile.fullName.blindName(),
+              value: profile.fullName,
               showArrow: true,
               onTap: () {
                 _showUpdateNameSheet(context, ref, profile.fullName);
@@ -59,7 +75,7 @@ class EditProfileScreen extends ConsumerWidget {
             _InfoTile(
               title: "หมายเลขโทรศัพท์มือถือ",
               value: profile.phone != null
-                  ? profile.phone!.blindPhone()
+                  ? profile.phone!
                   : "ยังไม่ได้กรอกข้อมูล",
               showArrow: true,
               onTap: () {
@@ -69,24 +85,7 @@ class EditProfileScreen extends ConsumerWidget {
 
             _InfoTile(
               title: "ที่อยู่อีเมล",
-              value: profile.userId.blindEmailOrUuid(),
-            ),
-
-            _InfoTile(
-              title: "รายชื่อผู้ติดต่อฉุกเฉิน",
-              value: "ได้ตั้งค่ารายชื่อผู้ติดต่อจำนวน 1 จาก 3 รายการแล้ว",
-              showArrow: true,
-            ),
-
-            SizedBox(height: 24),
-
-            _SectionHeader(title: "หากคุณย้ายไปที่ใหม่"),
-
-            _InfoTile(
-              title: "",
-              value: "เลือกประเภทพื้นที่/บริการใหม่",
-              showArrow: true,
-              leadingIcon: Icons.map,
+              value: profile.userId,
             ),
 
             SizedBox(height: 24),
@@ -95,7 +94,7 @@ class EditProfileScreen extends ConsumerWidget {
 
             if (profile.vehiclePlate != null && profile.vehicleModel != null)
               _VehicleTile(
-                plate: profile.vehiclePlate!.blindPlate(),
+                plate: profile.vehiclePlate!,
                 vehicle: profile.vehicleModel!,
                 isPrimary: true,
                 onTap: () {
@@ -404,31 +403,54 @@ class _SectionHeader extends StatelessWidget {
 
 class _ProfileImageTile extends StatelessWidget {
   final String? imageUrl;
-  const _ProfileImageTile({this.imageUrl});
+  final VoidCallback? onTap;
+  const _ProfileImageTile({this.imageUrl, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        "รูปโปรไฟล์",
-        style: AppTypography.caption3.copyWith(
-          color: AppColors.semanticGrayNeutralBgWhite,
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          onTap: onTap,
+          title: Text(
+            "รูปโปรไฟล์",
+            style: AppTypography.caption3.copyWith(
+              color: AppColors.semanticGrayNeutralBgWhite,
+            ),
+          ),
+          subtitle: onTap != null
+              ? Text(
+                  "แตะเพื่อเปลี่ยนรูปโปรไฟล์",
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.foundationAlphaWhite400,
+                  ),
+                )
+              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.grey[800],
+                backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
+                child: !hasImage
+                    ? const Icon(Icons.person, color: Colors.white70, size: 24)
+                    : null,
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.semanticGrayNeutralFgLowOnGray,
+                ),
+              ],
+            ],
+          ),
         ),
-      ),
-      trailing: CircleAvatar(
-        radius: 24,
-        backgroundColor: Colors.grey[800],
-        backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
-        child: !hasImage
-            ? const Icon(
-                Icons.person,
-                color: Colors.white70,
-                size: 24,
-              )
-            : null,
-      ),
+        const Divider(color: Colors.white12, height: 1),
+      ],
     );
   }
 }
@@ -437,14 +459,12 @@ class _InfoTile extends StatelessWidget {
   final String title;
   final String value;
   final bool showArrow;
-  final IconData? leadingIcon;
   final VoidCallback? onTap;
 
   const _InfoTile({
     required this.title,
     required this.value,
     this.showArrow = false,
-    this.leadingIcon,
     this.onTap,
   });
 
@@ -454,9 +474,6 @@ class _InfoTile extends StatelessWidget {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: leadingIcon != null
-              ? Icon(leadingIcon, color: AppColors.foundationAlphaWhite400)
-              : null,
           title: title.isNotEmpty
               ? Text(
                   title,

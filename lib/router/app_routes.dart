@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
@@ -29,15 +30,39 @@ import 'package:massdrive/features/document_registration/presentation/screens/do
 import 'package:massdrive/features/document_registration/presentation/screens/vehicle_info_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
+import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+  /// Routes reachable while logged out. Everything else requires a live session;
+  /// when there isn't one, [_router]'s redirect sends the driver to login.
+  static const Set<String> _publicRoutes = {
+    AppRoutes.splashNamedPage,
+    AppRoutes.loginNamedPage,
+    AppRoutes.emailLoginNamedPage,
+    AppRoutes.registerNamedPage,
+    AppRoutes.otpNamedPage,
+  };
+
   static final GoRouter _router = GoRouter(
     initialLocation: AppRoutes.splashNamedPage,
     debugLogDiagnostics: true,
     navigatorKey: _rootNavigatorKey,
+    // Re-run [redirect] whenever the session flips (login, logout, expiry, or a
+    // 401 on an authenticated request) so a dead session can't stay on a
+    // protected screen — the core fix for "stale session never returns to
+    // login".
+    refreshListenable: SessionNotifier.instance,
+    redirect: (context, state) {
+      final loggedIn = SessionNotifier.instance.isAuthenticated;
+      final atPublicRoute = _publicRoutes.contains(state.matchedLocation);
+      if (!loggedIn && !atPublicRoute) {
+        return AppRoutes.loginNamedPage;
+      }
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutes.splashNamedPage,
@@ -195,6 +220,11 @@ class AppRouter {
         path: AppRoutes.documentRegistrationConsentNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ConsentScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.fcmDebugNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: FcmDebugScreen()),
       ),
     ],
     errorBuilder: (context, state) => const HomeScreen(),

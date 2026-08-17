@@ -103,8 +103,11 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
     if (status == 'PAID') {
       _cancelTimers();
-      // Debt cleared server-side — refresh COD status so the wallet reflects it.
-      await ref.read(walletControllerProvider.notifier).fetchCodStatus();
+      // Payment lands server-side across the whole wallet, not just COD debt:
+      // fetchCodStatus() alone leaves the cash/credit split and the balance
+      // stale, so the driver returns to a wallet that still shows the old
+      // numbers. fetchEarnings() refreshes balance + payout summary + COD.
+      await ref.read(walletControllerProvider.notifier).fetchEarnings();
     } else if (status == 'FAILED' ||
         status == 'EXPIRED' ||
         status == 'REFUNDED') {

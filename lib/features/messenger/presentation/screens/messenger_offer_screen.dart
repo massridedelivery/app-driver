@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
@@ -45,7 +46,7 @@ class _MessengerOfferScreenState extends ConsumerState<MessengerOfferScreen> {
     if (offer == null) {
       return const Scaffold(
         backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: MassLoadingM(size: 72)),
       );
     }
 
@@ -59,11 +60,13 @@ class _MessengerOfferScreenState extends ConsumerState<MessengerOfferScreen> {
           GoogleMap(
             initialCameraPosition: CameraPosition(target: pickup, zoom: 14),
             markers: {
+              // Same pin convention as the ride flow (incoming_job_screen):
+              // green = pickup, red = dropoff.
               Marker(
                 markerId: const MarkerId('pickup'),
                 position: pickup,
                 icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueOrange,
+                  BitmapDescriptor.hueGreen,
                 ),
               ),
               Marker(

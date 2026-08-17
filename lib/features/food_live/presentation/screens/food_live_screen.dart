@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
@@ -156,6 +158,15 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         ? LatLng(currentJob.dropoffLat, currentJob.dropoffLng)
         : MapDefaults.center;
 
+    // Custom pins matching the customer app's style; fall back to hue markers
+    // until the bitmaps finish rasterizing.
+    final restaurantIcon =
+        ref.watch(restaurantMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+    final customerIcon =
+        ref.watch(dropoffMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+
     Set<Marker> markers = {};
     LatLng target = pickupLatLng;
 
@@ -166,9 +177,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         Marker(
           markerId: const MarkerId('restaurant'),
           position: pickupLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
+          icon: restaurantIcon,
         ),
       );
     } else {
@@ -177,14 +186,12 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         Marker(
           markerId: const MarkerId('restaurant'),
           position: pickupLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
+          icon: restaurantIcon,
         ),
         Marker(
           markerId: const MarkerId('customer'),
           position: dropoffLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: customerIcon,
         ),
       });
     }
@@ -634,11 +641,28 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
                   );
                 },
         ),
-        _bottomAction(Icons.phone_outlined, 'โทรฟรี'),
+        _bottomAction(
+          Icons.phone_outlined,
+          'โทรฟรี',
+          onTap: (currentJob == null || currentJob.passengerPhone.isEmpty)
+              ? null
+              : () => _callPassenger(currentJob.passengerPhone),
+        ),
         _bottomAction(Icons.help_outline, 'ช่วยเหลือ'),
         _bottomAction(Icons.more_horiz, 'อื่นๆ'),
       ],
     );
+  }
+
+  Future<void> _callPassenger(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถโทรออกได้')),
+      );
+    }
   }
 
   Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {

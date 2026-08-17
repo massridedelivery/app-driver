@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
+
+/// Real app version read from the bundle, so the footer never goes stale.
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version} (${info.buildNumber})';
+});
+
+// Neutral slate palette + Mass brand red — matches the MassCustomer auth flow.
+const Color _kBg = Color(0xFFF8FAFC);
+const Color _kFieldFill = Color(0xFFF1F5F9);
+const Color _kTextPrimary = Color(0xFF0F172A);
+const Color _kTextSecondary = Color(0xFF64748B);
+const Color _kDisabledBg = Color(0xFFE2E8F0);
+const Color _kDisabledText = Color(0xFF94A3B8);
+const Color _kBrand = AppColors.foundationRed700; // #DB1439
+const Color _kBrandDeep = AppColors.foundationRed800; // #B71130
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -13,226 +30,269 @@ class LoginScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(loginControllerProvider);
     final controller = ref.read(loginControllerProvider.notifier);
-
     final bool isPhoneValid = state.phoneNumber.length > 9;
+    final size = MediaQuery.of(context).size;
+    final error = (state.errorMessage?.isEmpty ?? true)
+        ? null
+        : state.errorMessage;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
+      backgroundColor: _kBg,
+      body: Stack(
+        children: [
+          // Subtle brand aura in the bottom-right corner.
+          Positioned(
+            bottom: -size.width * 0.4,
+            right: -size.width * 0.4,
+            child: Container(
+              width: size.width * 0.8,
+              height: size.width * 0.8,
+              decoration: BoxDecoration(
+                color: _kBrand.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // Brand wordmark, top-left.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
                 ),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo text
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'Inter',
+                child: Text(
+                  'MassDriver',
+                  style: AppTypography.heading4.copyWith(
+                    color: _kBrand,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          Text(
+                            'กรอกเบอร์โทรศัพท์ที่เคยสมัครไว้',
+                            style: AppTypography.heading3.copyWith(
+                              color: _kTextPrimary,
                             ),
-                            // Assuming default or specific sans font is fine
-                            children: [
-                              TextSpan(
-                                text: 'M',
-                                style: AppTypography.heading1.copyWith(
-                                  color: AppColors.semanticGrayNeutralFgHigh,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'ass',
-                                style: AppTypography.heading2.copyWith(
-                                  color: AppColors.foundationOrange600,
-                                ),
-                              ),
-                              TextSpan(
-                                text: ' D',
-                                style: AppTypography.heading1.copyWith(
-                                  color: AppColors.semanticGrayNeutralFgHigh,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'rive',
-                                style: AppTypography.heading2.copyWith(
-                                  color: AppColors.foundationOrange600,
-                                ),
-                              ),
-                            ],
                           ),
-                        ),
-                        const SizedBox(height: 48),
+                          const SizedBox(height: 12),
+                          Text(
+                            'โปรดเพิ่มหมายเลขโทรศัพท์ของคุณ',
+                            style: AppTypography.body1.copyWith(
+                              color: _kTextSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
 
-                        // Title
-                        Text(
-                          'กรอกเบอร์โทรศัพท์ที่เคยสมัครไว้',
-                          style: AppTypography.heading3.copyWith(
-                            color: AppColors.semanticGrayNeutralFgHigh,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Subtitle
-                        Text(
-                          'โปรดเพิ่มหมายเลขโทรศัพท์ของคุณ',
-                          style: AppTypography.caption3.copyWith(
-                            color: AppColors.semanticGrayNeutralFgHigh,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Phone Field
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
+                          // Phone input
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'เบอร์โทรศัพท์',
+                              style: AppTypography.caption4.copyWith(
+                                color: _kTextSecondary,
                               ),
-                            ],
+                            ),
                           ),
-                          child: TextField(
+                          TextField(
                             keyboardType: TextInputType.phone,
                             maxLength: 10,
                             buildCounter:
                                 (
-                                  BuildContext context, {
-                                  int? currentLength,
-                                  int? maxLength,
-                                  bool? isFocused,
+                                  _, {
+                                  required currentLength,
+                                  maxLength,
+                                  required isFocused,
                                 }) => null,
-                            style: const TextStyle(
-                              color: AppColors.semanticGrayNeutralFgHigh,
-                              fontSize: 16,
+                            onChanged: controller.updatePhone,
+                            style: AppTypography.body1.copyWith(
+                              color: _kTextPrimary,
                             ),
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.phone_sharp,
-                                color: AppColors.semanticGrayNeutralFgHigh,
-                              ),
-                              hintText: 'เบอร์โทรศัพท์',
+                              hintText: '08X-XXX-XXXX',
                               hintStyle: AppTypography.caption3.copyWith(
-                                color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                                color: _kTextSecondary.withValues(alpha: 0.5),
                               ),
-                              errorText: state.errorMessage?.isEmpty == true
-                                  ? null
-                                  : state.errorMessage,
                               filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                              fillColor: _kFieldFill,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 18,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: AppColors.semanticGrayNeutralBorderLightgray,
-                                ),
+                                borderSide: BorderSide.none,
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                  color: AppColors.semanticGrayNeutralFgHigh,
-                                ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: AppColors.semanticErrorBorderHigh,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: AppColors.semanticErrorBorderHigh,
+                                  color: _kBrand,
+                                  width: 1,
                                 ),
                               ),
                             ),
-                            onChanged: controller.updatePhone,
                           ),
-                        ),
 
-                        const Spacer(),
+                          // Push the button + footer toward the bottom.
+                          const Spacer(),
 
-                        // Bottom Button
-                        SizedBox(
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: (state.isLoading || !isPhoneValid)
-                                ? null
-                                : () async {
-                                    final success = await controller.loginWithPhone();
-                                    if (success && context.mounted) {
-                                      // Read fresh state AFTER loginWithPhone() updates refId/isRegistered
-                                      final freshState = ref.read(loginControllerProvider);
-                                      context.push(
-                                        AppRoutes.otpNamedPage,
-                                        extra: {
-                                          'phone': freshState.phoneNumber,
-                                          'refId': freshState.refId,
-                                          'isRegistered': freshState.isRegistered,
-                                        },
-                                      );
-                                    }
+                          _ContinueButton(
+                            label: 'รับรหัสยืนยัน',
+                            enabled: isPhoneValid && !state.isLoading,
+                            loading: state.isLoading,
+                            onTap: () async {
+                              final success = await controller.loginWithPhone();
+                              if (success && context.mounted) {
+                                // Read fresh state AFTER loginWithPhone()
+                                // updates refId/isRegistered.
+                                final fresh = ref.read(loginControllerProvider);
+                                context.push(
+                                  AppRoutes.otpNamedPage,
+                                  extra: {
+                                    'phone': fresh.phoneNumber,
+                                    'refId': fresh.refId,
+                                    'isRegistered': fresh.isRegistered,
                                   },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isPhoneValid
-                                  ? AppColors.semanticGrayNeutralFgHigh
-                                  : AppColors.semanticDisabledBgLow,
-                              disabledBackgroundColor: AppColors.semanticDisabledBgLow,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: state.isLoading
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(
-                                    'รับรหัสยืนยัน',
-                                    style: AppTypography.caption3.copyWith(
-                                      color: isPhoneValid
-                                          ? AppColors.semanticGrayNeutralFgWhite
-                                          : AppColors.semanticDisabledFgOnWhite,
-                                    ),
-                                  ),
+                                );
+                              }
+                            },
                           ),
-                        ),
-                        const SizedBox(height: 16),
 
-                        // Email Login Button
-                        TextButton(
-                          onPressed: () => context.push(AppRoutes.emailLoginNamedPage),
-                          child: Text(
-                            'หรือ เข้าสู่ระบบด้วยอีเมล',
-                            style: AppTypography.caption3.copyWith(
-                              color: AppColors.semanticGrayNeutralFgHigh,
-                              decoration: TextDecoration.underline,
+                          if (error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(
+                                error,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.caption4.copyWith(
+                                  color: AppColors.semanticErrorFgHigh,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 24),
+
+                          // Version footer.
+                          Center(
+                            child: Text(
+                              ref
+                                  .watch(appVersionProvider)
+                                  .maybeWhen(
+                                    data: (v) => 'เวอร์ชัน $v',
+                                    orElse: () => '',
+                                  ),
+                              textAlign: TextAlign.center,
+                              style: AppTypography.body3.copyWith(
+                                color: _kTextSecondary.withValues(alpha: 0.5),
+                                height: 1.5,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            );
-          },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-width primary button with the brand gradient when enabled and a flat
+/// disabled state, matching the MassCustomer auth style.
+class _ContinueButton extends StatelessWidget {
+  final String label;
+  final bool enabled;
+  final bool loading;
+  final Future<void> Function() onTap;
+
+  const _ContinueButton({
+    required this.label,
+    required this.enabled,
+    required this.loading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: enabled ? onTap : null,
+          child: Ink(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              gradient: enabled
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [_kBrand, _kBrandDeep],
+                    )
+                  : null,
+              color: enabled ? null : _kDisabledBg,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: enabled
+                  ? [
+                      BoxShadow(
+                        color: _kBrand.withValues(alpha: 0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 10),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: loading
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: AppTypography.label2.copyWith(
+                        color: enabled ? Colors.white : _kDisabledText,
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );

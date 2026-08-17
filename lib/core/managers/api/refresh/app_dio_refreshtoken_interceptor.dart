@@ -38,7 +38,16 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       return handler.next(options);
     }
 
-    final isTokenExpired = JwtDecoder.isExpired(accessToken);
+    bool isTokenExpired;
+    try {
+      isTokenExpired = JwtDecoder.isExpired(accessToken);
+    } catch (_) {
+      // Opaque (non-JWT) access token — there's no readable `exp` to check.
+      // Don't throw here (that would fail every authenticated request) and
+      // don't force a refresh on every call; attach the token as-is and let a
+      // real 401 drive the refresh/logout path in onError.
+      isTokenExpired = false;
+    }
 
     if (isTokenExpired) {
       try {
@@ -118,11 +127,19 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     return options.path.endsWith(Endpoints.refreshToken);
   }
 
+  /// Only a 401 means "this token is no longer good". 403 is the opposite —
+  /// the token authenticated fine and the server refused the action anyway,
+  /// which this API uses for real business outcomes: `documents_not_verified`
+  /// on going online, and COD-blocked on accepting a messenger job (SCRUM-41
+  /// §4). Treating those as an expired session sent the driver through a
+  /// pointless refresh and, when it failed, wiped their tokens and logged them
+  /// out — and swallowed the 403 the screens needed in order to explain what
+  /// was actually wrong.
   bool _isUnauthorized(DioException e) {
     if (e.response == null) return false;
 
     final status = e.response?.statusCode;
-    if (status == 401 || status == 403) return true;
+    if (status == 401) return true;
 
     // Check for specific backend error format
     try {

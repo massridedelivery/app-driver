@@ -54,12 +54,18 @@ class WalletController extends _$WalletController {
         earningsMonth: overview.thisMonthEarnings,
         earningsYear: overview.thisYearEarnings,
         totalTripsToday: overview.totalTripsToday,
+        // A previous failure is resolved — clear it so the screen leaves the
+        // error state.
+        errorMessage: '',
       );
 
       await fetchPayoutSummary();
       await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
+      // This is the screen's primary data. Swallowing the failure leaves the
+      // driver looking at zeros with no idea the fetch never landed.
+      state = state.copyWith(errorMessage: e.toString());
     }
   }
 
