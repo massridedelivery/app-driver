@@ -398,7 +398,9 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 140,
+          // Kept compact — the earnings figure is a one-liner, so a tall card
+          // just pushed the transactions list below the fold.
+          height: 104,
           child: PageView.builder(
             controller: _controller,
             itemCount: pages.length,
@@ -409,7 +411,7 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(pages.length, (i) {
@@ -443,17 +445,17 @@ class _EarningsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: _cardDecoration(),
       child: Stack(
         children: [
           // Decorative faded circle on the right.
           Positioned(
-            right: -10,
-            top: 6,
+            right: -8,
+            top: 4,
             child: Container(
-              width: 84,
-              height: 84,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.foundationAlphaWhite100,
@@ -471,7 +473,7 @@ class _EarningsCard extends StatelessWidget {
                   color: AppColors.semanticGrayNeutralFgMidOnWhite,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -480,7 +482,7 @@ class _EarningsCard extends StatelessWidget {
                   maxLines: 1,
                   style: AppTypography.heading1.copyWith(
                     color: Colors.white,
-                    fontSize: 36,
+                    fontSize: 26,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

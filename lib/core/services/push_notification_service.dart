@@ -164,6 +164,19 @@ class PushNotificationService {
 
   bool _initialized = false;
 
+  /// Clears every delivered notification for this app — which also stops the
+  /// ~10s job-alert sound if it is still ringing. Called when the driver acts
+  /// on a job offer (accept/decline), so the alert doesn't keep playing under
+  /// the live screen. Cancels both locally-drawn notifications (foreground
+  /// path) and OS-drawn FCM ones (background path).
+  Future<void> cancelJobAlerts() async {
+    try {
+      await _localNotifications.cancelAll();
+    } catch (e) {
+      debugPrint('PushNotificationService: cancelJobAlerts failed: $e');
+    }
+  }
+
   /// Set up message listeners. Safe to call once after Firebase is initialized;
   /// repeat calls are no-ops.
   Future<void> init() async {

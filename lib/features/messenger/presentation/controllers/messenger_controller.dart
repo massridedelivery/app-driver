@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
@@ -67,6 +68,8 @@ class MessengerController extends _$MessengerController {
   }
 
   Future<void> acceptOffer() async {
+    // Stop the ~10s job-alert notification sound the moment the driver acts.
+    PushNotificationService.instance.cancelJobAlerts();
     final offer = state.currentOffer;
     if (offer == null) return;
     _offerTimeout?.cancel();

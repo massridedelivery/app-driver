@@ -111,9 +111,17 @@ class _OfferSheet extends ConsumerWidget {
     final state = ref.watch(messengerControllerProvider);
     final controller = ref.read(messengerControllerProvider.notifier);
 
+    // Keep the accept button above the system nav/gesture bar: fixed 28 was
+    // not enough on devices with a tall bar, and this sheet had no SafeArea.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        16 + (bottomInset > 12 ? bottomInset : 12),
+      ),
       decoration: const BoxDecoration(
         color: AppColors.semanticGrayNeutralFgMidOnBlack,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

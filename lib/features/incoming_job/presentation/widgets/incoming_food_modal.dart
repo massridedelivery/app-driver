@@ -23,10 +23,16 @@ class IncomingFoodModal extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s4,
-            vertical: AppSpacing.s4,
+          // Bottom inset from viewPadding, not SafeArea: SafeArea reads
+          // MediaQuery.padding, which an ancestor can consume to 0 — leaving
+          // the accept button under the system nav/gesture bar.
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s4,
+            AppSpacing.s4,
+            AppSpacing.s4,
+            AppSpacing.s4 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
