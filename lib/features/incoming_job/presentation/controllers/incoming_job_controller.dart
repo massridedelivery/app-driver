@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
@@ -162,6 +163,8 @@ class IncomingJobController extends _$IncomingJobController {
 
   /// Accept a ride job via WebSocket
   void acceptJob() {
+    // Stop the ~10s job-alert notification sound the moment the driver acts.
+    PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
     if (job != null) {
       ref.read(socketServiceProvider).acceptJob(job.jobId);
@@ -181,6 +184,7 @@ class IncomingJobController extends _$IncomingJobController {
 
   /// Accept a food delivery job via REST API
   Future<void> acceptFoodJob() async {
+    PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
     if (job == null) return;
 
@@ -202,6 +206,7 @@ class IncomingJobController extends _$IncomingJobController {
   }
 
   void declineJob() {
+    PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
     if (job != null) {
       ref.read(socketServiceProvider).rejectJob(job.jobId);
