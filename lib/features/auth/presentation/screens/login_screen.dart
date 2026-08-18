@@ -157,8 +157,8 @@ class LoginScreen extends ConsumerWidget {
                             ),
                           ),
 
-                          // Push the button + footer toward the bottom.
-                          const Spacer(),
+                          // Button sits directly under the field.
+                          const SizedBox(height: 28),
 
                           _ContinueButton(
                             label: 'รับรหัสยืนยัน',
@@ -184,9 +184,9 @@ class LoginScreen extends ConsumerWidget {
 
                           if (error != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 16),
+                              padding: const EdgeInsets.only(top: 12),
                               child: Text(
-                                error,
+                                error.replaceFirst('Exception: ', ''),
                                 textAlign: TextAlign.center,
                                 style: AppTypography.caption4.copyWith(
                                   color: AppColors.semanticErrorFgHigh,
@@ -194,7 +194,9 @@ class LoginScreen extends ConsumerWidget {
                               ),
                             ),
 
-                          const SizedBox(height: 24),
+                          // Fill the rest of the screen so the version stays
+                          // pinned to the bottom.
+                          const Spacer(),
 
                           // Version footer.
                           Center(
