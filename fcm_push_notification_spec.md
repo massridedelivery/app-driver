@@ -32,7 +32,7 @@ The backend stores the latest token per driver and sends to it on job assignment
     "data": { "route": "/incoming-job" },
     "android": {
       "priority": "high",
-      "notification": { "channel_id": "job_offer_channel_v1" }
+      "notification": { "channel_id": "job_offer_channel_v2" }
     },
     "apns": {
       "headers": { "apns-priority": "10" },
@@ -48,7 +48,7 @@ The backend stores the latest token per driver and sends to it on job assignment
   can arrive silently or be throttled — the driver misses the job.
 - **Loud alert:** to ring with the custom Grab/LineMan-style sound:
   - **Android:** `android.notification.channel_id` **must** be
-    `job_offer_channel_v1` (a dedicated channel the app creates: custom sound
+    `job_offer_channel_v2` (a dedicated channel the app creates: custom sound
     `job_alert`, importance MAX, `USAGE_ALARM`). Using `high_importance_channel`
     (or omitting it) rings the **default** sound.
   - **iOS:** `apns.payload.aps.sound` **must** be `job_alert.caf` (bundled in the
@@ -72,7 +72,7 @@ The backend stores the latest token per driver and sends to it on job assignment
 - `lib/core/services/push_notification_service.dart` — channels + handlers.
 - `android/app/src/main/res/raw/job_alert.wav` — Android custom sound.
 - `ios/Runner/job_alert.caf` — iOS custom sound (bundled in the Runner target).
-- Channel id `job_offer_channel_v1` is versioned: a channel's sound is immutable
+- Channel id `job_offer_channel_v2` is versioned: a channel's sound is immutable
   once created, so bump `_vN` when the sound file changes.
 
 ## Troubleshooting: token registers fine, but nothing arrives
