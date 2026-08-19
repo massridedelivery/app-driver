@@ -1,18 +1,88 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
-class IncomingFoodModal extends ConsumerWidget {
+class IncomingFoodModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
 
   const IncomingFoodModal({super.key, required this.job});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IncomingFoodModal> createState() => _IncomingFoodModalState();
+}
+
+class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
+  Timer? _timer;
+
+  /// Total window (seconds) the driver has to accept, from the offer.
+  late final int _totalSeconds;
+
+  /// Seconds left on the accept window; drives the button label + progress bar.
+  late int _remaining;
+
+  /// Guards against firing accept/decline twice (e.g. tap racing the timeout).
+  bool _resolved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalSeconds = widget.job.timeoutSeconds > 0
+        ? widget.job.timeoutSeconds
+        : 15;
+    _remaining = _totalSeconds;
+    _startCountdown();
+  }
+
+  void _startCountdown() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_remaining <= 1) {
+        // Window elapsed. Auto-accept only if the driver opted in; otherwise
+        // the offer auto-cancels.
+        if (ref.read(autoAcceptProvider)) {
+          _accept();
+        } else {
+          _decline();
+        }
+      } else {
+        setState(() => _remaining--);
+      }
+    });
+  }
+
+  void _accept() {
+    if (_resolved) return;
+    _resolved = true;
+    _timer?.cancel();
+    ref.read(incomingJobControllerProvider.notifier).acceptFoodJob();
+  }
+
+  void _decline() {
+    if (_resolved) return;
+    _resolved = true;
+    _timer?.cancel();
+    ref.read(incomingJobControllerProvider.notifier).declineJob();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  IncomingJobModel get job => widget.job;
+
+  @override
+  Widget build(BuildContext context) {
+    final autoAccept = ref.watch(autoAcceptProvider);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.semanticGrayNeutralFgMidOnBlack,
@@ -60,10 +130,17 @@ class IncomingFoodModal extends ConsumerWidget {
 
               // Order summary
               _buildOrderSummary(),
-              const SizedBox(height: AppSpacing.s5),
+              const SizedBox(height: AppSpacing.s4),
 
-              // Action Buttons
-              _buildActionButtons(context, ref),
+              // Shared accept/decline footer: auto-accept caption, progress bar
+              // and the large cancel/accept pills — same flow as the ride offer.
+              JobOfferActionBar(
+                remaining: _remaining,
+                totalSeconds: _totalSeconds,
+                autoAccept: autoAccept,
+                onAccept: _accept,
+                onDecline: _decline,
+              ),
             ],
           ),
         ),
@@ -187,7 +264,7 @@ class IncomingFoodModal extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -359,7 +436,7 @@ class IncomingFoodModal extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -390,58 +467,6 @@ class IncomingFoodModal extends ConsumerWidget {
       children: [
         Text(label, style: style),
         Text(value, style: style),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              ref
-                  .read(incomingJobControllerProvider.notifier)
-                  .declineJob();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.semanticSupportRedBgHigh,
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.s4),
-              ),
-            ),
-            child: Text(
-              'ยกเลิก',
-              style: AppTypography.heading6.copyWith(
-                color: AppColors.semanticGrayNeutralFgWhite,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.s3),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              ref
-                  .read(incomingJobControllerProvider.notifier)
-                  .acceptFoodJob();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.foundationOrange600,
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.s4),
-              ),
-            ),
-            child: Text(
-              'รับงาน',
-              style: AppTypography.heading6.copyWith(
-                color: AppColors.semanticGrayNeutralFgWhite,
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
