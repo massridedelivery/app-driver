@@ -34,9 +34,11 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   @override
   void initState() {
     super.initState();
+    // Fixed 16s accept window (the backend sends no timeout_seconds, so this
+    // is the app-side source of truth — same value across ride/food/messenger).
     _totalSeconds = widget.job.timeoutSeconds > 0
         ? widget.job.timeoutSeconds
-        : 15;
+        : 16;
     _remaining = _totalSeconds;
     _startCountdown();
   }

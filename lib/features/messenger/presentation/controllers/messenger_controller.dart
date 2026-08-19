@@ -18,7 +18,9 @@ part 'messenger_controller.g.dart';
 /// Drives the messenger offer + active-delivery lifecycle (SCRUM-41 §6/§7).
 @Riverpod(keepAlive: true)
 class MessengerController extends _$MessengerController {
-  static const _offerWindow = Duration(seconds: 60);
+  // 16s accept window, matching ride/food (the visible countdown in the offer
+  // sheet). Background safety net for offers whose sheet never rendered.
+  static const _offerWindow = Duration(seconds: 16);
 
   StreamSubscription? _socketSub;
   Timer? _offerTimeout;
@@ -53,7 +55,7 @@ class MessengerController extends _$MessengerController {
     return const MessengerState();
   }
 
-  /// Show an incoming offer and start the 60s accept window.
+  /// Show an incoming offer and start the 16s accept window.
   void receiveOffer(MessengerOffer offer) {
     _offerTimeout?.cancel();
     state = state.copyWith(

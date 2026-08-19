@@ -13,7 +13,7 @@ import 'package:massdrive/features/messenger/presentation/controllers/messenger_
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
-/// on a 60s window (SCRUM-41 §6). Shares the ride offer's look and flow
+/// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
 /// (net income, timeline, auto-accept countdown, cancel/accept pills).
 class MessengerOfferScreen extends ConsumerWidget {
   const MessengerOfferScreen({super.key});
@@ -92,8 +92,8 @@ class _OfferSheet extends ConsumerStatefulWidget {
 }
 
 class _OfferSheetState extends ConsumerState<_OfferSheet> {
-  /// Messenger accept window (SCRUM-41 §6).
-  static const int _totalSeconds = 60;
+  /// Messenger accept window — 16s, matching ride/food.
+  static const int _totalSeconds = 16;
 
   Timer? _timer;
   int _remaining = _totalSeconds;
