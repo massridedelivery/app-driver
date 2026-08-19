@@ -19,6 +19,11 @@ class ReviewCustomerScreen extends ConsumerStatefulWidget {
   /// Secondary line under the name (e.g. phone or a vertical label).
   final String? subtitle;
 
+  /// UI-preview bypass (dev entry): skip the API call — which 404s until the
+  /// backend ships (SCRUM-70) — and just confirm the flow. Lets the screen be
+  /// checked on-device without a real completed job.
+  final bool previewMode;
+
   const ReviewCustomerScreen({
     super.key,
     required this.jobId,
@@ -26,6 +31,7 @@ class ReviewCustomerScreen extends ConsumerStatefulWidget {
     this.customerName = 'ลูกค้า',
     this.avatarUrl,
     this.subtitle,
+    this.previewMode = false,
   });
 
   @override
@@ -56,7 +62,13 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
   }
 
   void _goHome() {
-    if (mounted) context.go(AppRoutes.homeNamedPage);
+    if (!mounted) return;
+    // In preview (opened from the dev entry via push), return to the caller.
+    if (widget.previewMode && context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(AppRoutes.homeNamedPage);
   }
 
   Future<void> _submit() async {
@@ -68,6 +80,22 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
             backgroundColor: AppColors.semanticGrayNeutralFgHigh,
             content: Text(
               'กรุณาให้คะแนนลูกค้าก่อนนะครับ',
+              style: AppTypography.caption4.copyWith(color: Colors.white),
+            ),
+          ),
+        );
+      return;
+    }
+
+    // UI-preview bypass: don't call the (not-yet-built) API; show a note.
+    if (widget.previewMode) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.foundationGreen700,
+            content: Text(
+              'โหมดตัวอย่าง: ยังไม่ส่งจริง (รอ BE — SCRUM-70)  ★$_rating',
               style: AppTypography.caption4.copyWith(color: Colors.white),
             ),
           ),

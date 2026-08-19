@@ -199,6 +199,7 @@ class AppRouter {
               customerName: extra['customerName'] as String? ?? 'ลูกค้า',
               avatarUrl: extra['avatarUrl'] as String?,
               subtitle: extra['subtitle'] as String?,
+              previewMode: extra['previewMode'] as bool? ?? false,
             ),
           );
         },
