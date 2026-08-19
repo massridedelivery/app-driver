@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -109,5 +111,24 @@ class AuthController extends _$AuthController {
       SessionNotifier.instance.setAuthenticated(false);
       await refresh();
     }
+  }
+
+  /// Permanently deletes the driver's account server-side (SCRUM-61,
+  /// DELETE /api/driver/account with an optional `{reason}`), then tears down
+  /// the local session so the app returns to login.
+  ///
+  /// A delete failure is rethrown BEFORE any local logout — the account still
+  /// exists, so the caller must surface the error rather than silently signing
+  /// the driver out.
+  Future<void> deleteAccount({String? reason}) async {
+    final dio = massdrive_di.getIt<Dio>();
+    await dio.delete(
+      Endpoints.driverAccount,
+      data: (reason != null && reason.trim().isNotEmpty)
+          ? {'reason': reason.trim()}
+          : null,
+    );
+    // Server-side deletion succeeded — clear the local session too.
+    await logout();
   }
 }

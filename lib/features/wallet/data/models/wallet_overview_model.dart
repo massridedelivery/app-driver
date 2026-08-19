@@ -28,7 +28,7 @@ class WalletOverviewModel {
   @JsonKey(defaultValue: 'THB')
   final String currency;
 
-  // ── no-range (rolling breakdown) ──
+  // ── no-range (rolling breakdown) — NET, can be negative ──
   @JsonKey(defaultValue: 0.0)
   final double todayEarnings;
   @JsonKey(defaultValue: 0.0)
@@ -37,6 +37,17 @@ class WalletOverviewModel {
   final double thisMonthEarnings;
   @JsonKey(defaultValue: 0.0)
   final double thisYearEarnings;
+
+  // ── gross earned (fares + bonuses, never negative) — SCRUM-67 ──
+  // Snake-renamed to today_gross_earnings / this_week_gross_earnings / …
+  @JsonKey(defaultValue: 0.0)
+  final double todayGrossEarnings;
+  @JsonKey(defaultValue: 0.0)
+  final double thisWeekGrossEarnings;
+  @JsonKey(defaultValue: 0.0)
+  final double thisMonthGrossEarnings;
+  @JsonKey(defaultValue: 0.0)
+  final double thisYearGrossEarnings;
 
   // ── ranged (single window) ──
   /// Period total when start_date & end_date are supplied.
@@ -62,6 +73,10 @@ class WalletOverviewModel {
     this.thisWeekEarnings = 0.0,
     this.thisMonthEarnings = 0.0,
     this.thisYearEarnings = 0.0,
+    this.todayGrossEarnings = 0.0,
+    this.thisWeekGrossEarnings = 0.0,
+    this.thisMonthGrossEarnings = 0.0,
+    this.thisYearGrossEarnings = 0.0,
     this.earnings = 0.0,
     this.totalTripsToday = 0,
     this.isVerified = false,
@@ -83,6 +98,10 @@ class WalletOverviewModel {
       thisWeekEarnings: thisWeekEarnings,
       thisMonthEarnings: thisMonthEarnings,
       thisYearEarnings: thisYearEarnings,
+      todayGrossEarnings: todayGrossEarnings,
+      thisWeekGrossEarnings: thisWeekGrossEarnings,
+      thisMonthGrossEarnings: thisMonthGrossEarnings,
+      thisYearGrossEarnings: thisYearGrossEarnings,
       earnings: earnings,
       totalTripsToday: totalTripsToday,
       isVerified: isVerified,
