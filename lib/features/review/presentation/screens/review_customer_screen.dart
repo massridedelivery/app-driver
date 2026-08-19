@@ -62,13 +62,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
   }
 
   void _goHome() {
-    if (!mounted) return;
-    // In preview (opened from the dev entry via push), return to the caller.
-    if (widget.previewMode && context.canPop()) {
-      context.pop();
-      return;
-    }
-    context.go(AppRoutes.homeNamedPage);
+    if (mounted) context.go(AppRoutes.homeNamedPage);
   }
 
   Future<void> _submit() async {
@@ -87,19 +81,9 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
       return;
     }
 
-    // UI-preview bypass: don't call the (not-yet-built) API; show a note.
+    // UI-preview bypass: skip the (not-yet-built) API and just go home.
     if (widget.previewMode) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.foundationGreen700,
-            content: Text(
-              'โหมดตัวอย่าง: ยังไม่ส่งจริง (รอ BE — SCRUM-70)  ★$_rating',
-              style: AppTypography.caption4.copyWith(color: Colors.white),
-            ),
-          ),
-        );
+      _goHome();
       return;
     }
 
