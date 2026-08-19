@@ -8,6 +8,7 @@ import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart'
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/states/messenger_state.dart';
+import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -62,7 +63,14 @@ class MessengerController extends _$MessengerController {
     AppRouter.router.go('/messenger-offer');
     _offerTimeout = Timer(_offerWindow, () {
       if (state.currentOffer?.id == offer.id && state.isModalVisible) {
-        dismissOffer();
+        // Match the ride/food flow: when the window closes, honour the driver's
+        // auto-accept preference. Safety net for an offer whose sheet never
+        // rendered (e.g. arrived while backgrounded).
+        if (ref.read(autoAcceptProvider)) {
+          acceptOffer();
+        } else {
+          dismissOffer();
+        }
       }
     });
   }

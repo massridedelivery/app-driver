@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -278,110 +279,14 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
 
               const SizedBox(height: AppSpacing.s4),
 
-              // What happens when the countdown hits 0, driven by the
-              // auto-accept preference.
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    autoAccept ? Icons.bolt : Icons.timer_outlined,
-                    color: autoAccept
-                        ? AppColors.semanticSuccessBgHigh
-                        : AppColors.foundationAlphaWhite500,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    autoAccept
-                        ? 'รับงานอัตโนมัติใน $_remaining วินาที'
-                        : 'ยกเลิกอัตโนมัติใน $_remaining วินาที',
-                    style: AppTypography.caption4.copyWith(
-                      color: AppColors.foundationAlphaWhite500,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s2),
-
-              // Accept window progress bar — depletes as the countdown runs.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: _totalSeconds == 0 ? 0 : _remaining / _totalSeconds,
-                  minHeight: 4,
-                  backgroundColor: Colors.white12,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _remaining <= 5
-                        ? AppColors.semanticSupportRedBgHigh
-                        : AppColors.semanticSuccessBgHigh,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.s3),
-
-              // Action Buttons — large, thumb-friendly pills.
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: _decline,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.semanticSupportRedBgHigh,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.s5),
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            // Countdown sits on whichever action fires at 0:
-                            // the cancel button when auto-accept is off. Keep it
-                            // on one line — the narrow cancel button otherwise
-                            // wraps "ยกเลิก (14)" onto two lines.
-                            autoAccept ? 'ยกเลิก' : 'ยกเลิก ($_remaining)',
-                            maxLines: 1,
-                            softWrap: false,
-                            style: AppTypography.heading5.copyWith(
-                              color: AppColors.semanticGrayNeutralFgWhite,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s3),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: _accept,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.semanticSuccessBgHigh,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.s5),
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            // Countdown shows here only when auto-accept is on
-                            // (this is the action that fires at 0).
-                            autoAccept ? 'รับงาน ($_remaining)' : 'รับงาน',
-                            maxLines: 1,
-                            softWrap: false,
-                            style: AppTypography.heading5.copyWith(
-                              color: AppColors.semanticGrayNeutralFgWhite,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              // Shared accept/decline footer: auto-accept caption, progress bar
+              // and the large cancel/accept pills.
+              JobOfferActionBar(
+                remaining: _remaining,
+                totalSeconds: _totalSeconds,
+                autoAccept: autoAccept,
+                onAccept: _accept,
+                onDecline: _decline,
               ),
             ],
           ),
