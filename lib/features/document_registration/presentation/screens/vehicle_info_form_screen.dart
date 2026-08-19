@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -61,8 +62,11 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  /// Ask camera vs gallery, then pick.
+  Future<void> _chooseAndPickImage() async {
+    final source = await showImageSourceSheet(context);
+    if (source == null) return;
+    final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -177,7 +181,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
             ),
             const SizedBox(height: 8),
             GestureDetector(
-              onTap: _pickImage,
+              onTap: _chooseAndPickImage,
               child: Container(
                 height: 150,
                 decoration: BoxDecoration(
