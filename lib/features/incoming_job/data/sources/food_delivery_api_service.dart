@@ -4,6 +4,7 @@ import 'package:massdrive/core/constants/endpoints.dart';
 
 abstract class FoodDeliveryApiService {
   Future<Response> acceptOrder(String orderId);
+  Future<Response> rejectOrder(String orderId);
   Future<Response> pickedUpOrder(String orderId);
   Future<Response> deliveredOrder(String orderId);
   Future<Response<List<dynamic>>> getActiveOrders();
@@ -18,6 +19,15 @@ class FoodDeliveryApiServiceImpl implements FoodDeliveryApiService {
   @override
   Future<Response> acceptOrder(String orderId) async {
     final endpoint = Endpoints.foodDriverOrdersAccept.replaceAll(
+      ':id',
+      orderId,
+    );
+    return await _dio.post(endpoint);
+  }
+
+  @override
+  Future<Response> rejectOrder(String orderId) async {
+    final endpoint = Endpoints.foodDriverOrdersReject.replaceAll(
       ':id',
       orderId,
     );

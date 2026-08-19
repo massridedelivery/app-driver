@@ -218,6 +218,28 @@ class IncomingJobController extends _$IncomingJobController {
     AppRouter.router.go(AppRoutes.homeNamedPage);
   }
 
+  /// Decline a food delivery offer via REST. Food orders live in a separate
+  /// backend service with their own reject endpoint (POST .../orders/:id/reject
+  /// to release the offer lock) — the WS `reject_job` used by [declineJob] only
+  /// touches the ride dispatcher, so a food decline must go through here.
+  Future<void> declineFoodJob() async {
+    PushNotificationService.instance.cancelJobAlerts();
+    final job = state.currentJob;
+    state = state.copyWith(isModalVisible: false, currentJob: null);
+    if (job != null) {
+      try {
+        await getIt<FoodDeliveryApiService>().rejectOrder(job.jobId);
+      } catch (e) {
+        // Best-effort: the offer still disappears client-side and the server
+        // lock expires on its own; don't strand the driver on a failure.
+        if (kDebugMode) {
+          debugPrint('IncomingJobController: ❌ Failed to reject food job: $e');
+        }
+      }
+    }
+    AppRouter.router.go(AppRoutes.homeNamedPage);
+  }
+
   void dismissModal() {
     state = state.copyWith(isModalVisible: false, currentJob: null);
     _sendLocationUpdate();
