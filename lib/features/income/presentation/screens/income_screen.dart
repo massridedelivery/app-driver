@@ -36,7 +36,13 @@ class IncomeScreen extends ConsumerWidget {
                   ref.read(walletControllerProvider.notifier).fetchAll(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                // Clear the Android edge-to-edge system nav at the bottom.
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

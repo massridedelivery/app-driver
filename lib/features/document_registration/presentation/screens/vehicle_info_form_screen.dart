@@ -142,7 +142,14 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(24.0),
+          // Clear the Android edge-to-edge system nav so the submit button
+          // isn't hidden behind it.
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.viewPaddingOf(context).bottom,
+          ),
           children: [
             _buildTextField(
               'ยี่ห้อ (Brand)',

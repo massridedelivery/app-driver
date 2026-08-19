@@ -33,6 +33,10 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings Screen')),
       body: SingleChildScrollView(
+        // Clear the Android edge-to-edge system nav.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+        ),
         child: Column(
           children: [
             Text(

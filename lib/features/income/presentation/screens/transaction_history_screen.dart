@@ -112,7 +112,8 @@ class _TransactionHistoryScreenState
   Widget _buildList(List<Transaction> transactions, bool isLoadingMore) {
     return ListView.separated(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      // Clear the Android edge-to-edge system nav.
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
       itemCount: transactions.length + (isLoadingMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {

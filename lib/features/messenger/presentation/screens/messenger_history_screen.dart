@@ -80,7 +80,8 @@ class _MessengerHistoryScreenState extends State<MessengerHistoryScreen> {
               ? _buildEmpty()
               : ListView.separated(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
+                  // Clear the Android edge-to-edge system nav.
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
                   itemCount: _orders.length + (_isLoading ? 1 : 0),
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {

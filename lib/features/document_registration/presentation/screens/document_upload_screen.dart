@@ -236,7 +236,14 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          // Clear the Android edge-to-edge system nav so the submit button
+          // isn't hidden behind it.
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.viewPaddingOf(context).bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

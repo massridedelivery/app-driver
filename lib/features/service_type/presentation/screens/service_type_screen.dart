@@ -39,6 +39,10 @@ class ServiceTypeScreen extends ConsumerWidget {
         child: profileState.isLoading || profileState.profile == null
             ? const Center(child: MassLoadingM(size: 72))
             : ListView.separated(
+                // Clear the Android edge-to-edge system nav.
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+                ),
                 itemCount: vehicleTypes.length,
                 separatorBuilder: (context, index) => const Divider(
                   color: AppColors.semanticGrayNeutralFgLowOnGray,
