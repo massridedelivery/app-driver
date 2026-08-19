@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../controllers/registration_controller.dart';
 
 class ConsentScreen extends ConsumerStatefulWidget {
@@ -21,7 +23,6 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
         .submitApplication("mock_driver_123", true);
 
     if (success && mounted) {
-      // Navigate to Home or simply show success message
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -33,8 +34,11 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(ctx);
-                context.pop(); // Pop dialog
+                Navigator.pop(ctx); // close the dialog
+                // Refresh the profile so home shows the "under review" state,
+                // then return to the home page (clears the registration stack).
+                ref.read(profileControllerProvider.notifier).fetchProfile();
+                context.go(AppRoutes.homeNamedPage);
               },
               child: const Text('ตกลง'),
             ),
