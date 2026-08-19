@@ -6,6 +6,8 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/core/services/connectivity_monitor.dart';
+import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
@@ -30,6 +32,14 @@ class SettingScreen extends ConsumerWidget {
 
             const _AccountTile(),
 
+            const _Divider(),
+
+            SectionHeader(
+              title: "การเชื่อมต่ออินเทอร์เน็ต",
+              textColor: AppColors.semanticGrayNeutralBgWhite,
+            ),
+
+            const _ConnectivityCard(),
             const _Divider(),
 
             SectionHeader(
@@ -249,6 +259,147 @@ class _LeadingIconBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Live internet-stability indicator + alert. Watches [connectivityMonitorProvider]:
+/// green when stable, amber on a weak/unstable signal, red when offline — and
+/// toasts a warning the moment the connection degrades while this screen is open.
+class _ConnectivityCard extends ConsumerWidget {
+  const _ConnectivityCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Alert on degrade: fire a toast when quality drops to weak/offline.
+    ref.listen<NetworkStatus>(connectivityMonitorProvider, (prev, next) {
+      if (prev?.quality == next.quality) return;
+      if (next.quality == NetworkQuality.offline) {
+        ToastUtil.showErrorToast('ไม่มีสัญญาณอินเทอร์เน็ต');
+      } else if (next.quality == NetworkQuality.weak) {
+        ToastUtil.showErrorToast('สัญญาณอินเทอร์เน็ตอ่อน / ไม่เสถียร');
+      }
+    });
+
+    final status = ref.watch(connectivityMonitorProvider);
+    final v = _visualFor(status);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: v.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: v.accent.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: v.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: status.quality == NetworkQuality.checking
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: v.accent,
+                    ),
+                  )
+                : Icon(v.icon, color: v.accent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  v.title,
+                  style: AppTypography.caption3.copyWith(
+                    color: AppColors.semanticGrayNeutralBgWhite,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  v.subtitle,
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.foundationAlphaWhite400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () =>
+                ref.read(connectivityMonitorProvider.notifier).refresh(),
+            icon: const Icon(
+              Icons.refresh,
+              color: AppColors.semanticGrayNeutralFgLowOnGray,
+            ),
+            tooltip: 'ตรวจสอบอีกครั้ง',
+          ),
+        ],
+      ),
+    );
+  }
+
+  _ConnectivityVisual _visualFor(NetworkStatus s) {
+    final ping = s.latencyMs != null ? ' · ${s.latencyMs} ms' : '';
+    final net = s.isMobile ? 'เน็ตมือถือ' : 'Wi-Fi';
+    switch (s.quality) {
+      case NetworkQuality.good:
+        return _ConnectivityVisual(
+          icon: Icons.wifi,
+          accent: AppColors.semanticSuccessBgHigh,
+          background: AppColors.foundationAlphaWhite100,
+          title: 'อินเทอร์เน็ตเสถียร',
+          subtitle: '$net$ping',
+        );
+      case NetworkQuality.weak:
+        return _ConnectivityVisual(
+          icon: Icons.network_check,
+          accent: AppColors.foundationOrange500,
+          background: AppColors.foundationOrange500.withValues(alpha: 0.12),
+          title: 'สัญญาณอ่อน / ไม่เสถียร',
+          subtitle: 'การเชื่อมต่อช้า อาจรับงานไม่ทัน$ping',
+        );
+      case NetworkQuality.offline:
+        return _ConnectivityVisual(
+          icon: Icons.wifi_off,
+          accent: AppColors.semanticErrorFgHigh,
+          background: AppColors.semanticErrorFgHigh.withValues(alpha: 0.12),
+          title: s.hasCarrier ? 'เชื่อมต่ออินเทอร์เน็ตไม่ได้' : 'ไม่มีสัญญาณ',
+          subtitle: 'ตรวจสอบ Wi-Fi หรือเน็ตมือถือของคุณ',
+        );
+      case NetworkQuality.checking:
+        return _ConnectivityVisual(
+          icon: Icons.wifi_find,
+          accent: AppColors.semanticGrayNeutralFgLowOnGray,
+          background: AppColors.foundationAlphaWhite100,
+          title: 'กำลังตรวจสอบการเชื่อมต่อ...',
+          subtitle: 'โปรดรอสักครู่',
+        );
+    }
+  }
+}
+
+class _ConnectivityVisual {
+  final IconData icon;
+  final Color accent;
+  final Color background;
+  final String title;
+  final String subtitle;
+  const _ConnectivityVisual({
+    required this.icon,
+    required this.accent,
+    required this.background,
+    required this.title,
+    required this.subtitle,
+  });
 }
 
 class _AccountTile extends ConsumerWidget {
