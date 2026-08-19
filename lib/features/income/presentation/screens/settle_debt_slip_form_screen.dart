@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
@@ -40,8 +41,12 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  /// Ask camera vs gallery, then pick. A transfer slip is usually a banking-app
+  /// screenshot (gallery), but a paper counter slip can be photographed.
+  Future<void> _chooseAndPickImage() async {
+    final source = await showImageSourceSheet(context);
+    if (source == null) return;
+    final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -214,7 +219,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               ),
               const SizedBox(height: 12),
               GestureDetector(
-                onTap: _pickImage,
+                onTap: _chooseAndPickImage,
                 child: Container(
                   height: 180,
                   decoration: BoxDecoration(
