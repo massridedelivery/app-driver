@@ -16,6 +16,8 @@ import 'package:massdrive/features/auth/presentation/screens/register_screen.dar
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
 import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
+import 'package:massdrive/features/review/data/customer_review_api.dart';
+import 'package:massdrive/features/review/presentation/screens/review_customer_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/food_live/presentation/screens/food_live_screen.dart';
@@ -180,6 +182,23 @@ class AppRouter {
               amount: (extra?['amount'] as num?)?.toDouble(),
               methodLabel: extra?['method'] as String?,
               title: extra?['title'] as String?,
+              orderId: extra?['orderId'] as String?,
+              service: extra?['service'] as ReviewService?,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/review-customer',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return NoTransitionPage(
+            child: ReviewCustomerScreen(
+              jobId: extra['jobId'] as String? ?? '',
+              service: extra['service'] as ReviewService? ?? ReviewService.ride,
+              customerName: extra['customerName'] as String? ?? 'ลูกค้า',
+              avatarUrl: extra['avatarUrl'] as String?,
+              subtitle: extra['subtitle'] as String?,
             ),
           );
         },

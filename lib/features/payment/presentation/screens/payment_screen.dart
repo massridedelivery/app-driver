@@ -7,6 +7,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/review/data/customer_review_api.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -20,6 +21,12 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final String? methodLabel;
   final String? title;
 
+  /// Review context for verticals whose job isn't in the ride controller
+  /// (messenger passes its order id + service so the post-payment review can
+  /// attach to the right order).
+  final String? orderId;
+  final ReviewService? service;
+
   const PaymentScreen({
     super.key,
     this.passengerName = 'ลูกค้า',
@@ -27,6 +34,8 @@ class PaymentScreen extends ConsumerStatefulWidget {
     this.amount,
     this.methodLabel,
     this.title,
+    this.orderId,
+    this.service,
   });
 
   @override
@@ -61,6 +70,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   void _onConfirmPayment() {
+    // Capture the review context BEFORE clearing the job state below.
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    final reviewId = job?.jobId ?? widget.orderId;
+    final reviewService =
+        widget.service ??
+        ((job?.isFood ?? false) ? ReviewService.food : ReviewService.ride);
+    final customerName =
+        widget.title ?? job?.passengerName ?? widget.passengerName;
+
     // 1. Dismiss modal and clear current job state (IncomingJobController)
     ref.read(incomingJobControllerProvider.notifier).dismissModal();
 
@@ -71,9 +89,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     // setStatus(true, force: true) will automatically call connect() and start location updates
     ref.read(onlineStatusProvider.notifier).setStatus(true, force: true);
 
-    // 4. Return to home. Not '/', which matches no route and only looks right
-    // because errorBuilder renders HomeScreen.
-    if (mounted) {
+    if (!mounted) return;
+
+    // 4. Ask the driver to rate the customer, then home. With no job id to
+    // attach the review to, go straight home. ('/' matches no route and only
+    // looks right because errorBuilder renders HomeScreen.)
+    if (reviewId != null && reviewId.isNotEmpty) {
+      context.go(
+        '/review-customer',
+        extra: {
+          'jobId': reviewId,
+          'service': reviewService,
+          'customerName': customerName,
+        },
+      );
+    } else {
       context.go(AppRoutes.homeNamedPage);
     }
   }
