@@ -6,24 +6,31 @@ part of 'wallet_overview_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-WalletOverviewModel _$WalletOverviewModelFromJson(Map<String, dynamic> json) =>
-    WalletOverviewModel(
-      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
-      availableBalance: (json['available_balance'] as num?)?.toDouble() ?? 0.0,
-      withdrawn: (json['withdrawn'] as num?)?.toDouble() ?? 0.0,
-      currency: json['currency'] as String? ?? 'THB',
-      todayEarnings: (json['today_earnings'] as num?)?.toDouble() ?? 0.0,
-      thisWeekEarnings: (json['this_week_earnings'] as num?)?.toDouble() ?? 0.0,
-      thisMonthEarnings:
-          (json['this_month_earnings'] as num?)?.toDouble() ?? 0.0,
-      thisYearEarnings: (json['this_year_earnings'] as num?)?.toDouble() ?? 0.0,
-      earnings: (json['earnings'] as num?)?.toDouble() ?? 0.0,
-      totalTripsToday: (json['total_trips'] as num?)?.toInt() ?? 0,
-      isVerified: json['is_verified'] as bool? ?? false,
-      lastUpdated: json['last_updated'] == null
-          ? null
-          : DateTime.parse(json['last_updated'] as String),
-    );
+WalletOverviewModel _$WalletOverviewModelFromJson(
+  Map<String, dynamic> json,
+) => WalletOverviewModel(
+  balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
+  availableBalance: (json['available_balance'] as num?)?.toDouble() ?? 0.0,
+  withdrawn: (json['withdrawn'] as num?)?.toDouble() ?? 0.0,
+  currency: json['currency'] as String? ?? 'THB',
+  todayEarnings: (json['today_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisWeekEarnings: (json['this_week_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisMonthEarnings: (json['this_month_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisYearEarnings: (json['this_year_earnings'] as num?)?.toDouble() ?? 0.0,
+  todayGrossEarnings: (json['today_gross_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisWeekGrossEarnings:
+      (json['this_week_gross_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisMonthGrossEarnings:
+      (json['this_month_gross_earnings'] as num?)?.toDouble() ?? 0.0,
+  thisYearGrossEarnings:
+      (json['this_year_gross_earnings'] as num?)?.toDouble() ?? 0.0,
+  earnings: (json['earnings'] as num?)?.toDouble() ?? 0.0,
+  totalTripsToday: (json['total_trips'] as num?)?.toInt() ?? 0,
+  isVerified: json['is_verified'] as bool? ?? false,
+  lastUpdated: json['last_updated'] == null
+      ? null
+      : DateTime.parse(json['last_updated'] as String),
+);
 
 Map<String, dynamic> _$WalletOverviewModelToJson(
   WalletOverviewModel instance,
@@ -36,6 +43,10 @@ Map<String, dynamic> _$WalletOverviewModelToJson(
   'this_week_earnings': instance.thisWeekEarnings,
   'this_month_earnings': instance.thisMonthEarnings,
   'this_year_earnings': instance.thisYearEarnings,
+  'today_gross_earnings': instance.todayGrossEarnings,
+  'this_week_gross_earnings': instance.thisWeekGrossEarnings,
+  'this_month_gross_earnings': instance.thisMonthGrossEarnings,
+  'this_year_gross_earnings': instance.thisYearGrossEarnings,
   'earnings': instance.earnings,
   'total_trips': instance.totalTripsToday,
   'is_verified': instance.isVerified,

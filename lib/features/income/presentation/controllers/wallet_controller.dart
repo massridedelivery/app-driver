@@ -7,8 +7,6 @@ import 'package:massdrive/features/document_registration/data/sources/media_api_
 import 'package:massdrive/features/document_registration/domain/repositories/document_registration_repository.dart';
 import 'package:massdrive/features/income/domain/repositories/wallet_repository.dart';
 import 'package:massdrive/features/income/presentation/states/wallet_state.dart';
-import 'package:massdrive/features/wallet/data/sources/transaction_api_service.dart';
-import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/usecases/get_wallet_overview_usecase.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
@@ -42,13 +40,11 @@ class WalletController extends _$WalletController {
       final useCase = getIt<GetWalletOverviewUseCase>();
       final overview = await useCase.execute();
 
-      // The API's earnings figures net commission/COD movements into the
-      // number and can go NEGATIVE — the headline then reads "-฿200 earned
-      // today" even though the driver actually took in fares. Never show a
-      // negative "earned" figure; the real gross is computed from the
-      // transaction ledger below.
-      double floor0(double v) => v < 0 ? 0.0 : v;
-
+      // The gross figures (SCRUM-67) are the real money the driver took in
+      // (fares + bonuses, never negative), computed server-side. The net
+      // *_earnings fields still net commission/COD and can go negative, so
+      // the headline uses gross — including for the year, which the old
+      // client-side ledger workaround couldn't cover.
       state = state.copyWith(
         balance: overview.balance,
         currentBalance: overview.balance,
@@ -58,20 +54,15 @@ class WalletController extends _$WalletController {
         lastUpdated: overview.lastUpdated ?? DateTime.now(),
         // Rolling breakdown comes in the single no-range earnings response
         // (v1.6.0-dev16) — no separate ranged call needed.
-        earningsToday: floor0(overview.todayEarnings),
-        earningsWeek: floor0(overview.thisWeekEarnings),
-        earningsMonth: floor0(overview.thisMonthEarnings),
-        earningsYear: floor0(overview.thisYearEarnings),
+        earningsToday: overview.todayGrossEarnings,
+        earningsWeek: overview.thisWeekGrossEarnings,
+        earningsMonth: overview.thisMonthGrossEarnings,
+        earningsYear: overview.thisYearGrossEarnings,
         totalTripsToday: overview.totalTripsToday,
         // A previous failure is resolved — clear it so the screen leaves the
         // error state.
         errorMessage: '',
       );
-
-      // Replace the clamped figures with the real gross earned (fares +
-      // bonuses) summed from the ledger. Best-effort — the clamped API values
-      // above remain if this fails.
-      await _computeGrossEarnings();
 
       await fetchPayoutSummary();
       await fetchCodStatus();
@@ -80,73 +71,6 @@ class WalletController extends _$WalletController {
       // This is the screen's primary data. Swallowing the failure leaves the
       // driver looking at zeros with no idea the fetch never landed.
       state = state.copyWith(errorMessage: e.toString());
-    }
-  }
-
-  /// Computes the driver's real gross earnings (เงินที่ได้จริง) for today /
-  /// this week / this month by summing completed FARE_PAYMENT and BONUS
-  /// credits from the transaction ledger — deductions (commission, COD,
-  /// withdrawals) are what push the API's net "earnings" negative, and they
-  /// are not money the driver "earned today".
-  ///
-  /// One date-ranged fetch covers all three buckets (window starts at the
-  /// earlier of the 1st of the month and Monday of this week, so a week that
-  /// spans a month boundary is still complete). Year stays on the clamped API
-  /// value — a year of ledger pages is too much to pull on screen load.
-  Future<void> _computeGrossEarnings() async {
-    try {
-      final api = getIt<TransactionApiService>();
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final weekStart = today.subtract(Duration(days: now.weekday - 1));
-      final monthStart = DateTime(now.year, now.month, 1);
-      final windowStart =
-          weekStart.isBefore(monthStart) ? weekStart : monthStart;
-      String ymd(DateTime t) => '${t.year.toString().padLeft(4, '0')}-'
-          '${t.month.toString().padLeft(2, '0')}-'
-          '${t.day.toString().padLeft(2, '0')}';
-
-      double todaySum = 0, weekSum = 0, monthSum = 0;
-      var query = TransactionQuery(
-        limit: 100,
-        startDate: ymd(windowStart),
-        endDate: ymd(today),
-      );
-      // Bounded pagination — 20 pages × 100 covers ~2000 ledger rows in the
-      // window; beyond that the tail is dropped rather than hammering the API.
-      for (var page = 0; page < 20; page++) {
-        final data = await api.getTransactions(query);
-        final list =
-            (data['transactions'] as List?)?.cast<Map<String, dynamic>>() ??
-                (data['data'] as List?)?.cast<Map<String, dynamic>>() ??
-                [];
-        for (final t in list) {
-          final type = (t['type'] as String? ?? '').toUpperCase();
-          if (type != 'FARE_PAYMENT' && type != 'BONUS') continue;
-          final status = (t['status'] as String? ?? '').toUpperCase();
-          if (status == 'FAILED' || status == 'REJECTED') continue;
-          final amount = (t['amount'] as num?)?.toDouble() ?? 0.0;
-          if (amount <= 0) continue;
-          final created =
-              DateTime.tryParse(t['created_at'] as String? ?? '')?.toLocal();
-          if (created == null) continue;
-          if (!created.isBefore(monthStart)) monthSum += amount;
-          if (!created.isBefore(weekStart)) weekSum += amount;
-          if (!created.isBefore(today)) todaySum += amount;
-        }
-        final total = (data['total'] as num?)?.toInt() ?? list.length;
-        if (list.isEmpty || query.offset + list.length >= total) break;
-        query = query.nextPage();
-      }
-
-      state = state.copyWith(
-        earningsToday: todaySum,
-        earningsWeek: weekSum,
-        earningsMonth: monthSum,
-      );
-    } catch (e) {
-      // Keep the clamped API figures already in state.
-      debugPrint('WalletController: _computeGrossEarnings Error $e');
     }
   }
 

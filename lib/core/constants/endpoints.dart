@@ -108,6 +108,10 @@ abstract class Endpoints {
   /// Lean summary — probe for `type`+`id`, then fetch detail per vertical.
   static const driverActive = '/api/driver/active';
 
+  /// Permanent account deletion (SCRUM-61). DELETE, auth, optional body
+  /// `{ "reason": "..." }`.
+  static const driverAccount = '/api/driver/account';
+
   // MARK: Wallet & Earnings
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';

@@ -8,6 +8,7 @@ import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
@@ -552,11 +553,11 @@ class _VehicleTile extends StatelessWidget {
   }
 }
 
-class _DeleteAccountTile extends StatelessWidget {
+class _DeleteAccountTile extends ConsumerWidget {
   const _DeleteAccountTile();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
         ListTile(
@@ -577,16 +578,14 @@ class _DeleteAccountTile extends StatelessWidget {
             Icons.chevron_right,
             color: AppColors.semanticGrayNeutralFgLowOnGray,
           ),
-          onTap: () {
-            _showDeleteDialog(context);
-          },
+          onTap: () => _showDeleteDialog(context, ref),
         ),
         const Divider(color: Colors.white12, height: 1),
       ],
     );
   }
 
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -621,12 +620,38 @@ class _DeleteAccountTile extends StatelessWidget {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
-              // TODO: call delete API
+              Navigator.pop(context); // close the confirm dialog
+              _performDelete(context, ref);
             },
           ),
         ],
       ),
     );
+  }
+
+  /// Deletes the account server-side then returns to login. Shows a blocking
+  /// loader during the call; on failure the error is surfaced (never silent)
+  /// and the driver stays signed in.
+  Future<void> _performDelete(BuildContext context, WidgetRef ref) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: MassLoadingM(size: 56)),
+    );
+    try {
+      await ref.read(authControllerProvider.notifier).deleteAccount();
+      if (!context.mounted) return;
+      // Clear every imperative route (this screen sits on top of the go_router
+      // stack), then land on login — same teardown as logout.
+      Navigator.of(context, rootNavigator: true)
+          .popUntil((route) => route.isFirst);
+      AppNavigator.go(context, AppRoutes.loginNamedPage);
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss the loader
+      ToastUtil.showErrorToast(
+        'ลบบัญชีไม่สำเร็จ: ${e.toString().replaceFirst('Exception: ', '')}',
+      );
+    }
   }
 }

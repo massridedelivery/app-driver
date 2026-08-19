@@ -14,11 +14,19 @@ class WalletOverview {
   /// ISO 4217 currency code. Not returned by the API — defaults to "THB".
   final String currency;
 
-  /// Rolling breakdown (no-range shape).
+  /// Rolling breakdown (no-range shape) — NET of commission/COD, can be
+  /// negative. Prefer the gross figures below for the "earned" headline.
   final double todayEarnings;
   final double thisWeekEarnings;
   final double thisMonthEarnings;
   final double thisYearEarnings;
+
+  /// Gross earned (fares + bonuses, never negative) — SCRUM-67. What the
+  /// driver actually took in, before commission/COD deductions.
+  final double todayGrossEarnings;
+  final double thisWeekGrossEarnings;
+  final double thisMonthGrossEarnings;
+  final double thisYearGrossEarnings;
 
   /// Period total (ranged shape, when start_date & end_date are supplied).
   final double earnings;
@@ -42,6 +50,10 @@ class WalletOverview {
     this.thisWeekEarnings = 0.0,
     this.thisMonthEarnings = 0.0,
     this.thisYearEarnings = 0.0,
+    this.todayGrossEarnings = 0.0,
+    this.thisWeekGrossEarnings = 0.0,
+    this.thisMonthGrossEarnings = 0.0,
+    this.thisYearGrossEarnings = 0.0,
     this.earnings = 0.0,
     required this.totalTripsToday,
     required this.isVerified,
