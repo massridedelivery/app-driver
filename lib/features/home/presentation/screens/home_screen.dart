@@ -334,6 +334,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final onlineStatus = ref.watch(onlineStatusProvider);
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
+    // Registration submitted (documents exist) but not yet approved → show the
+    // "under review" state instead of the "register now" CTA.
+    final inReview = !isVerified && (profile?.documents.isNotEmpty ?? false);
 
     // Ensure the offer controllers are initialized early to catch WebSocket
     // messages (job_offer / food_delivery_offer / messenger_offer).
@@ -366,7 +369,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? _buildSkeletonLoading()
               : (isVerified
                     ? _buildBottomSheet()
-                    : _buildUnverifiedBottomSheet()),
+                    : (inReview
+                          ? _buildInReviewBottomSheet()
+                          : _buildUnverifiedBottomSheet())),
           if (onlineStatus.isLoading)
             Container(
               color: Colors.black.withOpacity(0.3),
@@ -540,6 +545,110 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shown once the driver has submitted their documents and is awaiting
+  /// approval — replaces the "register now" CTA with an under-review status.
+  Widget _buildInReviewBottomSheet() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E2F38),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.hourglass_top_rounded,
+                  color: AppColors.foundationOrange500,
+                  size: 56,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'กำลังดำเนินการตรวจสอบข้อมูล',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'ระบบได้รับเอกสารของคุณแล้ว และกำลังตรวจสอบ\n'
+                  'จะแจ้งเตือนอีกครั้งเมื่อผลการพิจารณาเสร็จสิ้น',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption4.copyWith(
+                    color: Colors.white70,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.foundationOrange500.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: AppColors.foundationOrange500.withValues(
+                        alpha: 0.4,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.foundationOrange500,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'อยู่ระหว่างการตรวจสอบ',
+                        style: AppTypography.caption3.copyWith(
+                          color: AppColors.foundationOrange500,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => context.push(
+                    AppRoutes.documentRegistrationChecklistNamedPage,
+                  ),
+                  child: Text(
+                    'ดูสถานะเอกสาร',
+                    style: AppTypography.caption4.copyWith(
+                      color: Colors.white70,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
