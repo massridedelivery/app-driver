@@ -25,6 +25,8 @@ import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
+import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
+import 'package:massdrive/features/document_registration/presentation/controllers/registration_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
@@ -313,6 +315,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
       } else {
         if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
+        // Load the registration status (reads /api/driver/documents) so the
+        // home can show "กำลังดำเนินการตรวจสอบข้อมูล" once the driver has
+        // submitted, rather than the "register now" CTA.
+        if (mounted) {
+          ref.read(registrationControllerProvider.notifier).fetchStatus();
+        }
       }
     });
   }
@@ -334,9 +342,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final onlineStatus = ref.watch(onlineStatusProvider);
     final profile = profileState.profile;
     final isVerified = profile?.isVerified ?? false;
-    // Registration submitted (documents exist) but not yet approved → show the
-    // "under review" state instead of the "register now" CTA.
-    final inReview = !isVerified && (profile?.documents.isNotEmpty ?? false);
+    // "Under review" comes from the registration status, which is derived from
+    // GET /api/driver/documents (see fetchRegistrationStatus). We can't use
+    // profile.documents here — the /api/driver/profile payload leaves that list
+    // empty for a submitted-but-unverified driver, so it would wrongly show the
+    // "register now" CTA. fetchStatus() is kicked off in initState when unverified.
+    final regStatus = ref
+        .watch(registrationControllerProvider)
+        .overallStatus;
+    final inReview =
+        !isVerified && regStatus == RegistrationStateStatus.inReview;
 
     // Ensure the offer controllers are initialized early to catch WebSocket
     // messages (job_offer / food_delivery_offer / messenger_offer).
