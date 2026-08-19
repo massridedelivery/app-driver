@@ -44,6 +44,10 @@ class HistoryDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+            // Clear the Android edge-to-edge system nav.
+            SliverToBoxAdapter(
+              child: SizedBox(height: MediaQuery.viewPaddingOf(context).bottom),
+            ),
           ],
         ),
       ),

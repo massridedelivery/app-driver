@@ -128,6 +128,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                     (state.isLoadingMore ? 1 : 0),
                               ),
                             ),
+                            // Clear the Android edge-to-edge system nav.
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height:
+                                    MediaQuery.viewPaddingOf(context).bottom,
+                              ),
+                            ),
                           ],
                         ),
             ),

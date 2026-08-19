@@ -24,6 +24,8 @@ class SettingScreen extends ConsumerWidget {
       body: Container(
         color: AppColors.semanticGrayNeutralFgHigh,
         child: ListView(
+          // Clear the Android edge-to-edge system nav.
+          padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom + 16),
           children: [
             SectionHeader(
               title: "บัญชี",

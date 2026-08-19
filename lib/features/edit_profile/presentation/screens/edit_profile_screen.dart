@@ -43,7 +43,12 @@ class EditProfileScreen extends ConsumerWidget {
       body: Container(
         color: AppColors.semanticGrayNeutralFgHigh,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          // Clear the Android edge-to-edge system nav.
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.viewPaddingOf(context).bottom,
+          ),
           children: [
             const SizedBox(height: 12),
 

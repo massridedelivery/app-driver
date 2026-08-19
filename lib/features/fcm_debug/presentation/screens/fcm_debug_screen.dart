@@ -51,7 +51,8 @@ class _FcmDebugScreenState extends State<FcmDebugScreen> {
       body: RefreshIndicator(
         onRefresh: () async => setState(() {}),
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // Clear the Android edge-to-edge system nav.
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
           children: [
             _SectionCard(
               title: 'สิทธิ์แจ้งเตือน',
