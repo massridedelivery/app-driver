@@ -8,6 +8,7 @@ import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart'
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/states/messenger_state.dart';
+import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -195,6 +196,9 @@ class MessengerController extends _$MessengerController {
         'amount': order.fare + order.codAmount,
         'method': order.paymentMethod,
         'title': order.recipientName ?? 'ลูกค้า',
+        // So the post-payment review attaches to this messenger order.
+        'orderId': order.id,
+        'service': ReviewService.messenger,
       });
     }
   }
