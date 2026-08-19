@@ -29,7 +29,7 @@ _IncomingJobModel _$IncomingJobModelFromJson(
       readCustomerName(json, 'passenger_name') as String? ?? 'Passenger',
   passengerPhone: readCustomerPhone(json, 'passenger_phone') as String? ?? '',
   itemSummary: json['item_summary'] as String? ?? '',
-  timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 15,
+  timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 16,
   surgeMultiplier: (json['surge_multiplier'] as num?)?.toDouble() ?? 1.0,
   surgeActive: json['surge_active'] as bool? ?? false,
   isScheduled: json['is_scheduled'] as bool? ?? false,
