@@ -139,6 +139,7 @@ abstract class Endpoints {
 
   // MARK: Food Delivery
   static const foodDriverOrdersAccept = '/api/food/driver/orders/:id/accept';
+  static const foodDriverOrdersReject = '/api/food/driver/orders/:id/reject';
   static const foodDriverOrdersPickedUp =
       '/api/food/driver/orders/:id/picked-up';
   static const foodDriverOrdersDelivered =
@@ -161,6 +162,14 @@ abstract class Endpoints {
   static const messengerDriverDelivered =
       '/api/messenger/driver/orders/:id/delivered';
   static const messengerDriverChat = '/api/messenger/driver/orders/:id/chat';
+
+  // MARK: Driver → Customer review (SCRUM-70 — pending backend)
+  // The driver rates the customer after a completed job/order. Mirrors the
+  // existing customer→driver review endpoints, one per vertical.
+  static const driverRateRideJob = '/api/driver/jobs/:id/rate';
+  static const driverReviewFoodOrder = '/api/food/driver/orders/:id/review';
+  static const driverReviewMessengerOrder =
+      '/api/messenger/driver/orders/:id/review';
 
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';

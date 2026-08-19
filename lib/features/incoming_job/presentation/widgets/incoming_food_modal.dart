@@ -69,7 +69,8 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
     if (_resolved) return;
     _resolved = true;
     _timer?.cancel();
-    ref.read(incomingJobControllerProvider.notifier).declineJob();
+    // Food uses the REST reject endpoint (not the ride WS reject_job).
+    ref.read(incomingJobControllerProvider.notifier).declineFoodJob();
   }
 
   @override
