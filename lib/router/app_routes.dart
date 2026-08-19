@@ -182,6 +182,8 @@ class AppRouter {
               amount: (extra?['amount'] as num?)?.toDouble(),
               methodLabel: extra?['method'] as String?,
               title: extra?['title'] as String?,
+              orderId: extra?['orderId'] as String?,
+              service: extra?['service'] as ReviewService?,
             ),
           );
         },
