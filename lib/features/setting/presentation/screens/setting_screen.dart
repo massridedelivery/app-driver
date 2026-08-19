@@ -9,6 +9,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
 class SettingScreen extends ConsumerWidget {
@@ -66,6 +67,42 @@ class SettingScreen extends ConsumerWidget {
                 color: AppColors.semanticGrayNeutralFgLowOnGray,
               ),
               onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
+            ),
+
+            // UI-preview bypass for the driver→customer review screen. The real
+            // flow shows it after a completed job; the backend submit is still
+            // pending (SCRUM-70), so this opens it with sample data to check UI.
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const _LeadingIconBadge(
+                icon: Icons.star_outline,
+              ),
+              title: Text(
+                "ตัวอย่างหน้ารีวิวลูกค้า",
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              subtitle: Text(
+                "ดู UI หน้าให้คะแนนลูกค้า (โหมดตัวอย่าง — ยังไม่ส่งจริง)",
+                style: AppTypography.caption4.copyWith(
+                  color: AppColors.foundationAlphaWhite400,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: AppColors.semanticGrayNeutralFgLowOnGray,
+              ),
+              onTap: () => context.push(
+                '/review-customer',
+                extra: {
+                  'jobId': 'preview',
+                  'service': ReviewService.ride,
+                  'customerName': 'สมชาย ใจดี',
+                  'subtitle': 'ตัวอย่างลูกค้า',
+                  'previewMode': true,
+                },
+              ),
             ),
             const _Divider(),
 
