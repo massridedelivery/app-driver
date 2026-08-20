@@ -17,11 +17,17 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String passengerName;
   final ChatVertical vertical;
 
+  /// UI-preview mode (dev/QA entry): render sample messages locally and echo
+  /// sends into the list without touching the socket/REST backend. Lets the
+  /// chat UI be checked on-device without a live job.
+  final bool previewMode;
+
   const ChatScreen({
     super.key,
     required this.jobId,
     this.passengerName = 'ผู้โดยสาร',
     this.vertical = ChatVertical.ride,
+    this.previewMode = false,
   });
 
   @override
@@ -39,6 +45,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     'รถติดเล็กน้อยนะครับ',
     'ได้รับออเดอร์แล้วครับ กำลังเดินทางไปส่ง',
   ];
+
+  /// Local sample thread shown in preview mode (no backend).
+  late final List<ChatMessage> _previewMessages = [
+    _previewMsg('สวัสดีครับ กำลังไปรับเลยนะครับ', driver: true),
+    _previewMsg('รับทราบค่ะ รออยู่หน้าปากซอยนะคะ', driver: false),
+    _previewMsg('ถึงแล้วครับ รถสีขาว ป้ายแดง', driver: true),
+  ];
+
+  int _previewSeq = 0;
+
+  ChatMessage _previewMsg(String text, {required bool driver}) => ChatMessage(
+        id: 'preview-${_previewSeq++}',
+        jobId: widget.jobId,
+        senderId: driver ? 'driver' : 'customer',
+        senderType: driver ? 'driver' : 'customer',
+        content: text,
+        msgType: 'text',
+        mediaUrl: '',
+        createdAt: DateTime.now(),
+      );
 
   @override
   void initState() {
@@ -76,6 +102,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (pickedFile != null) {
         final file = File(pickedFile.path);
         if (mounted) {
+          if (widget.previewMode) {
+            setState(() => _previewMessages.add(ChatMessage(
+                  id: 'preview-${_previewSeq++}',
+                  jobId: widget.jobId,
+                  senderId: 'driver',
+                  senderType: 'driver',
+                  content: '',
+                  msgType: 'image',
+                  mediaUrl: file.path,
+                  createdAt: DateTime.now(),
+                )));
+            _scrollToBottom();
+            return;
+          }
           await ref
               .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
               .sendImage(file);
@@ -152,23 +192,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _sendMessage() {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-
-    ref.read(chatControllerProvider(widget.jobId, widget.vertical).notifier).sendMessage(text);
+    _sendText(text);
     _messageController.clear();
+  }
+
+  void _sendText(String text) {
+    if (widget.previewMode) {
+      setState(() => _previewMessages.add(_previewMsg(text, driver: true)));
+      _scrollToBottom();
+      return;
+    }
+    ref
+        .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
+        .sendMessage(text);
     _scrollToBottom();
   }
 
   @override
   @override
   Widget build(BuildContext context) {
-    // Scroll to bottom when new messages arrive
-    ref.listen<ChatState>(chatControllerProvider(widget.jobId, widget.vertical), (prev, next) {
-      if (prev != null && prev.messages.length < next.messages.length) {
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _scrollToBottom();
-        });
-      }
-    });
+    // Scroll to bottom when new messages arrive (skipped in preview — no backend).
+    if (!widget.previewMode) {
+      ref.listen<ChatState>(chatControllerProvider(widget.jobId, widget.vertical), (prev, next) {
+        if (prev != null && prev.messages.length < next.messages.length) {
+          Future.delayed(const Duration(milliseconds: 100), () {
+            _scrollToBottom();
+          });
+        }
+      });
+    }
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -179,7 +231,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Connection error notice banner
+            // Connection error notice banner (no backend in preview mode)
+            if (!widget.previewMode)
             Consumer(
               builder: (context, ref, child) {
                 final error = ref.watch(
@@ -208,37 +261,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             // Messages List Area
             Expanded(
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final isLoading = ref.watch(
-                    chatControllerProvider(
-                      widget.jobId, widget.vertical,
-                    ).select((s) => s.isLoading),
-                  );
-                  final messages = ref.watch(
-                    chatControllerProvider(
-                      widget.jobId, widget.vertical,
-                    ).select((s) => s.messages),
-                  );
-
-                  return isLoading
-                      ? const Center(child: MassLoadingM(size: 72))
-                      : messages.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final msg = messages[index];
-                            return _MessageBubble(message: msg);
-                          },
+              child: widget.previewMode
+                  ? _buildMessageList(_previewMessages)
+                  : Consumer(
+                      builder: (context, ref, child) {
+                        final isLoading = ref.watch(
+                          chatControllerProvider(
+                            widget.jobId, widget.vertical,
+                          ).select((s) => s.isLoading),
                         );
-                },
-              ),
+                        final messages = ref.watch(
+                          chatControllerProvider(
+                            widget.jobId, widget.vertical,
+                          ).select((s) => s.messages),
+                        );
+
+                        return isLoading
+                            ? const Center(child: MassLoadingM(size: 72))
+                            : _buildMessageList(messages);
+                      },
+                    ),
             ),
 
-            // Image uploading overlay indicator
+            // Image uploading overlay indicator (no backend in preview mode)
+            if (!widget.previewMode)
             Consumer(
               builder: (context, ref, child) {
                 final isSending = ref.watch(
@@ -287,6 +333,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  Widget _buildMessageList(List<ChatMessage> messages) {
+    if (messages.isEmpty) return _buildEmptyState();
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: messages.length,
+      itemBuilder: (context, index) => _MessageBubble(message: messages[index]),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -328,12 +384,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 style: AppTypography.caption4.copyWith(color: context.palette.textPrimary),
               ),
               backgroundColor: context.palette.surfaceAlt,
-              onPressed: () {
-                ref
-                    .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
-                    .sendMessage(replyText);
-                _scrollToBottom();
-              },
+              onPressed: () => _sendText(replyText),
               side: BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
