@@ -952,7 +952,14 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
           color: Color(0xFF1E2F38),
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        // Reserve the system nav-bar inset so the buttons clear the Android
+        // 3-button bar (viewPadding.bottom, not padding — the sheet consumes it).
+        padding: EdgeInsets.fromLTRB(
+          24,
+          32,
+          24,
+          32 + MediaQuery.of(context).viewPadding.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

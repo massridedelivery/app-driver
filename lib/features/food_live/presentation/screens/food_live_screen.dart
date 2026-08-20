@@ -225,7 +225,14 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           ),
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            // Reserve the system nav-bar inset so the action button clears the
+            // Android 3-button bar (viewPadding.bottom).
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              32 + MediaQuery.of(context).viewPadding.bottom,
+            ),
             children: [
               _buildDragIndicator(),
               const SizedBox(height: 16),
