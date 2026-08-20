@@ -206,10 +206,9 @@ class _WeeklyOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // acceptance_rate / cancellation_rate come straight from the
-              // profile API. งานสำเร็จ (weekly_completed_jobs) is the real weekly
-              // count, shown so the card is informative even before the backend
-              // populates the two rates.
+              // acceptance_rate / cancellation_rate are merged in from
+              // GET /api/driver/tier by ProfileController (the profile endpoint
+              // doesn't carry them). งานสำเร็จ = weekly_completed_jobs.
               _StatItem(
                 value: "${profile.weeklyCompletedJobs}",
                 label: "งานสำเร็จ",
