@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
@@ -71,10 +72,10 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+            backgroundColor: context.palette.textPrimary,
             content: Text(
               'กรุณาให้คะแนนลูกค้าก่อนนะครับ',
-              style: AppTypography.caption4.copyWith(color: Colors.white),
+              style: AppTypography.caption4.copyWith(color: context.palette.bg),
             ),
           ),
         );
@@ -107,18 +108,18 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralBgWhite,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: _goHome,
         ),
         centerTitle: true,
         title: Text(
           'ให้คะแนนลูกค้า',
-          style: AppTypography.heading4.copyWith(color: Colors.black),
+          style: AppTypography.heading4.copyWith(color: context.palette.textPrimary),
         ),
         actions: [
           TextButton(
@@ -126,7 +127,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
             child: Text(
               'ข้าม',
               style: AppTypography.label2.copyWith(
-                color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -167,7 +168,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
                   Text(
                     widget.customerName.isEmpty ? 'ลูกค้า' : widget.customerName,
                     style: AppTypography.label2.copyWith(
-                      color: AppColors.semanticGrayNeutralFgHigh,
+                      color: context.palette.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -178,7 +179,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
                         ? widget.subtitle!
                         : 'ลูกค้าของคุณ',
                     style: AppTypography.caption5.copyWith(
-                      color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                      color: context.palette.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -192,7 +193,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         Text(
           'ให้คะแนนลูกค้า',
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -257,12 +258,12 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.foundationRed100 : Colors.white,
+          color: selected ? AppColors.foundationRed100 : context.palette.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
                 ? AppColors.foundationRed700
-                : AppColors.foundationGrayscale300,
+                : context.palette.border,
           ),
         ),
         child: Text(
@@ -270,7 +271,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
           style: AppTypography.label2.copyWith(
             color: selected
                 ? AppColors.foundationRed700
-                : AppColors.semanticGrayNeutralFgHigh,
+                : context.palette.textPrimary,
           ),
         ),
       ),
@@ -284,27 +285,27 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         Text(
           'ความคิดเห็นเพิ่มเติม',
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: context.palette.surfaceAlt,
             borderRadius: BorderRadius.circular(10),
           ),
           child: TextField(
             controller: _comment,
             maxLines: 4,
             style: AppTypography.caption4.copyWith(
-              color: AppColors.semanticGrayNeutralFgHigh,
+              color: context.palette.textPrimary,
             ),
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(14),
               hintText: 'บอกเราว่าลูกค้าเป็นอย่างไรบ้าง...',
               hintStyle: AppTypography.caption4.copyWith(
-                color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -353,7 +354,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
               child: Text(
                 'ข้ามไปก่อน',
                 style: AppTypography.label2.copyWith(
-                  color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ),
@@ -367,7 +368,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
