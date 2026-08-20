@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
@@ -69,7 +70,7 @@ class _MessengerHistoryScreenState extends State<MessengerHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(
         titleText: _total > 0 ? 'ประวัติงานส่งพัสดุ ($_total)' : 'ประวัติงานส่งพัสดุ',
         showLeftIcon: true,
@@ -105,11 +106,11 @@ class _MessengerHistoryScreenState extends State<MessengerHistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.local_shipping_outlined,
-              size: 64, color: AppColors.foundationAlphaWhite400),
+              size: 64, color: context.palette.textSecondary),
           const SizedBox(height: 16),
           Text('ยังไม่มีประวัติงานส่งพัสดุ',
               style: AppTypography.caption3
-                  .copyWith(color: AppColors.foundationAlphaWhite400)),
+                  .copyWith(color: context.palette.textSecondary)),
         ],
       ),
     );
@@ -130,7 +131,7 @@ class _HistoryTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.foundationAlphaWhite100,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -155,13 +156,13 @@ class _HistoryTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.caption3
-                      .copyWith(color: AppColors.semanticGrayNeutralBgWhite),
+                      .copyWith(color: context.palette.textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'ขนาด ${order.packageSizeTier} · $dateText',
                   style: AppTypography.caption5
-                      .copyWith(color: AppColors.foundationAlphaWhite400),
+                      .copyWith(color: context.palette.textSecondary),
                 ),
               ],
             ),
@@ -169,7 +170,7 @@ class _HistoryTile extends StatelessWidget {
           Text(
             '฿${order.fare.toStringAsFixed(0)}',
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),

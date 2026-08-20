@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
@@ -177,8 +178,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             flex: 5,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E1E1E), // Dark grey panel
+              decoration: BoxDecoration(
+                color: context.palette.sheet, // themeable panel
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: _currentMethod == PaymentMethod.cash
@@ -203,7 +204,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: context.palette.border,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -239,7 +240,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           // ),
           // const SizedBox(height: 16),
           // _buildInputRow("อื่นๆ", null, _othersController),
-          const Divider(color: Colors.white12, height: 40),
+          Divider(color: context.palette.border, height: 40),
 
           // Total
           Row(
@@ -249,7 +250,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 children: [
                   Text(
                     "ทั้งหมด",
-                    style: AppTypography.heading5.copyWith(color: Colors.white),
+                    style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -258,13 +259,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.surfaceAlt,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       "เงินสด",
                       style: AppTypography.caption4.copyWith(
-                        color: Colors.white,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                   ),
@@ -272,7 +273,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
               Text(
                 "฿${_totalFare.toStringAsFixed(0)}",
-                style: AppTypography.heading5.copyWith(color: Colors.white),
+                style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -295,7 +296,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     child: Text(
                       "ยืนยันการชำระเงิน",
                       style: AppTypography.heading5.copyWith(
-                        color: AppColors.semanticGrayNeutralBgWhite,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -318,7 +319,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: context.palette.border,
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -357,7 +358,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 20),
           Text(
             "สแกน QR นี้เพื่อชำระเงิน",
-            style: AppTypography.body2.copyWith(color: Colors.white70),
+            style: AppTypography.body2.copyWith(color: context.palette.textSecondary),
           ),
 
           const Spacer(),
@@ -372,7 +373,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               children: [
                 Text(
                   "QR ใช้ไม่ได้?",
-                  style: AppTypography.body1.copyWith(color: Colors.white),
+                  style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
                 ),
                 Text(
                   "เปลี่ยนไปรับเงินสดแทน",
@@ -392,15 +393,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        border: Border.all(color: Colors.white54),
+        border: Border.all(color: context.palette.border),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(text, style: AppTypography.body2.copyWith(color: Colors.white)),
+          Text(text, style: AppTypography.body2.copyWith(color: context.palette.textPrimary)),
           const SizedBox(width: 4),
-          const Icon(Icons.add, color: Colors.white, size: 16),
+          Icon(Icons.add, color: context.palette.textPrimary, size: 16),
         ],
       ),
     );
@@ -410,10 +411,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: AppTypography.body1.copyWith(color: Colors.white)),
+        Text(title, style: AppTypography.body1.copyWith(color: context.palette.textPrimary)),
         Text(
           value.toStringAsFixed(0),
-          style: AppTypography.body1.copyWith(color: Colors.white),
+          style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
         ),
       ],
     );

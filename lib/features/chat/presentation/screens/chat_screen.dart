@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
@@ -93,7 +94,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _showAttachmentBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.semanticGrayNeutralFgMidOnBlack,
+      backgroundColor: context.palette.sheet,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -107,19 +108,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: context.palette.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.camera_alt_outlined,
-                  color: Colors.white,
+                  color: context.palette.textPrimary,
                 ),
                 title: Text(
                   'ถ่ายรูปภาพ',
-                  style: AppTypography.body2.copyWith(color: Colors.white),
+                  style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -127,13 +128,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.photo_library_outlined,
-                  color: Colors.white,
+                  color: context.palette.textPrimary,
                 ),
                 title: Text(
                   'เลือกจากคลังภาพ',
-                  style: AppTypography.body2.copyWith(color: Colors.white),
+                  style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -174,7 +175,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         titleText: 'แชทกับ ${widget.passengerName}',
         showLeftIcon: true,
       ),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -251,7 +252,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     vertical: 8,
                     horizontal: 16,
                   ),
-                  color: AppColors.foundationAlphaWhite100,
+                  color: context.palette.surfaceAlt,
                   child: Row(
                     children: [
                       const SizedBox(
@@ -266,7 +267,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       Text(
                         'กำลังอัปโหลดรูปภาพ...',
                         style: AppTypography.caption4.copyWith(
-                          color: Colors.white70,
+                          color: context.palette.textSecondary,
                         ),
                       ),
                     ],
@@ -291,15 +292,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.chat_bubble_outline_rounded,
             size: 64,
-            color: Colors.white24,
+            color: context.palette.border,
           ),
           const SizedBox(height: 16),
           Text(
             'เริ่มแชทคุยกับลูกค้าเพื่อประสานงานรับส่ง',
-            style: AppTypography.caption3.copyWith(color: Colors.white30),
+            style: AppTypography.caption3.copyWith(color: context.palette.textTertiary),
           ),
         ],
       ),
@@ -310,8 +311,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Container(
       height: 48,
       padding: const EdgeInsets.only(top: 8, bottom: 4),
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgHigh,
+      decoration: BoxDecoration(
+        color: context.palette.bg,
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -324,9 +325,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: ActionChip(
               label: Text(
                 replyText,
-                style: AppTypography.caption4.copyWith(color: Colors.black),
+                style: AppTypography.caption4.copyWith(color: context.palette.textPrimary),
               ),
-              backgroundColor: AppColors.foundationAlphaWhite100,
+              backgroundColor: context.palette.surfaceAlt,
               onPressed: () {
                 ref
                     .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
@@ -348,9 +349,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
+        color: context.palette.surface,
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.08), width: 0.5),
+          top: BorderSide(color: context.palette.border, width: 0.5),
         ),
       ),
       child: Row(
@@ -360,11 +361,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onTap: _showAttachmentBottomSheet,
             child: Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: AppColors.foundationAlphaWhite100,
+              decoration: BoxDecoration(
+                color: context.palette.surfaceAlt,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 24),
+              child: Icon(Icons.add, color: context.palette.textPrimary, size: 24),
             ),
           ),
           const SizedBox(width: 12),
@@ -373,12 +374,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: TextField(
               controller: _messageController,
-              style: AppTypography.body2.copyWith(color: Colors.white),
+              style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
               decoration: InputDecoration(
                 hintText: 'เขียนข้อความ...',
-                hintStyle: AppTypography.body2.copyWith(color: Colors.white30),
+                hintStyle: AppTypography.body2.copyWith(color: context.palette.textTertiary),
                 filled: true,
-                fillColor: AppColors.foundationAlphaWhite100,
+                fillColor: context.palette.surfaceAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -427,8 +428,8 @@ class _MessageBubble extends StatelessWidget {
     final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final bubbleColor = isMe
         ? AppColors.foundationOrange700
-        : AppColors.foundationAlphaWhite100;
-    final textStyle = AppTypography.body2.copyWith(color: Colors.white);
+        : context.palette.surfaceAlt;
+    final textStyle = AppTypography.body2.copyWith(color: isMe ? Colors.white : context.palette.textPrimary);
     final timeStr = DateFormat('HH:mm').format(message.createdAt.toLocal());
 
     return Container(
@@ -492,7 +493,7 @@ class _MessageBubble extends StatelessWidget {
             ),
             child: Text(
               timeStr,
-              style: AppTypography.caption5.copyWith(color: Colors.white30),
+              style: AppTypography.caption5.copyWith(color: context.palette.textTertiary),
             ),
           ),
         ],
@@ -505,11 +506,11 @@ class _MessageBubble extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.white54, size: 16),
+          Icon(Icons.error_outline, color: context.palette.textTertiary, size: 16),
           const SizedBox(width: 8),
           Text(
             'ไม่มีรูปภาพ',
-            style: AppTypography.caption4.copyWith(color: Colors.white54),
+            style: AppTypography.caption4.copyWith(color: context.palette.textTertiary),
           ),
         ],
       );
@@ -558,7 +559,7 @@ class _MessageBubble extends StatelessWidget {
               return Container(
                 width: 150,
                 height: 150,
-                color: Colors.white12,
+                color: context.palette.surfaceAlt,
                 child: const Center(
                   child: CircularProgressIndicator(
                     color: AppColors.foundationOrange600,
@@ -571,11 +572,11 @@ class _MessageBubble extends StatelessWidget {
               return Container(
                 width: 150,
                 height: 150,
-                color: Colors.white12,
-                child: const Center(
+                color: context.palette.surfaceAlt,
+                child: Center(
                   child: Icon(
                     Icons.broken_image_outlined,
-                    color: Colors.white30,
+                    color: context.palette.textTertiary,
                     size: 40,
                   ),
                 ),
