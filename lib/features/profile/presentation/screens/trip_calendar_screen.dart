@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
@@ -100,7 +101,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'ตารางการขับขี่', showLeftIcon: true),
       body: SafeArea(
         child: Column(
@@ -110,7 +111,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             _modeToggle(),
             const SizedBox(height: 12),
             _weekly ? _weekStrip() : _dayStrip(),
-            const Divider(color: Colors.white12, height: 24),
+            Divider(color: context.palette.border, height: 24),
             _summary(),
             const SizedBox(height: 8),
             Expanded(child: _list()),
@@ -139,7 +140,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             style: AppTypography.caption4.copyWith(
               color: active
                   ? AppColors.semanticSuccessBgHigh
-                  : Colors.white54,
+                  : context.palette.textSecondary,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -223,7 +224,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
         decoration: BoxDecoration(
           color: selected
               ? AppColors.semanticSuccessBgHigh
-              : AppColors.semanticGrayNeutralFgMidOnGray,
+              : context.palette.surface,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -232,7 +233,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             Text(
               top,
               style: AppTypography.caption5.copyWith(
-                color: selected ? Colors.white : Colors.white54,
+                color: selected ? Colors.white : context.palette.textSecondary,
               ),
             ),
             const SizedBox(height: 4),
@@ -241,7 +242,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
               style: AppTypography.caption3.copyWith(
                 color: selected
                     ? Colors.white
-                    : AppColors.semanticGrayNeutralBgWhite,
+                    : context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -260,13 +261,13 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
         children: [
           Text(
             'รายได้สุทธิของคุณ',
-            style: AppTypography.caption4.copyWith(color: Colors.white70),
+            style: AppTypography.caption4.copyWith(color: context.palette.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
             '฿${_loading ? '—' : _netEarnings.toStringAsFixed(0)}',
             style: AppTypography.heading2.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
@@ -297,11 +298,11 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.no_transfer_rounded, color: Colors.white24, size: 48),
+            Icon(Icons.no_transfer_rounded, color: context.palette.border, size: 48),
             const SizedBox(height: 12),
             Text(
               _weekly ? 'ไม่มีกิจกรรมในสัปดาห์นี้' : 'ไม่มีงานในวันนี้',
-              style: AppTypography.caption4.copyWith(color: Colors.white54),
+              style: AppTypography.caption4.copyWith(color: context.palette.textSecondary),
             ),
           ],
         ),
@@ -319,7 +320,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.foundationAlphaWhite100,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -346,13 +347,13 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
                 Text(
                   'ค่าโดยสาร',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   DateFormat('d MMM, HH:mm', 'th').format(t.createdAt.toLocal()),
-                  style: AppTypography.caption5.copyWith(color: Colors.white54),
+                  style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
                 ),
               ],
             ),
