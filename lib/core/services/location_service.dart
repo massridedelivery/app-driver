@@ -122,6 +122,13 @@ class LocationService {
     }
   }
 
+  /// Whether the device's location service (GPS) is turned on.
+  Future<bool> serviceEnabled() => Geolocator.isLocationServiceEnabled();
+
+  /// Current location permission — lets the UI show a Settings prompt when the
+  /// driver has permanently denied it (`deniedForever`).
+  Future<LocationPermission> permission() => Geolocator.checkPermission();
+
   /// Resolves true when location permission is usable. [request] prompts the
   /// driver when it has not been asked for yet.
   Future<bool> _ensurePermission({bool request = false}) async {

@@ -49,10 +49,9 @@ LOCATION (when-in-use) → requested by LocationService
 CAMERA / PHOTOS → requested on the specific action
 ```
 
-`denied` → the feature no-ops and can be retried. On `deniedForever` /
-`permanentlyDenied`, route the user to `openAppSettings()` from the calling
-screen (recommended follow-up; the location service currently just returns
-`false`).
+`denied` → the feature no-ops and can be retried. On `deniedForever`, going online opens a dialog that routes the driver to
+Settings via `Geolocator.openAppSettings()` (and `openLocationSettings()` when
+GPS itself is off).
 
 ## iOS — App Store
 
