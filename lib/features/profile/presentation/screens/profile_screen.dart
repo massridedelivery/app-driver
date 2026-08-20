@@ -23,6 +23,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   void initState() {
     super.initState();
+    // The profile controller is keepAlive (last fetched on home load), so
+    // re-opening this screen shows stale counts. Refetch on open so งานสำเร็จ /
+    // เปอร์เซ็นต์รับ-ยกเลิก reflect the latest after finishing/declining a job.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(profileControllerProvider.notifier).fetchProfile();
+    });
   }
 
   @override
@@ -37,7 +43,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              return SingleChildScrollView(
+              return RefreshIndicator(
+                onRefresh: () =>
+                    ref.read(profileControllerProvider.notifier).fetchProfile(),
+                child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Padding(
@@ -73,6 +83,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       ],
                     ),
                   ),
+                ),
                 ),
               );
             },
