@@ -829,6 +829,9 @@ class _OnlineButton extends ConsumerWidget {
                 backgroundColor: AppColors.semanticSuccessBgHigh,
               ),
             );
+            // The driver just went online but can't share location if GPS is
+            // off or location is permanently denied — nudge them to Settings.
+            await _promptLocationIfNeeded(context, ref);
           }
         } catch (e) {
           if (context.mounted && newValue) {
@@ -940,6 +943,88 @@ class _StatusCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// After going online, nudge the driver to Settings when location can't be
+/// shared: GPS off → device location settings; permanently denied → app
+/// settings. The first-time OS prompt already fired inside
+/// [LocationService.startLocationUpdates]; this only covers the blocked cases.
+Future<void> _promptLocationIfNeeded(BuildContext context, WidgetRef ref) async {
+  final loc = ref.read(locationServiceProvider);
+
+  if (!await loc.serviceEnabled()) {
+    if (!context.mounted) return;
+    _showLocationSettingsDialog(
+      context,
+      title: 'เปิดตำแหน่ง (GPS)',
+      message: 'กรุณาเปิดบริการระบุตำแหน่งของเครื่อง เพื่อรับงานและนำทางได้',
+      onOpen: Geolocator.openLocationSettings,
+    );
+    return;
+  }
+
+  if (await loc.permission() == LocationPermission.deniedForever) {
+    if (!context.mounted) return;
+    _showLocationSettingsDialog(
+      context,
+      title: 'อนุญาตการเข้าถึงตำแหน่ง',
+      message:
+          'แอปต้องใช้ตำแหน่งเพื่อนำทางไปจุดรับ-ส่งและรับงานใกล้คุณ\n'
+          'กรุณาเปิดสิทธิ์ตำแหน่งในตั้งค่า',
+      onOpen: Geolocator.openAppSettings,
+    );
+  }
+}
+
+void _showLocationSettingsDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required Future<bool> Function() onOpen,
+}) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: dialogContext.palette.surface,
+      title: Text(
+        title,
+        style: AppTypography.heading5.copyWith(
+          color: dialogContext.palette.textPrimary,
+        ),
+      ),
+      content: Text(
+        message,
+        style: AppTypography.caption4.copyWith(
+          color: dialogContext.palette.textSecondary,
+          height: 1.4,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: Text(
+            'ไว้ทีหลัง',
+            style: AppTypography.caption3.copyWith(
+              color: dialogContext.palette.textTertiary,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(dialogContext);
+            onOpen();
+          },
+          child: Text(
+            'เปิดตั้งค่า',
+            style: AppTypography.caption3.copyWith(
+              color: AppColors.foundationOrange600,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // Reusable static dialog — called from _OnlineButton which is outside the
