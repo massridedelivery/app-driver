@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -31,7 +32,7 @@ Future<void> callSupportCenter(BuildContext context) async {
 Future<void> showHelpSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.semanticGrayNeutralFgMidOnBlack,
+    backgroundColor: context.palette.sheet,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -45,7 +46,7 @@ Future<void> showHelpSheet(BuildContext context) {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: context.palette.border,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -56,7 +57,7 @@ Future<void> showHelpSheet(BuildContext context) {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'ช่วยเหลือ',
-                  style: AppTypography.heading4.copyWith(color: Colors.white),
+                  style: AppTypography.heading4.copyWith(color: context.palette.textPrimary),
                 ),
               ),
             ),
@@ -107,18 +108,18 @@ class _HelpTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
-        backgroundColor: AppColors.foundationAlphaWhite100,
+        backgroundColor: context.palette.surfaceAlt,
         child: Icon(icon, color: AppColors.foundationOrange500),
       ),
       title: Text(
         title,
-        style: AppTypography.label2.copyWith(color: Colors.white),
+        style: AppTypography.label2.copyWith(color: context.palette.textPrimary),
       ),
       subtitle: Text(
         subtitle,
-        style: AppTypography.caption4.copyWith(color: Colors.white54),
+        style: AppTypography.caption4.copyWith(color: context.palette.textTertiary),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+      trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
     );
   }
 }

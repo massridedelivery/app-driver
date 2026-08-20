@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 
@@ -17,7 +18,7 @@ class ServiceInfoSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralBgWhite,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -30,9 +31,9 @@ class ServiceInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(theme),
+          _buildHeader(context, theme),
           const SizedBox(height: 16),
-          _buildServiceRow(
+          _buildServiceRow(context,
             icon: data.isFood ? Icons.fastfood : Icons.two_wheeler_sharp,
             label: "ประเภทบริการ",
             value: _getServiceType(),
@@ -42,7 +43,7 @@ class ServiceInfoSection extends StatelessWidget {
           ),
           if (data.isFood && data.restaurantName != null) ...[
             const SizedBox(height: 12),
-            _buildServiceRow(
+            _buildServiceRow(context,
               icon: Icons.storefront,
               label: "ร้านอาหาร",
               value: data.restaurantName!,
@@ -50,13 +51,13 @@ class ServiceInfoSection extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          _buildServiceRow(
+          _buildServiceRow(context,
             icon: Icons.location_on_outlined,
             label: data.isFood ? "รับอาหารจาก" : "จุดรับ",
             value: data.pickupAddress,
           ),
           const SizedBox(height: 12),
-          _buildServiceRow(
+          _buildServiceRow(context,
             icon: Icons.flag_outlined,
             label: data.isFood ? "ส่งที่" : "จุดส่ง",
             value: data.dropoffAddress,
@@ -66,16 +67,16 @@ class ServiceInfoSection extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Text(
       "ข้อมูลการให้บริการ",
       style: AppTypography.heading5.copyWith(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.textPrimary,
       ),
     );
   }
 
-  Widget _buildServiceRow({
+  Widget _buildServiceRow(BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
@@ -93,14 +94,14 @@ class ServiceInfoSection extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.caption5.copyWith(
-                  color: AppColors.semanticGrayNeutralFgMidOnGray,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],
