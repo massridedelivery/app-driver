@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/features/profile/presentation/controllers/today_trips_provider.dart';
+import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
+import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -44,8 +48,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           child: LayoutBuilder(
             builder: (context, constraints) {
               return RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(profileControllerProvider.notifier).fetchProfile(),
+                onRefresh: () async {
+                  ref.invalidate(todayTripsProvider);
+                  await ref
+                      .read(profileControllerProvider.notifier)
+                      .fetchProfile();
+                },
                 child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: ConstrainedBox(
@@ -73,6 +81,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           const SizedBox(height: 20),
 
                           _WeeklyOverviewCard(profile: profile),
+
+                          const SizedBox(height: 20),
+
+                          const _TodayTripsSection(),
 
                           const SizedBox(height: 32),
                         ],
@@ -191,7 +203,13 @@ class _WeeklyOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () =>
+            AppNavigator.push(context, const TripCalendarScreen()),
+        child: Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -206,11 +224,22 @@ class _WeeklyOverviewCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            "ภาพรวมรายสัปดาห์",
-            style: AppTypography.caption4.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "ภาพรวมรายสัปดาห์",
+                style: AppTypography.caption4.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.semanticGrayNeutralBgWhite,
+                size: 16,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -233,6 +262,146 @@ class _WeeklyOverviewCard extends StatelessWidget {
                 label: "เปอร์เซ็นต์ยกเลิก",
               ),
             ],
+          ),
+        ],
+      ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's completed trips (from GET /api/driver/earnings/transactions filtered
+/// to today + FARE_PAYMENT) — a count header + a compact list.
+class _TodayTripsSection extends ConsumerWidget {
+  const _TodayTripsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripsAsync = ref.watch(todayTripsProvider);
+    final count = tripsAsync.asData?.value.length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.semanticGrayNeutralFgMidOnGray,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                "งานที่ทำวันนี้",
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              const Spacer(),
+              if (count != null)
+                Text(
+                  "$count รายการ",
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.foundationOrange500,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 8),
+          tripsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+            error: (_, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                "โหลดรายการงานไม่สำเร็จ",
+                style: AppTypography.caption4.copyWith(color: Colors.white54),
+              ),
+            ),
+            data: (trips) => trips.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      "ยังไม่มีงานในวันนี้",
+                      style: AppTypography.caption4.copyWith(
+                        color: Colors.white54,
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: trips
+                        .map((t) => _TodayTripTile(trip: t))
+                        .toList(),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayTripTile extends StatelessWidget {
+  final Transaction trip;
+
+  const _TodayTripTile({required this.trip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.semanticSuccessBgHigh.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.directions_car_rounded,
+              color: AppColors.semanticSuccessBgHigh,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "ค่าโดยสาร",
+                  style: AppTypography.caption4.copyWith(
+                    color: AppColors.semanticGrayNeutralBgWhite,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  DateFormat('HH:mm').format(trip.createdAt.toLocal()),
+                  style: AppTypography.caption5.copyWith(color: Colors.white54),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            "+฿${trip.absoluteAmount.toStringAsFixed(0)}",
+            style: AppTypography.caption3.copyWith(
+              color: AppColors.semanticSupportMintBgHigh,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
