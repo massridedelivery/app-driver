@@ -694,16 +694,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 26),
-              decoration: BoxDecoration(
-                color: context.palette.bg,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: SingleChildScrollView(
-                controller: scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 22, 14, 40),
+            // Fill the whole sheet (top:26 leaves room for the overlapping
+            // online button) so the panel colour reaches the bottom edge —
+            // otherwise short content lets the map show through underneath.
+            Positioned(
+              top: 26,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: context.palette.bg,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 22, 14, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -722,6 +729,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       _buildMenuRow(),
                     ],
                   ),
+                ),
                 ),
               ),
             ),
