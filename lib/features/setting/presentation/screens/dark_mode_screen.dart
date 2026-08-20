@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
 
-/// "โหมดสีเข้ม" — a ปิด/เปิด chooser for dark mode. Theme-aware (reads the active
-/// ColorScheme) so it renders correctly in both light and dark.
+/// "โหมดสี" — a day/night chooser for the app theme. Theme-aware (reads the
+/// active ColorScheme) so it renders correctly in both light and dark.
 class DarkModeScreen extends ConsumerWidget {
   const DarkModeScreen({super.key});
 
@@ -16,7 +16,7 @@ class DarkModeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'โหมดสีเข้ม',
+          'โหมดสี',
           style: AppTypography.heading5.copyWith(color: cs.onSurface),
         ),
         centerTitle: true,
@@ -26,13 +26,13 @@ class DarkModeScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             Text(
-              'โหมดสีเข้ม',
+              'โหมดสี',
               style: AppTypography.heading6.copyWith(color: cs.onSurface),
             ),
             const SizedBox(height: 8),
             Text(
-              'โหมดสีเข้ม (หรือโหมดมืด) ช่วยถนอมสายตาและอายุแบตเตอรี่ให้นานยิ่งขึ้น '
-              'แผนที่จะปรับเป็นสีเข้มด้วย',
+              'เลือกโหมดแสดงผลของแอป โหมดกลางคืนช่วยถนอมสายตาและอายุแบตเตอรี่ '
+              'ให้นานยิ่งขึ้น และแผนที่จะปรับเป็นสีเข้มด้วย',
               style: AppTypography.caption4.copyWith(
                 color: cs.onSurfaceVariant,
                 height: 1.5,
@@ -40,15 +40,15 @@ class DarkModeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             _OptionRow(
-              label: 'ปิด',
-              selected: !isDark,
-              onTap: () => ref.read(darkModeProvider.notifier).setEnabled(false),
+              label: 'โหมดกลางคืน',
+              selected: isDark,
+              onTap: () => ref.read(darkModeProvider.notifier).setEnabled(true),
             ),
             Divider(color: cs.outlineVariant, height: 1),
             _OptionRow(
-              label: 'เปิด',
-              selected: isDark,
-              onTap: () => ref.read(darkModeProvider.notifier).setEnabled(true),
+              label: 'โหมดกลางวัน',
+              selected: !isDark,
+              onTap: () => ref.read(darkModeProvider.notifier).setEnabled(false),
             ),
             Divider(color: cs.outlineVariant, height: 1),
           ],

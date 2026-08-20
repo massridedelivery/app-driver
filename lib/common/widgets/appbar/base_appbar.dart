@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:massdrive/common/images/asset_image.dart';
 import 'package:massdrive/common/widgets/appbar/search_bar.dart';
 import 'package:massdrive/core/constants/app_assets.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 
 enum CommonAppBarType { title, search, empty }
 
@@ -36,7 +36,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       automaticallyImplyLeading: false,
       scrolledUnderElevation: 0,
       leading: showLeftIcon
@@ -47,9 +47,9 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                 splashRadius: AppSpacing.s6,
                 icon:
                     leftIcon ??
-                    const AssetImageWidget(
+                    AssetImageWidget(
                       AppAssets.icArrowLeft,
-                      color: AppColors.semanticGrayNeutralBgWhite,
+                      color: context.palette.textPrimary,
                       width: AppSpacing.s6,
                       height: AppSpacing.s6,
                       format: .svg,
@@ -77,7 +77,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
         return Text(
           titleText ?? '',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralBgWhite,
+            color: context.palette.textPrimary,
           ),
         );
       case CommonAppBarType.search:

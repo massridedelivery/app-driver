@@ -61,9 +61,11 @@ class SettingScreen extends ConsumerWidget {
 
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(icon: Icons.dark_mode_outlined),
+              leading: const _LeadingIconBadge(
+                icon: Icons.brightness_6_outlined,
+              ),
               title: Text(
-                "โหมดสีเข้ม",
+                "โหมดสี",
                 style: AppTypography.caption3.copyWith(
                   color: context.palette.textPrimary,
                 ),
@@ -520,14 +522,16 @@ class _AutoAcceptCard extends ConsumerWidget {
                 Text(
                   "รับงานอัตโนมัติ",
                   style: AppTypography.caption3.copyWith(
-                    color: context.palette.textPrimary,
+                    // Card keeps its dark-green brand fill in both themes, so
+                    // the text stays light rather than following the palette.
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
                   style: AppTypography.caption4.copyWith(
-                    color: context.palette.textSecondary,
+                    color: Colors.white70,
                   ),
                 ),
               ],
