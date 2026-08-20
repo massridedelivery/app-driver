@@ -4,6 +4,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/settle_debt_form_screen.dart';
@@ -19,14 +20,14 @@ class CreditWalletScreen extends ConsumerWidget {
     final state = ref.watch(walletControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(
         titleText: 'เครดิตวอลเล็ต',
         showLeftIcon: true,
       ),
       body: SafeArea(
         child: state.isLoading
-            ? _buildSkeletonLoading()
+            ? _buildSkeletonLoading(context)
             : Column(
                 children: [
                   // Glass Balance Card
@@ -42,7 +43,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           Text(
                             'ยอดเครดิตในระบบ',
                             style: AppTypography.caption4.copyWith(
-                              color: AppColors.semanticGrayNeutralBgWhite,
+                              color: context.palette.textPrimary,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -50,7 +51,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           Text(
                             '฿${state.creditBalance.toStringAsFixed(2)}',
                             style: AppTypography.heading1.copyWith(
-                              color: Colors.white,
+                              color: context.palette.textPrimary,
                               fontSize: 48,
                               fontWeight: FontWeight.w800,
                             ),
@@ -108,10 +109,10 @@ class CreditWalletScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkeletonLoading() {
+  Widget _buildSkeletonLoading(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E2F38),
-      highlightColor: const Color(0xFF2C3E4A),
+      baseColor: context.palette.sheet,
+      highlightColor: context.palette.sheetAlt,
       child: Column(
         children: [
           Padding(
@@ -125,7 +126,7 @@ class CreditWalletScreen extends ConsumerWidget {
                     width: 120,
                     height: 65,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -134,7 +135,7 @@ class CreditWalletScreen extends ConsumerWidget {
                     width: 140,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -143,7 +144,7 @@ class CreditWalletScreen extends ConsumerWidget {
                     width: 120,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -165,8 +166,8 @@ class CreditWalletScreen extends ConsumerWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        color: Colors.white12,
+                      decoration: BoxDecoration(
+                        color: context.palette.border,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -175,7 +176,7 @@ class CreditWalletScreen extends ConsumerWidget {
                       width: 180,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: Colors.white12,
+                        color: context.palette.border,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

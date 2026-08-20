@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/qr_image.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
@@ -192,7 +193,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
         titleText: widget.paymentMethod == 'PROMPTPAY' ? 'ชำระเงินทาง PromptPay' : 'โอนเงินเข้าบัญชี (Manual)',
         showLeftIcon: true,
       ),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -204,7 +205,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 Text(
                   'จำนวนเงินที่ต้องการชำระ',
                   style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -214,18 +215,18 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                     decimal: true,
                   ),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                  style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
                   decoration: InputDecoration(
                     prefixText: '฿ ',
                     prefixStyle: AppTypography.heading3.copyWith(
-                      color: Colors.white70,
+                      color: context.palette.textSecondary,
                     ),
                     hintText: '0',
                     hintStyle: AppTypography.heading3.copyWith(
-                      color: Colors.white30,
+                      color: context.palette.textTertiary,
                     ),
                     filled: true,
-                    fillColor: AppColors.foundationAlphaWhite100,
+                    fillColor: context.palette.surfaceAlt,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -253,7 +254,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 Text(
                   'เลือกจำนวนด่วน',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -271,7 +272,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.foundationAlphaWhite100,
+                          color: context.palette.surfaceAlt,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: AppColors.foundationOrange700.withValues(
@@ -294,7 +295,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 Text(
                   'ยอดค้างชำระทั้งหมด: ฿${maxAmount.toStringAsFixed(2)}',
                   style: AppTypography.caption5.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
 
@@ -340,7 +341,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
       case 'EXPIRED':
         return (label: 'QR หมดอายุแล้ว', color: AppColors.semanticErrorBgHigh);
       case 'REFUNDED':
-        return (label: 'คืนเงินแล้ว', color: AppColors.foundationAlphaWhite400);
+        return (label: 'คืนเงินแล้ว', color: context.palette.textSecondary);
       case 'AWAITING_PAYMENT':
       default:
         return (label: 'รอชำระเงิน', color: AppColors.semanticWarningBorderHigh);
@@ -363,7 +364,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'สแกน QR เพื่อชำระ', showLeftIcon: true),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -420,14 +421,14 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 Text(
                   'QR หมดอายุใน ${_formatCountdown(_timeLeft)}',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               const SizedBox(height: 8),
               Text(
                 'หมายเลขรายการ: $intentId',
                 style: AppTypography.caption5.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -483,7 +484,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationAlphaWhite100,
+                    backgroundColor: context.palette.surfaceAlt,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
@@ -491,7 +492,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                   ),
                   child: Text(
                     'กลับหน้ากระเป๋าเงิน',
-                    style: AppTypography.heading5.copyWith(color: Colors.white),
+                    style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
                   ),
                 ),
               ),
@@ -505,7 +506,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
   Widget _buildSuccessScreen() {
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ชำระหนี้สำเร็จ', showLeftIcon: false),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -517,14 +518,14 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
               const SizedBox(height: 24),
               Text(
                 'ชำระหนี้ COD สำเร็จ',
-                style: AppTypography.heading3.copyWith(color: Colors.white),
+                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(
                 'ยอดหนี้ของคุณได้รับการอัปเดตแล้ว',
                 textAlign: TextAlign.center,
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const Spacer(),
