@@ -82,6 +82,7 @@ dev_dependencies:
   riverpod_generator: ^3.0.0-dev.17
   injectable_generator: ^2.6.2
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
 
 # App launcher icon (run: dart run flutter_launcher_icons)
 flutter_launcher_icons:
@@ -98,6 +99,21 @@ flutter_launcher_icons:
     generate: false
   macos:
     generate: false
+
+# Branded launch/splash — the white M mark centred on the brand colour, matched
+# to the launcher icon (same mark + #B4312E background) for a seamless
+# icon -> splash -> app hand-off. Regenerate after changing the image/colour:
+#   dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#B4312E"
+  image: assets/icon/icon_foreground.png
+  android: true
+  ios: true
+  web: false
+  # Android 12+ uses the system splash API (the icon is masked to a circle).
+  android_12:
+    color: "#B4312E"
+    image: assets/icon/icon_foreground.png
 
 flutter:
   uses-material-design: true
