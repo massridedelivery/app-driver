@@ -133,8 +133,12 @@ apk: env
 # exists — without it Gradle falls back to debug signing, which sideloads fine
 # but Play rejects.
 apk-dev: env
-	flutter build apk --release $(DEV)
-	@echo Output: build/app/outputs/flutter-apk/app-release.apk
+	# --split-per-abi: one small APK per CPU arch instead of a 68MB universal
+	# APK (which bundled x86_64 + armeabi-v7a + arm64). Hand testers the arm64
+	# one (~28MB) for any modern phone.
+	flutter build apk --release $(DEV) --split-per-abi
+	@echo "Output (per ABI): build/app/outputs/flutter-apk/app-*-release.apk"
+	@echo "Modern phones -> app-arm64-v8a-release.apk"
 
 # ---------------------------------------------------------------- ship (iOS)
 
