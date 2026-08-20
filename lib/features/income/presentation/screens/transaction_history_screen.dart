@@ -5,6 +5,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
@@ -74,7 +75,7 @@ class _TransactionHistoryScreenState
         titleText: widget.title,
         showLeftIcon: true,
       ),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: Column(
         children: [
           // ── Total count banner ──────────────────────────────────────
@@ -83,11 +84,11 @@ class _TransactionHistoryScreenState
               width: double.infinity,
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: AppColors.foundationAlphaWhite100,
+              color: context.palette.surfaceAlt,
               child: Text(
                 'ทั้งหมด ${state.total} รายการ',
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ),
@@ -140,33 +141,33 @@ class _TransactionHistoryScreenState
             Icon(
               Icons.cloud_off_rounded,
               size: 64,
-              color: AppColors.foundationAlphaWhite400,
+              color: context.palette.textSecondary,
             ),
             const SizedBox(height: 16),
             Text(
               'โหลดประวัติไม่สำเร็จ',
-              style: AppTypography.heading5.copyWith(color: Colors.white),
+              style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               message.replaceFirst('Exception: ', ''),
               textAlign: TextAlign.center,
               style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationAlphaWhite400,
+                color: context.palette.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: _load,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white24),
+                side: BorderSide(color: context.palette.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Text(
                 'ลองใหม่',
-                style: AppTypography.label2.copyWith(color: Colors.white),
+                style: AppTypography.label2.copyWith(color: context.palette.textPrimary),
               ),
             ),
           ],
@@ -183,13 +184,13 @@ class _TransactionHistoryScreenState
           Icon(
             Icons.receipt_long_outlined,
             size: 64,
-            color: AppColors.foundationAlphaWhite400,
+            color: context.palette.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
             'ไม่มีประวัติการทำรายการ',
             style: AppTypography.caption3.copyWith(
-              color: AppColors.foundationAlphaWhite400,
+              color: context.palette.textSecondary,
             ),
           ),
         ],
@@ -222,7 +223,7 @@ class _TransactionTile extends StatelessWidget {
         child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.foundationAlphaWhite100,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -254,7 +255,7 @@ class _TransactionTile extends StatelessWidget {
                   // detail sheet.
                   _typeLabel(transaction.type),
                   style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 // Money breakdown so a rider can see what the trip earned vs.
@@ -264,7 +265,7 @@ class _TransactionTile extends StatelessWidget {
                   Text(
                     _breakdown(transaction)!,
                     style: AppTypography.caption5.copyWith(
-                      color: AppColors.foundationAlphaWhite400,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                 ],
@@ -275,7 +276,7 @@ class _TransactionTile extends StatelessWidget {
                       DateFormat('d MMM yyyy, HH:mm')
                           .format(transaction.createdAt.toLocal()),
                       style: AppTypography.caption5.copyWith(
-                        color: AppColors.foundationAlphaWhite400,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -324,7 +325,7 @@ class _TransactionTile extends StatelessWidget {
   void _showDetail(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -361,7 +362,7 @@ class _TransactionTile extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -383,7 +384,7 @@ class _TransactionTile extends StatelessWidget {
                     child: Text(
                       _typeLabel(t.type),
                       style: AppTypography.heading6.copyWith(
-                        color: AppColors.semanticGrayNeutralBgWhite,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                   ),
@@ -398,24 +399,24 @@ class _TransactionTile extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               _StatusBadge(status: t.status),
-              const Divider(color: Colors.white12, height: 28),
+              Divider(color: context.palette.border, height: 28),
               if (t.jobId != null || t.orderId != null)
-                _detailRow('งาน', t.jobId ?? t.orderId!),
+                _detailRow(context, 'งาน', t.jobId ?? t.orderId!),
               if (t.subtotal != null && t.subtotal! > 0)
-                _detailRow('ยอดงาน', money(t.subtotal!)),
+                _detailRow(context, 'ยอดงาน', money(t.subtotal!)),
               if (t.commission != null && t.commission! > 0)
-                _detailRow('หักค่าคอมมิชชัน', '-${money(t.commission!)}'),
+                _detailRow(context, 'หักค่าคอมมิชชัน', '-${money(t.commission!)}'),
               if (t.platformFee != null && t.platformFee! > 0)
-                _detailRow('ค่าธรรมเนียม', '-${money(t.platformFee!)}'),
+                _detailRow(context, 'ค่าธรรมเนียม', '-${money(t.platformFee!)}'),
               if (t.discount != null && t.discount! > 0)
-                _detailRow('ส่วนลด', money(t.discount!)),
+                _detailRow(context, 'ส่วนลด', money(t.discount!)),
               if (t.paymentMethod != null && t.paymentMethod!.isNotEmpty)
-                _detailRow('วิธีชำระเงิน', t.paymentMethod!),
-              _detailRow('รายละเอียด', t.description),
-              _detailRow('วันที่ทำรายการ', date(t.createdAt)),
+                _detailRow(context, 'วิธีชำระเงิน', t.paymentMethod!),
+              _detailRow(context, 'รายละเอียด', t.description),
+              _detailRow(context, 'วันที่ทำรายการ', date(t.createdAt)),
               if (t.completedAt != null)
-                _detailRow('เสร็จสิ้นเมื่อ', date(t.completedAt!)),
-              _detailRow('รหัสรายการ', t.id),
+                _detailRow(context, 'เสร็จสิ้นเมื่อ', date(t.completedAt!)),
+              _detailRow(context, 'รหัสรายการ', t.id),
             ],
           ),
         ),
@@ -423,7 +424,7 @@ class _TransactionTile extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -434,7 +435,7 @@ class _TransactionTile extends StatelessWidget {
             child: Text(
               label,
               style: AppTypography.caption5.copyWith(
-                color: AppColors.foundationAlphaWhite400,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -443,7 +444,7 @@ class _TransactionTile extends StatelessWidget {
             child: Text(
               value,
               style: AppTypography.caption4.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
+                color: context.palette.textPrimary,
               ),
             ),
           ),

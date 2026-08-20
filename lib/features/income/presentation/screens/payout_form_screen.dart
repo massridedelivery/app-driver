@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
@@ -89,7 +90,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.foundationAlphaWhite100,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -97,7 +98,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
           _whtRow('ยอดถอน', '฿${fmt.format(amount)}'),
           const SizedBox(height: 6),
           _whtRow('หัก ณ ที่จ่าย (1%)', '−฿${fmt.format(wht)}'),
-          const Divider(height: 16, color: AppColors.foundationAlphaWhite200),
+          Divider(height: 16, color: context.palette.border),
           _whtRow('ยอดรับสุทธิ', '฿${fmt.format(net)}', highlight: true),
         ],
       ),
@@ -111,12 +112,12 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
         Text(
           label,
           style: AppTypography.caption4
-              .copyWith(color: AppColors.foundationAlphaWhite400),
+              .copyWith(color: context.palette.textSecondary),
         ),
         Text(
           value,
           style: AppTypography.caption3.copyWith(
-            color: highlight ? AppColors.foundationGreen500 : Colors.white,
+            color: highlight ? AppColors.foundationGreen500 : context.palette.textPrimary,
             fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -131,7 +132,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โอนเงินไปยังบัญชี', showLeftIcon: true),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -161,7 +162,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                       Text(
                         'ยอดเงินที่ถอนได้',
                         style: AppTypography.caption4.copyWith(
-                          color: Colors.white70,
+                          color: AppColors.foundationAlphaWhite400,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -210,7 +211,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                         Text(
                           'กรุณาผูกบัญชีธนาคารเพื่อใช้ในการรับเงินโอน',
                           style: AppTypography.caption4.copyWith(
-                            color: AppColors.foundationAlphaWhite400,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -241,10 +242,10 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.foundationAlphaWhite100,
+                      color: context.palette.surfaceAlt,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.foundationAlphaWhite200,
+                        color: context.palette.border,
                       ),
                     ),
                     child: Column(
@@ -253,7 +254,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                         Text(
                           'บัญชีธนาคารสำหรับรับเงิน',
                           style: AppTypography.caption4.copyWith(
-                            color: AppColors.foundationAlphaWhite400,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -272,7 +273,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                                   Text(
                                     bankInfo.bankName,
                                     style: AppTypography.caption3.copyWith(
-                                      color: Colors.white,
+                                      color: context.palette.textPrimary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -280,14 +281,14 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                                   Text(
                                     'เลขที่บัญชี: ${bankInfo.accountNumber.length >= 4 ? "xxxxxx${bankInfo.accountNumber.substring(bankInfo.accountNumber.length - 4)}" : bankInfo.accountNumber}',
                                     style: AppTypography.caption4.copyWith(
-                                      color: AppColors.foundationAlphaWhite400,
+                                      color: context.palette.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     'ชื่อบัญชี: ${bankInfo.accountName}',
                                     style: AppTypography.caption4.copyWith(
-                                      color: AppColors.foundationAlphaWhite400,
+                                      color: context.palette.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -304,7 +305,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                 Text(
                   'จำนวนเงินที่ต้องการโอน',
                   style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -315,19 +316,19 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     decimal: true,
                   ),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                  style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     prefixText: '฿ ',
                     prefixStyle: AppTypography.heading3.copyWith(
-                      color: Colors.white70,
+                      color: context.palette.textSecondary,
                     ),
                     hintText: '0',
                     hintStyle: AppTypography.heading3.copyWith(
-                      color: Colors.white30,
+                      color: context.palette.textTertiary,
                     ),
                     filled: true,
-                    fillColor: AppColors.foundationAlphaWhite100,
+                    fillColor: context.palette.surfaceAlt,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -359,7 +360,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                 Text(
                   'ขั้นต่ำ ฿${_minWithdraw.toStringAsFixed(0)} | สูงสุด ฿${NumberFormat('#,##0').format(_maxWithdraw)}/ครั้ง | ไม่เกิน $_maxPerDay ครั้ง/วัน',
                   style: AppTypography.caption5.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
 

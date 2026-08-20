@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 
@@ -63,14 +64,14 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: (Theme.of(context).brightness == Brightness.dark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
               primary: AppColors.foundationOrange600,
               onPrimary: Colors.white,
-              surface: AppColors.semanticGrayNeutralFgHigh,
-              onSurface: Colors.white,
+              surface: context.palette.bg,
+              onSurface: context.palette.textPrimary,
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+            dialogTheme: DialogThemeData(
+              backgroundColor: context.palette.bg,
             ),
           ),
           child: child!,
@@ -86,14 +87,14 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: (Theme.of(context).brightness == Brightness.dark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
               primary: AppColors.foundationOrange600,
               onPrimary: Colors.white,
-              surface: AppColors.semanticGrayNeutralFgHigh,
-              onSurface: Colors.white,
+              surface: context.palette.bg,
+              onSurface: context.palette.textPrimary,
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+            dialogTheme: DialogThemeData(
+              backgroundColor: context.palette.bg,
             ),
           ),
           child: child!,
@@ -172,7 +173,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'แจ้งยอดโอนเงิน', showLeftIcon: true),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -183,7 +184,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.foundationAlphaWhite100,
+                  color: context.palette.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.foundationOrange700.withValues(alpha: 0.3),
@@ -214,7 +215,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               Text(
                 'รูปภาพสลิปการโอนเงิน',
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -223,10 +224,10 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                 child: Container(
                   height: 180,
                   decoration: BoxDecoration(
-                    color: AppColors.foundationAlphaWhite100,
+                    color: context.palette.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.foundationAlphaWhite200,
+                      color: context.palette.border,
                       style: BorderStyle.solid,
                     ),
                   ),
@@ -247,7 +248,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                             Text(
                               'แตะเพื่อเลือกรูปภาพสลิป',
                               style: AppTypography.caption3.copyWith(
-                                color: AppColors.foundationAlphaWhite400,
+                                color: context.palette.textSecondary,
                               ),
                             ),
                           ],
@@ -260,20 +261,20 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               Text(
                 'ชื่อบัญชีผู้โอน (ภาษาอังกฤษ หรือ ภาษาไทย)',
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _bankAccountNameController,
-                style: AppTypography.body1.copyWith(color: Colors.white),
+                style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'เช่น Nutchaphut Doe',
                   hintStyle: AppTypography.body1.copyWith(
-                    color: Colors.white30,
+                    color: context.palette.textTertiary,
                   ),
                   filled: true,
-                  fillColor: AppColors.foundationAlphaWhite100,
+                  fillColor: context.palette.surfaceAlt,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -296,7 +297,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               Text(
                 'วันและเวลาที่โอน',
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -308,7 +309,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                     vertical: 18,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.foundationAlphaWhite100,
+                    color: context.palette.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -316,7 +317,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                     children: [
                       Text(
                         DateFormat('dd/MM/yyyy HH:mm').format(_transferAt),
-                        style: AppTypography.body1.copyWith(color: Colors.white),
+                        style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
                       ),
                       const Icon(
                         Icons.calendar_today_rounded,
@@ -369,7 +370,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
             child: Text(
               label,
               style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationAlphaWhite400,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -377,7 +378,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
             child: Text(
               value,
               style: AppTypography.caption3.copyWith(
-                color: Colors.white,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -394,7 +395,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ผลการส่งหลักฐาน', showLeftIcon: false),
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -414,21 +415,21 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
               const SizedBox(height: 24),
               Text(
                 'ส่งหลักฐานสำเร็จ',
-                style: AppTypography.heading3.copyWith(color: Colors.white),
+                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 12),
               Text(
                 message,
                 textAlign: TextAlign.center,
                 style: AppTypography.body1.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 32),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.foundationAlphaWhite100,
+                  color: context.palette.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -439,7 +440,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                         Text(
                           'เลขที่รายการ:',
                           style: AppTypography.body2.copyWith(
-                            color: AppColors.foundationAlphaWhite400,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -448,7 +449,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                             intentId,
                             textAlign: TextAlign.end,
                             style: AppTypography.body1.copyWith(
-                              color: Colors.white,
+                              color: context.palette.textPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -456,14 +457,14 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                         ),
                       ],
                     ),
-                    const Divider(color: AppColors.foundationAlphaWhite100, height: 24),
+                    Divider(color: context.palette.surfaceAlt, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'สถานะ:',
                           style: AppTypography.body2.copyWith(
-                            color: AppColors.foundationAlphaWhite400,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                         Container(

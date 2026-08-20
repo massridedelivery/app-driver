@@ -5,6 +5,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
@@ -19,7 +20,7 @@ class IncomeScreen extends ConsumerWidget {
     final state = ref.watch(walletControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'รายได้', showLeftIcon: true),
       body: state.isLoading
           ? const Center(child: MassLoadingM(size: 72))
@@ -138,33 +139,33 @@ class _ErrorState extends StatelessWidget {
             Icon(
               Icons.cloud_off_rounded,
               size: 64,
-              color: AppColors.foundationAlphaWhite400,
+              color: context.palette.textSecondary,
             ),
             const SizedBox(height: 16),
             Text(
               'โหลดข้อมูลรายได้ไม่สำเร็จ',
-              style: AppTypography.heading5.copyWith(color: Colors.white),
+              style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               message.replaceFirst('Exception: ', ''),
               textAlign: TextAlign.center,
               style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationAlphaWhite400,
+                color: context.palette.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: onRetry,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white24),
+                side: BorderSide(color: context.palette.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Text(
                 'ลองใหม่',
-                style: AppTypography.label2.copyWith(color: Colors.white),
+                style: AppTypography.label2.copyWith(color: context.palette.textPrimary),
               ),
             ),
           ],
@@ -430,7 +431,7 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
               decoration: BoxDecoration(
                 color: active
                     ? AppColors.foundationOrange600
-                    : AppColors.foundationAlphaWhite200,
+                    : context.palette.border,
                 borderRadius: BorderRadius.circular(3),
               ),
             );
