@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 
@@ -27,10 +28,10 @@ class WalletActionTile extends StatelessWidget {
         vertical: AppSpacing.s2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgWhite.withOpacity(0.05),
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.semanticGrayNeutralFgWhite.withOpacity(0.1),
+          color: context.palette.border,
         ),
       ),
       child: InkWell(
@@ -43,12 +44,12 @@ class WalletActionTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.s3),
                 decoration: BoxDecoration(
-                  color: AppColors.semanticGrayNeutralFgWhite.withOpacity(0.1),
+                  color: context.palette.border,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                   size: 20,
                 ),
               ),
@@ -59,7 +60,7 @@ class WalletActionTile extends StatelessWidget {
                     Text(
                       title,
                       style: AppTypography.caption3.copyWith(
-                        color: AppColors.semanticGrayNeutralBgWhite,
+                        color: context.palette.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -102,7 +103,7 @@ class WalletActionTile extends StatelessWidget {
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: AppColors.semanticGrayNeutralBgWhite.withOpacity(0.3),
+                color: context.palette.textTertiary,
                 size: 14,
               ),
             ],
