@@ -8,6 +8,7 @@ import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/vehicle_info.dart';
 import '../controllers/registration_controller.dart';
@@ -129,18 +130,18 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
     final state = ref.watch(registrationControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           'ข้อมูลรถ และ สมุดคู่มือ',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.semanticGrayNeutralFgHigh,
+        iconTheme: IconThemeData(
+          color: context.palette.textPrimary,
         ),
       ),
       body: Form(
@@ -183,7 +184,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
             Text(
               'รูปถ่ายหน้าสมุดคู่มือจดทะเบียนรถ',
               style: AppTypography.label2.copyWith(
-                color: AppColors.semanticGrayNeutralFgHigh,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -192,10 +193,10 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
               child: Container(
                 height: 150,
                 decoration: BoxDecoration(
-                  color: AppColors.semanticGrayNeutralBgLightgray,
+                  color: context.palette.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.semanticGrayNeutralBorderLightgray,
+                    color: context.palette.border,
                   ),
                 ),
                 child: _selectedImage != null
@@ -206,16 +207,16 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.cloud_upload_outlined,
                             size: 40,
-                            color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                            color: context.palette.textSecondary,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'แตะเพื่ออัปโหลดรูปภาพ',
                             style: AppTypography.caption3.copyWith(
-                              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                              color: context.palette.textSecondary,
                             ),
                           ),
                         ],
@@ -228,17 +229,17 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
               child: ElevatedButton(
                 onPressed: state.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                  backgroundColor: context.palette.textPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: state.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(color: context.palette.bg)
                     : Text(
                         'บันทึก',
                         style: AppTypography.label1.copyWith(
-                          color: Colors.white,
+                          color: context.palette.bg,
                         ),
                       ),
               ),
@@ -261,7 +262,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
         Text(
           label,
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -272,10 +273,10 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+              color: context.palette.textSecondary,
             ),
             filled: true,
-            fillColor: AppColors.semanticGrayNeutralBgLightgray,
+            fillColor: context.palette.surfaceAlt,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

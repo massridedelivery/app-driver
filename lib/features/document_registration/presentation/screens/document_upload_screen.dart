@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
 import '../../domain/models/registration_status.dart';
@@ -181,16 +181,16 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.broken_image_outlined,
                   size: 48,
-                  color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                  color: context.palette.textSecondary,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'ไม่สามารถโหลดรูปภาพได้',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -202,16 +202,16 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       previewWidget = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_upload_outlined,
             size: 64,
-            color: AppColors.semanticGrayNeutralFgLowOnWhite,
+            color: context.palette.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
             'แตะเพื่ออัปโหลดรูปภาพ',
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+              color: context.palette.textSecondary,
             ),
           ),
         ],
@@ -219,18 +219,18 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           widget.title,
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.semanticGrayNeutralFgHigh,
+        iconTheme: IconThemeData(
+          color: context.palette.textPrimary,
         ),
       ),
       body: Form(
@@ -250,7 +250,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
               Text(
                 'กรุณาอัปโหลดรูปภาพที่ชัดเจนที่สุดเพื่อไม่ให้การลงทะเบียนล่าช้า',
                 style: AppTypography.caption2.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -260,10 +260,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                 child: Container(
                   height: 250,
                   decoration: BoxDecoration(
-                    color: AppColors.semanticGrayNeutralBgLightgray,
+                    color: context.palette.surfaceAlt,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.semanticGrayNeutralBorderLightgray,
+                      color: context.palette.border,
                     ),
                   ),
                   child: previewWidget,
@@ -272,20 +272,20 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: () => _pickImage(ImageSource.camera),
-                icon: const Icon(
+                icon: Icon(
                   Icons.camera_alt,
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
                 label: Text(
                   'ถ่ายรูป',
                   style: AppTypography.label2.copyWith(
-                    color: AppColors.semanticGrayNeutralFgHigh,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(
-                    color: AppColors.semanticGrayNeutralFgHigh,
+                  side: BorderSide(
+                    color: context.palette.textPrimary,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -299,7 +299,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                       ? 'หมายเลขบัตรประชาชน (ID Card Number)'
                       : 'หมายเลขใบขับขี่ (License Number)',
                   style: AppTypography.label2.copyWith(
-                    color: AppColors.semanticGrayNeutralFgHigh,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -312,7 +312,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                         ? 'เลขบัตรประชาชน 13 หลัก'
                         : 'เลขที่ใบอนุญาตขับรถ',
                     filled: true,
-                    fillColor: AppColors.semanticGrayNeutralBgLightgray,
+                    fillColor: context.palette.surfaceAlt,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -336,17 +336,17 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                 child: ElevatedButton(
                   onPressed: state.isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                    backgroundColor: context.palette.textPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: state.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: context.palette.bg)
                       : Text(
                           'บันทึก',
                           style: AppTypography.label1.copyWith(
-                            color: Colors.white,
+                            color: context.palette.bg,
                           ),
                         ),
                 ),

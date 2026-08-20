@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/registration_status.dart';
 import '../controllers/registration_controller.dart';
@@ -42,19 +43,19 @@ class _RegistrationChecklistScreenState
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           'ลงทะเบียนเอกสาร',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
           onPressed: () =>
               ref.read(registrationControllerProvider.notifier).setTier(null),
@@ -75,7 +76,7 @@ class _RegistrationChecklistScreenState
                           ? "รับส่งคน"
                           : "ทั้งสองประเภท"}',
                       style: AppTypography.caption3.copyWith(
-                        color: AppColors.semanticGrayNeutralFgHigh,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -241,11 +242,11 @@ class _RegistrationChecklistScreenState
     required String? rejectionReason,
     required VoidCallback onTap,
   }) {
-    Color backgroundColor = Colors.white;
-    Color borderColor = AppColors.semanticGrayNeutralBorderLightgray;
-    Widget trailingIcon = const Icon(
+    Color backgroundColor = context.palette.surface;
+    Color borderColor = context.palette.border;
+    Widget trailingIcon = Icon(
       Icons.chevron_right,
-      color: AppColors.semanticGrayNeutralFgHigh,
+      color: context.palette.textPrimary,
     );
     Widget? subtitleWidget;
     bool isInteractive = true;
@@ -332,7 +333,12 @@ class _RegistrationChecklistScreenState
         title: Text(
           title,
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            // Status cards keep a light pastel background in both themes, so
+            // their title stays dark; the default (not-yet-uploaded) card
+            // flips with the surface.
+            color: status != null
+                ? AppPalette.light.textPrimary
+                : context.palette.textPrimary,
             fontWeight: isInteractive ? FontWeight.normal : FontWeight.bold,
           ),
         ),
@@ -349,10 +355,10 @@ class _RegistrationChecklistScreenState
                           ? 'เอกสารนี้ผ่านการอนุมัติแล้ว ไม่สามารถแก้ไขได้'
                           : 'เอกสารอยู่ระหว่างการตรวจสอบ ไม่สามารถแก้ไขได้',
                       style: AppTypography.label2.copyWith(
-                        color: Colors.white,
+                        color: context.palette.bg,
                       ),
                     ),
-                    backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                    backgroundColor: context.palette.textPrimary,
                   ),
                 );
               },
@@ -367,14 +373,14 @@ class _InReviewView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
           onPressed: () => context.go('/home'),
         ),
@@ -395,14 +401,14 @@ class _InReviewView extends StatelessWidget {
                 'เอกสารของคุณกำลังอยู่ระหว่างการตรวจสอบ',
                 textAlign: TextAlign.center,
                 style: AppTypography.heading3.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'เราจะแจ้งผลให้คุณทราบเร็วๆนี้',
                 style: AppTypography.caption2.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],
@@ -419,7 +425,7 @@ class _ApprovedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -436,14 +442,14 @@ class _ApprovedView extends StatelessWidget {
                 'เอกสารของคุณผ่านการอนุมัติแล้ว',
                 textAlign: TextAlign.center,
                 style: AppTypography.heading3.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'คุณสามารถเริ่มรับงานได้ทันที',
                 style: AppTypography.caption2.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 48),
@@ -489,20 +495,20 @@ class _TierSelectionView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           'เลือกประเภทการขับขี่',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
           onPressed: () {
             if (context.canPop()) {
@@ -522,7 +528,7 @@ class _TierSelectionView extends ConsumerWidget {
               Text(
                 'ข้อมูลเอกสารที่ต้องใช้จะแตกต่างกันตามประเภทที่คุณเลือก',
                 style: AppTypography.caption2.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -585,7 +591,7 @@ class _TierSelectionView extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             border: Border.all(
-              color: AppColors.semanticGrayNeutralBorderLightgray,
+              color: context.palette.border,
             ),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -611,22 +617,22 @@ class _TierSelectionView extends ConsumerWidget {
                     Text(
                       title,
                       style: AppTypography.heading6.copyWith(
-                        color: AppColors.semanticGrayNeutralFgHigh,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
                       style: AppTypography.caption4.copyWith(
-                        color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralFgHigh,
+                color: context.palette.textPrimary,
               ),
             ],
           ),

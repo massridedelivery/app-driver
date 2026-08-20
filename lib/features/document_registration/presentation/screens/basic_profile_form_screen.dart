@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/driver_profile_info.dart';
 import '../controllers/registration_controller.dart';
@@ -70,18 +71,18 @@ class _BasicProfileFormScreenState
     final state = ref.watch(registrationControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           'ข้อมูลส่วนตัว',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.semanticGrayNeutralFgHigh,
+        iconTheme: IconThemeData(
+          color: context.palette.textPrimary,
         ),
       ),
       body: Form(
@@ -132,17 +133,17 @@ class _BasicProfileFormScreenState
               child: ElevatedButton(
                 onPressed: state.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                  backgroundColor: context.palette.textPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: state.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(color: context.palette.bg)
                     : Text(
                         'บันทึก',
                         style: AppTypography.label1.copyWith(
-                          color: Colors.white,
+                          color: context.palette.bg,
                         ),
                       ),
               ),
@@ -167,7 +168,7 @@ class _BasicProfileFormScreenState
         Text(
           label,
           style: AppTypography.caption2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -179,15 +180,15 @@ class _BasicProfileFormScreenState
               : null,
           maxLength: maxLength,
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgMidOnGray,
+            color: context.palette.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTypography.label2.copyWith(
-              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+              color: context.palette.textSecondary,
             ),
             filled: true,
-            fillColor: AppColors.semanticGrayNeutralBgLightgray,
+            fillColor: context.palette.surfaceAlt,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

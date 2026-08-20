@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
@@ -60,18 +61,18 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
     final state = ref.watch(registrationControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           '9. ยืนยันและส่งเอกสาร',
           style: AppTypography.heading3.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.semanticGrayNeutralFgHigh,
+        iconTheme: IconThemeData(
+          color: context.palette.textPrimary,
         ),
       ),
       body: Padding(
@@ -95,7 +96,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
             Text(
               'หนังสือยินยอมการตรวจประวัติอาชญากรรม',
               style: AppTypography.heading3.copyWith(
-                color: AppColors.semanticGrayNeutralFgHigh,
+                color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -103,14 +104,14 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
             Text(
               'ข้าพเจ้ายินยอมให้บริษัทดำเนินการตรวจสอบประวัติอาชญากรรมของข้าพเจ้าต่อสำนักงานตำรวจแห่งชาติ หรือหน่วยงานที่เกี่ยวข้อง เพื่อใช้เป็นส่วนหนึ่งในการพิจารณารับเป็นผู้ขับขี่ของบริษัท',
               style: AppTypography.caption1.copyWith(
-                color: AppColors.semanticGrayNeutralFgHigh,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: 32),
             Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: AppColors.semanticGrayNeutralBorderLightgray,
+                  color: context.palette.border,
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -124,7 +125,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                 title: Text(
                   'ข้าพเจ้ายินยอมตามเงื่อนไขดังกล่าว',
                   style: AppTypography.label2.copyWith(
-                    color: AppColors.semanticGrayNeutralFgHigh,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 activeColor: AppColors.foundationOrange600,
