@@ -12,7 +12,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/app_util.dart';
 import 'package:massdrive/features/settings/domain/entities/language_entity.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:massdrive/features/settings/presentation/screens/settings_screen.dart';
+import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/settings/presentation/state/localization_state.dart';
 
 import '../../../core/constants/enum/images.dart' show ImageFormat;
@@ -296,7 +296,7 @@ class _BottomMenu extends ConsumerWidget {
       if (previous?.count == 10 && next.count == 0) {
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (context) => SettingsScreen()));
+        ).push(MaterialPageRoute(builder: (context) => const SettingScreen()));
       }
     });
     final versionName = AppUtil.getPackageInfo().version;

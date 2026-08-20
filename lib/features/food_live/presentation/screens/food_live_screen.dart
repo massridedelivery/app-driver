@@ -297,8 +297,6 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
       child: Column(
         children: [
           _circleButton(Icons.shield_outlined),
-          const SizedBox(height: 12),
-          _circleButton(Icons.notifications_none),
         ],
       ),
     );
