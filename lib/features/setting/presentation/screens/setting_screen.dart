@@ -13,6 +13,7 @@ import 'package:massdrive/features/edit_profile/presentation/screens/edit_profil
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -50,6 +51,28 @@ class SettingScreen extends ConsumerWidget {
             ),
 
             const _AutoAcceptCard(),
+            const _Divider(),
+
+            SectionHeader(
+              title: "การตั้งค่าแอป",
+              textColor: AppColors.semanticGrayNeutralBgWhite,
+            ),
+
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const _LeadingIconBadge(icon: Icons.dark_mode_outlined),
+              title: Text(
+                "โหมดสีเข้ม",
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: AppColors.semanticGrayNeutralFgLowOnGray,
+              ),
+              onTap: () => AppNavigator.push(context, const DarkModeScreen()),
+            ),
             const _Divider(),
 
             SectionHeader(
