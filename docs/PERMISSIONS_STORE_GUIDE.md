@@ -34,8 +34,14 @@ _Last audited: 2026-08-21 · app version `1.0.0+12`._
 
 ### Explicitly NOT declared / used
 `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE*`, `RECORD_AUDIO`,
-`READ_CONTACTS`, `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`,
-`NSLocationAlwaysAndWhenInUseUsageDescription` (removed — background not used).
+`READ_CONTACTS`, `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`.
+
+> **`NSLocationAlwaysAndWhenInUseUsageDescription` is present but the app never
+> requests Always.** The `geolocator` SDK references the Always API in its
+> compiled code, so Apple's static check (**ITMS-90683**) requires the purpose
+> string even when the app only uses When-In-Use. Removing it triggers a
+> "Missing purpose string" upload warning. Keep it; the app still requests only
+> When-In-Use at runtime and declares no `location` background mode.
 
 ## In-context request flow
 
@@ -59,6 +65,9 @@ GPS itself is off).
 
 - `NSLocationWhenInUseUsageDescription` — "ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง
   และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป"
+- `NSLocationAlwaysAndWhenInUseUsageDescription` — same string. Present only to
+  satisfy ITMS-90683 (geolocator references the Always API); the app never
+  requests Always. **Do not remove.**
 - `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription` — specific Thai strings (present).
 - `UIBackgroundModes = [remote-notification, fetch]` — for FCM. **No `location`**
   background mode (foreground-only tracking).
