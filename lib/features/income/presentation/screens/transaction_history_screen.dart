@@ -214,7 +214,12 @@ class _TransactionTile extends StatelessWidget {
         ? AppColors.semanticSupportMintBgHigh
         : AppColors.semanticErrorFgHigh;
 
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showDetail(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.foundationAlphaWhite100,
@@ -227,7 +232,7 @@ class _TransactionTile extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: amountColor.withOpacity(0.15),
+              color: amountColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -244,16 +249,12 @@ class _TransactionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction.description,
+                  // Human label (ค่าโดยสาร / ค่าคอมมิชชัน / …) instead of the
+                  // raw API description ("Trip #JOB-…"); the job id lives in the
+                  // detail sheet.
+                  _typeLabel(transaction.type),
                   style: AppTypography.caption3.copyWith(
                     color: AppColors.semanticGrayNeutralBgWhite,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _typeLabel(transaction.type),
-                  style: AppTypography.caption5.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
                   ),
                 ),
                 // Money breakdown so a rider can see what the trip earned vs.
@@ -295,6 +296,8 @@ class _TransactionTile extends StatelessWidget {
           ),
         ],
       ),
+        ),
+      ),
     );
   }
 
@@ -314,6 +317,139 @@ class _TransactionTile extends StatelessWidget {
       parts.add('ค่าธรรมเนียม ${money(t.platformFee!)}');
     }
     return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// Opens a bottom sheet with the full transaction breakdown (everything the
+  /// API returns for the row — job id, amounts, fees, payment method, dates).
+  void _showDetail(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => _buildDetailSheet(sheetContext),
+    );
+  }
+
+  Widget _buildDetailSheet(BuildContext context) {
+    final t = transaction;
+    final isCredit = t.isCredit;
+    final amountColor = isCredit
+        ? AppColors.semanticSupportMintBgHigh
+        : AppColors.semanticErrorFgHigh;
+    String money(double v) => '฿${v.toStringAsFixed(2)}';
+    String date(DateTime d) =>
+        DateFormat('d MMM yyyy, HH:mm').format(d.toLocal());
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: 20 + MediaQuery.of(context).viewPadding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.foundationAlphaWhite400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: amountColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_typeIcon(t.type), color: amountColor, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _typeLabel(t.type),
+                      style: AppTypography.heading6.copyWith(
+                        color: AppColors.semanticGrayNeutralBgWhite,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${isCredit ? '+' : ''}${money(t.absoluteAmount)}',
+                    style: AppTypography.heading6.copyWith(
+                      color: amountColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _StatusBadge(status: t.status),
+              const Divider(color: Colors.white12, height: 28),
+              if (t.jobId != null || t.orderId != null)
+                _detailRow('งาน', t.jobId ?? t.orderId!),
+              if (t.subtotal != null && t.subtotal! > 0)
+                _detailRow('ยอดงาน', money(t.subtotal!)),
+              if (t.commission != null && t.commission! > 0)
+                _detailRow('หักค่าคอมมิชชัน', '-${money(t.commission!)}'),
+              if (t.platformFee != null && t.platformFee! > 0)
+                _detailRow('ค่าธรรมเนียม', '-${money(t.platformFee!)}'),
+              if (t.discount != null && t.discount! > 0)
+                _detailRow('ส่วนลด', money(t.discount!)),
+              if (t.paymentMethod != null && t.paymentMethod!.isNotEmpty)
+                _detailRow('วิธีชำระเงิน', t.paymentMethod!),
+              _detailRow('รายละเอียด', t.description),
+              _detailRow('วันที่ทำรายการ', date(t.createdAt)),
+              if (t.completedAt != null)
+                _detailRow('เสร็จสิ้นเมื่อ', date(t.completedAt!)),
+              _detailRow('รหัสรายการ', t.id),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: AppTypography.caption5.copyWith(
+                color: AppColors.foundationAlphaWhite400,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.semanticGrayNeutralBgWhite,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   IconData _typeIcon(TransactionType type) {
