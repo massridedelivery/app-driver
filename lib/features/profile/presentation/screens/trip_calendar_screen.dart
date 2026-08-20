@@ -9,12 +9,11 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/usecases/get_transaction_list_usecase.dart';
-import 'package:massdrive/features/wallet/domain/usecases/get_wallet_overview_usecase.dart';
 
-/// Trip calendar (Grab-style): pick a day or a week and see the net earnings,
-/// completed-trip count and trip list for that range. All data comes from the
-/// existing ranged endpoints — GET /api/driver/earnings and
-/// /api/driver/earnings/transactions (both take start_date/end_date).
+/// Income schedule (Grab-style): pick a day or a week and see the total
+/// earnings, completed-trip count and trip list for that range. Earnings are
+/// the sum of the range's completed-job fares, from the ranged endpoint
+/// GET /api/driver/earnings/transactions (start_date/end_date, FARE_PAYMENT).
 class TripCalendarScreen extends ConsumerStatefulWidget {
   const TripCalendarScreen({super.key});
 
@@ -61,8 +60,6 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
     setState(() => _loading = true);
     final (start, end) = _range;
     try {
-      final overview = await getIt<GetWalletOverviewUseCase>()
-          .execute(startDate: _ymd(start), endDate: _ymd(end));
       final result = await getIt<GetTransactionListUseCase>().execute(
         TransactionQuery(
           startDate: _ymd(start),
@@ -73,7 +70,11 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _netEarnings = overview.earnings;
+        // Net earnings for the range = the sum of every completed job's fare.
+        // (The wallet-overview "earnings" nets out COD debt/commission and can
+        // read negative, which isn't what this schedule should show.)
+        _netEarnings = result.transactions
+            .fold<double>(0, (sum, t) => sum + t.absoluteAmount);
         _trips = result.transactions;
         _loading = false;
       });
@@ -102,7 +103,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.palette.bg,
-      appBar: CommonAppBar(titleText: 'ตารางการขับขี่', showLeftIcon: true),
+      appBar: CommonAppBar(titleText: 'ตารางรายได้', showLeftIcon: true),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
