@@ -289,7 +289,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           ),
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            // Reserve the system nav-bar inset so the "ถึงแล้ว" button clears
+            // the Android 3-button bar (viewPadding.bottom — the sheet consumes
+            // the SafeArea padding).
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              32 + MediaQuery.of(context).viewPadding.bottom,
+            ),
             children: [
               _buildDragIndicator(),
               const SizedBox(height: 16),

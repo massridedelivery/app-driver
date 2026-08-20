@@ -119,7 +119,14 @@ class _LiveSheet extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      // Reserve the system nav-bar inset so the action button clears the
+      // Android 3-button bar (viewPadding.bottom).
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        28 + MediaQuery.of(context).viewPadding.bottom,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.semanticGrayNeutralFgMidOnBlack,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
