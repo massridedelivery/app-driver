@@ -8,6 +8,7 @@ import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
 import '../../domain/models/bank_account_info.dart';
@@ -170,18 +171,18 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
     final state = ref.watch(registrationControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         title: Text(
           'ข้อมูลบัญชีธนาคาร',
           style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.palette.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.semanticGrayNeutralFgHigh,
+        iconTheme: IconThemeData(
+          color: context.palette.textPrimary,
         ),
       ),
       body: Form(
@@ -218,7 +219,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
             Text(
               'รูปสมุดบัญชีธนาคารหน้าแรก',
               style: AppTypography.caption2.copyWith(
-                color: AppColors.semanticGrayNeutralFgHigh,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -227,10 +228,10 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
               child: Container(
                 height: 150,
                 decoration: BoxDecoration(
-                  color: AppColors.semanticGrayNeutralBgLightgray,
+                  color: context.palette.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.semanticGrayNeutralBorderLightgray,
+                    color: context.palette.border,
                   ),
                 ),
                 child: _selectedImage != null
@@ -248,16 +249,16 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.cloud_upload_outlined,
                                     size: 40,
-                                    color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                                    color: context.palette.textSecondary,
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'แตะเพื่ออัปโหลดรูปภาพ',
                                     style: AppTypography.caption3.copyWith(
-                                      color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                                      color: context.palette.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -270,17 +271,17 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
               child: ElevatedButton(
                 onPressed: state.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+                  backgroundColor: context.palette.textPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: state.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(color: context.palette.bg)
                     : Text(
                         'บันทึก',
                         style: AppTypography.label1.copyWith(
-                          color: Colors.white,
+                          color: context.palette.bg,
                         ),
                       ),
               ),
@@ -303,7 +304,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
         Text(
           label,
           style: AppTypography.label2.copyWith(
-            color: AppColors.semanticGrayNeutralFgHigh,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -314,10 +315,10 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+              color: context.palette.textSecondary,
             ),
             filled: true,
-            fillColor: AppColors.semanticGrayNeutralBgLightgray,
+            fillColor: context.palette.surfaceAlt,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

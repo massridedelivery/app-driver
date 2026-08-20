@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
@@ -24,7 +25,7 @@ class EditProfileScreen extends ConsumerWidget {
     if (profile == null) {
       return Scaffold(
         appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: context.palette.bg,
         body: const Center(child: MassLoadingM(size: 72)),
       );
     }
@@ -39,9 +40,9 @@ class EditProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: context.palette.bg,
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: ListView(
           // Clear the Android edge-to-edge system nav.
           padding: EdgeInsets.only(
@@ -158,7 +159,7 @@ class EditProfileScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E2F38),
+      backgroundColor: context.palette.sheet,
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -173,29 +174,29 @@ class EditProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 "อัปเดตข้อมูลยานพาหนะ",
-                style: AppTypography.heading3.copyWith(color: Colors.white),
+                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: plateController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: context.palette.textPrimary),
+                decoration: InputDecoration(
                   labelText: "ป้ายทะเบียน",
-                  labelStyle: TextStyle(color: Colors.white70),
+                  labelStyle: TextStyle(color: context.palette.textSecondary),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: context.palette.border),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: modelController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: context.palette.textPrimary),
+                decoration: InputDecoration(
                   labelText: "รุ่น/ยี่ห้อ (เช่น HONDA CLICK)",
-                  labelStyle: TextStyle(color: Colors.white70),
+                  labelStyle: TextStyle(color: context.palette.textSecondary),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: context.palette.border),
                   ),
                 ),
               ),
@@ -246,7 +247,7 @@ class EditProfileScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E2F38),
+      backgroundColor: context.palette.sheet,
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -261,17 +262,17 @@ class EditProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 "อัปเดตชื่อ",
-                style: AppTypography.heading3.copyWith(color: Colors.white),
+                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: context.palette.textPrimary),
+                decoration: InputDecoration(
                   labelText: "ชื่อ - นามสกุล",
-                  labelStyle: TextStyle(color: Colors.white70),
+                  labelStyle: TextStyle(color: context.palette.textSecondary),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: context.palette.border),
                   ),
                 ),
               ),
@@ -321,7 +322,7 @@ class EditProfileScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E2F38),
+      backgroundColor: context.palette.sheet,
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -336,18 +337,18 @@ class EditProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 "อัปเดตหมายเลขโทรศัพท์มือถือ",
-                style: AppTypography.heading3.copyWith(color: Colors.white),
+                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: phoneController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.textPrimary),
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "หมายเลขโทรศัพท์มือถือ",
-                  labelStyle: TextStyle(color: Colors.white70),
+                  labelStyle: TextStyle(color: context.palette.textSecondary),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: context.palette.border),
                   ),
                 ),
               ),
@@ -400,7 +401,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: AppTypography.caption3.copyWith(
-          color: AppColors.semanticGrayNeutralBgWhite,
+          color: context.palette.textPrimary,
         ),
       ),
     );
@@ -423,14 +424,14 @@ class _ProfileImageTile extends StatelessWidget {
           title: Text(
             "รูปโปรไฟล์",
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
           subtitle: onTap != null
               ? Text(
                   "แตะเพื่อเปลี่ยนรูปโปรไฟล์",
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 )
               : null,
@@ -442,20 +443,17 @@ class _ProfileImageTile extends StatelessWidget {
                 backgroundColor: Colors.grey[800],
                 backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
                 child: !hasImage
-                    ? const Icon(Icons.person, color: Colors.white70, size: 24)
+                    ? Icon(Icons.person, color: context.palette.textSecondary, size: 24)
                     : null,
               ),
               if (onTap != null) ...[
                 const SizedBox(width: 4),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.semanticGrayNeutralFgLowOnGray,
-                ),
+                Icon(Icons.chevron_right, color: context.palette.textTertiary),
               ],
             ],
           ),
         ),
-        const Divider(color: Colors.white12, height: 1),
+        Divider(color: context.palette.border, height: 1),
       ],
     );
   }
@@ -484,25 +482,22 @@ class _InfoTile extends StatelessWidget {
               ? Text(
                   title,
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 )
               : null,
           subtitle: Text(
             value,
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
           trailing: showArrow
-              ? const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.semanticGrayNeutralFgLowOnGray,
-                )
+              ? Icon(Icons.chevron_right, color: context.palette.textTertiary)
               : null,
           onTap: onTap,
         ),
-        const Divider(color: Colors.white12, height: 1),
+        Divider(color: context.palette.border, height: 1),
       ],
     );
   }
@@ -532,12 +527,12 @@ class _VehicleTile extends StatelessWidget {
           title: Text(
             plate,
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
           subtitle: Text(
             vehicle,
-            style: const TextStyle(color: Colors.white70),
+            style: TextStyle(color: context.palette.textSecondary),
           ),
           trailing: hasWarning
               ? const Icon(
@@ -546,13 +541,10 @@ class _VehicleTile extends StatelessWidget {
                 )
               : isPrimary
               ? const Icon(Icons.check, color: AppColors.semanticSuccessFgHigh)
-              : const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.semanticGrayNeutralFgLowOnGray,
-                ),
+              : Icon(Icons.chevron_right, color: context.palette.textTertiary),
           onTap: onTap,
         ),
-        const Divider(color: Colors.white12, height: 1),
+        Divider(color: context.palette.border, height: 1),
       ],
     );
   }
@@ -576,16 +568,13 @@ class _DeleteAccountTile extends ConsumerWidget {
           subtitle: Text(
             "ข้อมูลทั้งหมดในบัญชีจะถูกลบออก",
             style: AppTypography.caption5.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: AppColors.semanticGrayNeutralFgLowOnGray,
-          ),
+          trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
           onTap: () => _showDeleteDialog(context, ref),
         ),
-        const Divider(color: Colors.white12, height: 1),
+        Divider(color: context.palette.border, height: 1),
       ],
     );
   }
@@ -594,17 +583,17 @@ class _DeleteAccountTile extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: context.palette.surface,
         title: Text(
           "ยืนยันการลบบัญชี",
           style: AppTypography.caption3.copyWith(
-            color: AppColors.semanticGrayNeutralBgWhite,
+            color: context.palette.textPrimary,
           ),
         ),
         content: Text(
           "คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี?\nการดำเนินการนี้ไม่สามารถย้อนกลับได้",
           style: AppTypography.caption4.copyWith(
-            color: AppColors.semanticGrayNeutralFgLowOnWhite,
+            color: context.palette.textSecondary,
           ),
         ),
         actions: [
@@ -612,7 +601,7 @@ class _DeleteAccountTile extends ConsumerWidget {
             child: Text(
               "ยกเลิก",
               style: AppTypography.caption3.copyWith(
-                color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                color: context.palette.textSecondary,
               ),
             ),
             onPressed: () => Navigator.pop(context),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 
 class ServiceToggleTile extends StatelessWidget {
@@ -30,8 +31,8 @@ class ServiceToggleTile extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 style: AppTypography.caption2.copyWith(
                   color: isEnabled
-                      ? AppColors.semanticGrayNeutralBgWhite
-                      : AppColors.semanticGrayNeutralBgWhite.withValues(alpha: 0.4),
+                      ? context.palette.textPrimary
+                      : context.palette.textPrimary.withValues(alpha: 0.4),
                   fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w400,
                 ),
                 child: Column(
@@ -44,9 +45,9 @@ class ServiceToggleTile extends StatelessWidget {
                         description!,
                         style: AppTypography.caption4.copyWith(
                           color: isEnabled
-                              ? AppColors.semanticGrayNeutralBgWhite
+                              ? context.palette.textPrimary
                                   .withValues(alpha: 0.6)
-                              : AppColors.semanticGrayNeutralBgWhite
+                              : context.palette.textPrimary
                                   .withValues(alpha: 0.3),
                           fontWeight: FontWeight.w400,
                         ),
@@ -81,7 +82,7 @@ class _AnimatedToggle extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         color: isEnabled
             ? AppColors.foundationOrange600
-            : AppColors.semanticGrayNeutralFgMidOnWhite,
+            : context.palette.textTertiary,
       ),
       child: AnimatedAlign(
         duration: const Duration(milliseconds: 200),
@@ -92,7 +93,7 @@ class _AnimatedToggle extends StatelessWidget {
           height: 20,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.semanticGrayNeutralBgWhite,
+            color: Colors.white,
           ),
         ),
       ),

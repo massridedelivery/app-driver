@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/service_type/presentation/widget/service_toggle_tile.dart';
 
@@ -35,7 +35,7 @@ class ServiceTypeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: CommonAppBar(titleText: 'ประเภทการบริการ', showLeftIcon: true),
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: profileState.isLoading || profileState.profile == null
             ? const Center(child: MassLoadingM(size: 72))
             : ListView.separated(
@@ -44,8 +44,8 @@ class ServiceTypeScreen extends ConsumerWidget {
                   bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
                 ),
                 itemCount: vehicleTypes.length,
-                separatorBuilder: (context, index) => const Divider(
-                  color: AppColors.semanticGrayNeutralFgLowOnGray,
+                separatorBuilder: (context, index) => Divider(
+                  color: context.palette.border,
                   height: 1,
                 ),
                 itemBuilder: (context, index) {
