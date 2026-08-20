@@ -40,6 +40,12 @@
 		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และแนบรูปในแชท</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
+		<!-- Required by the `geolocator` SDK, which references the Always API
+		     (Apple ITMS-90683). The app only ever requests When-In-Use at runtime
+		     and declares no location UIBackgroundModes, so it does not use
+		     background location. -->
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ และสลิปโอนเงินสำหรับการลงทะเบียนและยืนยันการชำระเงิน</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
