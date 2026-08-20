@@ -9,6 +9,7 @@ import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
+import 'package:massdrive/core/theme/theme_controller.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
 
@@ -133,25 +134,23 @@ class _StartupErrorApp extends StatelessWidget {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = ref.watch(darkModeProvider);
     return MaterialApp.router(
       routeInformationProvider: AppRouter.router.routeInformationProvider,
       routeInformationParser: AppRouter.router.routeInformationParser,
       routerDelegate: AppRouter.router.routerDelegate,
       title: 'Mass Drive',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.black,
-        // App default font is IBM Plex Thai — Thai text rendered by a bare
-        // TextStyle (no fontFamily) inherits this instead of falling back to
-        // Roboto. AppTypography styles that set Poppins explicitly still win.
-        fontFamily: 'Ibm',
-      ),
+      // Both themes carry the IBM Plex Thai default font; AppTypography styles
+      // that set Poppins explicitly still win.
+      theme: appLightTheme,
+      darkTheme: appDarkTheme,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
     );
   }
 }
