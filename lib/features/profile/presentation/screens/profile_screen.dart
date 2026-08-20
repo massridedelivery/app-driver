@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/features/profile/presentation/controllers/today_trips_provider.dart';
+import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -202,7 +203,13 @@ class _WeeklyOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () =>
+            AppNavigator.push(context, const TripCalendarScreen()),
+        child: Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -217,11 +224,22 @@ class _WeeklyOverviewCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            "ภาพรวมรายสัปดาห์",
-            style: AppTypography.caption4.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "ภาพรวมรายสัปดาห์",
+                style: AppTypography.caption4.copyWith(
+                  color: AppColors.semanticGrayNeutralBgWhite,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.semanticGrayNeutralBgWhite,
+                size: 16,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -246,6 +264,8 @@ class _WeeklyOverviewCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }
