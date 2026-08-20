@@ -26,6 +26,13 @@ class AppPalette {
 
   final Color border;
 
+  /// Elevated sheet over the map (home bottom sheets). Dark = the app's
+  /// blue-grey; light = white.
+  final Color sheet;
+
+  /// Secondary sheet fill.
+  final Color sheetAlt;
+
   const AppPalette({
     required this.bg,
     required this.surface,
@@ -34,6 +41,8 @@ class AppPalette {
     required this.textSecondary,
     required this.textTertiary,
     required this.border,
+    required this.sheet,
+    required this.sheetAlt,
   });
 
   static const dark = AppPalette(
@@ -44,6 +53,8 @@ class AppPalette {
     textSecondary: AppColors.foundationAlphaWhite400,
     textTertiary: AppColors.semanticGrayNeutralFgLowOnGray,
     border: Color(0x1FFFFFFF),
+    sheet: Color(0xFF1E2F38),
+    sheetAlt: Color(0xFF2C3E4A),
   );
 
   static const light = AppPalette(
@@ -54,6 +65,8 @@ class AppPalette {
     textSecondary: Color(0xFF64748B),
     textTertiary: Color(0xFF94A3B8),
     border: Color(0xFFE2E8F0),
+    sheet: Colors.white,
+    sheetAlt: Color(0xFFF1F5F9),
   );
 
   static AppPalette of(BuildContext context) =>

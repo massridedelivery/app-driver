@@ -12,6 +12,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
@@ -359,7 +360,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ref.watch(messengerControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgWhite,
+      backgroundColor: context.palette.textPrimary,
       body: Stack(
         children: [
           const _HomeMap(),
@@ -404,7 +405,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         height: 50,
         width: 50,
         decoration: BoxDecoration(
-          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.7),
+          color: context.palette.bg.withOpacity(0.7),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -414,7 +415,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ],
         ),
-        child: const Icon(
+        child: Icon(
           Icons.settings_outlined,
           color: Colors.white,
           size: 26,
@@ -427,13 +428,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Shimmer.fromColors(
-        baseColor: const Color(0xFF1E2F38),
-        highlightColor: const Color(0xFF2C3E4A),
+        baseColor: context.palette.sheet,
+        highlightColor: context.palette.sheetAlt,
         child: Container(
           width: double.infinity,
           height: 350,
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E2F38),
+          decoration: BoxDecoration(
+            color: context.palette.sheet,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: SafeArea(
@@ -446,8 +447,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   Container(
                     width: 56,
                     height: 56,
-                    decoration: const BoxDecoration(
-                      color: Colors.white12,
+                    decoration: BoxDecoration(
+                      color: context.palette.border,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -456,7 +457,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     width: 200,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -465,7 +466,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     width: double.infinity,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -474,7 +475,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     width: 180,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -483,7 +484,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     width: double.infinity,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
@@ -503,8 +504,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E2F38), // Matches the premium dark blue from image
+        decoration: BoxDecoration(
+          color: context.palette.sheet, // Matches the premium dark blue from image
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
@@ -521,18 +522,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.info_sharp, color: Colors.white70, size: 56),
+                Icon(Icons.info_sharp, color: context.palette.textSecondary, size: 56),
                 const SizedBox(height: 20),
                 Text(
                   'ส่งเอกสารสมัครคนขับ',
-                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                  style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'ใกล้จะเสร็จแล้ว!\nโปรดยื่นเอกสารสมัครขับรถของคุณเพื่อเป็นคนขับ Mass\n\nติดต่อ 089-9999999',
                   textAlign: TextAlign.center,
                   style: AppTypography.caption4.copyWith(
-                    color: Colors.white70,
+                    color: context.palette.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -556,7 +557,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: Text(
                       'ไปที่ลงทะเบียนคนขับ',
                       style: AppTypography.caption3.copyWith(
-                        color: AppColors.semanticGrayNeutralFgWhite,
+                        color: context.palette.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -578,8 +579,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E2F38),
+        decoration: BoxDecoration(
+          color: context.palette.sheet,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
@@ -596,7 +597,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.hourglass_top_rounded,
                   color: AppColors.foundationOrange500,
                   size: 56,
@@ -605,7 +606,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Text(
                   'กำลังดำเนินการตรวจสอบข้อมูล',
                   textAlign: TextAlign.center,
-                  style: AppTypography.heading3.copyWith(color: Colors.white),
+                  style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -613,7 +614,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   'จะแจ้งเตือนอีกครั้งเมื่อผลการพิจารณาเสร็จสิ้น',
                   textAlign: TextAlign.center,
                   style: AppTypography.caption4.copyWith(
-                    color: Colors.white70,
+                    color: context.palette.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -662,7 +663,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: Text(
                     'ดูสถานะเอกสาร',
                     style: AppTypography.caption4.copyWith(
-                      color: Colors.white70,
+                      color: context.palette.textSecondary,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -693,8 +694,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           children: [
             Container(
               margin: const EdgeInsets.only(top: 26),
-              decoration: const BoxDecoration(
-                color: AppColors.semanticGrayNeutralFgHigh,
+              decoration: BoxDecoration(
+                color: context.palette.bg,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
@@ -709,7 +710,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: AppColors.foundationAlphaWhite500,
+                            color: context.palette.textSecondary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -771,9 +772,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Container(
             width: 50,
             height: 50,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white10,
+              color: context.palette.surfaceAlt,
             ),
             child: Icon(icon, color: AppColors.foundationOrange700),
           ),
@@ -784,7 +785,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               text,
               textAlign: TextAlign.center,
               style: AppTypography.caption5.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
+                color: context.palette.textPrimary,
               ),
             ),
           ),
@@ -821,7 +822,7 @@ class _OnlineButton extends ConsumerWidget {
                 content: Text(
                   'พร้อมรับงานแล้ว',
                   style: AppTypography.label2.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 backgroundColor: AppColors.semanticSuccessBgHigh,
@@ -852,7 +853,7 @@ class _OnlineButton extends ConsumerWidget {
                   content: Text(
                     'ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง',
                     style: AppTypography.label2.copyWith(
-                      color: AppColors.semanticGrayNeutralBgWhite,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                   backgroundColor: AppColors.semanticErrorBgHigh,
@@ -887,15 +888,15 @@ class _OnlineButton extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.power_settings_new,
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
             const SizedBox(width: 10),
             Text(
               isOnline ? "พร้อมรับงาน" : "ปิดรับงาน",
               style: AppTypography.heading5.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
+                color: context.palette.textPrimary,
               ),
             ),
           ],
@@ -916,7 +917,7 @@ class _StatusCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.foundationAlphaWhite100,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -931,7 +932,7 @@ class _StatusCard extends ConsumerWidget {
           Text(
             isOnline ? "ระบบกำลังค้นหางาน...." : "คุณปิดรับงาน",
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralBgWhite,
+              color: context.palette.textPrimary,
             ),
           ),
         ],
@@ -948,8 +949,8 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
     backgroundColor: Colors.transparent,
     builder: (context) {
       return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E2F38),
+        decoration: BoxDecoration(
+          color: context.palette.sheet,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         // Reserve the system nav-bar inset so the buttons clear the Android
@@ -963,7 +964,7 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.warning_amber_rounded,
               color: AppColors.foundationOrange500,
               size: 64,
@@ -971,14 +972,14 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
             const SizedBox(height: 16),
             Text(
               'เอกสารของคุณยังไม่ได้รับการอนุมัติ',
-              style: AppTypography.heading5.copyWith(color: Colors.white),
+              style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
               'กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบถ้วนและรอการตรวจสอบให้เรียบร้อยเพื่อเริ่มต้นรับงาน',
               style: AppTypography.caption3.copyWith(
-                color: Colors.white70,
+                color: context.palette.textSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -990,7 +991,7 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white30),
+                      side: BorderSide(color: context.palette.textTertiary),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -998,7 +999,7 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
                     ),
                     child: Text(
                       'ยกเลิก',
-                      style: AppTypography.label2.copyWith(color: Colors.white70),
+                      style: AppTypography.label2.copyWith(color: context.palette.textSecondary),
                     ),
                   ),
                 ),
@@ -1161,7 +1162,7 @@ class _RecenterButtonState extends ConsumerState<_RecenterButton> {
         height: 50,
         width: 50,
         decoration: BoxDecoration(
-          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.7),
+          color: context.palette.bg.withOpacity(0.7),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -1179,7 +1180,7 @@ class _RecenterButtonState extends ConsumerState<_RecenterButton> {
                   valueColor: AlwaysStoppedAnimation(Colors.white),
                 ),
               )
-            : const Icon(
+            : Icon(
                 Icons.my_location,
                 color: Colors.white,
                 size: 24,
