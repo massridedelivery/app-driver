@@ -335,8 +335,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       child: Column(
         children: [
           _circleButton(Icons.shield_outlined),
-          const SizedBox(height: 12),
-          _circleButton(Icons.notifications_none),
         ],
       ),
     );
