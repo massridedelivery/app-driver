@@ -38,10 +38,8 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และแนบรูปในแชท</string>
-		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-		<string>This app needs location access to track your drive.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>This app needs location access</string>
+		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ และสลิปโอนเงินสำหรับการลงทะเบียนและยืนยันการชำระเงิน</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
