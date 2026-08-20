@@ -5,6 +5,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/connectivity_monitor.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
@@ -23,14 +24,14 @@ class SettingScreen extends ConsumerWidget {
     return Scaffold(
       appBar: CommonAppBar(titleText: 'การตั้งค่า', showLeftIcon: true),
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: ListView(
           // Clear the Android edge-to-edge system nav.
           padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom + 16),
           children: [
             SectionHeader(
               title: "บัญชี",
-              textColor: AppColors.semanticGrayNeutralBgWhite,
+              textColor: context.palette.textPrimary,
             ),
 
             const _AccountTile(),
@@ -39,7 +40,7 @@ class SettingScreen extends ConsumerWidget {
 
             SectionHeader(
               title: "การเชื่อมต่ออินเทอร์เน็ต",
-              textColor: AppColors.semanticGrayNeutralBgWhite,
+              textColor: context.palette.textPrimary,
             ),
 
             const _ConnectivityCard(),
@@ -47,7 +48,7 @@ class SettingScreen extends ConsumerWidget {
 
             SectionHeader(
               title: "การตั้งค่าการให้บริการ",
-              textColor: AppColors.semanticGrayNeutralBgWhite,
+              textColor: context.palette.textPrimary,
             ),
 
             const _AutoAcceptCard(),
@@ -55,7 +56,7 @@ class SettingScreen extends ConsumerWidget {
 
             SectionHeader(
               title: "การตั้งค่าแอป",
-              textColor: AppColors.semanticGrayNeutralBgWhite,
+              textColor: context.palette.textPrimary,
             ),
 
             ListTile(
@@ -64,20 +65,17 @@ class SettingScreen extends ConsumerWidget {
               title: Text(
                 "โหมดสีเข้ม",
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralFgLowOnGray,
-              ),
+              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
               onTap: () => AppNavigator.push(context, const DarkModeScreen()),
             ),
             const _Divider(),
 
             SectionHeader(
               title: "นักพัฒนา",
-              textColor: AppColors.semanticGrayNeutralBgWhite,
+              textColor: context.palette.textPrimary,
             ),
 
             ListTile(
@@ -88,19 +86,16 @@ class SettingScreen extends ConsumerWidget {
               title: Text(
                 "FCM Debug Log",
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               subtitle: Text(
                 "ดู token / สิทธิ์แจ้งเตือน / log การรับ-ส่ง push",
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralFgLowOnGray,
-              ),
+              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
               onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
             ),
 
@@ -115,19 +110,16 @@ class SettingScreen extends ConsumerWidget {
               title: Text(
                 "ตัวอย่างหน้ารีวิวลูกค้า",
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               subtitle: Text(
                 "ดู UI หน้าให้คะแนนลูกค้า (โหมดตัวอย่าง — ยังไม่ส่งจริง)",
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationAlphaWhite400,
+                  color: context.palette.textSecondary,
                 ),
               ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralFgLowOnGray,
-              ),
+              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
               onTap: () => context.push(
                 '/review-customer',
                 extra: {
@@ -159,11 +151,11 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
   showDialog(
     context: parentContext,
     builder: (dialogContext) => AlertDialog(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: dialogContext.palette.surface,
       title: Text(
         "คุณต้องการออกจากระบบ?",
         style: AppTypography.caption3.copyWith(
-          color: AppColors.semanticGrayNeutralBgWhite,
+          color: dialogContext.palette.textPrimary,
         ),
       ),
       actions: [
@@ -171,7 +163,7 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
           child: Text(
             "ยกเลิก",
             style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+              color: dialogContext.palette.textTertiary,
             ),
           ),
           onPressed: () => Navigator.pop(dialogContext),
@@ -227,7 +219,7 @@ class SectionHeader extends StatelessWidget {
           Text(
             title,
             style: AppTypography.caption3.copyWith(
-              color: textColor ?? AppColors.semanticGrayNeutralBgWhite,
+              color: textColor ?? context.palette.textPrimary,
             ),
           ),
         ],
@@ -245,8 +237,8 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
-      color: AppColors.semanticGrayNeutralFgMidOnGray,
+    return Divider(
+      color: context.palette.border,
       height: 1,
     );
   }
@@ -274,13 +266,13 @@ class _LeadingIconBadge extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: background ?? AppColors.foundationAlphaWhite100,
+        color: background ?? context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
         icon,
         size: size * 0.5,
-        color: iconColor ?? AppColors.semanticGrayNeutralBgWhite,
+        color: iconColor ?? context.palette.textPrimary,
       ),
     );
   }
@@ -305,7 +297,7 @@ class _ConnectivityCard extends ConsumerWidget {
     });
 
     final status = ref.watch(connectivityMonitorProvider);
-    final v = _visualFor(status);
+    final v = _visualFor(context, status);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -344,7 +336,7 @@ class _ConnectivityCard extends ConsumerWidget {
                 Text(
                   v.title,
                   style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -352,7 +344,7 @@ class _ConnectivityCard extends ConsumerWidget {
                 Text(
                   v.subtitle,
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -361,9 +353,9 @@ class _ConnectivityCard extends ConsumerWidget {
           IconButton(
             onPressed: () =>
                 ref.read(connectivityMonitorProvider.notifier).refresh(),
-            icon: const Icon(
+            icon: Icon(
               Icons.refresh,
-              color: AppColors.semanticGrayNeutralFgLowOnGray,
+              color: context.palette.textTertiary,
             ),
             tooltip: 'ตรวจสอบอีกครั้ง',
           ),
@@ -372,7 +364,7 @@ class _ConnectivityCard extends ConsumerWidget {
     );
   }
 
-  _ConnectivityVisual _visualFor(NetworkStatus s) {
+  _ConnectivityVisual _visualFor(BuildContext context, NetworkStatus s) {
     final ping = s.latencyMs != null ? ' · ${s.latencyMs} ms' : '';
     final net = s.isMobile ? 'เน็ตมือถือ' : 'Wi-Fi';
     switch (s.quality) {
@@ -380,7 +372,7 @@ class _ConnectivityCard extends ConsumerWidget {
         return _ConnectivityVisual(
           icon: Icons.wifi,
           accent: AppColors.semanticSuccessBgHigh,
-          background: AppColors.foundationAlphaWhite100,
+          background: context.palette.surfaceAlt,
           title: 'อินเทอร์เน็ตเสถียร',
           subtitle: '$net$ping',
         );
@@ -403,8 +395,8 @@ class _ConnectivityCard extends ConsumerWidget {
       case NetworkQuality.checking:
         return _ConnectivityVisual(
           icon: Icons.wifi_find,
-          accent: AppColors.semanticGrayNeutralFgLowOnGray,
-          background: AppColors.foundationAlphaWhite100,
+          accent: context.palette.textTertiary,
+          background: context.palette.surfaceAlt,
           title: 'กำลังตรวจสอบการเชื่อมต่อ...',
           subtitle: 'โปรดรอสักครู่',
         );
@@ -444,16 +436,16 @@ class _AccountTile extends ConsumerWidget {
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: const _LeadingIconBadge(icon: Icons.person_outline_rounded),
-        title: const SizedBox(
+        title: SizedBox(
           height: 16,
           width: 120,
           child: LinearProgressIndicator(
-            backgroundColor: Colors.white10,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white30),
+            backgroundColor: context.palette.surfaceAlt,
+            valueColor: AlwaysStoppedAnimation<Color>(context.palette.textTertiary),
           ),
         ),
         subtitle: const SizedBox(height: 8),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+        trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
         onTap: () {
           AppNavigator.push(context, const EditProfileScreen());
         },
@@ -481,16 +473,16 @@ class _AccountTile extends ConsumerWidget {
       title: Text(
         fullName,
         style: AppTypography.caption3.copyWith(
-          color: AppColors.semanticGrayNeutralBgWhite,
+          color: context.palette.textPrimary,
         ),
       ),
       subtitle: Text(
         subtitleText,
         style: AppTypography.caption4.copyWith(
-          color: AppColors.foundationAlphaWhite400,
+          color: context.palette.textSecondary,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+      trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
       onTap: () {
         AppNavigator.push(context, const EditProfileScreen());
       },
@@ -528,14 +520,14 @@ class _AutoAcceptCard extends ConsumerWidget {
                 Text(
                   "รับงานอัตโนมัติ",
                   style: AppTypography.caption3.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationAlphaWhite400,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
