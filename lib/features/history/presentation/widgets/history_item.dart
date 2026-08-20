@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history/domain/models/history_item_model.dart';
 
@@ -17,8 +18,8 @@ class HistoryItemWidget extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.white12)),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: context.palette.border)),
         ),
         child: Row(
           children: [
@@ -44,7 +45,7 @@ class HistoryItemWidget extends StatelessWidget {
             // Time
             Text(
               "${item.dateTime.hour.toString().padLeft(2, '0')}:${item.dateTime.minute.toString().padLeft(2, '0')}",
-              style: AppTypography.caption5.copyWith(color: Colors.white70),
+              style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
             ),
             const SizedBox(width: 12),
             // Title
@@ -52,7 +53,7 @@ class HistoryItemWidget extends StatelessWidget {
               child: Text(
                 item.title,
                 style: AppTypography.caption4.copyWith(
-                  color: Colors.white,
+                  color: context.palette.textPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -81,12 +82,12 @@ class HistoryItemWidget extends StatelessWidget {
                   Text(
                     "฿${item.amount?.toStringAsFixed(0) ?? '0'}",
                     style: AppTypography.caption4.copyWith(
-                      color: Colors.white,
+                      color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+                  Icon(Icons.chevron_right, color: context.palette.textTertiary, size: 18),
                 ],
               ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 
@@ -18,7 +19,7 @@ class OrderItemsSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralBgWhite,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -43,7 +44,7 @@ class OrderItemsSection extends StatelessWidget {
               Text(
                 "รายการอาหาร",
                 style: AppTypography.heading5.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],
@@ -87,7 +88,7 @@ class OrderItemsSection extends StatelessWidget {
                         Text(
                           name,
                           style: AppTypography.caption4.copyWith(
-                            color: AppColors.semanticGrayNeutralFgHigh,
+                            color: context.palette.textPrimary,
                           ),
                         ),
                         if (note != null && note.isNotEmpty) ...[
@@ -95,7 +96,7 @@ class OrderItemsSection extends StatelessWidget {
                           Text(
                             note,
                             style: AppTypography.caption5.copyWith(
-                              color: AppColors.semanticGrayNeutralFgLowOnWhite,
+                              color: context.palette.textSecondary,
                             ),
                           ),
                         ],
@@ -106,7 +107,7 @@ class OrderItemsSection extends StatelessWidget {
                   Text(
                     '฿${price.toStringAsFixed(0)}',
                     style: AppTypography.caption4.copyWith(
-                      color: AppColors.semanticGrayNeutralFgHigh,
+                      color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -123,13 +124,13 @@ class OrderItemsSection extends StatelessWidget {
               Text(
                 "ค่าอาหาร",
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralFgMidOnGray,
+                  color: context.palette.textSecondary,
                 ),
               ),
               Text(
                 "฿${_subtotal.toStringAsFixed(0)}",
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralFgHigh,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],

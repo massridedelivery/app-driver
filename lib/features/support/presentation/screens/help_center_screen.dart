@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
@@ -41,7 +42,7 @@ class HelpCenterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.semanticGrayNeutralFgHigh,
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'ศูนย์ช่วยเหลือ', showLeftIcon: true),
       body: SafeArea(
         child: ListView(
@@ -53,7 +54,7 @@ class HelpCenterScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'คำถามที่พบบ่อย',
-              style: AppTypography.heading5.copyWith(color: Colors.white),
+              style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
             ),
             const SizedBox(height: 8),
             ..._topics.map(
@@ -78,21 +79,21 @@ class _CallCenterCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
+        color: context.palette.surface,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'ติดต่อคอลเซ็นเตอร์',
-            style: AppTypography.heading5.copyWith(color: Colors.white),
+            style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
           ),
           const SizedBox(height: 6),
           Text(
             SupportConstant.hasCallCenter
                 ? SupportConstant.callCenterNumber
                 : 'ยังไม่ได้ตั้งค่าเบอร์ติดต่อ',
-            style: AppTypography.body2.copyWith(color: Colors.white70),
+            style: AppTypography.body2.copyWith(color: context.palette.textSecondary),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -137,18 +138,18 @@ class _TopicTile extends StatelessWidget {
       margin: const EdgeInsets.only(top: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
+        color: context.palette.surface,
       ),
       child: Theme(
         // ExpansionTile draws its own dividers in the light default theme.
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: Icon(icon, color: AppColors.foundationOrange500),
-          iconColor: Colors.white70,
-          collapsedIconColor: Colors.white70,
+          iconColor: context.palette.textSecondary,
+          collapsedIconColor: context.palette.textSecondary,
           title: Text(
             title,
-            style: AppTypography.label2.copyWith(color: Colors.white),
+            style: AppTypography.label2.copyWith(color: context.palette.textPrimary),
           ),
           childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +157,7 @@ class _TopicTile extends StatelessWidget {
             Text(
               body,
               style: AppTypography.caption3
-                  .copyWith(color: Colors.white70, height: 1.5),
+                  .copyWith(color: context.palette.textSecondary, height: 1.5),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/history/domain/models/history_item_model.dart';
@@ -84,7 +85,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         showLeftIcon: true,
       ),
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: Column(
           children: [
             _buildFilterBar(state.selectedType),
@@ -150,7 +151,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildFilterBar(String? selectedType) {
     return Container(
       height: 48,
-      color: AppColors.semanticGrayNeutralFgHigh,
+      color: context.palette.bg,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -180,13 +181,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Icon(
             Icons.receipt_long_rounded,
             size: 64,
-            color: AppColors.foundationAlphaWhite400,
+            color: context.palette.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
             'ยังไม่มีรายการธุรกรรม',
             style: AppTypography.caption3.copyWith(
-              color: AppColors.foundationAlphaWhite400,
+              color: context.palette.textSecondary,
             ),
           ),
         ],
@@ -220,19 +221,19 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.semanticPrimaryBgLow
-              : Colors.white.withOpacity(0.08),
+              : context.palette.surfaceAlt,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? AppColors.semanticPrimaryBgLow
-                : Colors.white24,
+                : context.palette.border,
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: AppTypography.caption5.copyWith(
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? Colors.white : context.palette.textSecondary,
             fontWeight:
                 isSelected ? FontWeight.w600 : FontWeight.normal,
           ),

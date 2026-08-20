@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/widgets/history_map_section.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/widgets/order_items_section.dart';
@@ -29,7 +30,7 @@ class HistoryDetailScreen extends StatelessWidget {
         showLeftIcon: true,
       ),
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
