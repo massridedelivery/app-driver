@@ -15,6 +15,8 @@ import 'package:massdrive/features/profile/presentation/controllers/profile_cont
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -131,6 +133,35 @@ class SettingScreen extends ConsumerWidget {
                   'subtitle': 'ตัวอย่างลูกค้า',
                   'previewMode': true,
                 },
+              ),
+            ),
+
+            // UI-preview for the chat screen. previewMode renders a sample
+            // thread locally (no socket/REST), so the chat UI can be checked
+            // on-device without a live job.
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const _LeadingIconBadge(icon: Icons.chat_outlined),
+              title: Text(
+                "ตัวอย่างหน้าแชท",
+                style: AppTypography.caption3.copyWith(
+                  color: context.palette.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                "ดู UI หน้าแชทกับลูกค้า (โหมดตัวอย่าง)",
+                style: AppTypography.caption4.copyWith(
+                  color: context.palette.textSecondary,
+                ),
+              ),
+              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
+              onTap: () => AppNavigator.push(
+                context,
+                const ChatScreen(
+                  jobId: 'preview',
+                  passengerName: 'สมชาย ใจดี',
+                  previewMode: true,
+                ),
               ),
             ),
             const _Divider(),

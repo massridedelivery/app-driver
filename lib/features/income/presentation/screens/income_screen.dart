@@ -81,7 +81,7 @@ class IncomeScreen extends ConsumerWidget {
                             title: 'กระเป๋าเครดิต',
                             amount: state.creditBalance,
                             icon: Icons.work_rounded,
-                            iconBg: Colors.white,
+                            iconBg: AppColors.foundationOrange100,
                             iconColor: AppColors.foundationOrange700,
                             onTap: () => AppNavigator.push(
                               context,
@@ -178,21 +178,31 @@ class _ErrorState extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared card decoration
 // ─────────────────────────────────────────────────────────────────────────────
-BoxDecoration _cardDecoration({double radius = 20}) => BoxDecoration(
-      borderRadius: BorderRadius.circular(radius),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+/// Card surface for the income screen. Dark mode keeps the premium dark
+/// gradient; light mode flips to a white surface with a hairline border and a
+/// soft shadow so the cards read as raised panels on the light background.
+BoxDecoration _cardDecoration(BuildContext context, {double radius = 20}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return BoxDecoration(
+    borderRadius: BorderRadius.circular(radius),
+    color: isDark ? null : context.palette.surface,
+    gradient: isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : null,
+    border: isDark ? null : Border.all(color: context.palette.border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+        blurRadius: 16,
+        offset: const Offset(0, 8),
       ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.25),
-          blurRadius: 16,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    );
+    ],
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Total balance card
@@ -220,7 +230,7 @@ class _TotalBalanceCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-      decoration: _cardDecoration(),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -229,7 +239,7 @@ class _TotalBalanceCard extends StatelessWidget {
               Text(
                 'ยอดเงินรวมวันนี้',
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                  color: context.palette.textSecondary,
                 ),
               ),
               if (isVerified) ...[
@@ -264,7 +274,7 @@ class _TotalBalanceCard extends StatelessWidget {
               Text(
                 '฿$formattedBalance',
                 style: AppTypography.heading2.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -274,7 +284,7 @@ class _TotalBalanceCard extends StatelessWidget {
                 child: Text(
                   currency,
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ),
@@ -285,12 +295,12 @@ class _TotalBalanceCard extends StatelessWidget {
             Row(
               children: [
                 Icon(Icons.access_time_rounded,
-                    size: 12, color: AppColors.semanticGrayNeutralFgMidOnWhite),
+                    size: 12, color: context.palette.textSecondary),
                 const SizedBox(width: 4),
                 Text(
                   'อัปเดต: $formattedDate',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                    color: context.palette.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -330,7 +340,7 @@ class _WalletMiniCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-        decoration: _cardDecoration(),
+        decoration: _cardDecoration(context),
         child: Column(
           children: [
             Container(
@@ -343,14 +353,14 @@ class _WalletMiniCard extends StatelessWidget {
             Text(
               title,
               style: AppTypography.caption4.copyWith(
-                color: AppColors.semanticGrayNeutralBgWhite,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
               style: AppTypography.heading5.copyWith(
-                color: Colors.white,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -453,7 +463,7 @@ class _EarningsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: _cardDecoration(),
+      decoration: _cardDecoration(context),
       child: Stack(
         children: [
           // Decorative faded circle on the right.
@@ -465,7 +475,7 @@ class _EarningsCard extends StatelessWidget {
               height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.foundationAlphaWhite100,
+                color: context.palette.surfaceAlt,
               ),
             ),
           ),
@@ -477,7 +487,7 @@ class _EarningsCard extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -488,7 +498,7 @@ class _EarningsCard extends StatelessWidget {
                   '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
                   maxLines: 1,
                   style: AppTypography.heading1.copyWith(
-                    color: Colors.white,
+                    color: context.palette.textPrimary,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                   ),
@@ -518,7 +528,7 @@ class _AllTransactionsTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        decoration: _cardDecoration(radius: 16),
+        decoration: _cardDecoration(context, radius: 16),
         child: Row(
           children: [
             Expanded(
@@ -528,21 +538,21 @@ class _AllTransactionsTile extends StatelessWidget {
                   Text(
                     'รายการทั้งหมด',
                     style: AppTypography.caption4.copyWith(
-                      color: AppColors.semanticGrayNeutralFgMidOnWhite,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '$count รายการ',
                     style: AppTypography.heading5.copyWith(
-                      color: AppColors.semanticGrayNeutralBgWhite,
+                      color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white),
+            Icon(Icons.chevron_right, color: context.palette.textPrimary),
           ],
         ),
       ),
