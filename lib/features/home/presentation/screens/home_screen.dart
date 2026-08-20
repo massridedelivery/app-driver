@@ -288,7 +288,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late DraggableScrollableController _sheetController;
 
   final double _minSize = 0.25;
-  final double _maxSize = 0.85;
+  // Cap the sheet at its resting size — there's no extra content to reveal, so
+  // dragging it taller only exposed empty panel space.
+  final double _maxSize = 0.40;
 
   @override
   void initState() {
@@ -687,7 +689,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       minChildSize: _minSize,
       maxChildSize: _maxSize,
       snap: true,
-      snapSizes: const [0.40, 0.85],
+      snapSizes: const [0.40],
       builder: (context, scrollController) {
         return Stack(
           clipBehavior: Clip.none,
@@ -718,7 +720,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       const SizedBox(height: 24),
                       const _StatusCard(),
                       _buildMenuRow(),
-                      const SizedBox(height: 500),
                     ],
                   ),
                 ),
