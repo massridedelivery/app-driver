@@ -8,6 +8,7 @@ import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
@@ -43,7 +44,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
       body: Container(
-        color: AppColors.semanticGrayNeutralFgHigh,
+        color: context.palette.bg,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -109,7 +110,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return SizedBox(
       width: 100,
       child: Container(
-        color: AppColors.semanticGrayNeutralBgLightgray,
+        color: context.palette.surfaceAlt,
         child: const Center(child: BaseWaveDotsIndicator()),
       ),
     );
@@ -147,11 +148,7 @@ class _ProfileHeader extends StatelessWidget {
                 backgroundColor: Colors.grey[800],
                 backgroundImage: hasImage ? NetworkImage(profilePhotoUrl) : null,
                 child: !hasImage
-                    ? const Icon(
-                        Icons.person,
-                        color: Colors.white70,
-                        size: 28,
-                      )
+                    ? Icon(Icons.person, color: context.palette.textSecondary, size: 28)
                     : null,
               ),
               const SizedBox(width: 12),
@@ -163,7 +160,7 @@ class _ProfileHeader extends StatelessWidget {
                     Text(
                       profile.fullName,
                       style: AppTypography.caption3.copyWith(
-                        color: AppColors.semanticGrayNeutralBgWhite,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -178,7 +175,7 @@ class _ProfileHeader extends StatelessWidget {
                         Text(
                           profile.rating.toStringAsFixed(1),
                           style: AppTypography.caption4.copyWith(
-                            color: AppColors.semanticGrayNeutralBgWhite,
+                            color: context.palette.textPrimary,
                           ),
                         ),
                       ],
@@ -187,7 +184,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
 
-              const Icon(Icons.chevron_right, color: Colors.white54),
+              Icon(Icons.chevron_right, color: context.palette.textSecondary),
             ],
           ),
         ),
@@ -213,10 +210,10 @@ class _WeeklyOverviewCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [
-            AppColors.semanticGrayNeutralFgMidOnGray,
-            AppColors.semanticGrayNeutralFgMidOnGray,
+            context.palette.surface,
+            context.palette.surface,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -230,15 +227,11 @@ class _WeeklyOverviewCard extends StatelessWidget {
               Text(
                 "ภาพรวมรายสัปดาห์",
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.semanticGrayNeutralBgWhite,
-                size: 16,
-              ),
+              Icon(Icons.chevron_right, color: context.palette.textPrimary, size: 16),
             ],
           ),
           const SizedBox(height: 16),
@@ -285,7 +278,7 @@ class _TodayTripsSection extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnGray,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -296,7 +289,7 @@ class _TodayTripsSection extends ConsumerWidget {
               Text(
                 "งานที่ทำวันนี้",
                 style: AppTypography.caption3.copyWith(
-                  color: AppColors.semanticGrayNeutralBgWhite,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -310,7 +303,7 @@ class _TodayTripsSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(color: Colors.white12, height: 1),
+          Divider(color: context.palette.border, height: 1),
           const SizedBox(height: 8),
           tripsAsync.when(
             loading: () => const Padding(
@@ -327,7 +320,7 @@ class _TodayTripsSection extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 "โหลดรายการงานไม่สำเร็จ",
-                style: AppTypography.caption4.copyWith(color: Colors.white54),
+                style: AppTypography.caption4.copyWith(color: context.palette.textSecondary),
               ),
             ),
             data: (trips) => trips.isEmpty
@@ -336,7 +329,7 @@ class _TodayTripsSection extends ConsumerWidget {
                     child: Text(
                       "ยังไม่มีงานในวันนี้",
                       style: AppTypography.caption4.copyWith(
-                        color: Colors.white54,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                   )
@@ -385,13 +378,13 @@ class _TodayTripTile extends StatelessWidget {
                 Text(
                   "ค่าโดยสาร",
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralBgWhite,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   DateFormat('HH:mm').format(trip.createdAt.toLocal()),
-                  style: AppTypography.caption5.copyWith(color: Colors.white54),
+                  style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
                 ),
               ],
             ),
@@ -422,14 +415,14 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: AppTypography.caption3.copyWith(
-            color: AppColors.semanticGrayNeutralBgWhite,
+            color: context.palette.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: AppTypography.caption4.copyWith(
-            color: AppColors.semanticGrayNeutralBgWhite,
+            color: context.palette.textPrimary,
           ),
         ),
       ],
