@@ -30,6 +30,16 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final String? methodLabel;
   final String? title;
 
+  /// Messenger payer model (dev14). [codAmount] is the goods value collected
+  /// from the recipient — a SEPARATE debt from the delivery fee ([amount]),
+  /// shown on its own line, never summed. [payer]/[collectAt] describe who pays
+  /// and where. [paymentStatus] == 'PAID' means the fee was prepaid (sender QR),
+  /// so there is nothing to collect here.
+  final double? codAmount;
+  final String? payer;
+  final String? collectAt;
+  final String? paymentStatus;
+
   /// Review context for verticals whose job isn't in the ride controller
   /// (messenger passes its order id + service so the post-payment review can
   /// attach to the right order).
@@ -48,6 +58,10 @@ class PaymentScreen extends ConsumerStatefulWidget {
     this.amount,
     this.methodLabel,
     this.title,
+    this.codAmount,
+    this.payer,
+    this.collectAt,
+    this.paymentStatus,
     this.orderId,
     this.service,
     this.gateCompletion = false,
@@ -91,7 +105,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   String? _overrideReason;
 
   bool get _paid => _status == 'PAID';
+  // Fee already settled before this screen (sender prepaid by QR, dev14) — no
+  // collection to do, just confirm the delivery.
+  bool get _alreadyPaid =>
+      (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
   bool get _isMessenger => widget.service == ReviewService.messenger;
+  double get _codAmount => widget.codAmount ?? 0.0;
   String get _orderId =>
       widget.orderId ??
       ref.read(incomingJobControllerProvider).currentJob?.jobId ??
@@ -107,6 +126,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         (widget.methodLabel ?? job?.paymentMethod ?? '').toLowerCase();
     final isQr = label.contains('qr') || label.contains('promptpay');
     final isFood = job?.isFood ?? (widget.service == ReviewService.food);
+    // Fee already prepaid (sender QR, dev14): nothing to collect — reflect PAID
+    // so completion is ungated and skip the intent/poll entirely.
+    if (_alreadyPaid) {
+      _status = 'PAID';
+      return;
+    }
     // Food's payment-intent endpoint isn't defined yet (BE) — keep the static
     // QR for food; only ride/messenger fetch a live intent + poll.
     if (isQr && !isFood) {
@@ -445,7 +470,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 24),
 
           // Breakdown
-          _buildBreakdownRow("ค่าโดยสาร", _baseFare),
+          _buildBreakdownRow(_isMessenger ? "ค่าส่ง" : "ค่าโดยสาร", _baseFare),
           const SizedBox(height: 16),
           if (_tolls > 0) ...[
             _buildBreakdownRow("ค่าทางด่วน", _tolls),
@@ -453,6 +478,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ],
           if (_others > 0) ...[
             _buildBreakdownRow("อื่นๆ", _others),
+            const SizedBox(height: 16),
+          ],
+          // COD goods value (dev14): a SEPARATE debt from the delivery fee —
+          // its own line, never folded into the fee total above.
+          if (_codAmount > 0) ...[
+            _buildBreakdownRow("ค่าสินค้า (เก็บปลายทาง)", _codAmount),
             const SizedBox(height: 16),
           ],
 
@@ -500,6 +531,28 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
             ],
           ),
+          // When there is COD, the driver physically collects fee + goods value —
+          // show the combined cash figure without conflating the two line items.
+          if (_codAmount > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "รวมเก็บเงินสด",
+                  style: AppTypography.body2.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
+                ),
+                Text(
+                  "฿${(_totalFare + _codAmount).toStringAsFixed(0)}",
+                  style: AppTypography.body2.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
 
           const Spacer(),
 

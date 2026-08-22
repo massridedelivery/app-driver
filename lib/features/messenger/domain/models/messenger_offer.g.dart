@@ -20,4 +20,7 @@ MessengerOffer _$MessengerOfferFromJson(Map<String, dynamic> json) =>
       packageSizeTier: json['package_size_tier'] as String? ?? '',
       codAmount: (json['cod_amount'] as num?)?.toDouble() ?? 0.0,
       paymentMethod: json['payment_method'] as String? ?? 'CASH',
+      payer: json['payer'] as String? ?? 'SENDER',
+      collectAt: json['collect_at'] as String?,
+      amountDue: (json['amount_due'] as num?)?.toDouble(),
     );

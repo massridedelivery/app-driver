@@ -186,7 +186,11 @@ class AppRouter {
           return NoTransitionPage(
             child: PaymentScreen(
               amount: (extra?['amount'] as num?)?.toDouble(),
+              codAmount: (extra?['codAmount'] as num?)?.toDouble(),
               methodLabel: extra?['method'] as String?,
+              payer: extra?['payer'] as String?,
+              collectAt: extra?['collectAt'] as String?,
+              paymentStatus: extra?['paymentStatus'] as String?,
               title: extra?['title'] as String?,
               orderId: extra?['orderId'] as String?,
               service: extra?['service'] as ReviewService?,

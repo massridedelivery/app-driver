@@ -29,6 +29,12 @@ class MessengerOffer {
   final double codAmount;
   @JsonKey(defaultValue: 'CASH')
   final String paymentMethod;
+  // dev14 payer model (OfferWSResponse). Lets the driver see, before accepting,
+  // who pays the fee and where it's collected. `amountDue` excludes codAmount.
+  @JsonKey(defaultValue: 'SENDER')
+  final String payer;
+  final String? collectAt;
+  final double? amountDue;
 
   const MessengerOffer({
     this.id = '',
@@ -43,10 +49,17 @@ class MessengerOffer {
     this.packageSizeTier = '',
     this.codAmount = 0.0,
     this.paymentMethod = 'CASH',
+    this.payer = 'SENDER',
+    this.collectAt,
+    this.amountDue,
   });
 
   factory MessengerOffer.fromJson(Map<String, dynamic> json) =>
       _$MessengerOfferFromJson(json);
 
   bool get isCod => paymentMethod.toUpperCase() == 'COD';
+  bool get isRecipientPays => payer.toUpperCase() == 'RECIPIENT';
+
+  /// Delivery fee shown on the offer — prefers server `amountDue`, else `fare`.
+  double get feeDue => amountDue ?? fare;
 }

@@ -196,9 +196,15 @@ class MessengerController extends _$MessengerController {
     // so an unpaid QR delivery can't be closed. Don't mark delivered here.
     state = state.copyWith(activeOrder: null);
     AppRouter.router.go('/payment', extra: {
-      // amount_due = delivery fare; COD goods value is shown separately.
-      'amount': order.fare,
+      // Delivery fee only (dev14 amount_due) — the COD goods value is a separate
+      // debt shown on its own line, never folded into the fee.
+      'amount': order.feeDue,
+      'codAmount': order.codAmount,
       'method': order.paymentMethod,
+      'payer': order.payer,
+      'collectAt': order.collectAt,
+      // Already settled (prepaid QR) → the screen skips fee collection.
+      'paymentStatus': order.paymentStatus,
       'title': order.recipientName ?? 'ลูกค้า',
       'orderId': order.id,
       'service': ReviewService.messenger,
