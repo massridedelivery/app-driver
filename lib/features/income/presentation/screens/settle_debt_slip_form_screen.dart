@@ -204,7 +204,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                     _buildBankInfoRow('ธนาคาร:', bankName),
                     _buildBankInfoRow('เลขที่บัญชี:', accountNumber),
                     _buildBankInfoRow('ชื่อบัญชี:', accountName),
-                    _buildBankInfoRow('จำนวนเงิน:', '฿${widget.amount.toStringAsFixed(2)}'),
+                    _buildBankInfoRow('จำนวนเงิน:', '฿${widget.amount.toStringAsFixed(0)}'),
                     _buildBankInfoRow('หมายเลขรายการ:', widget.intentId),
                   ],
                 ),
