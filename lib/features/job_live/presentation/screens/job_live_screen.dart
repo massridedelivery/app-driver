@@ -199,6 +199,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Read the nav-bar inset here (screen level) — inside the sheet builder's
+    // context it can come back 0, leaving the CTA under the Android nav bar.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(
@@ -206,7 +209,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           _buildMap(),
           _buildTopDistanceBadge(),
           _buildRightFloatingButtons(),
-          _buildBottomSheet(),
+          _buildBottomSheet(bottomInset),
         ],
       ),
     );
@@ -274,7 +277,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// =========================
   /// BOTTOM SHEET (PRODUCTION)
   /// =========================
-  Widget _buildBottomSheet() {
+  Widget _buildBottomSheet(double bottomInset) {
     return DraggableScrollableSheet(
       initialChildSize: 0.45,
       minChildSize: 0.12,
@@ -289,15 +292,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           ),
           child: ListView(
             controller: scrollController,
-            // Reserve the system nav-bar inset so the "ถึงแล้ว" button clears
-            // the Android 3-button bar (viewPadding.bottom — the sheet consumes
-            // the SafeArea padding).
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              32 + MediaQuery.of(context).viewPadding.bottom,
-            ),
+            // Reserve the system nav-bar inset (passed from screen level — the
+            // sheet builder's own context reports 0) so the "ถึงแล้ว" button
+            // clears the Android 3-button bar.
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 32 + bottomInset),
             children: [
               _buildDragIndicator(),
               const SizedBox(height: 16),
