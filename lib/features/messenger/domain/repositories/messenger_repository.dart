@@ -15,5 +15,5 @@ abstract class MessengerRepository {
   Future<void> rejectOrder(String orderId);
   Future<void> arrivedOrder(String orderId);
   Future<void> pickedUpOrder(String orderId);
-  Future<void> deliveredOrder(String orderId);
+  Future<void> deliveredOrder(String orderId, {String? paymentOverrideReason});
 }

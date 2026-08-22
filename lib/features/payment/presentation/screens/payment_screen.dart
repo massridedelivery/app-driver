@@ -1,13 +1,21 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/common/widgets/qr_image.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/features/payment/data/payment_api_service.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 
 enum PaymentMethod { cash, qr }
@@ -28,6 +36,11 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final String? orderId;
   final ReviewService? service;
 
+  /// New payment flow (SCRUM-86): collection gates completion — the job is
+  /// marked COMPLETED/delivered only after payment is settled here. When false
+  /// (legacy/food), the caller already completed and this screen just collects.
+  final bool gateCompletion;
+
   const PaymentScreen({
     super.key,
     this.passengerName = 'ลูกค้า',
@@ -37,6 +50,7 @@ class PaymentScreen extends ConsumerStatefulWidget {
     this.title,
     this.orderId,
     this.service,
+    this.gateCompletion = false,
   });
 
   @override
@@ -63,14 +77,210 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   // top of the customer's bill — platform commission is deducted separately.
   double get _totalFare => _baseFare + _tolls + _others;
 
+  // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
+  static const _pollInterval = Duration(seconds: 3);
+  Timer? _pollTimer;
+  StreamSubscription? _wsSub;
+  bool _loadingQr = false;
+  bool _submitting = false;
+  String? _intentId;
+  String? _qrCodeUrl;
+  String _status = 'AWAITING_PAYMENT';
+  String? _overrideReason;
+
+  bool get _paid => _status == 'PAID';
+  bool get _isMessenger => widget.service == ReviewService.messenger;
+  String get _orderId =>
+      widget.orderId ??
+      ref.read(incomingJobControllerProvider).currentJob?.jobId ??
+      '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Start the QR intent immediately when the offer is QR/PromptPay.
+    final label = (widget.methodLabel ?? '').toLowerCase();
+    final isQr = label.contains('qr') || label.contains('promptpay');
+    if (isQr) WidgetsBinding.instance.addPostFrameCallback((_) => _startQrFlow());
+  }
+
+  Future<void> _startQrFlow() async {
+    if (_intentId != null) return; // already started
+    setState(() => _loadingQr = true);
+    Map<String, dynamic> intent = {};
+    try {
+      final res = await ref.read(paymentApiServiceProvider).createIntent(
+            orderId: _orderId,
+            messenger: _isMessenger,
+          );
+      if (res.isSuccessful && res.data is Map) {
+        intent = Map<String, dynamic>.from(res.data as Map);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('PaymentScreen.createIntent: $e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _intentId = intent['intent_id']?.toString();
+      _qrCodeUrl = intent['qr_code_url']?.toString();
+      _status = intent['status']?.toString() ?? 'AWAITING_PAYMENT';
+      _loadingQr = false;
+    });
+    if (_paid) return;
+    // Primary: payment_paid WS event. Fallback: poll.
+    _wsSub = ref.read(socketServiceProvider).messages.listen((msg) {
+      if (msg.type != 'payment_paid') return;
+      final data = msg.data ?? msg.raw;
+      final id = data['intent_id']?.toString();
+      if ((id == null || id == _intentId) &&
+          data['status']?.toString() == 'PAID') {
+        _markPaid();
+      }
+    });
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _pollStatus());
+  }
+
+  Future<void> _pollStatus() async {
+    final id = _intentId;
+    if (id == null || _paid) return;
+    try {
+      final res = await ref.read(paymentApiServiceProvider).getIntent(id);
+      if (res.data is Map && res.data['status']?.toString() == 'PAID') {
+        _markPaid();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('PaymentScreen.poll: $e');
+    }
+  }
+
+  void _markPaid() {
+    if (_paid || !mounted) return;
+    _pollTimer?.cancel();
+    _wsSub?.cancel();
+    setState(() => _status = 'PAID');
+  }
+
   @override
   void dispose() {
+    _pollTimer?.cancel();
+    _wsSub?.cancel();
     _tollController.dispose();
     _othersController.dispose();
     super.dispose();
   }
 
-  void _onConfirmPayment() {
+  /// The confirm gate: QR jobs may only be confirmed once the payment is PAID
+  /// (or the driver files a manual override). Cash settles on confirm.
+  bool get _canConfirm =>
+      _currentMethod == PaymentMethod.cash ||
+      _paid ||
+      _overrideReason != null;
+
+  /// Send the completion the collection was gating (SCRUM-86). Only when
+  /// [PaymentScreen.gateCompletion] — otherwise the caller already completed.
+  Future<bool> _completeJob() async {
+    if (!widget.gateCompletion) return true;
+    try {
+      if (_isMessenger) {
+        await getIt<MessengerRepository>().deliveredOrder(
+          _orderId,
+          paymentOverrideReason: _overrideReason,
+        );
+      } else {
+        await getIt<JobLiveRepository>().updateJobStatus(_orderId, {
+          'status': 'COMPLETED',
+          if (_overrideReason != null) 'payment_override_reason': _overrideReason,
+        });
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint('PaymentScreen.complete: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('จบงานไม่สำเร็จ กรุณาลองใหม่')),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _showOverrideDialog() async {
+    final ctrl = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: dctx.palette.surface,
+        title: Text('ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
+            style: AppTypography.heading5
+                .copyWith(color: dctx.palette.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ระบุเหตุผล (เช่น ลูกค้าโชว์สลิปแล้ว) — งานจะจบได้ทันที '
+              'แต่ค่างานจะยังไม่เข้า จนกว่าฝ่ายการเงินจะตรวจสอบและอนุมัติ',
+              style: AppTypography.caption4
+                  .copyWith(color: dctx.palette.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: 'เหตุผล'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, ctrl.text.trim()),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+    if (reason != null && reason.isNotEmpty && mounted) {
+      setState(() => _overrideReason = reason);
+    }
+  }
+
+  Future<void> _onConfirmPayment() async {
+    if (_submitting || !_canConfirm) return;
+    setState(() => _submitting = true);
+
+    // Messenger cash needs an explicit collect-cash call (settlement); ride
+    // cash settles via the complete-job call below.
+    if (_currentMethod == PaymentMethod.cash &&
+        _isMessenger &&
+        _overrideReason == null) {
+      try {
+        final res = await ref
+            .read(paymentApiServiceProvider)
+            .collectCash(orderId: _orderId);
+        if (!res.isSuccessful) throw Exception('collect-cash failed');
+      } catch (e) {
+        if (kDebugMode) debugPrint('PaymentScreen.collectCash: $e');
+        if (mounted) {
+          setState(() => _submitting = false);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('ยืนยันเงินสดไม่สำเร็จ กรุณาลองใหม่')));
+        }
+        return;
+      }
+    }
+
+    // Gate: complete the job only once payment is settled (or overridden).
+    if (!await _completeJob()) {
+      if (mounted) setState(() => _submitting = false);
+      return;
+    }
+    if (!mounted) return;
+
     // Capture the review context BEFORE clearing the job state below.
     final job = ref.read(incomingJobControllerProvider).currentJob;
     final reviewId = job?.jobId ?? widget.orderId;
@@ -280,30 +490,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           const Spacer(),
 
-          // Confirm Button
-          GestureDetector(
-            onTap: _onConfirmPayment,
-            child: Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.foundationGreen700,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Text(
-                      "ยืนยันการชำระเงิน",
-                      style: AppTypography.heading5.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Confirm Button — cash settles on confirm.
+          _buildConfirmButton(label: 'รับเงินสดแล้ว'),
         ],
       ),
     );
@@ -345,45 +533,115 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ),
           const SizedBox(height: 20),
 
-          // QR Image Placeholder (In real app, load network or generate bits)
+          // Live Omise QR (SCRUM-86) — fetched from the payment intent.
           Container(
             width: 200,
             height: 200,
             color: Colors.white,
-            child: const Center(
-              child: Icon(Icons.qr_code, size: 100, color: Colors.black),
-            ),
+            alignment: Alignment.center,
+            child: _loadingQr
+                ? const CircularProgressIndicator(strokeWidth: 2)
+                : QrImage(source: _qrCodeUrl ?? ''),
           ),
 
           const SizedBox(height: 20),
-          Text(
-            "สแกน QR นี้เพื่อชำระเงิน",
-            style: AppTypography.body2.copyWith(color: context.palette.textSecondary),
-          ),
+          if (_paid)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle,
+                    color: AppColors.semanticSuccessBorderHigh, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  "ชำระเงินแล้ว",
+                  style: AppTypography.body1
+                      .copyWith(color: AppColors.semanticSuccessBorderHigh),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "รอลูกค้าสแกนชำระเงิน…",
+                  style: AppTypography.body2
+                      .copyWith(color: context.palette.textSecondary),
+                ),
+              ],
+            ),
 
           const Spacer(),
 
+          // Gate: only enabled once PAID (or a manual override is filed).
+          _buildConfirmButton(
+            label: _paid || _overrideReason != null
+                ? 'ยืนยันจบงาน'
+                : 'รอชำระเงิน',
+          ),
+          const SizedBox(height: 12),
+          if (!_paid)
+            TextButton(
+              onPressed: _showOverrideDialog,
+              child: Text(
+                _overrideReason != null
+                    ? 'บันทึกเหตุผลแล้ว — ค่างานจะรอฝ่ายการเงินตรวจสอบ'
+                    : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
+                textAlign: TextAlign.center,
+                style: AppTypography.body2.copyWith(color: Colors.blueAccent),
+              ),
+            ),
           GestureDetector(
             onTap: () {
               setState(() {
                 _currentMethod = PaymentMethod.cash;
               });
             },
-            child: Column(
-              children: [
-                Text(
-                  "QR ใช้ไม่ได้?",
-                  style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
-                ),
-                Text(
-                  "เปลี่ยนไปรับเงินสดแทน",
-                  style: AppTypography.body2.copyWith(color: Colors.blueAccent),
-                ),
-              ],
+            child: Text(
+              "QR ใช้ไม่ได้? เปลี่ยนไปรับเงินสดแทน",
+              textAlign: TextAlign.center,
+              style: AppTypography.body2.copyWith(color: context.palette.textSecondary),
             ),
           ),
           const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  /// Shared confirm CTA — disabled (dimmed) until [_canConfirm], shows a spinner
+  /// while submitting.
+  Widget _buildConfirmButton({String label = 'ยืนยันการชำระเงิน'}) {
+    final enabled = _canConfirm && !_submitting;
+    return GestureDetector(
+      onTap: enabled ? _onConfirmPayment : null,
+      child: Container(
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
+          color: enabled
+              ? AppColors.foundationGreen700
+              : AppColors.foundationGreen700.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        alignment: Alignment.center,
+        child: _submitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : Text(
+                label,
+                style: AppTypography.heading5.copyWith(color: Colors.white),
+              ),
       ),
     );
   }
