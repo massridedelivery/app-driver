@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -34,17 +31,6 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   /// Guards against firing accept/decline twice (e.g. tap racing the timeout).
   bool _resolved = false;
 
-  // Route preview map: pickup/drop-off pins + the driving route between them.
-  GoogleMapController? _mapController;
-  final _directions = DirectionsService();
-  late final LatLng _pickup =
-      LatLng(widget.job.pickupLat, widget.job.pickupLng);
-  late final LatLng _dropoff =
-      LatLng(widget.job.dropoffLat, widget.job.dropoffLng);
-  // Start with a straight pickup→drop-off line; replaced by the real road
-  // route once the Directions call returns.
-  late List<LatLng> _routePoints = [_pickup, _dropoff];
-
   @override
   void initState() {
     super.initState();
@@ -55,52 +41,6 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
         : 16;
     _remaining = _totalSeconds;
     _startCountdown();
-    _loadRoute();
-  }
-
-  /// Draw the real road-following route. Prefer the encoded polyline the BE
-  /// ships in the offer (SCRUM-66) — free, no network call; only fall back to
-  /// the Google Directions call when it's absent. On failure the straight line
-  /// stays.
-  Future<void> _loadRoute() async {
-    final encoded = widget.job.encodedPolyline;
-    if (encoded != null && encoded.isNotEmpty) {
-      final pts = _directions.decode(encoded);
-      if (!mounted || pts.isEmpty) return;
-      setState(() => _routePoints = pts);
-      _fitBounds();
-      return;
-    }
-    final pts = await _directions.getRoutePolyline(
-      origin: _pickup,
-      destination: _dropoff,
-    );
-    if (!mounted || pts.isEmpty) return;
-    setState(() => _routePoints = pts);
-    _fitBounds();
-  }
-
-  void _fitBounds() {
-    final c = _mapController;
-    if (c == null) return;
-    final lats = _routePoints.map((p) => p.latitude);
-    final lngs = _routePoints.map((p) => p.longitude);
-    final swLat = lats.reduce(math.min), neLat = lats.reduce(math.max);
-    final swLng = lngs.reduce(math.min), neLng = lngs.reduce(math.max);
-    // Degenerate span (pickup ≈ drop-off) — just centre on the point.
-    if ((neLat - swLat) < 1e-5 && (neLng - swLng) < 1e-5) {
-      c.moveCamera(CameraUpdate.newLatLngZoom(_pickup, 15));
-      return;
-    }
-    c.moveCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(swLat, swLng),
-          northeast: LatLng(neLat, neLng),
-        ),
-        36,
-      ),
-    );
   }
 
   void _startCountdown() {
@@ -137,67 +77,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   @override
   void dispose() {
     _timer?.cancel();
-    _mapController?.dispose();
     super.dispose();
-  }
-
-  /// Compact, non-interactive route preview: pickup (green) → drop-off (red)
-  /// with the driving route drawn between them.
-  Widget _buildRoutePreview() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        height: 150,
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(
-              (_pickup.latitude + _dropoff.latitude) / 2,
-              (_pickup.longitude + _dropoff.longitude) / 2,
-            ),
-            zoom: 12,
-          ),
-          onMapCreated: (c) {
-            _mapController = c;
-            // Wait a frame so the map has a size before fitting the bounds.
-            WidgetsBinding.instance.addPostFrameCallback((_) => _fitBounds());
-          },
-          markers: {
-            Marker(
-              markerId: const MarkerId('pickup'),
-              position: _pickup,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
-            ),
-            Marker(
-              markerId: const MarkerId('dropoff'),
-              position: _dropoff,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
-            ),
-          },
-          polylines: {
-            Polyline(
-              polylineId: const PolylineId('route'),
-              points: _routePoints,
-              color: AppColors.foundationOrange600,
-              width: 5,
-            ),
-          },
-          // A glanceable preview inside a modal — no gestures/controls.
-          zoomGesturesEnabled: false,
-          scrollGesturesEnabled: false,
-          rotateGesturesEnabled: false,
-          tiltGesturesEnabled: false,
-          zoomControlsEnabled: false,
-          myLocationButtonEnabled: false,
-          myLocationEnabled: false,
-          compassEnabled: false,
-          mapToolbarEnabled: false,
-        ),
-      ),
-    );
   }
 
   @override
@@ -310,10 +190,6 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ],
               ),
 
-              const SizedBox(height: AppSpacing.s4),
-
-              // Route preview: pickup → drop-off on a compact map.
-              _buildRoutePreview(),
               const SizedBox(height: AppSpacing.s4),
 
               // Timeline
