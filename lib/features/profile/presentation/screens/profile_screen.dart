@@ -5,7 +5,7 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/features/profile/presentation/controllers/today_trips_provider.dart';
 import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
-import 'package:massdrive/common/widgets/indicator/wave_dot_indicator.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -107,12 +107,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildLoading() {
-    return SizedBox(
-      width: 100,
-      child: Container(
-        color: context.palette.surfaceAlt,
-        child: const Center(child: BaseWaveDotsIndicator()),
-      ),
+    // Brand loader (the "M") — consistent with the other full-screen loads.
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 48),
+      child: Center(child: MassLoadingM(size: 64)),
     );
   }
 }
