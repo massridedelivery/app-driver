@@ -98,10 +98,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   void initState() {
     super.initState();
-    // Start the QR intent immediately when the offer is QR/PromptPay.
-    final label = (widget.methodLabel ?? '').toLowerCase();
+    // Resolve the method from the passed label OR the ride/food job (ride and
+    // food push /payment without a methodLabel, so fall back to the job's).
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    final label =
+        (widget.methodLabel ?? job?.paymentMethod ?? '').toLowerCase();
     final isQr = label.contains('qr') || label.contains('promptpay');
-    if (isQr) WidgetsBinding.instance.addPostFrameCallback((_) => _startQrFlow());
+    final isFood = job?.isFood ?? (widget.service == ReviewService.food);
+    // Food's payment-intent endpoint isn't defined yet (BE) — keep the static
+    // QR for food; only ride/messenger fetch a live intent + poll.
+    if (isQr && !isFood) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startQrFlow());
+    }
   }
 
   Future<void> _startQrFlow() async {
@@ -169,9 +177,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     super.dispose();
   }
 
-  /// The confirm gate: QR jobs may only be confirmed once the payment is PAID
-  /// (or the driver files a manual override). Cash settles on confirm.
+  /// The confirm gate applies only to the new collect-first flow
+  /// ([gateCompletion]). There, a QR job may be confirmed only once PAID (or a
+  /// manual override is filed); cash settles on confirm. Legacy/food (already
+  /// completed by the caller) is never gated.
   bool get _canConfirm =>
+      !widget.gateCompletion ||
       _currentMethod == PaymentMethod.cash ||
       _paid ||
       _overrideReason != null;
@@ -581,12 +592,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           // Gate: only enabled once PAID (or a manual override is filed).
           _buildConfirmButton(
-            label: _paid || _overrideReason != null
-                ? 'ยืนยันจบงาน'
-                : 'รอชำระเงิน',
+            label: !widget.gateCompletion
+                ? 'ยืนยันการชำระเงิน'
+                : (_paid || _overrideReason != null
+                    ? 'ยืนยันจบงาน'
+                    : 'รอชำระเงิน'),
           ),
           const SizedBox(height: 12),
-          if (!_paid)
+          if (widget.gateCompletion && !_paid)
             TextButton(
               onPressed: _showOverrideDialog,
               child: Text(
