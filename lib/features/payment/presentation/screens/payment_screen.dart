@@ -69,9 +69,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _baseFare {
     final job = ref.read(incomingJobControllerProvider).currentJob;
-    // Collect amount_due (fare + en-route tolls/waiting) when the BE ships it;
-    // fall back to fare so nothing regresses (SCRUM-86 §6).
-    return widget.amount ?? job?.amountDue ?? job?.netIncome ?? widget.baseFare;
+    // Prefer amount_due (fare + en-route tolls/waiting) when the BE actually
+    // ships a real value; dev BE currently sends 0/null, so fall back to the
+    // fare — never collect ฿0 (SCRUM-86 §6).
+    for (final v in [widget.amount, job?.amountDue, job?.netIncome, widget.baseFare]) {
+      if (v != null && v > 0) return v;
+    }
+    return 0;
   }
 
   // The customer pays the job fare (already net of any discount) plus any
