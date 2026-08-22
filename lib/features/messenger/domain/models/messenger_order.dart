@@ -45,6 +45,17 @@ class MessengerOrder {
   final double codAmount;
   @JsonKey(defaultValue: 'CASH')
   final String paymentMethod;
+  // dev14 payer model. `payer` = who owes the delivery fee (SENDER pays up front
+  // / prepaid, RECIPIENT pays the driver at the door); `collectAt` = where the
+  // driver collects (PICKUP | DELIVERY); `amountDue` = the delivery fee to
+  // collect (server-authoritative, EXCLUDES codAmount); `paymentStatus` = PAID
+  // once the fee is settled (prepaid QR). Absent on legacy orders.
+  @JsonKey(defaultValue: 'SENDER')
+  final String payer;
+  final String? collectAt;
+  final double? amountDue;
+  @JsonKey(defaultValue: '')
+  final String paymentStatus;
 
   @JsonKey(defaultValue: 0.0)
   final double distanceKm;
@@ -87,6 +98,10 @@ class MessengerOrder {
     this.notes,
     this.codAmount = 0.0,
     this.paymentMethod = 'CASH',
+    this.payer = 'SENDER',
+    this.collectAt,
+    this.amountDue,
+    this.paymentStatus = '',
     this.distanceKm = 0.0,
     this.fare = 0.0,
     this.discount = 0.0,
@@ -108,6 +123,22 @@ class MessengerOrder {
   MessengerStatus get statusEnum => MessengerStatus.fromApi(status);
   bool get isCod => paymentMethod.toUpperCase() == 'COD';
 
+  /// The recipient (not the sender) pays the delivery fee at the door (dev14).
+  bool get isRecipientPays => payer.toUpperCase() == 'RECIPIENT';
+
+  /// The delivery fee has already been settled (prepaid QR) — nothing to collect.
+  bool get isFeePaid => paymentStatus.toUpperCase() == 'PAID';
+
   /// Net the customer pays (gross fare minus platform-funded promo).
   double get customerPayable => fare - discount;
+
+  /// The delivery fee the driver must collect. Prefers the server's `amountDue`
+  /// (authoritative, EXCLUDES codAmount); falls back to the net fare on legacy
+  /// orders. Never includes the COD goods value — that is a separate debt.
+  double get feeDue {
+    final due = amountDue;
+    if (due != null) return due < 0 ? 0 : due;
+    final net = customerPayable;
+    return net < 0 ? 0 : net;
+  }
 }

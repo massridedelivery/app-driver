@@ -45,7 +45,7 @@ final class MessengerControllerProvider
 }
 
 String _$messengerControllerHash() =>
-    r'c1882d65a240a88f04b828969466cbdf8a7dcdb4';
+    r'153701ed087fd1744763e6f6f027c6a4d961e2d2';
 
 /// Drives the messenger offer + active-delivery lifecycle (SCRUM-41 §6/§7).
 
