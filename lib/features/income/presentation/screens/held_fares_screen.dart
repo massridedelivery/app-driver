@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -27,7 +28,7 @@ class HeldFaresScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async => ref.refresh(heldFaresProvider.future),
         child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: MassLoadingM(size: 64)),
           // The endpoint may not be live yet → treat as empty, don't scare the
           // driver with an error.
           error: (_, __) => _empty(context),
