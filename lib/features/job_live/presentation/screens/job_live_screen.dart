@@ -565,10 +565,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               }
               break;
             case JobLiveState.headingToDropoff:
-              if (jobId != null) {
-                socket.updateJobStatus(jobId, 'COMPLETED');
-              }
-              context.push('/payment');
+              // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
+              // the fare and marks COMPLETED only once it's settled.
+              context.push('/payment', extra: const {'gateCompletion': true});
               break;
           }
         });

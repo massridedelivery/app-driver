@@ -16,7 +16,6 @@ import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
-import 'package:massdrive/features/payment/presentation/screens/collect_payment_screen.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -160,66 +159,6 @@ class SettingScreen extends ConsumerWidget {
                 const ChatScreen(
                   jobId: 'preview',
                   passengerName: 'สมชาย ใจดี',
-                  previewMode: true,
-                ),
-              ),
-            ),
-
-            // UI-preview for the end-of-job payment collection (SCRUM-86).
-            // previewMode mocks the QR intent (flips to PAID) + cash confirm,
-            // so the UI + poll loop can be checked before BE ships.
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(icon: Icons.qr_code_2),
-              title: Text(
-                "ตัวอย่างเก็บเงิน — QR ผู้รับ",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              subtitle: Text(
-                "หน้าเปิด QR ให้ผู้รับสแกน + poll จน PAID (โหมดตัวอย่าง)",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => AppNavigator.push(
-                context,
-                const CollectPaymentScreen(
-                  orderId: 'preview',
-                  amountDue: 180,
-                  payer: CollectPayer.recipient,
-                  method: CollectMethod.qr,
-                  collectAtLabel: 'จุดส่ง',
-                  previewMode: true,
-                ),
-              ),
-            ),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(icon: Icons.payments_outlined),
-              title: Text(
-                "ตัวอย่างเก็บเงิน — เงินสด",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              subtitle: Text(
-                "ปุ่มยืนยันรับเงินสดปลายทาง (โหมดตัวอย่าง)",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => AppNavigator.push(
-                context,
-                const CollectPaymentScreen(
-                  orderId: 'preview',
-                  amountDue: 180,
-                  payer: CollectPayer.customer,
-                  method: CollectMethod.cash,
-                  collectAtLabel: 'ปลายทาง',
                   previewMode: true,
                 ),
               ),

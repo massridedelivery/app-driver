@@ -102,9 +102,11 @@ class MessengerRepositoryImpl implements MessengerRepository {
   }
 
   @override
-  Future<void> deliveredOrder(String orderId) async {
+  Future<void> deliveredOrder(String orderId,
+      {String? paymentOverrideReason}) async {
     try {
-      await _api.deliveredOrder(orderId);
+      await _api.deliveredOrder(orderId,
+          paymentOverrideReason: paymentOverrideReason);
     } on DioException catch (e) {
       throw Exception(_message(e, 'Failed to mark delivered'));
     }

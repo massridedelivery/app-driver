@@ -12,7 +12,7 @@ abstract class MessengerApiService {
   Future<Response> rejectOrder(String orderId);
   Future<Response> arrivedOrder(String orderId);
   Future<Response> pickedUpOrder(String orderId);
-  Future<Response> deliveredOrder(String orderId);
+  Future<Response> deliveredOrder(String orderId, {String? paymentOverrideReason});
 }
 
 @LazySingleton(as: MessengerApiService)
@@ -56,6 +56,12 @@ class MessengerApiServiceImpl implements MessengerApiService {
       _dio.post(_path(Endpoints.messengerDriverPickedUp, orderId));
 
   @override
-  Future<Response> deliveredOrder(String orderId) =>
-      _dio.post(_path(Endpoints.messengerDriverDelivered, orderId));
+  Future<Response> deliveredOrder(String orderId,
+          {String? paymentOverrideReason}) =>
+      _dio.post(
+        _path(Endpoints.messengerDriverDelivered, orderId),
+        data: paymentOverrideReason == null
+            ? null
+            : {'payment_override_reason': paymentOverrideReason},
+      );
 }

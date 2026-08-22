@@ -191,18 +191,19 @@ class MessengerController extends _$MessengerController {
   Future<void> delivered() async {
     final order = state.activeOrder;
     if (order == null) return;
-    if (await _runAction((id) => _repo.deliveredOrder(id))) {
-      state = state.copyWith(activeOrder: null);
-      // Collect the delivery fare (+ COD goods value, if any) in cash.
-      AppRouter.router.go('/payment', extra: {
-        'amount': order.fare + order.codAmount,
-        'method': order.paymentMethod,
-        'title': order.recipientName ?? 'ลูกค้า',
-        // So the post-payment review attaches to this messenger order.
-        'orderId': order.id,
-        'service': ReviewService.messenger,
-      });
-    }
+    // New flow (SCRUM-86): collect the fare FIRST — PaymentScreen calls
+    // deliveredOrder only once payment is settled (or the driver overrides),
+    // so an unpaid QR delivery can't be closed. Don't mark delivered here.
+    state = state.copyWith(activeOrder: null);
+    AppRouter.router.go('/payment', extra: {
+      // amount_due = delivery fare; COD goods value is shown separately.
+      'amount': order.fare,
+      'method': order.paymentMethod,
+      'title': order.recipientName ?? 'ลูกค้า',
+      'orderId': order.id,
+      'service': ReviewService.messenger,
+      'gateCompletion': true,
+    });
   }
 
   Future<bool> _runAction(Future<void> Function(String id) call) async {
