@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_food_modal.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_job_modal.dart';
@@ -20,6 +21,57 @@ class IncomingJobScreen extends ConsumerStatefulWidget {
 
 class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
   GoogleMapController? _mapController;
+  final DirectionsService _directions = DirectionsService();
+
+  /// The road-following route drawn on the background map. Empty until loaded —
+  /// the map then falls back to a straight pickup→drop-off line.
+  List<LatLng> _routePoints = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoute();
+  }
+
+  /// Prefer the encoded polyline the BE ships in the offer (SCRUM-66) — free,
+  /// no network call; fall back to the Google Directions call, then to a
+  /// straight line. Drawn on the full-screen map behind the offer card.
+  Future<void> _loadRoute() async {
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    if (job == null) return;
+    final pickup = LatLng(job.pickupLat, job.pickupLng);
+    final dropoff = LatLng(job.dropoffLat, job.dropoffLng);
+
+    List<LatLng> pts;
+    final encoded = job.encodedPolyline;
+    if (encoded != null && encoded.isNotEmpty) {
+      pts = _directions.decode(encoded);
+    } else {
+      pts = await _directions.getRoutePolyline(
+        origin: pickup,
+        destination: dropoff,
+      );
+    }
+    if (!mounted || pts.isEmpty) return;
+    setState(() => _routePoints = pts);
+    _fitToRoute();
+  }
+
+  void _fitToRoute() {
+    final c = _mapController;
+    if (c == null || _routePoints.isEmpty) return;
+    final lats = _routePoints.map((p) => p.latitude);
+    final lngs = _routePoints.map((p) => p.longitude);
+    c.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(lats.reduce(min), lngs.reduce(min)),
+          northeast: LatLng(lats.reduce(max), lngs.reduce(max)),
+        ),
+        80,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -65,18 +117,25 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
       ),
     };
 
+    // Real road-following route once loaded; a straight line as the fallback.
+    final bool hasRoute = _routePoints.isNotEmpty;
     final Set<Polyline> polylines = {
       Polyline(
         polylineId: const PolylineId('route'),
-        points: [
-          LatLng(job.pickupLat, job.pickupLng),
-          LatLng(job.dropoffLat, job.dropoffLng),
-        ],
+        points: hasRoute
+            ? _routePoints
+            : [
+                LatLng(job.pickupLat, job.pickupLng),
+                LatLng(job.dropoffLat, job.dropoffLng),
+              ],
         color: job.isFood
             ? AppColors.foundationOrange600
             : AppColors.semanticPrimaryBgHigh,
-        width: 4,
-        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
+        width: 5,
+        // Dashed only for the straight-line fallback; solid for the real route.
+        patterns: hasRoute
+            ? const []
+            : [PatternItem.dash(20), PatternItem.gap(10)],
       ),
     };
 
