@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +8,9 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/qr_image.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/features/payment/data/payment_api_service.dart';
 
 /// Who owes the money at the collection point.
 enum CollectPayer { customer, sender, recipient }
@@ -74,15 +77,21 @@ class _CollectPaymentScreenState extends ConsumerState<CollectPaymentScreen> {
   static const _pollInterval = Duration(seconds: 3);
 
   Timer? _pollTimer;
+  StreamSubscription? _wsSub;
   bool _loading = false;
   bool _submitting = false;
 
+  String? _intentId;
   String? _qrCodeUrl;
   // AWAITING_PAYMENT | PAID | FAILED | EXPIRED
   String _status = 'AWAITING_PAYMENT';
   int _previewTicks = 0;
 
   bool get _paid => _status == 'PAID';
+
+  /// Ride collects via the customer app / complete-job; messenger (sender or
+  /// recipient) collects on the driver app with its own endpoints.
+  bool get _isMessenger => widget.payer != CollectPayer.customer;
 
   @override
   void initState() {
@@ -93,6 +102,7 @@ class _CollectPaymentScreenState extends ConsumerState<CollectPaymentScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _wsSub?.cancel();
     super.dispose();
   }
 
@@ -103,30 +113,43 @@ class _CollectPaymentScreenState extends ConsumerState<CollectPaymentScreen> {
     final intent = await _createIntent();
     if (!mounted) return;
     setState(() {
+      _intentId = intent['intent_id']?.toString();
       _qrCodeUrl = intent['qr_code_url']?.toString();
       _status = intent['status']?.toString() ?? 'AWAITING_PAYMENT';
       _loading = false;
     });
-    if (!_paid) {
-      _pollTimer = Timer.periodic(_pollInterval, (_) => _pollStatus());
+    if (_paid) {
+      widget.onCollected?.call();
+      return;
     }
+    // Primary signal: the `payment_paid` WS event. Poll as a fallback.
+    _listenForPaidEvent();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _pollStatus());
   }
 
-  /// Create the payment intent for this job's collection.
-  /// TODO(SCRUM-86/BE): GET /api/payment/intent/order/{id} (or /job/{id}) →
-  /// { qr_code_url, amount, status }. Mocked under [previewMode].
+  /// Mint/reuse the QR intent. Idempotent server-side (reused=true when a live
+  /// QR already exists). Mocked under [previewMode].
   Future<Map<String, dynamic>> _createIntent() async {
     if (widget.previewMode) {
       await Future<void>.delayed(const Duration(milliseconds: 400));
       // Empty url → QrImage shows its QR-icon fallback, enough to preview UI.
-      return {'qr_code_url': '', 'status': 'AWAITING_PAYMENT'};
+      return {'intent_id': 'preview', 'qr_code_url': '', 'status': 'AWAITING_PAYMENT'};
     }
-    // Real call goes here once the BE contract is confirmed.
-    return {'qr_code_url': '', 'status': 'AWAITING_PAYMENT'};
+    try {
+      final res = await ref.read(paymentApiServiceProvider).createIntent(
+            orderId: widget.orderId,
+            messenger: _isMessenger,
+          );
+      if (res.isSuccessful && res.data is Map) {
+        return Map<String, dynamic>.from(res.data as Map);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('CollectPayment.createIntent: $e');
+    }
+    return {'status': 'AWAITING_PAYMENT'};
   }
 
-  /// Poll the intent until PAID.
-  /// TODO(SCRUM-86/BE): GET /api/payment/intent/{id} → { status }.
+  /// Fallback poll: GET the intent until PAID (the WS event is primary).
   Future<void> _pollStatus() async {
     if (_paid) {
       _pollTimer?.cancel();
@@ -134,32 +157,70 @@ class _CollectPaymentScreenState extends ConsumerState<CollectPaymentScreen> {
     }
     if (widget.previewMode) {
       // Flip to PAID after a couple of polls so the flow can be exercised.
-      if (++_previewTicks >= 2 && mounted) {
-        setState(() => _status = 'PAID');
-        _pollTimer?.cancel();
-        widget.onCollected?.call();
-      }
+      if (++_previewTicks >= 2) _markPaid();
       return;
     }
-    // Real poll goes here.
+    final id = _intentId;
+    if (id == null) return;
+    try {
+      final res = await ref.read(paymentApiServiceProvider).getIntent(id);
+      final status = (res.data is Map) ? res.data['status']?.toString() : null;
+      if (status == 'PAID') _markPaid();
+    } catch (e) {
+      if (kDebugMode) debugPrint('CollectPayment.poll: $e');
+    }
+  }
+
+  /// Primary signal — the backend emits `payment_paid` to the driver the moment
+  /// the Omise webhook confirms, so we don't wait on the poll interval.
+  void _listenForPaidEvent() {
+    _wsSub = ref.read(socketServiceProvider).messages.listen((msg) {
+      if (msg.type != 'payment_paid') return;
+      final data = msg.data ?? msg.raw;
+      final id = data['intent_id']?.toString();
+      final status = data['status']?.toString();
+      if ((id == null || id == _intentId) && status == 'PAID') _markPaid();
+    });
+  }
+
+  void _markPaid() {
+    if (_paid || !mounted) return;
+    _pollTimer?.cancel();
+    _wsSub?.cancel();
+    setState(() => _status = 'PAID');
+    widget.onCollected?.call();
   }
 
   // ── Cash flow ───────────────────────────────────────────────────────────--
 
-  /// Confirm cash was received + trigger settlement into the driver wallet.
-  /// TODO(SCRUM-86/BE): POST /api/.../{id}/confirm-cash-payment.
+  /// Confirm cash received + trigger settlement. Messenger has a dedicated
+  /// collect-cash endpoint; ride cash settles via the complete-job call, so
+  /// here it just marks collected and lets the caller finish the job.
   Future<void> _confirmCash() async {
     setState(() => _submitting = true);
+    var ok = true;
     if (widget.previewMode) {
       await Future<void>.delayed(const Duration(milliseconds: 500));
+    } else if (_isMessenger) {
+      try {
+        final res = await ref
+            .read(paymentApiServiceProvider)
+            .collectCash(orderId: widget.orderId);
+        ok = res.isSuccessful;
+      } catch (e) {
+        ok = false;
+        if (kDebugMode) debugPrint('CollectPayment.collectCash: $e');
+      }
     }
-    // Real confirm goes here.
     if (!mounted) return;
-    setState(() {
-      _submitting = false;
-      _status = 'PAID';
-    });
-    widget.onCollected?.call();
+    setState(() => _submitting = false);
+    if (ok) {
+      _markPaid();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยืนยันไม่สำเร็จ กรุณาลองใหม่')),
+      );
+    }
   }
 
   // ── UI ─────────────────────────────────────────────────────────────────---
