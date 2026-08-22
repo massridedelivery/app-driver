@@ -58,10 +58,19 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
     _loadRoute();
   }
 
-  /// Fetch the real road-following route (Google Directions fallback — the
-  /// offer payload has no encoded polyline yet, see SCRUM-83). On failure the
-  /// straight line stays.
+  /// Draw the real road-following route. Prefer the encoded polyline the BE
+  /// ships in the offer (SCRUM-66) — free, no network call; only fall back to
+  /// the Google Directions call when it's absent. On failure the straight line
+  /// stays.
   Future<void> _loadRoute() async {
+    final encoded = widget.job.encodedPolyline;
+    if (encoded != null && encoded.isNotEmpty) {
+      final pts = _directions.decode(encoded);
+      if (!mounted || pts.isEmpty) return;
+      setState(() => _routePoints = pts);
+      _fitBounds();
+      return;
+    }
     final pts = await _directions.getRoutePolyline(
       origin: _pickup,
       destination: _dropoff,

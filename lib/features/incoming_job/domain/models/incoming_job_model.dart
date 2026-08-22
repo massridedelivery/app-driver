@@ -27,6 +27,8 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'pickup_lng') required double pickupLng,
     @JsonKey(name: 'dropoff_lat') required double dropoffLat,
     @JsonKey(name: 'dropoff_lng') required double dropoffLng,
+    @JsonKey(name: 'encoded_polyline', readValue: readPolyline)
+    String? encodedPolyline,
     @JsonKey(name: 'fare') required double netIncome,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
@@ -62,6 +64,12 @@ sealed class IncomingJobModel with _$IncomingJobModel {
   factory IncomingJobModel.fromJson(Map<String, dynamic> json) =>
       _$IncomingJobModelFromJson(json);
 }
+
+/// The route's encoded polyline (pickup→drop-off). BE ships it under a few
+/// keys across offer/active-job endpoints (SCRUM-66) — accept any so the offer
+/// map draws the real road route instead of the Google-Directions fallback.
+Object? readPolyline(Map json, String key) =>
+    json['encoded_polyline'] ?? json['polyline'] ?? json['overview_polyline'];
 
 /// Reads the customer name from either a flat `passenger_name` field or the
 /// nested `customer.full_name` (JobCustomerInfo) the backend actually sends.
