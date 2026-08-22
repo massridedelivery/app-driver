@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
@@ -214,9 +215,34 @@ class MessengerController extends _$MessengerController {
   Future<void> delivered() async {
     final order = state.activeOrder;
     if (order == null) return;
-    // New flow (SCRUM-86): collect the fare FIRST — PaymentScreen calls
-    // deliveredOrder only once payment is settled (or the driver overrides),
-    // so an unpaid QR delivery can't be closed. Don't mark delivered here.
+
+    // Collect ONCE, at the stage the order dictates. Only show the collect
+    // screen at delivery when there's actually something to take at the door:
+    //  • the delivery fee, when collectAt == DELIVERY and not already paid, OR
+    //  • COD (goods value), which is always collected at delivery.
+    // If the fee was already collected at PICKUP and there's no COD, don't
+    // prompt the recipient — just mark delivered and finish.
+    final feeAtDelivery =
+        (order.collectAt?.toUpperCase() == 'DELIVERY') && !order.isFeePaid;
+    final hasCod = order.codAmount > 0;
+
+    if (!feeAtDelivery && !hasCod) {
+      if (await _runAction((id) => _repo.deliveredOrder(id))) {
+        state = state.copyWith(activeOrder: null);
+        ref.read(socketServiceProvider).disconnect();
+        ref.read(onlineStatusProvider.notifier).setStatus(true, force: true);
+        AppRouter.router.go('/review-customer', extra: {
+          'jobId': order.id,
+          'service': ReviewService.messenger,
+          'customerName': order.recipientName ?? 'ลูกค้า',
+        });
+      }
+      return;
+    }
+
+    // Something to collect at the door → PaymentScreen collects (fee and/or COD)
+    // then marks delivered and runs the review/home flow. Don't mark delivered
+    // here — an unpaid QR delivery must not be closable.
     state = state.copyWith(activeOrder: null);
     AppRouter.router.go('/payment', extra: {
       // Delivery fee only (dev14 amount_due) — the COD goods value is a separate
