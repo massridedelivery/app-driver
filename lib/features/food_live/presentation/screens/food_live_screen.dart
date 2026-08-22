@@ -131,6 +131,8 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Nav-bar inset read at screen level — the sheet builder's context reports 0.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
       body: Stack(
@@ -138,7 +140,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           _buildMap(),
           _buildTopStatusBadge(),
           _buildRightFloatingButtons(),
-          _buildBottomSheet(),
+          _buildBottomSheet(bottomInset),
         ],
       ),
     );
@@ -210,7 +212,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   // =========================================================================
   // BOTTOM SHEET
   // =========================================================================
-  Widget _buildBottomSheet() {
+  Widget _buildBottomSheet(double bottomInset) {
     return DraggableScrollableSheet(
       initialChildSize: 0.52,
       minChildSize: 0.15,
@@ -225,13 +227,14 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           ),
           child: ListView(
             controller: scrollController,
-            // Reserve the system nav-bar inset so the action button clears the
-            // Android 3-button bar (viewPadding.bottom).
+            // Reserve the system nav-bar inset (passed from screen level — the
+            // sheet builder's own context reports 0) so the action button clears
+            // the Android 3-button bar.
             padding: EdgeInsets.fromLTRB(
               20,
               16,
               20,
-              32 + MediaQuery.of(context).viewPadding.bottom,
+              32 + bottomInset,
             ),
             children: [
               _buildDragIndicator(),
