@@ -64,6 +64,10 @@ class DirectionsService {
     }
   }
 
+  /// Decode a BE-supplied encoded polyline (SCRUM-66) without any network
+  /// call — the free path when the job payload already ships the route.
+  List<LatLng> decode(String encoded) => _decodePolyline(encoded);
+
   /// Decodes a Google Maps encoded polyline string into a list of [LatLng].
   /// Uses the standard Google polyline encoding algorithm.
   List<LatLng> _decodePolyline(String encoded) {
