@@ -30,6 +30,10 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'encoded_polyline', readValue: readPolyline)
     String? encodedPolyline,
     @JsonKey(name: 'fare') required double netIncome,
+    // Amount the driver must actually COLLECT at the end (fare + tolls + waiting
+    // that accrued en route) — distinct from the display `fare`. Collecting
+    // `fare` under-charges (SCRUM-86 §6). Null until BE ships it.
+    @JsonKey(name: 'amount_due') double? amountDue,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
     @JsonKey(name: 'service_type') @Default('Saver Bike') String serviceType,
