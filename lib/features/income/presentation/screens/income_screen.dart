@@ -245,7 +245,7 @@ class _TotalBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedBalance = NumberFormat('#,##0.00', 'th_TH').format(balance);
+    final formattedBalance = NumberFormat('#,##0', 'th_TH').format(balance);
     final formattedDate = lastUpdated != null
         ? DateFormat('dd MMM yyyy HH:mm', 'th_TH').format(lastUpdated!.toLocal())
         : null;
@@ -381,7 +381,7 @@ class _WalletMiniCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
+              '฿${NumberFormat('#,##0', 'th_TH').format(amount)}',
               style: AppTypography.heading5.copyWith(
                 color: context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -518,7 +518,7 @@ class _EarningsCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '฿${NumberFormat('#,##0.##', 'th_TH').format(amount)}',
+                  '฿${NumberFormat('#,##0', 'th_TH').format(amount)}',
                   maxLines: 1,
                   style: AppTypography.heading1.copyWith(
                     color: context.palette.textPrimary,

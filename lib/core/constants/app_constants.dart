@@ -23,8 +23,8 @@ class Constant {
 }
 
 class NumberFormatConstant {
-  static const String defaultCurrency = '#,##0.00';
-  static const String shortCurrency = '#,##0.##';
+  static const String defaultCurrency = '#,##0';
+  static const String shortCurrency = '#,##0';
   static const String separator = '#,###';
   static const String separatorWith2Decimal = '#,###.00';
 }

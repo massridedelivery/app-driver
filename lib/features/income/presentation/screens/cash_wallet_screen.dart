@@ -50,7 +50,7 @@ class CashWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.cashBalance.toStringAsFixed(2)}',
+                            '฿${state.cashBalance.toStringAsFixed(0)}',
                             style: AppTypography.heading1.copyWith(
                               color: context.palette.textPrimary,
                               fontSize: 48,

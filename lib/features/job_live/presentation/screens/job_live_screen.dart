@@ -564,8 +564,17 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               break;
             case JobLiveState.headingToDropoff:
               // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
-              // the fare and marks COMPLETED only once it's settled.
-              context.push('/payment', extra: const {'gateCompletion': true});
+              // the fare and marks COMPLETED only once it's settled. Pass the
+              // amount explicitly (amount_due when real, else fare) so the
+              // collect screen never depends on live controller state.
+              final job = ref.read(incomingJobControllerProvider).currentJob;
+              final collect = ((job?.amountDue ?? 0) > 0)
+                  ? job!.amountDue!
+                  : (job?.netIncome ?? 0);
+              context.push('/payment', extra: {
+                'gateCompletion': true,
+                'amount': collect,
+              });
               break;
           }
         });
