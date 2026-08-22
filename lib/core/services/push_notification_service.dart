@@ -287,6 +287,12 @@ class PushNotificationService {
   void _handleTap(RemoteMessage message) {
     debugPrint('FCM(tap): id=${message.messageId} data=${message.data}');
     FcmDebugLog.log('Notification tapped: id=${message.messageId} route=${message.data['route']}');
+    // Finance decided on a held (override-claimed) fare → open the held list.
+    final type = message.data['type']?.toString();
+    if (type == 'held_fare_approved' || type == 'held_fare_rejected') {
+      _navigateTo('/held-fares');
+      return;
+    }
     final route = message.data['route'];
     if (route is String) _navigateTo(route);
   }
