@@ -289,7 +289,7 @@ class _TransactionTile extends StatelessWidget {
 
           // ── Amount ────────────────────────────────────────────────────
           Text(
-            '${isCredit ? '+' : ''}฿${transaction.absoluteAmount.toStringAsFixed(2)}',
+            '${isCredit ? '+' : ''}฿${transaction.absoluteAmount.toStringAsFixed(0)}',
             style: AppTypography.caption3.copyWith(
               color: amountColor,
               fontWeight: FontWeight.bold,
@@ -340,7 +340,7 @@ class _TransactionTile extends StatelessWidget {
     final amountColor = isCredit
         ? AppColors.semanticSupportMintBgHigh
         : AppColors.semanticErrorFgHigh;
-    String money(double v) => '฿${v.toStringAsFixed(2)}';
+    String money(double v) => '฿${v.toStringAsFixed(0)}';
     String date(DateTime d) =>
         DateFormat('d MMM yyyy, HH:mm').format(d.toLocal());
 

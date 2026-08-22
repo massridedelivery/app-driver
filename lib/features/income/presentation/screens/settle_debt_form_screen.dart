@@ -242,7 +242,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                       return 'กรุณากรอกจำนวนเงินมากกว่า 0';
                     }
                     if (amount > maxAmount) {
-                      return 'จำนวนเงินต้องไม่เกินยอดค้างชำระ (฿${maxAmount.toStringAsFixed(2)})';
+                      return 'จำนวนเงินต้องไม่เกินยอดค้างชำระ (฿${maxAmount.toStringAsFixed(0)})';
                     }
                     return null;
                   },
@@ -293,7 +293,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  'ยอดค้างชำระทั้งหมด: ฿${maxAmount.toStringAsFixed(2)}',
+                  'ยอดค้างชำระทั้งหมด: ฿${maxAmount.toStringAsFixed(0)}',
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),

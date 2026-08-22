@@ -53,7 +53,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'โอนเงิน ฿${amount.toStringAsFixed(2)} สำเร็จ',
+            'โอนเงิน ฿${amount.toStringAsFixed(0)} สำเร็จ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,
@@ -84,7 +84,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     }
     final wht = amount * _whtRate;
     final net = amount - wht;
-    final fmt = NumberFormat('#,##0.00');
+    final fmt = NumberFormat('#,##0');
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -167,7 +167,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '฿${widget.availableBalance.toStringAsFixed(2)}',
+                        '฿${widget.availableBalance.toStringAsFixed(0)}',
                         style: AppTypography.heading2.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,

@@ -81,7 +81,7 @@ class _HeldFareCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '฿${NumberFormat('#,##0.00').format(item.amount)}',
+                '฿${NumberFormat('#,##0').format(item.amount)}',
                 style: AppTypography.heading5
                     .copyWith(color: context.palette.textPrimary),
               ),
