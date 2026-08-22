@@ -40,6 +40,11 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final String? collectAt;
   final String? paymentStatus;
 
+  /// Mid-trip collection (messenger PICKUP stage): collect the fee, then return
+  /// to the live screen (pop true) so the trip continues — instead of the
+  /// terminal complete-job + review + home flow. The caller advances the stage.
+  final bool midTrip;
+
   /// Review context for verticals whose job isn't in the ride controller
   /// (messenger passes its order id + service so the post-payment review can
   /// attach to the right order).
@@ -62,6 +67,7 @@ class PaymentScreen extends ConsumerStatefulWidget {
     this.payer,
     this.collectAt,
     this.paymentStatus,
+    this.midTrip = false,
     this.orderId,
     this.service,
     this.gateCompletion = false,
@@ -115,6 +121,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
   bool get _isMessenger => widget.service == ReviewService.messenger;
   double get _codAmount => widget.codAmount ?? 0.0;
+
+  /// Messenger context line: who to collect from + at which stage (dev14).
+  String? get _collectContext {
+    final who = switch (widget.payer?.toUpperCase()) {
+      'RECIPIENT' => 'ผู้รับ',
+      'SENDER' => 'ผู้ส่ง',
+      _ => null,
+    };
+    final where = switch (widget.collectAt?.toUpperCase()) {
+      'PICKUP' => 'จุดรับ',
+      'DELIVERY' => 'จุดส่ง',
+      _ => null,
+    };
+    if (who == null && where == null) return null;
+    if (who != null && where != null) return 'เก็บจาก$who ที่$where';
+    return 'เก็บจาก${who ?? where}';
+  }
   String get _orderId =>
       widget.orderId ??
       ref.read(incomingJobControllerProvider).currentJob?.jobId ??
@@ -316,6 +339,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       }
     }
 
+    // Mid-trip (messenger PICKUP): payment settled → hand back to the live
+    // screen, which advances the stage. Don't complete the job or run the
+    // terminal review/home flow.
+    if (widget.midTrip) {
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+
     // Gate: complete the job only once payment is settled (or overridden).
     if (!await _completeJob()) {
       if (mounted) setState(() => _submitting = false);
@@ -420,6 +451,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         : "สแกนจ่าย",
                     style: AppTypography.heading6.copyWith(color: Colors.white),
                   ),
+                  // Tell the driver who to collect from and at which stage
+                  // (messenger PICKUP/DELIVERY) — dev14.
+                  if (_collectContext != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _collectContext!,
+                        style: AppTypography.body2.copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

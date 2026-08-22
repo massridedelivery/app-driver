@@ -195,6 +195,7 @@ class AppRouter {
               orderId: extra?['orderId'] as String?,
               service: extra?['service'] as ReviewService?,
               gateCompletion: extra?['gateCompletion'] as bool? ?? false,
+              midTrip: extra?['midTrip'] as bool? ?? false,
             ),
           );
         },

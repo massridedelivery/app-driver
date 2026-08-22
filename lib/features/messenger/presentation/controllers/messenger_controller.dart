@@ -183,6 +183,29 @@ class MessengerController extends _$MessengerController {
   }
 
   Future<void> pickedUp() async {
+    final order = state.activeOrder;
+    if (order == null) return;
+
+    // dev14: when the fee is collected at PICKUP (sender pays the driver) and
+    // isn't already prepaid, collect it now — QR/cash on the driver app — before
+    // marking the parcel picked up. midTrip returns to the live screen so the
+    // trip continues (COD is separate and collected later at DELIVERY).
+    if ((order.collectAt?.toUpperCase() == 'PICKUP') && !order.isFeePaid) {
+      final paid = await AppRouter.router.push('/payment', extra: {
+        'amount': order.feeDue,
+        'method': order.paymentMethod,
+        'payer': order.payer,
+        'collectAt': order.collectAt,
+        'paymentStatus': order.paymentStatus,
+        'title': 'ผู้ส่ง',
+        'orderId': order.id,
+        'service': ReviewService.messenger,
+        'midTrip': true,
+      });
+      // Driver backed out without collecting → don't advance the stage.
+      if (paid != true) return;
+    }
+
     if (await _runAction((id) => _repo.pickedUpOrder(id))) {
       await _refreshActive();
     }
