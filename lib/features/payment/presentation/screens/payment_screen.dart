@@ -421,7 +421,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildCashContent() {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewPaddingOf(context).bottom),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -516,7 +516,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildQRContent() {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewPaddingOf(context).bottom),
       child: Column(
         children: [
           // Drag handle
