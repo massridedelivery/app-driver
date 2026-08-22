@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/managers/api/api_manager.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/income/domain/models/held_fare.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'payment_api_service.g.dart';
@@ -43,6 +44,18 @@ class PaymentApiService {
       Endpoints.messengerOrderCollectCash.replaceAll(':id', orderId),
     );
     return _wrap(res);
+  }
+
+  /// Held fares — override-claimed fares awaiting finance review (dev15).
+  /// GET /api/driver/payments/held → { items: [...], total }.
+  Future<List<HeldFare>> getHeldFares() async {
+    final res = await _dio.get(Endpoints.driverPaymentsHeld);
+    final data = res.data;
+    final items = (data is Map ? data['items'] : null) as List? ?? const [];
+    return items
+        .whereType<Map>()
+        .map((e) => HeldFare.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   ResponseData _wrap(Response res) => ResponseData(

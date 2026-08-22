@@ -11,6 +11,7 @@ import 'package:massdrive/features/income/presentation/controllers/wallet_contro
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/held_fares_screen.dart';
 
 class IncomeScreen extends ConsumerWidget {
   const IncomeScreen({super.key});
@@ -110,6 +111,28 @@ class IncomeScreen extends ConsumerWidget {
                         context,
                         const TransactionHistoryScreen(title: 'รายการทั้งหมด'),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // ── Held fares awaiting finance review (SCRUM-86) ──
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.hourglass_bottom,
+                          color: context.palette.textSecondary),
+                      title: Text(
+                        'ค่างานรอตรวจสอบ',
+                        style: AppTypography.caption3
+                            .copyWith(color: context.palette.textPrimary),
+                      ),
+                      subtitle: Text(
+                        'รายการที่ยืนยันแบบ override รอฝ่ายการเงิน',
+                        style: AppTypography.caption4
+                            .copyWith(color: context.palette.textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right,
+                          color: context.palette.textTertiary),
+                      onTap: () =>
+                          AppNavigator.push(context, const HeldFaresScreen()),
                     ),
                   ],
                 ),

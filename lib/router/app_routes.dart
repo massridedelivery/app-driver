@@ -15,6 +15,7 @@ import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/register_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/held_fares_screen.dart';
 import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/review/presentation/screens/review_customer_screen.dart';
@@ -172,6 +173,11 @@ class AppRouter {
         path: '/messenger-history',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: MessengerHistoryScreen()),
+      ),
+      GoRoute(
+        path: '/held-fares',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: HeldFaresScreen()),
       ),
       GoRoute(
         path: '/payment',
