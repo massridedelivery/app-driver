@@ -67,10 +67,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _others => double.tryParse(_othersController.text) ?? 0.0;
 
-  double get _baseFare =>
-      widget.amount ??
-      ref.read(incomingJobControllerProvider).currentJob?.netIncome ??
-      widget.baseFare;
+  double get _baseFare {
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    // Collect amount_due (fare + en-route tolls/waiting) when the BE ships it;
+    // fall back to fare so nothing regresses (SCRUM-86 §6).
+    return widget.amount ?? job?.amountDue ?? job?.netIncome ?? widget.baseFare;
+  }
 
   // The customer pays the job fare (already net of any discount) plus any
   // real add-ons the driver enters (tolls / others). No app fee is added on
