@@ -104,6 +104,20 @@ abstract class Endpoints {
   static const driverJobsActive = '/api/driver/jobs/active';
   static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
 
+  // MARK: End-of-job payment collection (SCRUM-86)
+  /// Mint/return a QR payment intent for the payer to scan. Idempotent — a
+  /// still-live QR is returned as-is with `reused=true` (never mint twice).
+  static const driverJobPaymentIntent = '/api/driver/jobs/:id/payment-intent';
+  static const messengerOrderPaymentIntent =
+      '/api/messenger/driver/orders/:id/payment-intent';
+  // Poll uses the existing `paymentIntent(intentId)` helper below.
+  /// Confirm cash received (messenger only) → settlement. Ride cash settles via
+  /// the complete-job call itself, so it has no separate endpoint.
+  static const messengerOrderCollectCash =
+      '/api/messenger/driver/orders/:id/collect-cash';
+  /// Held fares awaiting finance review (payment-override claims, dev15).
+  static const driverPaymentsHeld = '/api/driver/payments/held';
+
   /// Cross-vertical "what am I doing now" index (SCRUM-45, v1.6.0-dev20).
   /// Lean summary — probe for `type`+`id`, then fetch detail per vertical.
   static const driverActive = '/api/driver/active';
