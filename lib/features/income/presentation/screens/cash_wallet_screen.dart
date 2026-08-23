@@ -22,7 +22,7 @@ class CashWalletScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.palette.bg,
       appBar: CommonAppBar(
-        titleText: 'กระเป๋าเงินสด',
+        titleText: 'ยอดถอนได้',
         showLeftIcon: true,
       ),
       body: SafeArea(
@@ -41,7 +41,7 @@ class CashWalletScreen extends ConsumerWidget {
                           _buildPremiumBillIllustration(),
                           const SizedBox(height: 24),
                           Text(
-                            'ยอดเงินสดที่ถอนได้',
+                            'ยอดที่ถอนได้',
                             style: AppTypography.caption4.copyWith(
                               color: context.palette.textPrimary
                                   .withOpacity(0.6),
@@ -73,7 +73,7 @@ class CashWalletScreen extends ConsumerWidget {
                             if (state.cashBalance <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('ไม่มียอดเงินสดที่สามารถถอนได้'),
+                                  content: Text('ไม่มียอดที่สามารถถอนได้'),
                                   backgroundColor: AppColors.semanticErrorBgHigh,
                                 ),
                               );
@@ -94,7 +94,7 @@ class CashWalletScreen extends ConsumerWidget {
                             AppNavigator.push(
                               context,
                               const TransactionHistoryScreen(
-                                title: 'ประวัติกระเป๋าเงินสด',
+                                title: 'ประวัติยอดถอนได้',
                                 transactionType: 'payout',
                               ),
                             );

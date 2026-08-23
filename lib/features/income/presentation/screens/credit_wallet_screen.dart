@@ -22,7 +22,7 @@ class CreditWalletScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.palette.bg,
       appBar: CommonAppBar(
-        titleText: 'เครดิตวอลเล็ต',
+        titleText: 'เครดิตหักหนี้',
         showLeftIcon: true,
       ),
       body: SafeArea(
@@ -41,7 +41,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           _buildPremiumMassIllustration(),
                           const SizedBox(height: 24),
                           Text(
-                            'ยอดเครดิตในระบบ',
+                            'เครดิตสำหรับหักหนี้ COD',
                             style: AppTypography.caption4.copyWith(
                               color: context.palette.textPrimary,
                               letterSpacing: 1.2,
@@ -94,7 +94,7 @@ class CreditWalletScreen extends ConsumerWidget {
                             AppNavigator.push(
                               context,
                               const TransactionHistoryScreen(
-                                title: 'ประวัติกระเป๋าเครดิต',
+                                title: 'ประวัติเครดิต',
                                 transactionType: 'topup',
                               ),
                             );

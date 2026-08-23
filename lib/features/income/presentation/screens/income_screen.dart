@@ -65,7 +65,7 @@ class IncomeScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: _WalletMiniCard(
-                            title: 'กระเป๋าเงินสด',
+                            title: 'ถอนได้',
                             amount: state.cashBalance,
                             icon: Icons.attach_money_rounded,
                             iconBg: AppColors.foundationOrange600,
@@ -79,7 +79,7 @@ class IncomeScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _WalletMiniCard(
-                            title: 'กระเป๋าเครดิต',
+                            title: 'เครดิตหักหนี้',
                             amount: state.creditBalance,
                             icon: Icons.work_rounded,
                             iconBg: AppColors.foundationOrange100,
