@@ -207,12 +207,32 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (id == null || _paid) return;
     try {
       final res = await ref.read(paymentApiServiceProvider).getIntent(id);
-      if (res.data is Map && res.data['status']?.toString() == 'PAID') {
+      final status = (res.data is Map) ? res.data['status']?.toString() : null;
+      if (status == 'PAID') {
         _markPaid();
+      } else if (status == 'EXPIRED' || status == 'FAILED') {
+        // QR expired/failed (10-min TTL) — stop polling and let the driver
+        // request a fresh QR (or switch to cash). The order is NOT cancelled.
+        _pollTimer?.cancel();
+        if (mounted) setState(() => _status = status!);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('PaymentScreen.poll: $e');
     }
+  }
+
+  bool get _expired => _status == 'EXPIRED' || _status == 'FAILED';
+
+  /// Request a fresh QR after the previous one expired (BE keeps the order).
+  Future<void> _requestNewQr() async {
+    _pollTimer?.cancel();
+    _wsSub?.cancel();
+    setState(() {
+      _intentId = null;
+      _qrCodeUrl = null;
+      _status = 'AWAITING_PAYMENT';
+    });
+    await _startQrFlow();
   }
 
   void _markPaid() {
@@ -659,7 +679,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             alignment: Alignment.center,
             child: _loadingQr
                 ? const CircularProgressIndicator(strokeWidth: 2)
-                : QrImage(source: _qrCodeUrl ?? ''),
+                : _expired
+                    ? const Icon(Icons.timer_off_outlined,
+                        size: 72, color: Colors.black38)
+                    : QrImage(source: _qrCodeUrl ?? ''),
           ),
 
           const SizedBox(height: 20),
@@ -677,7 +700,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ),
               ],
             )
-          else
+          else if (_expired) ...[
+            Text(
+              "QR หมดอายุแล้ว",
+              style: AppTypography.body1
+                  .copyWith(color: AppColors.semanticErrorBgHigh),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _requestNewQr,
+              child: Text(
+                "ขอ QR ใหม่",
+                style: AppTypography.body1.copyWith(
+                    color: Colors.blueAccent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ] else
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
