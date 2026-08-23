@@ -8,6 +8,7 @@ import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -31,6 +32,13 @@ class MessengerOfferScreen extends ConsumerWidget {
 
     final pickup = LatLng(offer.pickupLat, offer.pickupLng);
     final dropoff = LatLng(offer.dropoffLat, offer.dropoffLng);
+    // Real road route from the BE-supplied encoded polyline (dev15); straight
+    // dashed line only as the fallback when it's absent.
+    final encoded = offer.encodedPolyline;
+    final routePts = (encoded != null && encoded.isNotEmpty)
+        ? DirectionsService().decode(encoded)
+        : const <LatLng>[];
+    final hasRoute = routePts.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.semanticGrayNeutralFgWhite,
@@ -59,10 +67,12 @@ class MessengerOfferScreen extends ConsumerWidget {
             polylines: {
               Polyline(
                 polylineId: const PolylineId('route'),
-                points: [pickup, dropoff],
+                points: hasRoute ? routePts : [pickup, dropoff],
                 color: AppColors.semanticPrimaryBgHigh,
-                width: 4,
-                patterns: [PatternItem.dash(20), PatternItem.gap(10)],
+                width: hasRoute ? 5 : 4,
+                patterns: hasRoute
+                    ? const []
+                    : [PatternItem.dash(20), PatternItem.gap(10)],
               ),
             },
             myLocationEnabled: true,

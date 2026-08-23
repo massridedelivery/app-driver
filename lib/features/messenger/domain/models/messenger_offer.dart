@@ -35,6 +35,9 @@ class MessengerOffer {
   final String payer;
   final String? collectAt;
   final double? amountDue;
+  // Encoded route polyline (dev15) — draw the real road route on the offer map
+  // instead of a straight pickup→drop-off line.
+  final String? encodedPolyline;
 
   const MessengerOffer({
     this.id = '',
@@ -52,6 +55,7 @@ class MessengerOffer {
     this.payer = 'SENDER',
     this.collectAt,
     this.amountDue,
+    this.encodedPolyline,
   });
 
   factory MessengerOffer.fromJson(Map<String, dynamic> json) =>
