@@ -102,7 +102,11 @@ abstract class Endpoints {
       '/api/driver/jobs/:id/stops/:stop_id/depart';
   static const driverJobsStatus = '/api/driver/jobs/:id/status';
   static const driverJobsActive = '/api/driver/jobs/active';
-  static const driverJobsActiveOffer = '/api/driver/jobs/active_offer';
+  // Cross-vertical pending-offer recovery (dev15). Replaces the ride-only
+  // /api/driver/jobs/active_offer, which spoke for one vertical and deleted the
+  // shared Redis offer lock. Response: { type: ride|food|messenger, <type>: {…} }.
+  // 404 "no active offer found" = simply no offer (not an error).
+  static const driverActiveOffer = '/api/driver/active-offer';
 
   // MARK: End-of-job payment collection (SCRUM-86)
   /// Mint/return a QR payment intent for the payer to scan. Idempotent — a

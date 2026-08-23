@@ -69,7 +69,7 @@ class JobLiveApiServiceImpl extends BaseApiService implements JobLiveApiService 
       if (lat != null) 'lat': lat,
       if (lng != null) 'lng': lng,
     };
-    return await get(Endpoints.driverJobsActiveOffer, queryParameters: queryParameters);
+    return await get(Endpoints.driverActiveOffer, queryParameters: queryParameters);
   }
 
   @override
