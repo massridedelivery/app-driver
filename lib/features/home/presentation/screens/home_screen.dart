@@ -24,6 +24,7 @@ import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
@@ -124,13 +125,10 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
 
       if (active.isEmpty) {
         // No accepted job — recover a pending (pre-accept) offer if one exists.
+        // Cross-vertical now (dev15): ride/food/messenger via the typed response.
         final offer = await repo.getActiveOffer(lat: lat, lng: lng);
-        final offerJson = _extractJobJson(offer);
-        if (offerJson != null && context.mounted) {
-          final job = IncomingJobModel.fromJson(offerJson);
-          ref.read(incomingJobControllerProvider.notifier).receiveJob(job);
-          context.go(AppRoutes.incomingJobNamedPage);
-        }
+        final route = applyRecoveredOffer(ref, offer);
+        if (route != null && context.mounted) context.go(route);
         return;
       }
 

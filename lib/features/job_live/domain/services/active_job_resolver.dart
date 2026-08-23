@@ -7,6 +7,7 @@ import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 
@@ -48,14 +49,10 @@ Future<ActiveJobResume?> resolveActiveJob(Ref ref) async {
 
   if (active.isEmpty) {
     // No accepted job — recover a pending (pre-accept) offer if one exists.
+    // Cross-vertical now (dev15): ride/food/messenger via the typed response.
     final offer = await repo.getActiveOffer(lat: lat, lng: lng);
-    final offerJson = _extractJobJson(offer);
-    if (offerJson != null) {
-      final job = IncomingJobModel.fromJson(offerJson);
-      ref.read(incomingJobControllerProvider.notifier).receiveJob(job);
-      return const ActiveJobResume(AppRoutes.incomingJobNamedPage);
-    }
-    return null;
+    final route = applyRecoveredOffer(ref, offer);
+    return route == null ? null : ActiveJobResume(route);
   }
 
   // Driver holds 0–1 active items; the list is newest-first.
@@ -101,6 +98,42 @@ Future<ActiveJobResume?> resolveActiveJob(Ref ref) async {
 
 /// Extracts the job/order JSON from a per-vertical detail response, which may be
 /// a bare object, a `{ "job": {...} }` wrapper, or a list.
+/// Parse the typed `/api/driver/active-offer` response (dev15):
+/// `{ type: ride|food|messenger, <type>: {…} }`. Loads the offer into the
+/// matching controller and returns the route to open (null if there's none).
+/// Shared by the app-startup resolver and HomeScreen's status probe.
+String? applyRecoveredOffer(Ref ref, dynamic offer) {
+  if (offer is! Map) return null;
+  final map = Map<String, dynamic>.from(offer);
+  final type = map['type']?.toString();
+
+  if (type == 'messenger') {
+    final m = map['messenger'];
+    if (m is Map) {
+      ref
+          .read(messengerControllerProvider.notifier)
+          .receiveOffer(MessengerOffer.fromJson(Map<String, dynamic>.from(m)));
+      return '/messenger-offer';
+    }
+    return null;
+  }
+
+  // ride / food both use IncomingJobModel + the incoming-job screen. Fall back
+  // to the old flat shape if `type` is absent.
+  final vertical = (type != null ? map[type] : null) ??
+      map['ride'] ??
+      map['food'] ??
+      map;
+  final json = _extractJobJson(vertical);
+  if (json != null) {
+    ref
+        .read(incomingJobControllerProvider.notifier)
+        .receiveJob(IncomingJobModel.fromJson(json));
+    return AppRoutes.incomingJobNamedPage;
+  }
+  return null;
+}
+
 Map<String, dynamic>? _extractJobJson(dynamic data) {
   if (data is Map<String, dynamic>) {
     final job = data['job'];
