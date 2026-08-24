@@ -96,6 +96,9 @@ class IncomingJobController extends _$IncomingJobController {
         }
 
         receiveJob(job);
+        // Ring the loud alert locally — the offer arrived over the WebSocket,
+        // which carries no sound of its own. De-duped against any FCM push.
+        PushNotificationService.instance.alertJobOffer(key: job.jobId);
         AppRouter.router.go(AppRoutes.incomingJobNamedPage);
       } else {
         if (kDebugMode) {
@@ -136,6 +139,9 @@ class IncomingJobController extends _$IncomingJobController {
         }
 
         receiveJob(job);
+        // Ring the loud alert locally — the offer arrived over the WebSocket,
+        // which carries no sound of its own. De-duped against any FCM push.
+        PushNotificationService.instance.alertJobOffer(key: job.jobId);
         AppRouter.router.go(AppRoutes.incomingJobNamedPage);
       } else {
         if (kDebugMode) {
