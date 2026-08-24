@@ -835,7 +835,8 @@ class _OnlineButton extends ConsumerWidget {
                 content: Text(
                   'พร้อมรับงานแล้ว',
                   style: AppTypography.label2.copyWith(
-                    color: context.palette.textPrimary,
+                    // White on the green fill (readable in light & dark).
+                    color: Colors.white,
                   ),
                 ),
                 backgroundColor: AppColors.semanticSuccessBgHigh,
@@ -872,7 +873,8 @@ class _OnlineButton extends ConsumerWidget {
                   content: Text(
                     'ไม่สามารถเปิดรับงานได้ กรุณาลองใหม่อีกครั้ง',
                     style: AppTypography.label2.copyWith(
-                      color: context.palette.textPrimary,
+                      // White on the red fill (readable in light & dark).
+                      color: Colors.white,
                     ),
                   ),
                   backgroundColor: AppColors.semanticErrorBgHigh,
@@ -907,15 +909,16 @@ class _OnlineButton extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            // White on the mint/orange gradient fill (readable in light & dark).
+            const Icon(
               Icons.power_settings_new,
-              color: context.palette.textPrimary,
+              color: Colors.white,
             ),
             const SizedBox(width: 10),
             Text(
               isOnline ? "พร้อมรับงาน" : "ปิดรับงาน",
               style: AppTypography.heading5.copyWith(
-                color: context.palette.textPrimary,
+                color: Colors.white,
               ),
             ),
           ],
