@@ -225,29 +225,30 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
             color: AppColors.semanticGrayNeutralFgMidOnBlack,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: ListView(
-            controller: scrollController,
-            // Reserve the system nav-bar inset (passed from screen level — the
-            // sheet builder's own context reports 0) so the action button clears
-            // the Android 3-button bar.
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              32 + bottomInset,
-            ),
+          child: Column(
             children: [
-              _buildDragIndicator(),
-              const SizedBox(height: 16),
-              _buildStatusTimeline(),
-              const SizedBox(height: 20),
-              _buildOrderInfo(),
-              const SizedBox(height: 20),
-              _buildOrderItemsList(),
-              const SizedBox(height: 20),
-              _buildContactRow(),
-              const SizedBox(height: 24),
-              _buildActionButton(),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  children: [
+                    _buildDragIndicator(),
+                    const SizedBox(height: 16),
+                    _buildStatusTimeline(),
+                    const SizedBox(height: 20),
+                    _buildOrderInfo(),
+                    const SizedBox(height: 20),
+                    _buildOrderItemsList(),
+                    const SizedBox(height: 20),
+                    _buildContactRow(),
+                  ],
+                ),
+              ),
+              // CTA pinned above the Android nav bar, never under the scroll fold.
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 12 + bottomInset),
+                child: _buildActionButton(),
+              ),
             ],
           ),
         );
