@@ -1037,38 +1037,46 @@ void _showLocationSettingsDialog(
   );
 }
 
-/// Minimum credit the driver should keep to keep taking jobs (product rule;
-/// the backend is the source of truth and will confirm/override — SCRUM-97).
-const double _kCreditMinBalance = 25.0;
-
 /// After going online, check the credit wallet and warn (in Thai) when it is
-/// too low. Two tiers: empty/negative → the backend won't dispatch at all
-/// (must top up first); below the minimum → still gets a few jobs but should
-/// top up soon. No dialog when the balance is healthy.
+/// too low. Two tiers driven by the backend (SCRUM-97 / dev16): empty/negative
+/// or `can_receive_jobs == false` → the backend won't dispatch (must top up);
+/// below `min_balance_required` → still gets a few jobs but should top up soon.
+/// No dialog when the balance is healthy.
 Future<void> _maybeShowCreditWarning(BuildContext context, WidgetRef ref) async {
-  // Pull a fresh credit figure (lightweight) before deciding.
+  CreditStatus status;
   try {
-    await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
+    status = await ref.read(walletControllerProvider.notifier).fetchCreditStatus();
   } catch (_) {
-    // Non-fatal — fall back to whatever is already in state.
+    // Don't block going online on a wallet-fetch failure.
+    return;
   }
   if (!context.mounted) return;
-  final credit = ref.read(walletControllerProvider).creditBalance;
-  if (credit >= _kCreditMinBalance) return;
-  _showCreditWarningDialog(context, credit: credit);
+  final bool blocking = !status.canReceiveJobs || status.balance <= 0;
+  final bool warn = status.balance < status.minBalanceRequired;
+  if (!blocking && !warn) return;
+  _showCreditWarningDialog(context, status: status, blocking: blocking);
 }
 
-/// The low-credit dialog. `blocking` (empty/negative) uses stronger copy since
-/// the backend stops dispatching jobs entirely until the driver tops up.
-void _showCreditWarningDialog(BuildContext context, {required double credit}) {
-  final bool blocking = credit <= 0;
-  final String balanceText = '฿${credit.toStringAsFixed(0)}';
-  final String title = blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด';
-  final String message = blocking
-      ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
-          'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้'
-      : 'เครดิตคงเหลือ $balanceText คุณอาจรับงานได้อีกไม่กี่งาน\n'
-          'กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง (ขั้นต่ำ ฿${_kCreditMinBalance.toStringAsFixed(0)})';
+/// The low-credit dialog. Copy comes from the backend (`credit_warning`,
+/// admin-editable) when present, else a Thai client fallback. `blocking`
+/// (empty/negative / can't receive) uses stronger, red copy since the backend
+/// stops dispatching jobs until the driver tops up.
+void _showCreditWarningDialog(
+  BuildContext context, {
+  required CreditStatus status,
+  required bool blocking,
+}) {
+  final String balanceText = '฿${status.balance.toStringAsFixed(0)}';
+  final String title = (status.warningTitle?.isNotEmpty ?? false)
+      ? status.warningTitle!
+      : (blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด');
+  final String message = (status.warningMessage?.isNotEmpty ?? false)
+      ? status.warningMessage!
+      : (blocking
+          ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
+              'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้'
+          : 'เครดิตคงเหลือ $balanceText คุณอาจรับงานได้อีกไม่กี่งาน\n'
+              'กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง (ขั้นต่ำ ฿${status.minBalanceRequired.toStringAsFixed(0)})');
 
   showDialog(
     context: context,

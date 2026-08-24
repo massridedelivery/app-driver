@@ -13,6 +13,37 @@ import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
 
 part 'wallet_controller.g.dart';
 
+/// Credit-gate status from `GET /api/driver/payouts/summary` (SCRUM-97 / dev16).
+/// Drives the low-credit dialog: the backend is the source of truth for the
+/// threshold, the block flag, and the (admin-editable) warning copy.
+class CreditStatus {
+  /// Current credit; can be negative (commission pushed it below zero).
+  final double balance;
+
+  /// false when the backend won't dispatch (balance <= 0). Defaults to true so
+  /// a missing field never blocks the driver.
+  final bool canReceiveJobs;
+
+  /// Warn threshold (default 25, admin-configurable).
+  final double minBalanceRequired;
+
+  /// "INSUFFICIENT_CREDIT" (=0) | "NEGATIVE_CREDIT" (<0) | null (healthy).
+  final String? reason;
+
+  /// Admin-editable dialog copy; null/empty → the client's Thai fallback.
+  final String? warningTitle;
+  final String? warningMessage;
+
+  const CreditStatus({
+    required this.balance,
+    required this.canReceiveJobs,
+    required this.minBalanceRequired,
+    this.reason,
+    this.warningTitle,
+    this.warningMessage,
+  });
+}
+
 @Riverpod(keepAlive: true)
 class WalletController extends _$WalletController {
   @override
@@ -86,6 +117,27 @@ class WalletController extends _$WalletController {
     } catch (e) {
       debugPrint('WalletController: fetchPayoutSummary Error $e');
     }
+  }
+
+  /// Fetch the credit-gate status (SCRUM-97 / dev16) from the same
+  /// payouts/summary payload, and refresh the cash/credit balances in state.
+  /// Used by the go-online low-credit dialog.
+  Future<CreditStatus> fetchCreditStatus() async {
+    final walletRepo = getIt<WalletRepository>();
+    final summary = await walletRepo.getPayoutSummary();
+    final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
+    final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
+    state = state.copyWith(cashBalance: cash, creditBalance: credit);
+    final warn = summary['credit_warning'];
+    return CreditStatus(
+      balance: credit,
+      canReceiveJobs: (summary['can_receive_jobs'] as bool?) ?? true,
+      minBalanceRequired:
+          (summary['min_balance_required'] as num?)?.toDouble() ?? 25.0,
+      reason: summary['reason']?.toString(),
+      warningTitle: warn is Map ? warn['title']?.toString() : null,
+      warningMessage: warn is Map ? warn['message']?.toString() : null,
+    );
   }
 
   Future<void> fetchCodStatus() async {
