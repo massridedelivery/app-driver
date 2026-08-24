@@ -290,22 +290,30 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
             color: AppColors.semanticGrayNeutralFgMidOnBlack,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: ListView(
-            controller: scrollController,
-            // Reserve the system nav-bar inset (passed from screen level — the
-            // sheet builder's own context reports 0) so the "ถึงแล้ว" button
-            // clears the Android 3-button bar.
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 32 + bottomInset),
+          child: Column(
             children: [
-              _buildDragIndicator(),
-              const SizedBox(height: 16),
-              _buildTripHeader(),
-              const SizedBox(height: 20),
-              _buildPassengerInfo(),
-              const SizedBox(height: 20),
-              _buildContactRow(),
-              const SizedBox(height: 24),
-              _buildArrivedButton(),
+              // Scrollable info (drives the sheet drag via scrollController).
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  children: [
+                    _buildDragIndicator(),
+                    const SizedBox(height: 16),
+                    _buildTripHeader(),
+                    const SizedBox(height: 20),
+                    _buildPassengerInfo(),
+                    const SizedBox(height: 20),
+                    _buildContactRow(),
+                  ],
+                ),
+              ),
+              // CTA pinned at the bottom, always visible above the Android
+              // nav bar (+bottomInset) — never buried under the scroll fold.
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 12 + bottomInset),
+                child: _buildArrivedButton(),
+              ),
             ],
           ),
         );
