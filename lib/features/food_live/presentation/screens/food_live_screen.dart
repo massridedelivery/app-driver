@@ -42,6 +42,15 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   final DirectionsService _directionsService = DirectionsService();
   Set<Polyline> _polylines = {};
 
+  // Open the sheet at exactly the height that fits its content (measured), then
+  // let the driver collapse it. See _fitSheetToContent.
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+  final GlobalKey _sheetContentKey = GlobalKey();
+  double? _sheetContentHeight;
+  double _sheetFitExtent = 0.5;
+  bool _didInitialFit = false;
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +135,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   @override
   void dispose() {
     _socketSub?.cancel();
+    _sheetController.dispose();
     super.dispose();
   }
 
@@ -214,43 +224,84 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   // =========================================================================
   Widget _buildBottomSheet(double bottomInset) {
     // Reserve the nav-bar strip so the WHOLE sheet sits ABOVE the Android nav
-    // bar (its box bottom = the nav bar top). The sheet still drags/collapses
-    // as before, and nothing inside can fall under the nav bar.
+    // bar (its box bottom = the nav bar top). Nothing inside can fall under it.
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.52,
-        minChildSize: 0.15,
-        maxChildSize: 0.70,
-        snap: true,
-        snapSizes: const [0.15, 0.52, 0.70],
-        builder: (context, scrollController) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: AppColors.semanticGrayNeutralFgMidOnBlack,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                _buildDragIndicator(),
-                const SizedBox(height: 16),
-                _buildStatusTimeline(),
-                const SizedBox(height: 20),
-                _buildOrderInfo(),
-                const SizedBox(height: 20),
-                _buildOrderItemsList(),
-                const SizedBox(height: 20),
-                _buildContactRow(),
-                const SizedBox(height: 24),
-                _buildActionButton(),
-              ],
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableH = constraints.maxHeight;
+          // Extent that EXACTLY fits the measured content. Until the first
+          // measurement lands, open at a safe default. Clamp so a very tall
+          // order still leaves the map visible and simply scrolls.
+          final double fitExtent =
+              (_sheetContentHeight != null && availableH > 0)
+              ? (_sheetContentHeight! / availableH).clamp(0.2, 0.94)
+              : 0.52;
+          _sheetFitExtent = fitExtent;
+          const double minExtent = 0.15;
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _fitSheetToContent(),
+          );
+          final snaps = <double>{minExtent, fitExtent}.toList()..sort();
+          return DraggableScrollableSheet(
+            controller: _sheetController,
+            initialChildSize: fitExtent,
+            minChildSize: minExtent,
+            maxChildSize: fitExtent,
+            snap: true,
+            snapSizes: snaps,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.semanticGrayNeutralFgMidOnBlack,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      key: _sheetContentKey,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildDragIndicator(),
+                        const SizedBox(height: 16),
+                        _buildStatusTimeline(),
+                        const SizedBox(height: 20),
+                        _buildOrderInfo(),
+                        const SizedBox(height: 20),
+                        _buildOrderItemsList(),
+                        const SizedBox(height: 20),
+                        _buildContactRow(),
+                        const SizedBox(height: 24),
+                        _buildActionButton(),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  /// Measures the sheet content and, once its height is stable, snaps the
+  /// sheet open to fit it exactly — the driver sees the whole layout on entry
+  /// and can then drag it down to a compact peek.
+  void _fitSheetToContent() {
+    if (!mounted) return;
+    final h = _sheetContentKey.currentContext?.size?.height;
+    if (h == null) return;
+    if (_sheetContentHeight == null || (h - _sheetContentHeight!).abs() > 0.5) {
+      setState(() => _sheetContentHeight = h);
+      return;
+    }
+    if (!_didInitialFit && _sheetController.isAttached) {
+      _didInitialFit = true;
+      _sheetController.jumpTo(_sheetFitExtent);
+    }
   }
 
   Widget _buildTopStatusBadge() {
