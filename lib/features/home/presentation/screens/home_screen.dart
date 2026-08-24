@@ -1057,26 +1057,33 @@ Future<void> _maybeShowCreditWarning(BuildContext context, WidgetRef ref) async 
   _showCreditWarningDialog(context, status: status, blocking: blocking);
 }
 
-/// The low-credit dialog. Copy comes from the backend (`credit_warning`,
-/// admin-editable) when present, else a Thai client fallback. `blocking`
-/// (empty/negative / can't receive) uses stronger, red copy since the backend
-/// stops dispatching jobs until the driver tops up.
+/// The low-credit dialog. Copy is composed locally in Thai (always Thai, shows
+/// the live balance + per-service minimums). `blocking` (empty/negative / can't
+/// receive) uses stronger, red copy since the backend stops dispatching jobs
+/// until the driver tops up.
 void _showCreditWarningDialog(
   BuildContext context, {
   required CreditStatus status,
   required bool blocking,
 }) {
   final String balanceText = '฿${status.balance.toStringAsFixed(0)}';
-  final String title = (status.warningTitle?.isNotEmpty ?? false)
-      ? status.warningTitle!
-      : (blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด');
-  final String message = (status.warningMessage?.isNotEmpty ?? false)
-      ? status.warningMessage!
-      : (blocking
-          ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
-              'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้'
-          : 'เครดิตคงเหลือ $balanceText คุณอาจรับงานได้อีกไม่กี่งาน\n'
-              'กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง (ขั้นต่ำ ฿${status.minBalanceRequired.toStringAsFixed(0)})');
+
+  // Top-up minimum line: prefer the per-service breakdown (e.g. "Standard Bike
+  // ฿30, Saver Bike ฿30"), else a single overall minimum.
+  final String minLine = status.serviceMinimums.isNotEmpty
+      ? status.serviceMinimums
+          .map((s) => '${s.name} ฿${s.min.toStringAsFixed(0)}')
+          .join(', ')
+      : '฿${status.minBalanceRequired.toStringAsFixed(0)}';
+
+  final String title = blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด';
+  final String message = blocking
+      ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
+          'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้\n\n'
+          'ยอดขั้นต่ำ: $minLine'
+      : 'เครดิตคงเหลือ $balanceText ไม่พอสำหรับบางประเภทบริการที่คุณลงทะเบียน\n'
+          'คุณอาจรับงานได้อีกไม่กี่งาน กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง\n\n'
+          'ยอดขั้นต่ำ: $minLine';
 
   showDialog(
     context: context,

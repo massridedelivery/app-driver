@@ -13,9 +13,18 @@ import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
 
 part 'wallet_controller.g.dart';
 
+/// Per-service minimum credit (e.g. Standard Bike ฿30, Saver Bike ฿30).
+class ServiceMinimum {
+  final String name;
+  final double min;
+  const ServiceMinimum(this.name, this.min);
+}
+
 /// Credit-gate status from `GET /api/driver/payouts/summary` (SCRUM-97 / dev16).
-/// Drives the low-credit dialog: the backend is the source of truth for the
-/// threshold, the block flag, and the (admin-editable) warning copy.
+/// The backend is the source of truth for the numbers (balance, thresholds,
+/// block flag); the warning COPY is composed locally in Thai (SCRUM-97 follow-
+/// up — the client owns the wording so it is always Thai and shows the live
+/// balance + per-service minimums).
 class CreditStatus {
   /// Current credit; can be negative (commission pushed it below zero).
   final double balance;
@@ -30,17 +39,15 @@ class CreditStatus {
   /// "INSUFFICIENT_CREDIT" (=0) | "NEGATIVE_CREDIT" (<0) | null (healthy).
   final String? reason;
 
-  /// Admin-editable dialog copy; null/empty → the client's Thai fallback.
-  final String? warningTitle;
-  final String? warningMessage;
+  /// Per-service minimums for the top-up hint; empty → use [minBalanceRequired].
+  final List<ServiceMinimum> serviceMinimums;
 
   const CreditStatus({
     required this.balance,
     required this.canReceiveJobs,
     required this.minBalanceRequired,
     this.reason,
-    this.warningTitle,
-    this.warningMessage,
+    this.serviceMinimums = const [],
   });
 }
 
@@ -128,15 +135,28 @@ class WalletController extends _$WalletController {
     final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
     final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
     state = state.copyWith(cashBalance: cash, creditBalance: credit);
-    final warn = summary['credit_warning'];
+    // Per-service minimums (e.g. Standard Bike / Saver Bike). Tolerant of a few
+    // key spellings the backend might use.
+    final mins = <ServiceMinimum>[];
+    final rawMins = summary['service_minimums'];
+    if (rawMins is List) {
+      for (final e in rawMins) {
+        if (e is Map) {
+          final name = (e['service'] ?? e['name'] ?? e['label'])?.toString();
+          final m = e['min'] ?? e['min_balance'] ?? e['minimum'];
+          if (name != null && name.isNotEmpty && m is num) {
+            mins.add(ServiceMinimum(name, m.toDouble()));
+          }
+        }
+      }
+    }
     return CreditStatus(
       balance: credit,
       canReceiveJobs: (summary['can_receive_jobs'] as bool?) ?? true,
       minBalanceRequired:
           (summary['min_balance_required'] as num?)?.toDouble() ?? 25.0,
       reason: summary['reason']?.toString(),
-      warningTitle: warn is Map ? warn['title']?.toString() : null,
-      warningMessage: warn is Map ? warn['message']?.toString() : null,
+      serviceMinimums: mins,
     );
   }
 
