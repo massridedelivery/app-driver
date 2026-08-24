@@ -113,6 +113,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   String? _qrCodeUrl;
   String _status = 'AWAITING_PAYMENT';
   String? _overrideReason;
+  // Hidden for now (per product): the "ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?" manual
+  // override entry point. Flip to true to re-expose it. The override logic
+  // itself is intact — only the UI affordance is gated.
+  final bool _showManualOverride = false;
 
   bool get _paid => _status == 'PAID';
   // Fee already settled before this screen (sender prepaid by QR, dev14) — no
@@ -495,7 +499,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           // Bottom Sheet Content
           Expanded(
-            flex: 5,
+            flex: 6,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -636,23 +640,35 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   Widget _buildQRContent() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewPaddingOf(context).bottom),
-      child: Column(
-        children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.palette.border,
-              borderRadius: BorderRadius.circular(10),
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    // Scrollable so the bottom affordances (change-to-cash, etc.) are always
+    // reachable on short screens; ConstrainedBox + IntrinsicHeight keep the
+    // confirm button pinned near the bottom when there IS spare room.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: (constraints.maxHeight - 48 - bottomInset)
+                  .clamp(0.0, double.infinity),
             ),
-          ),
-          const SizedBox(height: 24),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  // Drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.palette.border,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-          Container(
-            padding: const EdgeInsets.all(16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF0F3B66), // QR Banner Blue
               borderRadius: BorderRadius.circular(8),
@@ -733,43 +749,57 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ],
             ),
 
-          const Spacer(),
+                  const Spacer(),
 
-          // Gate: only enabled once PAID (or a manual override is filed).
-          _buildConfirmButton(
-            label: !widget.gateCompletion
-                ? 'ยืนยันการชำระเงิน'
-                : (_paid || _overrideReason != null
-                    ? 'ยืนยันจบงาน'
-                    : 'รอชำระเงิน'),
-          ),
-          const SizedBox(height: 12),
-          if (widget.gateCompletion && !_paid)
-            TextButton(
-              onPressed: _showOverrideDialog,
-              child: Text(
-                _overrideReason != null
-                    ? 'บันทึกเหตุผลแล้ว — ค่างานจะรอฝ่ายการเงินตรวจสอบ'
-                    : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
-                textAlign: TextAlign.center,
-                style: AppTypography.body2.copyWith(color: Colors.blueAccent),
+                  // Gate: only enabled once PAID (or a manual override filed).
+                  _buildConfirmButton(
+                    label: !widget.gateCompletion
+                        ? 'ยืนยันการชำระเงิน'
+                        : (_paid || _overrideReason != null
+                            ? 'ยืนยันจบงาน'
+                            : 'รอชำระเงิน'),
+                  ),
+                  const SizedBox(height: 12),
+                  // Manual-override entry point — hidden for now (product).
+                  if (_showManualOverride &&
+                      widget.gateCompletion &&
+                      !_paid)
+                    TextButton(
+                      onPressed: _showOverrideDialog,
+                      child: Text(
+                        _overrideReason != null
+                            ? 'บันทึกเหตุผลแล้ว — ค่างานจะรอฝ่ายการเงินตรวจสอบ'
+                            : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.body2
+                            .copyWith(color: Colors.blueAccent),
+                      ),
+                    ),
+                  // Clear, tappable fallback when the QR can't be scanned.
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => setState(
+                          () => _currentMethod = PaymentMethod.cash),
+                      icon: const Icon(Icons.payments_outlined, size: 20),
+                      label: const Text('QR ใช้ไม่ได้? เปลี่ยนไปรับเงินสดแทน'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: context.palette.textPrimary,
+                        side: BorderSide(color: context.palette.border),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _currentMethod = PaymentMethod.cash;
-              });
-            },
-            child: Text(
-              "QR ใช้ไม่ได้? เปลี่ยนไปรับเงินสดแทน",
-              textAlign: TextAlign.center,
-              style: AppTypography.body2.copyWith(color: context.palette.textSecondary),
-            ),
           ),
-          const SizedBox(height: 20),
-        ],
-      ),
+        );
+      },
     );
   }
 
