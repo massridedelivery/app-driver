@@ -244,6 +244,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     _pollTimer?.cancel();
     _wsSub?.cancel();
     setState(() => _status = 'PAID');
+    // Auto-finish once paid — the driver shouldn't have to tap a second time.
+    // Briefly show the "ชำระเงินแล้ว ✓" state, then advance the flow itself.
+    // Only for the collect-first gate (or a mid-trip collection); legacy
+    // non-gated callers keep their manual confirm.
+    if (widget.gateCompletion || widget.midTrip) {
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (!mounted || _status != 'PAID' || _submitting) return;
+        _onConfirmPayment();
+      });
+    }
   }
 
   @override
