@@ -315,6 +315,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (profile?.isVerified == true) {
         if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
         if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
+        // Check the credit wallet on every app entry (not only when toggling
+        // online) — warn whenever it is below the minimum so the driver always
+        // sees it on open. Safe against an active-job redirect: the helper
+        // re-checks context.mounted after its fetch and no-ops if home is gone.
+        if (mounted) await _maybeShowCreditWarning(context, ref);
       } else {
         if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
         // Load the registration status (reads /api/driver/documents) so the
@@ -1100,8 +1105,10 @@ void _showCreditWarningDialog(
       title: Text(
         title,
         style: AppTypography.heading5.copyWith(
+          // Foreground error red (readable on both light & dark surfaces) for
+          // the block tier; the theme text color for the softer warn tier.
           color: blocking
-              ? AppColors.semanticErrorBgHigh
+              ? AppColors.semanticErrorFgHigh
               : dialogContext.palette.textPrimary,
         ),
       ),
