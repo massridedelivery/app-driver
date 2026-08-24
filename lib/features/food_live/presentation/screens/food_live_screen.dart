@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -223,67 +224,68 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   // BOTTOM SHEET
   // =========================================================================
   Widget _buildBottomSheet(double bottomInset) {
-    // Reserve the nav-bar strip so the WHOLE sheet sits ABOVE the Android nav
-    // bar (its box bottom = the nav bar top). Nothing inside can fall under it.
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final availableH = constraints.maxHeight;
-          // Extent that EXACTLY fits the measured content. Until the first
-          // measurement lands, open at a safe default. Clamp so a very tall
-          // order still leaves the map visible and simply scrolls.
-          final double fitExtent =
-              (_sheetContentHeight != null && availableH > 0)
-              ? (_sheetContentHeight! / availableH).clamp(0.2, 0.94)
-              : 0.52;
-          _sheetFitExtent = fitExtent;
-          const double minExtent = 0.15;
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _fitSheetToContent(),
-          );
-          final snaps = <double>{minExtent, fitExtent}.toList()..sort();
-          return DraggableScrollableSheet(
-            controller: _sheetController,
-            initialChildSize: fitExtent,
-            minChildSize: minExtent,
-            maxChildSize: fitExtent,
-            snap: true,
-            snapSizes: snaps,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.semanticGrayNeutralFgMidOnBlack,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                    child: Column(
-                      key: _sheetContentKey,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildDragIndicator(),
-                        const SizedBox(height: 16),
-                        _buildStatusTimeline(),
-                        const SizedBox(height: 20),
-                        _buildOrderInfo(),
-                        const SizedBox(height: 20),
-                        _buildOrderItemsList(),
-                        const SizedBox(height: 20),
-                        _buildContactRow(),
-                        const SizedBox(height: 24),
-                        _buildActionButton(),
-                      ],
-                    ),
+    // Edge-to-edge sheet: the Android nav bar overlaps its rounded bottom.
+    // The CTA clears the nav bar via bottom padding on Android; on iOS (no
+    // nav bar) the padding stays tight. The clearance is baked into the
+    // MEASURED content (the key sits on the padded box) so the fit height
+    // reserves room for it too — the button always lands above the nav bar.
+    final bool isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    final double bottomPad = 24 + (isAndroid ? bottomInset : 0.0);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableH = constraints.maxHeight;
+        // Extent that EXACTLY fits the measured content (incl. bottom padding).
+        // Until the first measurement lands, open at a safe default. Clamp so a
+        // very tall order still leaves the map visible and simply scrolls.
+        final double fitExtent = (_sheetContentHeight != null && availableH > 0)
+            ? (_sheetContentHeight! / availableH).clamp(0.2, 0.94)
+            : 0.52;
+        _sheetFitExtent = fitExtent;
+        const double minExtent = 0.15;
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _fitSheetToContent(),
+        );
+        final snaps = <double>{minExtent, fitExtent}.toList()..sort();
+        return DraggableScrollableSheet(
+          controller: _sheetController,
+          initialChildSize: fitExtent,
+          minChildSize: minExtent,
+          maxChildSize: fitExtent,
+          snap: true,
+          snapSizes: snaps,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.semanticGrayNeutralFgMidOnBlack,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Padding(
+                  key: _sheetContentKey,
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildDragIndicator(),
+                      const SizedBox(height: 16),
+                      _buildStatusTimeline(),
+                      const SizedBox(height: 20),
+                      _buildOrderInfo(),
+                      const SizedBox(height: 20),
+                      _buildOrderItemsList(),
+                      const SizedBox(height: 20),
+                      _buildContactRow(),
+                      const SizedBox(height: 24),
+                      _buildActionButton(),
+                    ],
                   ),
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
