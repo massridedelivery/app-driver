@@ -19,6 +19,7 @@ import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -838,6 +839,9 @@ class _OnlineButton extends ConsumerWidget {
             // The driver just went online but can't share location if GPS is
             // off or location is permanently denied — nudge them to Settings.
             await _promptLocationIfNeeded(context, ref);
+            // Warn (in Thai) when the credit wallet is too low to keep taking
+            // jobs — or empty/negative, where the backend won't dispatch at all.
+            if (context.mounted) await _maybeShowCreditWarning(context, ref);
           }
         } catch (e) {
           if (context.mounted && newValue) {
@@ -1027,6 +1031,100 @@ void _showLocationSettingsDialog(
               fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Minimum credit the driver should keep to keep taking jobs (product rule;
+/// the backend is the source of truth and will confirm/override — SCRUM-97).
+const double _kCreditMinBalance = 25.0;
+
+/// After going online, check the credit wallet and warn (in Thai) when it is
+/// too low. Two tiers: empty/negative → the backend won't dispatch at all
+/// (must top up first); below the minimum → still gets a few jobs but should
+/// top up soon. No dialog when the balance is healthy.
+Future<void> _maybeShowCreditWarning(BuildContext context, WidgetRef ref) async {
+  // Pull a fresh credit figure (lightweight) before deciding.
+  try {
+    await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
+  } catch (_) {
+    // Non-fatal — fall back to whatever is already in state.
+  }
+  if (!context.mounted) return;
+  final credit = ref.read(walletControllerProvider).creditBalance;
+  if (credit >= _kCreditMinBalance) return;
+  _showCreditWarningDialog(context, credit: credit);
+}
+
+/// The low-credit dialog. `blocking` (empty/negative) uses stronger copy since
+/// the backend stops dispatching jobs entirely until the driver tops up.
+void _showCreditWarningDialog(BuildContext context, {required double credit}) {
+  final bool blocking = credit <= 0;
+  final String balanceText = '฿${credit.toStringAsFixed(0)}';
+  final String title = blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด';
+  final String message = blocking
+      ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
+          'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้'
+      : 'เครดิตคงเหลือ $balanceText คุณอาจรับงานได้อีกไม่กี่งาน\n'
+          'กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง (ขั้นต่ำ ฿${_kCreditMinBalance.toStringAsFixed(0)})';
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: dialogContext.palette.surface,
+      title: Text(
+        title,
+        style: AppTypography.heading5.copyWith(
+          color: blocking
+              ? AppColors.semanticErrorBgHigh
+              : dialogContext.palette.textPrimary,
+        ),
+      ),
+      content: Text(
+        message,
+        style: AppTypography.caption4.copyWith(
+          color: dialogContext.palette.textSecondary,
+          height: 1.5,
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  dialogContext.go(AppRoutes.creditWalletNamedPage);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.foundationGreen700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                child: Text(
+                  'เติมเงินเครดิต',
+                  style: AppTypography.label1.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'รับทราบ',
+                style: AppTypography.caption3.copyWith(
+                  color: dialogContext.palette.textTertiary,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     ),
