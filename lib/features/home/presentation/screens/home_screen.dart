@@ -1107,7 +1107,9 @@ void _showCreditWarningDialog(
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  dialogContext.go(AppRoutes.creditWalletNamedPage);
+                  // push (not go) so the credit wallet keeps a back stack to
+                  // home — otherwise the driver is stranded with no way back.
+                  context.push(AppRoutes.creditWalletNamedPage);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.foundationGreen700,

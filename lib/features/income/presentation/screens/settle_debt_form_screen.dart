@@ -185,8 +185,11 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
       return _buildQRScreen(_settleResult!);
     }
 
-    final codDebt = ref.watch(walletControllerProvider).codDebt;
-    final maxAmount = codDebt.abs();
+    // dev16 unified settle-debt with credit top-up: NO cap. The driver may pay
+    // beyond any COD debt to push a negative credit back positive and resume
+    // taking jobs (SCRUM-18: "หักหนี้ COD ก่อน ส่วนเกินเป็นเครดิตบวก"). Show the
+    // credit balance for context instead of capping the amount.
+    final creditBalance = ref.watch(walletControllerProvider).creditBalance;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -241,9 +244,6 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                     if (amount == null || amount <= 0) {
                       return 'กรุณากรอกจำนวนเงินมากกว่า 0';
                     }
-                    if (amount > maxAmount) {
-                      return 'จำนวนเงินต้องไม่เกินยอดค้างชำระ (฿${maxAmount.toStringAsFixed(0)})';
-                    }
                     return null;
                   },
                 ),
@@ -261,7 +261,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _quickAmounts.where((a) => a <= maxAmount).map((amount) {
+                  children: _quickAmounts.map((amount) {
                     return GestureDetector(
                       onTap: () {
                         _amountController.text = amount.toString();
@@ -293,7 +293,9 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  'ยอดค้างชำระทั้งหมด: ฿${maxAmount.toStringAsFixed(0)}',
+                  creditBalance < 0
+                      ? 'เครดิตติดลบ ฿${creditBalance.toStringAsFixed(0)} — เติมให้เป็นบวกเพื่อรับงานต่อได้'
+                      : 'เครดิตคงเหลือ ฿${creditBalance.toStringAsFixed(0)}',
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),
@@ -305,7 +307,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: (_isSubmitting || maxAmount <= 0) ? null : _submit,
+                    onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.foundationOrange600,
                       shape: RoundedRectangleBorder(
