@@ -97,25 +97,19 @@ AndroidNotificationDetails _jobAndroidDetails() {
   );
 }
 
-/// Shows the loud job-offer notification (Android foreground only — see
-/// [_onForegroundMessage]). Title/body come from the `notification` block the
-/// backend always sends; `data.title`/`data.body` are read first only as a
-/// defensive fallback.
+/// Draws the loud job-offer notification (heads-up, alarm sound, full-screen
+/// intent). A fixed id means a repeat replaces rather than stacks. Title/body
+/// default to generic Thai copy when not supplied.
 Future<void> _showJobNotification(
-  FlutterLocalNotificationsPlugin plugin,
-  RemoteMessage message,
-) async {
-  final title = message.data['title'] as String? ??
-      message.notification?.title ??
-      'มีงานเข้าใหม่';
-  final body = message.data['body'] as String? ??
-      message.notification?.body ??
-      'แตะเพื่อดูรายละเอียดงาน';
-
+  FlutterLocalNotificationsPlugin plugin, {
+  String? title,
+  String? body,
+  String? route,
+}) async {
   await plugin.show(
-    id: message.messageId?.hashCode ?? 0,
-    title: title,
-    body: body,
+    id: 0x10B, // stable job-alert id (shared by WS + FCM foreground paths)
+    title: title ?? 'มีงานเข้าใหม่',
+    body: body ?? 'แตะเพื่อดูรายละเอียดงาน',
     notificationDetails: NotificationDetails(
       android: _jobAndroidDetails(),
       iOS: const DarwinNotificationDetails(
@@ -126,7 +120,7 @@ Future<void> _showJobNotification(
         interruptionLevel: InterruptionLevel.timeSensitive,
       ),
     ),
-    payload: message.data['route'] as String? ?? AppRoutes.incomingJobNamedPage,
+    payload: route ?? AppRoutes.incomingJobNamedPage,
   );
 }
 
@@ -163,6 +157,43 @@ class PushNotificationService {
   static final PushNotificationService instance = PushNotificationService._();
 
   bool _initialized = false;
+
+  // De-dupe for the loud alert: the in-app WebSocket offer path and a
+  // foreground FCM push can both fire for the same offer. Whichever lands
+  // first rings; a matching second one within the window is swallowed.
+  DateTime? _lastAlertAt;
+  String? _lastAlertKey;
+
+  /// Rings the loud job-offer alert locally (Android heads-up on the alarm
+  /// channel; iOS alert sound). Called by BOTH the in-app WebSocket offer
+  /// path — so a foregrounded driver hears the alert even when NO FCM push is
+  /// delivered — and the foreground-FCM path. De-duped by [key] within a short
+  /// window so the two paths never double-ring for the same offer.
+  Future<void> alertJobOffer({
+    String? key,
+    String? title,
+    String? body,
+    String? route,
+  }) async {
+    final now = DateTime.now();
+    final recent = _lastAlertAt != null &&
+        now.difference(_lastAlertAt!) < const Duration(seconds: 6);
+    final sameOrUnkeyed =
+        key == null || _lastAlertKey == null || key == _lastAlertKey;
+    if (recent && sameOrUnkeyed) return;
+    _lastAlertAt = now;
+    _lastAlertKey = key;
+    try {
+      await _showJobNotification(
+        _localNotifications,
+        title: title,
+        body: body,
+        route: route,
+      );
+    } catch (e) {
+      debugPrint('PushNotificationService: alertJobOffer failed: $e');
+    }
+  }
 
   /// Clears every delivered notification for this app — which also stops the
   /// ~10s job-alert sound if it is still ringing. Called when the driver acts
@@ -256,7 +287,16 @@ class PushNotificationService {
     if (defaultTargetPlatform != TargetPlatform.android) return;
 
     if (_isJobOffer(message)) {
-      _showJobNotification(_localNotifications, message);
+      final key = message.data['job_id']?.toString() ??
+          message.data['order_id']?.toString() ??
+          message.data['id']?.toString() ??
+          message.messageId;
+      alertJobOffer(
+        key: key,
+        title: message.data['title'] as String? ?? message.notification?.title,
+        body: message.data['body'] as String? ?? message.notification?.body,
+        route: message.data['route'] as String?,
+      );
       return;
     }
 

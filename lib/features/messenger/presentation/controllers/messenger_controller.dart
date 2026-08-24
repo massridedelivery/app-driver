@@ -37,7 +37,10 @@ class MessengerController extends _$MessengerController {
       if (msg.type == 'messenger_offer') {
         final orderJson = msg.raw['order'] ?? msg.data?['order'];
         if (orderJson is Map<String, dynamic>) {
-          receiveOffer(MessengerOffer.fromJson(orderJson));
+          final offer = MessengerOffer.fromJson(orderJson);
+          receiveOffer(offer);
+          // WS carries no sound — ring the loud alert locally (de-duped vs FCM).
+          PushNotificationService.instance.alertJobOffer(key: offer.id);
         }
       } else if (msg.type == 'messenger_cancelled') {
         final orderId = msg.raw['order_id'] ?? msg.data?['order_id'];
