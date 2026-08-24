@@ -278,46 +278,41 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// BOTTOM SHEET (PRODUCTION)
   /// =========================
   Widget _buildBottomSheet(double bottomInset) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.45,
-      minChildSize: 0.12,
-      maxChildSize: 0.48,
-      snap: true,
-      snapSizes: const [0.12, 0.45, 0.48],
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.semanticGrayNeutralFgMidOnBlack,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // Scrollable info (drives the sheet drag via scrollController).
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  children: [
-                    _buildDragIndicator(),
-                    const SizedBox(height: 16),
-                    _buildTripHeader(),
-                    const SizedBox(height: 20),
-                    _buildPassengerInfo(),
-                    const SizedBox(height: 20),
-                    _buildContactRow(),
-                  ],
-                ),
-              ),
-              // CTA pinned at the bottom, always visible above the Android
-              // nav bar (+bottomInset) — never buried under the scroll fold.
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 12 + bottomInset),
-                child: _buildArrivedButton(),
-              ),
-            ],
-          ),
-        );
-      },
+    // Reserve the nav-bar strip so the WHOLE sheet sits ABOVE the Android nav
+    // bar (its box bottom = the nav bar top). The sheet still drags/collapses
+    // as before, and nothing inside can fall under the nav bar.
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.45,
+        minChildSize: 0.12,
+        maxChildSize: 0.48,
+        snap: true,
+        snapSizes: const [0.12, 0.45, 0.48],
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: AppColors.semanticGrayNeutralFgMidOnBlack,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              children: [
+                _buildDragIndicator(),
+                const SizedBox(height: 16),
+                _buildTripHeader(),
+                const SizedBox(height: 20),
+                _buildPassengerInfo(),
+                const SizedBox(height: 20),
+                _buildContactRow(),
+                const SizedBox(height: 24),
+                _buildArrivedButton(),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
