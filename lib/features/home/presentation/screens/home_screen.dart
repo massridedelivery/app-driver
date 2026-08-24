@@ -1051,8 +1051,16 @@ Future<void> _maybeShowCreditWarning(BuildContext context, WidgetRef ref) async 
     return;
   }
   if (!context.mounted) return;
+  // Block when the backend won't dispatch (empty/negative). Warn when the
+  // balance is below the highest applicable minimum — the per-service minimum
+  // when the breakdown is present ("insufficient for one of your registered
+  // service types"), otherwise the single min_balance_required.
+  double warnThreshold = status.minBalanceRequired;
+  for (final s in status.serviceMinimums) {
+    if (s.min > warnThreshold) warnThreshold = s.min;
+  }
   final bool blocking = !status.canReceiveJobs || status.balance <= 0;
-  final bool warn = status.balance < status.minBalanceRequired;
+  final bool warn = status.balance < warnThreshold;
   if (!blocking && !warn) return;
   _showCreditWarningDialog(context, status: status, blocking: blocking);
 }
