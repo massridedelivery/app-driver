@@ -129,9 +129,10 @@ class OtpScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Subtitle — masked phone + optional Ref.
+                        // Subtitle — masked phone + optional Ref (last 5 chars
+                        // only; the full ref is still sent for verification).
                         Text(
-                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: $refId)' : ''}',
+                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: ${refId.length > 5 ? refId.substring(refId.length - 5) : refId})' : ''}',
                           textAlign: TextAlign.center,
                           style: AppTypography.body1.copyWith(
                             color: _kTextSecondary,
