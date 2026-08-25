@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -17,6 +18,12 @@ import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
+
+/// Real app version read from the bundle (moved here from the login footer).
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version} (${info.buildNumber})';
+});
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -176,6 +183,21 @@ class SettingScreen extends ConsumerWidget {
                 _showLogoutDialog(context, ref);
               },
             ),
+
+            const SizedBox(height: 24),
+            // App version footer (moved from the login screen).
+            Center(
+              child: Text(
+                ref.watch(appVersionProvider).maybeWhen(
+                      data: (v) => 'เวอร์ชัน $v',
+                      orElse: () => '',
+                    ),
+                style: AppTypography.caption4.copyWith(
+                  color: context.palette.textTertiary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
