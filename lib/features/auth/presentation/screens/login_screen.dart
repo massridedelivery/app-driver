@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
-
-/// Real app version read from the bundle, so the footer never goes stale.
-final appVersionProvider = FutureProvider<String>((ref) async {
-  final info = await PackageInfo.fromPlatform();
-  return '${info.version} (${info.buildNumber})';
-});
 
 // Neutral slate palette + Mass brand red — matches the MassCustomer auth flow.
 const Color _kBg = Color(0xFFF8FAFC);
@@ -194,26 +187,8 @@ class LoginScreen extends ConsumerWidget {
                               ),
                             ),
 
-                          // Fill the rest of the screen so the version stays
-                          // pinned to the bottom.
+                          // (Version footer moved to the Settings screen.)
                           const Spacer(),
-
-                          // Version footer.
-                          Center(
-                            child: Text(
-                              ref
-                                  .watch(appVersionProvider)
-                                  .maybeWhen(
-                                    data: (v) => 'เวอร์ชัน $v',
-                                    orElse: () => '',
-                                  ),
-                              textAlign: TextAlign.center,
-                              style: AppTypography.body3.copyWith(
-                                color: _kTextSecondary.withValues(alpha: 0.5),
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
