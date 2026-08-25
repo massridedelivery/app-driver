@@ -187,7 +187,8 @@ class LoginScreen extends ConsumerWidget {
                               ),
                             ),
 
-                          // (Version footer moved to the Settings screen.)
+                          // Version moved to Settings → keep the form pinned to
+                          // the top by filling the remaining space.
                           const Spacer(),
                         ],
                       ),
