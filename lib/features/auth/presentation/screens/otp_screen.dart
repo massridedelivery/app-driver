@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -129,10 +130,12 @@ class OtpScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Subtitle — masked phone + optional Ref (last 5 chars
-                        // only; the full ref is still sent for verification).
+                        // Subtitle — masked phone + optional Ref. Dev refs are
+                        // long UUIDs → show only the last 5; prod sends the real
+                        // (short) SMS ref → show it in full. The complete refId
+                        // is always sent for verification regardless.
                         Text(
-                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: ${refId.length > 5 ? refId.substring(refId.length - 5) : refId})' : ''}',
+                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: ${EnvironmentConfig.env == Environments.dev && refId.length > 5 ? refId.substring(refId.length - 5) : refId})' : ''}',
                           textAlign: TextAlign.center,
                           style: AppTypography.body1.copyWith(
                             color: _kTextSecondary,
