@@ -10,6 +10,7 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     @JsonKey(name: 'user_id') required String userId,
     @JsonKey(name: 'full_name') required String fullName,
     String? phone,
+    String? email,
     @Default(0.0) double rating,
     @JsonKey(name: 'total_trips') @Default(0) int totalTrips,
     @JsonKey(name: 'is_verified') @Default(false) bool isVerified,

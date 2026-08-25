@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -74,6 +75,8 @@ class SettingScreen extends ConsumerWidget {
               trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
               onTap: () => AppNavigator.push(context, const DarkModeScreen()),
             ),
+            // Developer tools — DEV builds only; hidden in preprod/prod.
+            if (EnvironmentConfig.env == Environments.dev) ...[
             const _Divider(),
 
             SectionHeader(
@@ -164,6 +167,7 @@ class SettingScreen extends ConsumerWidget {
               ),
             ),
             const _Divider(),
+            ],
 
             SectionHeader(
               title: "ออกจากระบบ",
@@ -396,8 +400,17 @@ class _ConnectivityCard extends ConsumerWidget {
     );
   }
 
+  /// Qualitative latency label (instead of raw ms): ดีมาก / ดี / อ่อน / อ่อนมาก.
+  String _latencyLabel(int ms) {
+    if (ms < 150) return 'ดีมาก';
+    if (ms < 350) return 'ดี';
+    if (ms < 700) return 'อ่อน';
+    return 'อ่อนมาก';
+  }
+
   _ConnectivityVisual _visualFor(BuildContext context, NetworkStatus s) {
-    final ping = s.latencyMs != null ? ' · ${s.latencyMs} ms' : '';
+    final ping =
+        s.latencyMs != null ? ' · ${_latencyLabel(s.latencyMs!)}' : '';
     final net = s.isMobile ? 'เน็ตมือถือ' : 'Wi-Fi';
     switch (s.quality) {
       case NetworkQuality.good:
