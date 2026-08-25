@@ -92,7 +92,7 @@ class EditProfileScreen extends ConsumerWidget {
 
             _InfoTile(
               title: "ที่อยู่อีเมล",
-              value: profile.userId,
+              value: (profile.email?.isNotEmpty ?? false) ? profile.email! : '-',
             ),
 
             SizedBox(height: 24),
