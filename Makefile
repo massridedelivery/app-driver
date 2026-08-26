@@ -23,10 +23,11 @@ endif
 DEV      := --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json
 PREPROD  := --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 PROD     := --dart-define-from-file=config/prod.json --dart-define-from-file=config/mass_prod.json
-# Prod identity (mass_prod: prod Firebase/Omise, no package suffix) but the
-# backend API pointed at dev. A real prod build in every way except which server
-# it talks to — for exercising a prod-signed build against the dev backend.
-PROD_DEVAPI := --dart-define-from-file=config/prod_devapi.json --dart-define-from-file=config/mass_prod.json
+# Prod-shaped build (env=prod, no package suffix -> com.massapp.massdrive, app
+# name "Massdrive") running entirely on dev infra: dev Firebase/Omise from
+# mass_prod_devapi.json and the dev API from prod_devapi.json. For exercising a
+# prod-looking build without touching any real prod service.
+PROD_DEVAPI := --dart-define-from-file=config/prod_devapi.json --dart-define-from-file=config/mass_prod_devapi.json
 
 # Extra args passed through to flutter, e.g. make run ARGS=-v
 ARGS ?=
