@@ -1,0 +1,185 @@
+name: Deploy to Play (production)
+
+# Ships a signed app bundle built against the PRODUCTION config to the Play
+# Console. Manual trigger only — production is never deployed automatically.
+#
+# How this differs from deploy-play.yml (internal):
+#   • builds with config/prod.json + config/mass_prod.json (real API + prod
+#     Firebase project `prod-driver`), where the internal workflow builds with
+#     preprod.json + mass_dev.json and therefore points at the DEV backend.
+#   • refuses to run off main, and refuses to build while the prod config still
+#     holds REPLACE_ME placeholders.
+#   • takes the version code as an explicit input instead of deriving it from
+#     the run number (see the build step for why).
+#   • defaults to a DRAFT release, so a human publishes it in Play Console.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   ANDROID_KEYSTORE_BASE64        base64 of the upload keystore. Same Play app
+#   ANDROID_KEYSTORE_PASSWORD      and package as the internal workflow, so the
+#   ANDROID_KEY_ALIAS              same keystore/alias is correct here.
+#   PLAY_SERVICE_ACCOUNT_JSON      Play service account with release permission.
+#   MAPS_API_KEY_PROD              Android Maps key. MUST list the Play App
+#                                  Signing SHA-1 (Play Console -> Setup -> App
+#                                  integrity), not only the upload key's — Play
+#                                  re-signs the bundle, so a key restricted to
+#                                  the upload cert renders a grey map for real
+#                                  users while testing fine locally.
+#   GOOGLE_DIRECTIONS_API_KEY_PROD Directions key for route polylines.
+#
+# If the team uses one key for both environments, point the _PROD secrets at
+# the same value — keep the names separate so a dev-only key can never leak
+# into a production release by accident.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: >-
+          versionCode for this release. Must be higher than every code already
+          uploaded for com.massapp.massdrive (check Play Console -> Release ->
+          App bundle explorer). Set by hand on purpose: the internal workflow
+          derives its code from ITS OWN run number, a counter this workflow
+          cannot see, so any formula here would eventually collide.
+        required: true
+        type: string
+      track:
+        description: Play track to publish to.
+        required: true
+        default: production
+        type: choice
+        options: [production, beta, alpha]
+      status:
+        description: >-
+          draft = upload only, a human publishes in Play Console (default).
+          inProgress = staged rollout to user_fraction. completed = full rollout.
+        required: true
+        default: draft
+        type: choice
+        options: [draft, inProgress, completed]
+      user_fraction:
+        description: Rollout fraction for status=inProgress (e.g. 0.1 = 10%).
+        required: false
+        default: "0.1"
+        type: string
+
+concurrency:
+  group: deploy-play-prod
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.41.6"
+  JAVA_VERSION: "17"
+  # config/prod.json leaves APP_PACKAGE_NAME_SUFFIX empty, so the build produces
+  # com.massapp.massdrive — one Play app, separated by track rather than package.
+  PACKAGE_NAME: "com.massapp.massdrive"
+
+jobs:
+  deploy:
+    name: Build production bundle & upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      # A production build off a feature branch is almost always a mistake.
+      # Fail loudly rather than skipping the job, which reads as a green run.
+      - name: Guard — must run from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Production deploys run from main only (got $GITHUB_REF)."
+            exit 1
+          fi
+
+      # The prod config ships with placeholders. Building with them would
+      # publish an app pointed at REPLACE_ME.prod.example with a dead payment
+      # key — catch it here, not from store reviews.
+      - name: Guard — prod config has no placeholders
+        run: |
+          fail=0
+          for f in config/prod.json config/mass_prod.json; do
+            if grep -q "REPLACE_ME" "$f"; then
+              echo "::error file=$f::$f still contains REPLACE_ME — fill in the real values before deploying."
+              grep -n "REPLACE_ME" "$f"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Guard — build number supplied
+        run: |
+          case "${{ inputs.build_number }}" in
+            ''|*[!0-9]*)
+              echo "::error::build_number must be a positive integer."
+              exit 1 ;;
+          esac
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # .env is gitignored but declared as a pubspec asset, so the asset bundle
+      # fails without it. DirectionsService reads the key from here at runtime.
+      # Written before analyze/test so those steps can bundle assets too.
+      - name: Create .env
+        run: echo "GOOGLE_DIRECTIONS_API_KEY=${{ secrets.GOOGLE_DIRECTIONS_API_KEY_PROD }}" > .env
+
+      # A manual dispatch can target a commit that never went through a PR, so
+      # re-run the same gates CI applies rather than trusting that it did.
+      - name: Analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "${{ github.workspace }}/android/app/upload-keystore.jks"
+
+      - name: Create key.properties
+        run: |
+          cat > "${{ github.workspace }}/android/key.properties" <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=${{ github.workspace }}/android/app/upload-keystore.jks
+          EOF
+
+      # build.gradle.kts reads MAPS_API_KEY from local.properties and injects it
+      # into the manifest's com.google.android.geo.API_KEY. `flutter pub get`
+      # above already created the file; the flutter tool preserves unknown keys.
+      - name: Inject Maps API key
+        run: echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY_PROD }}" >> android/local.properties
+
+      # No --dart-define=APP_NAME override here, unlike the internal workflow:
+      # mass_prod.json already carries the production name ("Massdrive"), while
+      # mass_dev.json says "Massdrive DEV" and has to be corrected at build time.
+      - name: Build signed app bundle
+        run: |
+          flutter build appbundle --release \
+            --dart-define-from-file=config/prod.json \
+            --dart-define-from-file=config/mass_prod.json \
+            --build-number=${{ inputs.build_number }}
+
+      - name: Upload to Play (${{ inputs.track }} / ${{ inputs.status }})
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
+          userFraction: ${{ inputs.status == 'inProgress' && inputs.user_fraction || '' }}
+
+      - name: Clean up secrets
+        if: always()
+        run: rm -f "${{ github.workspace }}/android/key.properties" "${{ github.workspace }}/android/app/upload-keystore.jks" "${{ github.workspace }}/android/local.properties" "${{ github.workspace }}/.env"
