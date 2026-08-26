@@ -83,8 +83,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             context.go(AppRoutes.loginNamedPage);
             break;
           case StartupDestination.home:
+            // Land on Home first, then push the restored screen on top of it.
+            // Restoring with a bare `go` makes that screen the only entry in
+            // the stack, so its back arrow (Navigator.maybePop) has nothing to
+            // pop and silently does nothing.
+            context.go(AppRoutes.homeNamedPage);
             final restored = RouteRestorationService.instance.lastRoute;
-            context.go(restored ?? AppRoutes.homeNamedPage);
+            if (restored != null && restored != AppRoutes.homeNamedPage) {
+              context.push(restored);
+            }
             break;
         }
       }),

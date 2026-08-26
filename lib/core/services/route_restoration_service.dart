@@ -48,6 +48,12 @@ class RouteRestorationService {
     AppRoutes.foodLiveNamedPage,
     '/messenger-live',
     '/messenger-offer',
+    // Money screens are somewhere the driver is *sent* to finish a task (the
+    // low-credit dialog pushes here), not somewhere they were browsing. Saving
+    // them means every later cold start reopens the wallet instead of Home.
+    AppRoutes.creditWalletNamedPage,
+    AppRoutes.cashWalletNamedPage,
+    AppRoutes.fcmDebugNamedPage,
   };
 
   String? _lastSaved;
