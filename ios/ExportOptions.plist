@@ -13,13 +13,14 @@
   <string>automatic</string>
   <key>uploadSymbols</key>
   <true/>
-  <!-- Keep the build number the archive was built with (from --build-number /
-       pubspec). Xcode 15+ defaults this to true, which silently rewrites the
-       exported .ipa's CFBundleVersion to "one past the latest in App Store
-       Connect" — so an archive built as 13 came out as 22 and ignored the
-       number we passed. false makes the .ipa match the archive. -->
+  <!-- Let Xcode pick the build number: on export it queries App Store Connect
+       and stamps the .ipa with one past the latest build there. This is the
+       auto-bump for TestFlight — the number always beats what's uploaded, so
+       there is no collision and nothing local to keep in sync. (It needs the
+       App Store Connect API key in ~/.appstoreconnect/private_keys to do the
+       lookup; without it, export falls back to the archive's own number.) -->
   <key>manageAppVersionAndBuildNumber</key>
-  <false/>
+  <true/>
   <!-- Produce the .ipa only; uploading to App Store Connect is a separate,
        credential-authenticated step done by a human (Transporter/Xcode). -->
   <key>destination</key>
