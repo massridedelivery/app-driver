@@ -98,11 +98,26 @@ Future<ActiveJobResume?> resolveActiveJob(Ref ref) async {
 
 /// Extracts the job/order JSON from a per-vertical detail response, which may be
 /// a bare object, a `{ "job": {...} }` wrapper, or a list.
+/// A pending offer parsed out of `/api/driver/active-offer`, ready to be pushed
+/// into whichever controller owns that vertical.
+class RecoveredOffer {
+  /// Screen that should be showing this offer.
+  final String route;
+
+  /// Ride / food offers ride on [IncomingJobModel]; messenger has its own model.
+  final IncomingJobModel? job;
+  final MessengerOffer? messenger;
+
+  const RecoveredOffer({required this.route, this.job, this.messenger});
+}
+
 /// Parse the typed `/api/driver/active-offer` response (dev15):
-/// `{ type: ride|food|messenger, <type>: {…} }`. Loads the offer into the
-/// matching controller and returns the route to open (null if there's none).
-/// Shared by the app-startup resolver and HomeScreen's status probe.
-String? applyRecoveredOffer(Ref ref, dynamic offer) {
+/// `{ type: ride|food|messenger, <type>: {…} }`.
+///
+/// Pure — it holds no [Ref] — so the offer screens can reuse it with the
+/// `WidgetRef` they have, which is not a [Ref]. Returns null when the payload
+/// carries no usable offer.
+RecoveredOffer? parseRecoveredOffer(dynamic offer) {
   if (offer is! Map) return null;
   final map = Map<String, dynamic>.from(offer);
   final type = map['type']?.toString();
@@ -110,10 +125,10 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
   if (type == 'messenger') {
     final m = map['messenger'];
     if (m is Map) {
-      ref
-          .read(messengerControllerProvider.notifier)
-          .receiveOffer(MessengerOffer.fromJson(Map<String, dynamic>.from(m)));
-      return '/messenger-offer';
+      return RecoveredOffer(
+        route: '/messenger-offer',
+        messenger: MessengerOffer.fromJson(Map<String, dynamic>.from(m)),
+      );
     }
     return null;
   }
@@ -126,12 +141,29 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
       map;
   final json = _extractJobJson(vertical);
   if (json != null) {
-    ref
-        .read(incomingJobControllerProvider.notifier)
-        .receiveJob(IncomingJobModel.fromJson(json));
-    return AppRoutes.incomingJobNamedPage;
+    return RecoveredOffer(
+      route: AppRoutes.incomingJobNamedPage,
+      job: IncomingJobModel.fromJson(json),
+    );
   }
   return null;
+}
+
+/// Loads a recovered offer into the matching controller and returns the route
+/// to open (null if there's none). Shared by the app-startup resolver and
+/// HomeScreen's status probe.
+String? applyRecoveredOffer(Ref ref, dynamic offer) {
+  final recovered = parseRecoveredOffer(offer);
+  if (recovered == null) return null;
+
+  if (recovered.messenger != null) {
+    ref
+        .read(messengerControllerProvider.notifier)
+        .receiveOffer(recovered.messenger!);
+  } else if (recovered.job != null) {
+    ref.read(incomingJobControllerProvider.notifier).receiveJob(recovered.job!);
+  }
+  return recovered.route;
 }
 
 Map<String, dynamic>? _extractJobJson(dynamic data) {

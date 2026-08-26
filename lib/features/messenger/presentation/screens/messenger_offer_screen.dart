@@ -1,17 +1,70 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/directions_service.dart';
+import 'package:massdrive/features/incoming_job/domain/services/offer_recovery.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+
+/// Shown while the pending messenger offer is pulled back after a notification
+/// tap. Once it lands the parent's `currentOffer` watch rebuilds into the real
+/// screen; if there is nothing left to accept the driver goes Home told why.
+class _OfferRecoveryGate extends ConsumerStatefulWidget {
+  const _OfferRecoveryGate();
+
+  @override
+  ConsumerState<_OfferRecoveryGate> createState() => _OfferRecoveryGateState();
+}
+
+class _OfferRecoveryGateState extends ConsumerState<_OfferRecoveryGate> {
+  @override
+  void initState() {
+    super.initState();
+    _recover();
+  }
+
+  Future<void> _recover() async {
+    String? route;
+    try {
+      route = await recoverPendingOffer(ref);
+    } catch (e) {
+      if (kDebugMode) debugPrint('MessengerOffer: recovery failed: $e');
+    }
+    if (!mounted) return;
+
+    // A messenger offer rebuilds the parent through the provider watch; any
+    // other vertical belongs on its own screen.
+    if (route != null && route != '/messenger-offer') {
+      context.go(route);
+      return;
+    }
+    if (route != null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('งานนี้ถูกรับไปแล้วหรือหมดเวลาแล้ว')),
+    );
+    context.go(AppRoutes.homeNamedPage);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.semanticGrayNeutralFgWhite,
+      body: Center(child: MassLoadingM(size: 72)),
+    );
+  }
+}
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
 /// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
@@ -23,12 +76,10 @@ class MessengerOfferScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final offer = ref.watch(messengerControllerProvider).currentOffer;
 
-    if (offer == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.semanticGrayNeutralFgWhite,
-        body: Center(child: MassLoadingM(size: 72)),
-      );
-    }
+    // Empty state means the driver arrived from a notification tap: the push
+    // carries no order data and the offer socket isn't connected while
+    // backgrounded. Fetch the offer instead of spinning forever.
+    if (offer == null) return const _OfferRecoveryGate();
 
     final pickup = LatLng(offer.pickupLat, offer.pickupLng);
     final dropoff = LatLng(offer.dropoffLat, offer.dropoffLng);
