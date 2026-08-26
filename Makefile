@@ -65,7 +65,7 @@ help:
 	@echo   deploy-dev    iOS - build + ship to TestFlight - the MassDriverDev app
 	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=2
 	@echo   deploy-prod-devapi  iOS - prod build for MassDriver app, on the dev API
-	@echo                 needs BUILD=N, e.g. make deploy-prod-devapi BUILD=2
+	@echo                 auto-bumps build; BUILD=N optional to force a number
 	@echo   clean         flutter clean + pub get
 	@echo   ---
 	@echo   Pass extra flutter args with ARGS, e.g. make run ARGS=-v
@@ -187,12 +187,6 @@ $(error BUILD is required and must beat the last MassDriverDev TestFlight build,
 endif
 endif
 
-ifeq ($(filter deploy-prod-devapi,$(MAKECMDGOALS)),deploy-prod-devapi)
-ifndef BUILD
-$(error BUILD is required and must beat the last MassDriver TestFlight build, e.g. make deploy-prod-devapi BUILD=2)
-endif
-endif
-
 deploy-dev: env
 	@set -e; \
 	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
@@ -215,17 +209,26 @@ deploy-dev: env
 # Release.local.xcconfig: BUNDLE_ID_SUFFIX stays empty, so this ships
 # com.massapp.massdrive and lands in the MassDriver App Store Connect app, not
 # MassDriverDev. Same ASC upload rules as deploy-dev (set the keys to upload,
-# leave them unset to stop at the .ipa). BUILD is required.
+# leave them unset to stop at the .ipa).
+#
+# Unlike deploy-dev, BUILD is OPTIONAL: omit it and the number auto-bumps to
+# pubspec's build + 1, written back to pubspec so it stays monotonic across
+# runs (commit that bump like any other). Pass BUILD=N to force a specific
+# number instead (e.g. to jump above what App Store Connect already has).
 deploy-prod-devapi: env
 	@set -e; \
-	flutter build ipa --release $(PROD_DEVAPI) --build-number=$(BUILD) \
+	cur=$$(sed -n 's/^version:[^+]*+//p' pubspec.yaml); \
+	b="$(BUILD)"; [ -n "$$b" ] || b=$$((cur + 1)); \
+	echo "Build number: $$b (pubspec was +$$cur)"; \
+	sed -i '' -E "s/^(version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+/\1+$$b/" pubspec.yaml; \
+	flutter build ipa --release $(PROD_DEVAPI) --build-number=$$b \
 	  --export-options-plist=ios/ExportOptions.plist; \
 	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
-	  echo "Uploading build $(BUILD) to TestFlight (MassDriver)..."; \
+	  echo "Uploading build $$b to TestFlight (MassDriver)..."; \
 	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
 	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
 	else \
-	  echo "Built build/ios/ipa/*.ipa (build $(BUILD))."; \
+	  echo "Built build/ios/ipa/*.ipa (build $$b)."; \
 	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
 	  echo "or set them to have this target upload too."; \
 	fi
