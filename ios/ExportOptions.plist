@@ -13,6 +13,13 @@
   <string>automatic</string>
   <key>uploadSymbols</key>
   <true/>
+  <!-- Keep the build number the archive was built with (from --build-number /
+       pubspec). Xcode 15+ defaults this to true, which silently rewrites the
+       exported .ipa's CFBundleVersion to "one past the latest in App Store
+       Connect" — so an archive built as 13 came out as 22 and ignored the
+       number we passed. false makes the .ipa match the archive. -->
+  <key>manageAppVersionAndBuildNumber</key>
+  <false/>
   <!-- Produce the .ipa only; uploading to App Store Connect is a separate,
        credential-authenticated step done by a human (Transporter/Xcode). -->
   <key>destination</key>
