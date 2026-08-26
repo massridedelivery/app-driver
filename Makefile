@@ -23,13 +23,18 @@ endif
 DEV      := --dart-define-from-file=config/dev.json --dart-define-from-file=config/mass_dev.json
 PREPROD  := --dart-define-from-file=config/preprod.json --dart-define-from-file=config/mass_dev.json
 PROD     := --dart-define-from-file=config/prod.json --dart-define-from-file=config/mass_prod.json
+# Prod identity (mass_prod: prod Firebase/Omise, no package suffix) but the
+# backend API pointed at dev. A real prod build in every way except which server
+# it talks to — for exercising a prod-signed build against the dev backend.
+PROD_DEVAPI := --dart-define-from-file=config/prod_devapi.json --dart-define-from-file=config/mass_prod.json
 
 # Extra args passed through to flutter, e.g. make run ARGS=-v
 ARGS ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help setup env deps run run-preprod run-prod gen watch analyze test \
-        format check aab apk apk-dev deploy-dev clean devices
+.PHONY: help setup env deps run run-preprod run-prod run-prod-devapi gen watch \
+        analyze test format check aab apk apk-dev deploy-dev deploy-prod-devapi \
+        clean devices
 
 # Plain echo lines, one per target: cmd.exe has no grep/awk, and `echo.` for a
 # blank line is not something Make can spawn on Windows.
@@ -42,6 +47,7 @@ help:
 	@echo   run           Run against dev
 	@echo   run-preprod   Run against pre-prod
 	@echo   run-prod      Run against prod - config/prod.json is still a placeholder
+	@echo   run-prod-devapi  Run prod identity/Firebase against the dev API
 	@echo   devices       List attached devices/emulators
 	@echo   ---
 	@echo   gen           Regenerate freezed/json/riverpod/injectable code
@@ -57,6 +63,8 @@ help:
 	@echo   apk-dev       Release APK built against dev, to hand to testers
 	@echo   deploy-dev    iOS - build + ship to TestFlight - the MassDriverDev app
 	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=2
+	@echo   deploy-prod-devapi  iOS - prod build for MassDriver app, on the dev API
+	@echo                 needs BUILD=N, e.g. make deploy-prod-devapi BUILD=2
 	@echo   clean         flutter clean + pub get
 	@echo   ---
 	@echo   Pass extra flutter args with ARGS, e.g. make run ARGS=-v
@@ -88,6 +96,9 @@ run-preprod: env
 
 run-prod: env
 	flutter run $(PROD) $(ARGS)
+
+run-prod-devapi: env
+	flutter run $(PROD_DEVAPI) $(ARGS)
 
 devices:
 	flutter devices
@@ -175,6 +186,12 @@ $(error BUILD is required and must beat the last MassDriverDev TestFlight build,
 endif
 endif
 
+ifeq ($(filter deploy-prod-devapi,$(MAKECMDGOALS)),deploy-prod-devapi)
+ifndef BUILD
+$(error BUILD is required and must beat the last MassDriver TestFlight build, e.g. make deploy-prod-devapi BUILD=2)
+endif
+endif
+
 deploy-dev: env
 	@set -e; \
 	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
@@ -184,6 +201,26 @@ deploy-dev: env
 	  --export-options-plist=ios/ExportOptions.plist; \
 	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
 	  echo "Uploading build $(BUILD) to TestFlight (MassDriverDev)..."; \
+	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
+	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
+	else \
+	  echo "Built build/ios/ipa/*.ipa (build $(BUILD))."; \
+	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
+	  echo "or set them to have this target upload too."; \
+	fi
+
+# Prod-identity iOS build (com.massapp.massdrive, prod Firebase) whose API points
+# at dev — see PROD_DEVAPI. Deliberately a plain Release with no
+# Release.local.xcconfig: BUNDLE_ID_SUFFIX stays empty, so this ships
+# com.massapp.massdrive and lands in the MassDriver App Store Connect app, not
+# MassDriverDev. Same ASC upload rules as deploy-dev (set the keys to upload,
+# leave them unset to stop at the .ipa). BUILD is required.
+deploy-prod-devapi: env
+	@set -e; \
+	flutter build ipa --release $(PROD_DEVAPI) --build-number=$(BUILD) \
+	  --export-options-plist=ios/ExportOptions.plist; \
+	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
+	  echo "Uploading build $(BUILD) to TestFlight (MassDriver)..."; \
 	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
 	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
 	else \
