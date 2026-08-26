@@ -56,7 +56,7 @@ help:
 	@echo   apk           Release APK for sideloading
 	@echo   apk-dev       Release APK built against dev, to hand to testers
 	@echo   deploy-dev    iOS - build + ship to TestFlight - the MassDriverDev app
-	@echo                 needs BUILD=N, e.g. make deploy-dev BUILD=2
+	@echo                 build number auto-bumps from pubspec; override with BUILD=N
 	@echo   clean         flutter clean + pub get
 	@echo   ---
 	@echo   Pass extra flutter args with ARGS, e.g. make run ARGS=-v
@@ -160,9 +160,13 @@ apk-dev: env
 # a no-op when absent), so this can never leak into a normal `flutter build
 # ipa`/CI run — only this recipe ever creates the file.
 #
-# BUILD is required. App Store Connect rejects a build number it has already
-# seen, and pubspec's number trails what has been uploaded, so deriving it from
-# pubspec would produce a rejected build — pass the next one explicitly.
+# The build number auto-increments from pubspec.yaml: the recipe reads the +N,
+# ships N+1, and writes it back once the build lands, so pubspec becomes the
+# high-water mark instead of trailing what has been uploaded. App Store Connect
+# rejects a number it has already seen, so the FIRST run after adopting this
+# needs BUILD=N passed by hand, above whatever MassDriverDev already has — from
+# then on it looks after itself. BUILD always wins when given, and is also
+# written back, which is how you re-seed the sequence.
 #
 # Uploading needs an App Store Connect API key (Users and Access -> Integrations
 # -> App Store Connect API). Set both variables and this uploads; leave them
@@ -170,27 +174,42 @@ apk-dev: env
 # flow this target replaces. AuthKey_$(ASC_KEY_ID).p8 must be readable at
 # ~/.appstoreconnect/private_keys/ (or ~/private_keys/), where altool looks.
 ifeq ($(filter deploy-dev,$(MAKECMDGOALS)),deploy-dev)
-ifndef BUILD
-$(error BUILD is required and must beat the last MassDriverDev TestFlight build, e.g. make deploy-dev BUILD=2)
+# Everything else in this file runs on Windows too, so say plainly that this one
+# cannot. Checked at parse time: on Windows Make hands the recipe to cmd.exe,
+# where `set -e`/`trap` fail one after another and bury the real reason.
+ifeq ($(OS),Windows_NT)
+$(error make deploy-dev builds an iOS .ipa and needs macOS with Xcode — run it from a Mac)
 endif
 endif
 
 deploy-dev: env
 	@set -e; \
+	CURRENT=$$(sed -n 's/^version:.*+\([0-9][0-9]*\)[[:space:]]*$$/\1/p' pubspec.yaml); \
+	if [ -z "$$CURRENT" ]; then \
+	  echo "Could not read the +N build number from pubspec.yaml — pass BUILD=N."; \
+	  exit 1; \
+	fi; \
+	NEXT="$(BUILD)"; \
+	if [ -z "$$NEXT" ]; then NEXT=$$((CURRENT + 1)); fi; \
+	case "$$NEXT" in ''|*[!0-9]*) echo "BUILD must be a positive integer."; exit 1;; esac; \
+	echo "Build number: $$NEXT (pubspec has +$$CURRENT)"; \
 	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
 	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\n' \
 	  > ios/Flutter/Release.local.xcconfig; \
-	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
+	flutter build ipa --release $(DEV) --build-number=$$NEXT \
 	  --export-options-plist=ios/ExportOptions.plist; \
 	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
-	  echo "Uploading build $(BUILD) to TestFlight (MassDriverDev)..."; \
+	  echo "Uploading build $$NEXT to TestFlight (MassDriverDev)..."; \
 	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
 	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
 	else \
-	  echo "Built build/ios/ipa/*.ipa (build $(BUILD))."; \
+	  echo "Built build/ios/ipa/*.ipa (build $$NEXT)."; \
 	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
 	  echo "or set them to have this target upload too."; \
-	fi
+	fi; \
+	sed -i '' "s/^\(version:.*\)+[0-9][0-9]*[[:space:]]*$$/\1+$$NEXT/" pubspec.yaml; \
+	echo "pubspec.yaml -> $$(sed -n 's/^version: //p' pubspec.yaml)"; \
+	echo "Commit the bump so the next build starts above this one."
 
 clean:
 	flutter clean
