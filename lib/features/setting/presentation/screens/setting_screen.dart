@@ -173,6 +173,28 @@ class SettingScreen extends ConsumerWidget {
                 ),
               ),
             ),
+
+            // UI-preview for the out-of-service-area warning dialog.
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const _LeadingIconBadge(
+                icon: Icons.wrong_location_outlined,
+              ),
+              title: Text(
+                "ตัวอย่าง dialog นอกพื้นที่",
+                style: AppTypography.caption3.copyWith(
+                  color: context.palette.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                "ดู dialog เตือน \"อยู่นอกพื้นที่ให้บริการ\" (โหมดตัวอย่าง)",
+                style: AppTypography.caption4.copyWith(
+                  color: context.palette.textSecondary,
+                ),
+              ),
+              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
+              onTap: () => showOutOfServiceAreaDialog(context),
+            ),
             const _Divider(),
             ],
 
@@ -203,6 +225,58 @@ class SettingScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Warn-only dialog for when the driver is outside the service area. Reusable
+/// (currently shown from the dev-menu preview); no blocking behaviour.
+void showOutOfServiceAreaDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: dialogContext.palette.surface,
+      title: Row(
+        children: [
+          Icon(Icons.wrong_location_outlined,
+              color: AppColors.foundationOrange500),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'อยู่นอกพื้นที่ให้บริการ',
+              style: AppTypography.heading5
+                  .copyWith(color: dialogContext.palette.textPrimary),
+            ),
+          ),
+        ],
+      ),
+      content: Text(
+        'ตอนนี้คุณอยู่นอกพื้นที่ให้บริการ\n'
+        'อาจไม่ได้รับงานจนกว่าจะกลับเข้าพื้นที่ให้บริการ',
+        style: AppTypography.caption4.copyWith(
+          color: dialogContext.palette.textSecondary,
+          height: 1.5,
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.foundationOrange600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+            ),
+            child: Text('รับทราบ',
+                style: AppTypography.label1.copyWith(color: Colors.white)),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
