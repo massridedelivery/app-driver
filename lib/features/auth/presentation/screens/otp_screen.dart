@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -39,6 +38,12 @@ class OtpScreen extends ConsumerWidget {
     final tail = p.substring(p.length - 3);
     return '$head${'•' * (p.length - 6)}$tail';
   }
+
+  /// Last four characters of the reference id. Refs are full UUIDs on some
+  /// backends and overflow the subtitle; the tail is enough for a user to read
+  /// back over the phone. Verification always sends the complete [refId].
+  String get _shortRef =>
+      refId.length > 4 ? refId.substring(refId.length - 4) : refId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,12 +135,9 @@ class OtpScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Subtitle — masked phone + optional Ref. Dev refs are
-                        // long UUIDs → show only the last 5; prod sends the real
-                        // (short) SMS ref → show it in full. The complete refId
-                        // is always sent for verification regardless.
+                        // Subtitle — masked phone + optional Ref (last 4).
                         Text(
-                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: ${EnvironmentConfig.env == Environments.dev && refId.length > 5 ? refId.substring(refId.length - 5) : refId})' : ''}',
+                          'รหัส 6 หลักถูกส่งไปยัง $_maskedPhone${refId.isNotEmpty ? ' (Ref: $_shortRef)' : ''}',
                           textAlign: TextAlign.center,
                           style: AppTypography.body1.copyWith(
                             color: _kTextSecondary,
