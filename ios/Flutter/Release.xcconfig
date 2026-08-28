@@ -8,7 +8,7 @@ BUNDLE_ID_SUFFIX =
 
 // Home-screen name for prod, substituted into Info.plist as
 // $(APP_DISPLAY_NAME). `make deploy-dev` overrides it below.
-APP_DISPLAY_NAME = Massdrive
+APP_DISPLAY_NAME = Driver
 
 // APNs environment for prod (Release/Profile): the production gateway, which is
 // what TestFlight and the App Store use. Substituted into Runner.entitlements as
