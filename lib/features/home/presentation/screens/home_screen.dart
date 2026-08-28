@@ -21,6 +21,7 @@ import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
+import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/job_live/domain/models/active_item.dart';
@@ -826,6 +827,15 @@ class _OnlineButton extends ConsumerWidget {
         final current = ref.read(onlineStatusProvider).isOnline;
         final newValue = !current;
 
+        // Service-area gate (SCRUM-99): before going online, check the zone at
+        // the driver's current position. Fail-open — only an explicit
+        // available:false blocks. Going offline is never gated.
+        if (newValue) {
+          final blocked = await _serviceAreaBlocksOnline(context, ref);
+          if (blocked) return; // dialog shown; stay offline
+          if (!context.mounted) return;
+        }
+
         try {
           await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
@@ -1043,6 +1053,52 @@ void _showLocationSettingsDialog(
       ],
     ),
   );
+}
+
+/// Service-area gate (SCRUM-99): returns true (and shows the blocked dialog)
+/// when the driver's current zone is closed for all their services. Fail-open —
+/// unknown location or any error returns false (allow online).
+Future<bool> _serviceAreaBlocksOnline(BuildContext context, WidgetRef ref) async {
+  Position? pos;
+  try {
+    pos = await Geolocator.getLastKnownPosition() ??
+        await Geolocator.getCurrentPosition(
+          timeLimit: const Duration(seconds: 3),
+        );
+  } catch (_) {}
+  if (pos == null) return false; // no location → fail-open
+
+  final result = await _checkServiceArea(pos.latitude, pos.longitude);
+  if (result.available) return false; // open (or fail-open)
+  if (!context.mounted) return true;
+
+  showServiceAreaBlockedDialog(
+    context,
+    areaName: result.areaName,
+    message: result.message,
+    onRecheck: () async {
+      // Re-run the gate; if the zone is now open, actually go online.
+      final stillBlocked = await _serviceAreaBlocksOnline(context, ref);
+      if (!stillBlocked && context.mounted) {
+        await ref.read(onlineStatusProvider.notifier).setStatus(true);
+      }
+    },
+  );
+  return true;
+}
+
+/// Checks the driver's relevant services; a zone may be open for one only, so
+/// allow online when ANY is available. Returns a blocking result otherwise.
+Future<ServiceAreaResult> _checkServiceArea(double lat, double lng) async {
+  const services = ['ride', 'messenger'];
+  ServiceAreaResult blocked = ServiceAreaResult.open;
+  for (final s in services) {
+    final r =
+        await ServiceAreaService.instance.check(lat: lat, lng: lng, service: s);
+    if (r.available) return r; // any open → allow
+    blocked = r;
+  }
+  return blocked;
 }
 
 /// After going online, check the credit wallet and warn (in Thai) when it is

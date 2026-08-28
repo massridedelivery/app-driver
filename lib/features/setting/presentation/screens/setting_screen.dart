@@ -193,7 +193,11 @@ class SettingScreen extends ConsumerWidget {
                 ),
               ),
               trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => showOutOfServiceAreaDialog(context),
+              onTap: () => showServiceAreaBlockedDialog(
+                context,
+                areaName: 'นนทบุรี',
+                onRecheck: () async {},
+              ),
             ),
             const _Divider(),
             ],
@@ -227,9 +231,20 @@ class SettingScreen extends ConsumerWidget {
   }
 }
 
-/// Warn-only dialog for when the driver is outside the service area. Reusable
-/// (currently shown from the dev-menu preview); no blocking behaviour.
-void showOutOfServiceAreaDialog(BuildContext context) {
+/// Blocking "zone not open yet" dialog (SCRUM-99). Shown when going online in a
+/// zone the backend reports as closed. [onRecheck] (optional) wires the
+/// "ตรวจสอบอีกครั้ง" button — it re-runs the area check (and goes online if the
+/// zone is now open). Copy/area come from the backend, with Thai fallbacks.
+void showServiceAreaBlockedDialog(
+  BuildContext context, {
+  String? areaName,
+  String? message,
+  Future<void> Function()? onRecheck,
+}) {
+  final body = (message?.isNotEmpty ?? false)
+      ? message!
+      : 'ขณะนี้ยังไม่เปิดให้บริการในพื้นที่ของคุณ\n'
+          'กรุณาลองใหม่อีกครั้งภายหลัง';
   showDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -241,38 +256,85 @@ void showOutOfServiceAreaDialog(BuildContext context) {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'อยู่นอกพื้นที่ให้บริการ',
+              'ยังไม่เปิดให้บริการในพื้นที่นี้',
               style: AppTypography.heading5
                   .copyWith(color: dialogContext.palette.textPrimary),
             ),
           ),
         ],
       ),
-      content: Text(
-        'ตอนนี้คุณอยู่นอกพื้นที่ให้บริการ\n'
-        'อาจไม่ได้รับงานจนกว่าจะกลับเข้าพื้นที่ให้บริการ',
-        style: AppTypography.caption4.copyWith(
-          color: dialogContext.palette.textSecondary,
-          height: 1.5,
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            body,
+            style: AppTypography.caption4.copyWith(
+              color: dialogContext.palette.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          if (areaName?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.foundationOrange500.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.place_outlined,
+                      size: 16, color: AppColors.foundationOrange600),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ตำแหน่งของคุณ: $areaName',
+                    style: AppTypography.caption4
+                        .copyWith(color: AppColors.foundationOrange600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.foundationOrange600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onRecheck != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    onRecheck();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.foundationOrange600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                  child: Text('ตรวจสอบอีกครั้ง',
+                      style:
+                          AppTypography.label1.copyWith(color: Colors.white)),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'รับทราบ',
+                style: AppTypography.caption3
+                    .copyWith(color: dialogContext.palette.textTertiary),
               ),
             ),
-            child: Text('รับทราบ',
-                style: AppTypography.label1.copyWith(color: Colors.white)),
-          ),
+          ],
         ),
       ],
     ),
