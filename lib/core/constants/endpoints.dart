@@ -193,6 +193,10 @@ abstract class Endpoints {
   static const driverReviewMessengerOrder =
       '/api/messenger/driver/orders/:id/review';
 
+  // MARK: Service area (SCRUM-99) — shared with the customer app. Query:
+  // ?lat=&lng=&service=ride|messenger → { available, area_name, message }.
+  static const serviceAreaCheck = '/api/service-area/check';
+
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';
 
