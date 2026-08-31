@@ -144,7 +144,8 @@ class _ProfileHeader extends StatelessWidget {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.grey[800],
-                backgroundImage: hasImage ? NetworkImage(profilePhotoUrl) : null,
+                backgroundImage:
+                    hasImage ? NetworkImage(profilePhotoUrl) : null,
                 child: !hasImage
                     ? Icon(Icons.person, color: context.palette.textSecondary, size: 28)
                     : null,

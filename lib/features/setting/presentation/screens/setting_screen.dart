@@ -204,6 +204,7 @@ class SettingScreen extends ConsumerWidget {
             SectionHeader(
               title: "ออกจากระบบ",
               textColor: AppColors.semanticErrorBgHigh,
+              center: true,
               onTap: () {
                 _showLogoutDialog(context, ref);
               },
@@ -380,11 +381,16 @@ class SectionHeader extends StatelessWidget {
   final Color? textColor;
   final VoidCallback? onTap;
 
+  /// Center the title instead of left-aligning it (used for the standalone
+  /// "ออกจากระบบ" action row).
+  final bool center;
+
   const SectionHeader({
     super.key,
     required this.title,
     this.textColor,
     this.onTap,
+    this.center = false,
   });
 
   @override
@@ -393,7 +399,8 @@ class SectionHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            center ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
