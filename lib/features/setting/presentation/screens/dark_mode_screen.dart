@@ -20,8 +20,13 @@ class DarkModeScreen extends ConsumerWidget {
       // pure-black scaffold, so the screen reads as one surface in night mode.
       backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'โหมดสี', showLeftIcon: true),
-      body: SafeArea(
-        child: ListView(
+      // Paint the body explicitly (like SettingScreen): Scaffold.backgroundColor
+      // alone is overridden by the theme's pure-black scaffold, so wrap in a
+      // Container to fill the empty area below the options with palette.bg.
+      body: Container(
+        color: context.palette.bg,
+        child: SafeArea(
+          child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             Text(
@@ -50,7 +55,8 @@ class DarkModeScreen extends ConsumerWidget {
               onTap: () => ref.read(darkModeProvider.notifier).setEnabled(false),
             ),
             Divider(color: cs.outlineVariant, height: 1),
-          ],
+            ],
+          ),
         ),
       ),
     );
