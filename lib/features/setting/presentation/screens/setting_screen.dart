@@ -31,6 +31,9 @@ class SettingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      // Match the top bar (palette.bg) rather than the theme's pure-black
+      // scaffold, so no black shows through behind the list in night mode.
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'การตั้งค่า', showLeftIcon: true),
       body: Container(
         color: context.palette.bg,

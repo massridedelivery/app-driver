@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
 
 /// "โหมดสี" — a day/night chooser for the app theme. Theme-aware (reads the
@@ -15,6 +16,9 @@ class DarkModeScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
+      // Match the top bar (CommonAppBar uses palette.bg) instead of the theme's
+      // pure-black scaffold, so the screen reads as one surface in night mode.
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'โหมดสี', showLeftIcon: true),
       body: SafeArea(
         child: ListView(
