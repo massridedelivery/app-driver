@@ -57,16 +57,26 @@ class EditProfileScreen extends ConsumerWidget {
 
             _ProfileImageTile(
               imageUrl: profilePhotoUrl,
-              onTap: () {
+              onTap: () async {
+                final notifier =
+                    ref.read(profileControllerProvider.notifier);
+                final oldUrl = profilePhotoUrl;
                 // Re-use the existing document-upload flow/API to change the
                 // driver's profile photo.
-                context.push(
+                await context.push(
                   AppRoutes.documentRegistrationUploadNamedPage,
                   extra: {
                     'type': DocumentType.profilePhoto,
                     'title': 'รูปถ่ายโปรไฟล์',
                   },
                 );
+                // A re-upload often reuses the same URL; NetworkImage caches by
+                // URL, so evict it (app-wide cache) before refetching. The
+                // refetch then rebuilds every avatar screen with fresh bytes.
+                if (oldUrl != null && oldUrl.isNotEmpty) {
+                  await NetworkImage(oldUrl).evict();
+                }
+                await notifier.fetchProfile();
               },
             ),
 

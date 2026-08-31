@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
 
@@ -14,13 +15,7 @@ class DarkModeScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'โหมดสี',
-          style: AppTypography.heading5.copyWith(color: cs.onSurface),
-        ),
-        centerTitle: true,
-      ),
+      appBar: CommonAppBar(titleText: 'โหมดสี', showLeftIcon: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
