@@ -40,7 +40,9 @@ final ThemeData appDarkTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.dark,
   fontFamily: 'Ibm',
-  scaffoldBackgroundColor: Colors.black,
+  // Match the top bar / surfaces (AppPalette.dark.bg) instead of pure black, so
+  // every night-mode scaffold reads as one surface with the CommonAppBar.
+  scaffoldBackgroundColor: AppColors.semanticGrayNeutralFgHigh,
   colorScheme: ColorScheme.fromSeed(
     seedColor: AppColors.foundationOrange600,
     brightness: Brightness.dark,
