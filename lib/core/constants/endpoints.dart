@@ -190,7 +190,7 @@ abstract class Endpoints {
       '/api/messenger/driver/orders/:id/delivered';
   static const messengerDriverChat = '/api/messenger/driver/orders/:id/chat';
 
-  // MARK: Driver → Customer review (SCRUM-70 — pending backend)
+  // MARK: Driver → Customer review (SCRUM-70 — live)
   // The driver rates the customer after a completed job/order. Mirrors the
   // existing customer→driver review endpoints, one per vertical.
   static const driverRateRideJob = '/api/driver/jobs/:id/rate';

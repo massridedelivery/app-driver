@@ -98,8 +98,8 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         comment: _comment.text,
       );
     } catch (e) {
-      // Best-effort while the backend (SCRUM-70) is pending: never trap the
-      // driver on this screen if the submit fails.
+      // Non-fatal by design: never trap the driver on this screen if the
+      // rating submit fails (network / transient backend error).
       if (kDebugMode) debugPrint('ReviewCustomerScreen: submit failed → $e');
     }
     _goHome();
