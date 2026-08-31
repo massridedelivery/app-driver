@@ -193,10 +193,9 @@ class SettingScreen extends ConsumerWidget {
                 ),
               ),
               trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => showServiceAreaBlockedDialog(
+              onTap: () => showServiceAreaNoticeDialog(
                 context,
                 areaName: 'นนทบุรี',
-                onRecheck: () async {},
               ),
             ),
             const _Divider(),
@@ -231,15 +230,15 @@ class SettingScreen extends ConsumerWidget {
   }
 }
 
-/// Blocking "zone not open yet" dialog (SCRUM-99). Shown when going online in a
-/// zone the backend reports as closed. [onRecheck] (optional) wires the
-/// "ตรวจสอบอีกครั้ง" button — it re-runs the area check (and goes online if the
-/// zone is now open). Copy/area come from the backend, with Thai fallbacks.
-void showServiceAreaBlockedDialog(
+/// WARN-ONLY notice (SCRUM-99): the driver's zone isn't open yet, but this
+/// never blocks. [onAcknowledge] (optional) runs when the driver taps
+/// "รับทราบ" — the go-online path uses it to proceed online so work continues
+/// as normal. Copy/area come from the backend, with Thai fallbacks.
+void showServiceAreaNoticeDialog(
   BuildContext context, {
   String? areaName,
   String? message,
-  Future<void> Function()? onRecheck,
+  Future<void> Function()? onAcknowledge,
 }) {
   final body = (message?.isNotEmpty ?? false)
       ? message!
@@ -302,39 +301,25 @@ void showServiceAreaBlockedDialog(
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (onRecheck != null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    onRecheck();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  child: Text('ตรวจสอบอีกครั้ง',
-                      style:
-                          AppTypography.label1.copyWith(color: Colors.white)),
-                ),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'รับทราบ',
-                style: AppTypography.caption3
-                    .copyWith(color: dialogContext.palette.textTertiary),
+        // Single acknowledge button — warn-only: proceed and keep working.
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              onAcknowledge?.call();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.foundationOrange600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
-          ],
+            child: Text('รับทราบ',
+                style: AppTypography.label1.copyWith(color: Colors.white)),
+          ),
         ),
       ],
     ),
