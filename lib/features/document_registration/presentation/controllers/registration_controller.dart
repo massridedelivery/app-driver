@@ -290,7 +290,7 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
-  Future<bool> submitApplication(String driverId, bool consent) async {
+  Future<bool> submitApplication(bool consent) async {
     if (!state.isAllStepsExceptConsentCompleted) {
       state = state.copyWith(
         errorMessage: 'Please complete all previous steps first.',
@@ -300,7 +300,7 @@ class RegistrationController extends _$RegistrationController {
 
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      await _repository.submitFinalConsent(driverId, consent);
+      await _repository.submitFinalConsent(consent);
       state = state.copyWith(
         isConsentGiven: true,
         overallStatus: RegistrationStateStatus.inReview,

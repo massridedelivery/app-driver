@@ -21,7 +21,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
   void _submit() async {
     final success = await ref
         .read(registrationControllerProvider.notifier)
-        .submitApplication("mock_driver_123", true);
+        .submitApplication(true);
 
     if (success && mounted) {
       showDialog(
