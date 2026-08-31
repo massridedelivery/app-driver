@@ -5,10 +5,9 @@ import 'package:massdrive/features/dependency_injection.dart';
 /// Which vertical a completed job belongs to — selects the review endpoint.
 enum ReviewService { ride, food, messenger }
 
-/// Posts a driver→customer review after a completed job/order.
-///
-/// The endpoints are pending backend (SCRUM-70); callers treat a failure as
-/// non-fatal so a driver is never blocked on the review step.
+/// Posts a driver→customer review after a completed job/order (SCRUM-70,
+/// endpoints live). A failure is treated as non-fatal by callers so a driver
+/// is never blocked on the review step.
 class CustomerReviewApi {
   Dio get _dio => getIt<Dio>();
 
