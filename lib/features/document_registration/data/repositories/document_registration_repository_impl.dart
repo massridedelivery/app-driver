@@ -79,13 +79,12 @@ class DocumentRegistrationRepositoryImpl
   }
 
   @override
-  Future<void> submitFinalConsent(
-    String driverId,
-    bool criminalCheckConsent,
-  ) async {
-    // No specific final consent API listed, potentially mapped to updateProfile later
-    debugPrint("MOCK Action: submitFinalConsent for $driverId");
-    await Future.delayed(const Duration(milliseconds: 500));
+  Future<void> submitFinalConsent(bool criminalCheckConsent) async {
+    // Real final-submit (SCRUM-75): the driver token identifies the driver, so
+    // no id is sent. Body carries the accepted consents.
+    await _api.submitRegistration({
+      'consents': [if (criminalCheckConsent) 'criminal_record_check'],
+    });
   }
 
   @override

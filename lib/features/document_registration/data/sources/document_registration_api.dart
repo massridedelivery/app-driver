@@ -309,4 +309,10 @@ class DocumentRegistrationApi {
       return null;
     }
   }
+
+  /// Final registration submit (SCRUM-75). The driver token identifies the
+  /// driver; [body] carries the accepted consents.
+  Future<void> submitRegistration(Map<String, dynamic> body) async {
+    await dio.post(Endpoints.registrationSubmit, data: body);
+  }
 }

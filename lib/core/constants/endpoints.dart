@@ -25,6 +25,11 @@ abstract class Endpoints {
   static const mediaConfirm = '/api/media/confirm';
   static const documentConfirm = '/api/driver/documents';
   static const mediaView = '/api/media/view';
+  // Registration final-submit + status (SCRUM-75). Submit sends the accepted
+  // consents (e.g. criminal_record_check); status returns MissingConsents /
+  // MissingDocuments. Both auth by the driver token.
+  static const registrationSubmit = '/api/driver/registration/submit';
+  static const registrationStatus = '/api/driver/registration/status';
 
   static const phoneRegister = '/v1/auth/register-phone';
   static const phoneLogin = '/v1/auth/login-phone';
