@@ -1072,19 +1072,19 @@ Future<bool> _serviceAreaBlocksOnline(BuildContext context, WidgetRef ref) async
   if (result.available) return false; // open (or fail-open)
   if (!context.mounted) return true;
 
-  showServiceAreaBlockedDialog(
+  // WARN-ONLY (never blocks): show the notice, and acknowledging proceeds to
+  // go online so the driver can keep working normally.
+  showServiceAreaNoticeDialog(
     context,
     areaName: result.areaName,
     message: result.message,
-    onRecheck: () async {
-      // Re-run the gate; if the zone is now open, actually go online.
-      final stillBlocked = await _serviceAreaBlocksOnline(context, ref);
-      if (!stillBlocked && context.mounted) {
+    onAcknowledge: () async {
+      if (context.mounted) {
         await ref.read(onlineStatusProvider.notifier).setStatus(true);
       }
     },
   );
-  return true;
+  return true; // going-online is handled by the acknowledge button
 }
 
 /// Checks the driver's relevant services; a zone may be open for one only, so
