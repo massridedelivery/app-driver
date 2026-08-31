@@ -48,6 +48,34 @@ class MessengerController extends _$MessengerController {
           state = state.copyWith(activeOrder: null);
           AppRouter.router.go('/home');
         }
+      } else if (msg.type == 'payment_paid') {
+        // Customer scanned the rider's QR and paid — re-fetch the authoritative
+        // order (now PAID) so the live screen hides the QR button and shows the
+        // paid state. (MessengerOrder has no client-side copyWith.)
+        final data = msg.data ?? msg.raw;
+        final oid = data['order_id']?.toString();
+        final o = state.activeOrder;
+        if (o != null &&
+            (oid == null || oid == o.id) &&
+            (data['status']?.toString().toUpperCase() == 'PAID')) {
+          _refreshActive();
+        }
+      } else if (msg.type == 'messenger_order_updated' ||
+          msg.type == 'messenger_order_update' ||
+          msg.type == 'messenger_updated') {
+        // Order fields changed server-side — notably the customer switching
+        // "จ่ายเงินสดแทน" (payment_method → CASH) or a payment landing. Adopt
+        // the fresh order so the UI (QR button / "เก็บเงินสด") reacts live.
+        final orderJson = msg.raw['order'] ?? msg.data?['order'];
+        final current = state.activeOrder;
+        if (orderJson is Map<String, dynamic> && current != null) {
+          try {
+            final updated = MessengerOrder.fromJson(orderJson);
+            if (updated.id == current.id) {
+              state = state.copyWith(activeOrder: updated);
+            }
+          } catch (_) {}
+        }
       }
     });
 
@@ -184,6 +212,27 @@ class MessengerController extends _$MessengerController {
     if (await _runAction((id) => _repo.arrivedOrder(id))) {
       await _refreshActive();
     }
+  }
+
+  /// Show the QR (or cash) collection screen on demand — the rider taps
+  /// "แสดง QR รับเงิน" to present the QR to the sender (at pickup) or the
+  /// recipient (at drop-off). Reuses the /payment screen (QR intent, poll, WS
+  /// payment_paid, EXPIRED → new QR, cash fallback). midTrip returns here.
+  Future<void> collectFeeQr() async {
+    final order = state.activeOrder;
+    if (order == null) return;
+    final paid = await AppRouter.router.push('/payment', extra: {
+      'amount': order.feeDue,
+      'method': order.paymentMethod,
+      'payer': order.payer,
+      'collectAt': order.collectAt,
+      'paymentStatus': order.paymentStatus,
+      'title': order.isRecipientPays ? 'ผู้รับ' : 'ผู้ส่ง',
+      'orderId': order.id,
+      'service': ReviewService.messenger,
+      'midTrip': true,
+    });
+    if (paid == true) await _refreshActive();
   }
 
   Future<void> pickedUp() async {

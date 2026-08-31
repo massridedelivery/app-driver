@@ -161,7 +161,12 @@ class _LiveSheet extends ConsumerWidget {
               Text('฿${order.fare.toStringAsFixed(0)}',
                   style: AppTypography.heading3.copyWith(color: Colors.white)),
               const SizedBox(width: 12),
-              Text(order.isCod ? 'COD ฿${order.codAmount.toInt()}' : 'เงินสด',
+              Text(
+                  order.isCod
+                      ? 'COD ฿${order.codAmount.toInt()}'
+                      : order.paymentMethod.toUpperCase() == 'PROMPTPAY'
+                          ? (order.isFeePaid ? 'จ่ายแล้ว' : 'QR พร้อมเพย์')
+                          : 'เงินสด',
                   style: AppTypography.heading6.copyWith(color: Colors.white70)),
             ],
           ),
@@ -191,6 +196,31 @@ class _LiveSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          // "แสดง QR รับเงิน" — rider presents the PromptPay QR to the sender (at
+          // pickup) or recipient (at drop-off) when the fee is QR and unpaid.
+          if (_showQrButton(order)) ...[
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: isSubmitting
+                    ? null
+                    : () => controller.collectFeeQr(),
+                icon: const Icon(Icons.qr_code_2, color: Colors.white),
+                label: Text(
+                  'แสดง QR รับเงิน (฿${order.feeDue.toStringAsFixed(0)})',
+                  style: AppTypography.heading6.copyWith(color: Colors.white),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -254,5 +284,19 @@ class _LiveSheet extends ConsumerWidget {
       default:
         return ('กำลังดำเนินการ', 'รอสักครู่', null);
     }
+  }
+
+  /// Show the "แสดง QR รับเงิน" button only for an unpaid PromptPay fee, at the
+  /// stage where the driver is with the payer: SENDER at pickup
+  /// (ARRIVED/PICKED_UP), RECIPIENT at drop-off (PICKED_UP, before delivered).
+  bool _showQrButton(MessengerOrder order) {
+    if (order.paymentMethod.toUpperCase() != 'PROMPTPAY' || order.isFeePaid) {
+      return false;
+    }
+    final s = order.statusEnum;
+    return order.isRecipientPays
+        ? s == MessengerStatus.pickedUp
+        : (s == MessengerStatus.arrivedAtPickup ||
+            s == MessengerStatus.pickedUp);
   }
 }
