@@ -7,6 +7,10 @@
 // prod install. Release/Profile (Release.xcconfig) leave it empty -> prod id.
 BUNDLE_ID_SUFFIX = .dev
 
+// Maps key for the .dev bundle. Info.plist reads $(MAPS_API_KEY); Secrets.xcconfig
+// (included above) supplies the per-bundle keys. Release.xcconfig picks _PROD.
+MAPS_API_KEY = $(MAPS_API_KEY_DEV)
+
 // Home-screen name, substituted into Info.plist as $(APP_DISPLAY_NAME). Marks
 // the dev app apart from a prod install sitting next to it, matching APP_NAME
 // in config/mass_dev.json (which drives the same label on Android).

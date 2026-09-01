@@ -166,7 +166,8 @@ apk-dev: env
 # `flutter build ipa` ships com.massapp.massdrive, matching the prod-driver
 # Firebase project) — this target temporarily overrides it to .dev, along with
 # APP_DISPLAY_NAME (Info.plist's CFBundleDisplayName, so the installed app reads
-# "Massdrive DEV"), via ios/Flutter/Release.local.xcconfig, and always reverts
+# "Massdrive DEV") and MAPS_API_KEY (back to the _DEV key, since Release.xcconfig
+# defaults to the prod key), via ios/Flutter/Release.local.xcconfig, and always reverts
 # (trap on EXIT), even if the build fails. Release.local.xcconfig is
 # gitignored and #included from Release.xcconfig with #include? (silently
 # a no-op when absent), so this can never leak into a normal `flutter build
@@ -190,7 +191,7 @@ endif
 deploy-dev: env
 	@set -e; \
 	trap 'rm -f ios/Flutter/Release.local.xcconfig' EXIT; \
-	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\n' \
+	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\nMAPS_API_KEY = $$(MAPS_API_KEY_DEV)\n' \
 	  > ios/Flutter/Release.local.xcconfig; \
 	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
 	  --export-options-plist=ios/ExportOptions.plist; \
