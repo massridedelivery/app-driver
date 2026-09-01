@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
@@ -13,7 +14,6 @@ class DarkModeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = ref.watch(darkModeProvider);
-    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       // Match the top bar (CommonAppBar uses palette.bg) instead of the theme's
@@ -31,14 +31,15 @@ class DarkModeScreen extends ConsumerWidget {
           children: [
             Text(
               'โหมดสี',
-              style: AppTypography.heading6.copyWith(color: cs.onSurface),
+              style: AppTypography.heading6
+                  .copyWith(color: context.palette.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               'เลือกโหมดแสดงผลของแอป โหมดกลางคืนช่วยถนอมสายตาและอายุแบตเตอรี่ '
               'ให้นานยิ่งขึ้น และแผนที่จะปรับเป็นสีเข้มด้วย',
               style: AppTypography.caption4.copyWith(
-                color: cs.onSurfaceVariant,
+                color: context.palette.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -48,13 +49,13 @@ class DarkModeScreen extends ConsumerWidget {
               selected: isDark,
               onTap: () => ref.read(darkModeProvider.notifier).setEnabled(true),
             ),
-            Divider(color: cs.outlineVariant, height: 1),
+            Divider(color: context.palette.border, height: 1),
             _OptionRow(
               label: 'โหมดกลางวัน',
               selected: !isDark,
               onTap: () => ref.read(darkModeProvider.notifier).setEnabled(false),
             ),
-            Divider(color: cs.outlineVariant, height: 1),
+            Divider(color: context.palette.border, height: 1),
             ],
           ),
         ),
@@ -76,7 +77,6 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -86,14 +86,18 @@ class _OptionRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: AppTypography.body1.copyWith(color: cs.onSurface),
+                style: AppTypography.body1
+                    .copyWith(color: context.palette.textPrimary),
               ),
             ),
             Icon(
               selected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              color: selected ? cs.primary : cs.onSurfaceVariant,
+              // Green when selected (brand success), neutral when not.
+              color: selected
+                  ? AppColors.semanticSuccessBgHigh
+                  : context.palette.textTertiary,
             ),
           ],
         ),
