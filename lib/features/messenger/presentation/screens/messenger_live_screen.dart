@@ -21,6 +21,22 @@ class MessengerLiveScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Surface action failures (e.g. a rejected "ส่งสำเร็จ"/delivered call) instead
+    // of swallowing them — otherwise the button just appears to "do nothing".
+    ref.listen(
+      messengerControllerProvider.select((s) => s.errorMessage),
+      (prev, next) {
+        if (next.isNotEmpty && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next),
+              backgroundColor: AppColors.semanticErrorBgHigh,
+            ),
+          );
+        }
+      },
+    );
+
     final state = ref.watch(messengerControllerProvider);
     final order = state.activeOrder;
 

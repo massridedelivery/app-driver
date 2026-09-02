@@ -211,6 +211,16 @@ class MessengerController extends _$MessengerController {
   Future<void> arrived() async {
     if (await _runAction((id) => _repo.arrivedOrder(id))) {
       await _refreshActive();
+      // Auto-present the QR the instant we arrive at pickup: if the sender owes
+      // an unpaid PromptPay fee, jump straight to the collect screen instead of
+      // making the driver tap "แสดง QR รับเงิน" first.
+      final o = state.activeOrder;
+      if (o != null &&
+          o.paymentMethod.toUpperCase() == 'PROMPTPAY' &&
+          !o.isFeePaid &&
+          !o.isRecipientPays) {
+        await collectFeeQr();
+      }
     }
   }
 
@@ -321,6 +331,7 @@ class MessengerController extends _$MessengerController {
       await call(order.id);
       return true;
     } catch (e) {
+      if (kDebugMode) debugPrint('MessengerController: action failed → $e');
       state = state.copyWith(
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
       );
