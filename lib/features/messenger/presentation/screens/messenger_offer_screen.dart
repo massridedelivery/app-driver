@@ -9,6 +9,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/directions_service.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -47,21 +48,24 @@ class MessengerOfferScreen extends ConsumerWidget {
           GoogleMap(
             initialCameraPosition: CameraPosition(target: pickup, zoom: 14),
             markers: {
-              // Same pin convention as the ride flow (incoming_job_screen):
-              // green = pickup, red = dropoff.
+              // Same custom pins as the ride/live flow: green = pickup,
+              // red = dropoff (fall back to the hue marker until the bitmap
+              // finishes rasterizing).
               Marker(
                 markerId: const MarkerId('pickup'),
                 position: pickup,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueGreen,
-                ),
+                icon: ref.watch(pickupMarkerProvider).value ??
+                    BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueGreen,
+                    ),
               ),
               Marker(
                 markerId: const MarkerId('dropoff'),
                 position: dropoff,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueRed,
-                ),
+                icon: ref.watch(dropoffMarkerProvider).value ??
+                    BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueRed,
+                    ),
               ),
             },
             polylines: {
