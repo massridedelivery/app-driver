@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -17,6 +18,10 @@ import 'package:massdrive/features/dependency_injection.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock the app to portrait — the whole UI is designed vertical-only, and iOS
+  // is iPhone-only (see TARGETED_DEVICE_FAMILY / Info.plist). Covers Android too.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Crash immediately with a clear message if the build is missing required
   // Firebase/Omise defines (usually a forgotten config/mass_dev.json), rather
