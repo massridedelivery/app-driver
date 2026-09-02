@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
@@ -111,14 +112,27 @@ class _TransactionHistoryScreenState
   }
 
   Widget _buildList(List<Transaction> transactions, bool isLoadingMore) {
-    return ListView.separated(
+    // Statement layout: rows grouped under a date header. Transactions arrive
+    // newest-first; insert a header whenever the day changes.
+    final items = <_ListEntry>[];
+    String? lastDay;
+    for (final t in transactions) {
+      final local = t.createdAt.toLocal();
+      final dayKey = DateFormat('yyyy-MM-dd').format(local);
+      if (dayKey != lastDay) {
+        items.add(_ListEntry.header(local));
+        lastDay = dayKey;
+      }
+      items.add(_ListEntry.txn(t));
+    }
+
+    return ListView.builder(
       controller: _scrollController,
       // Clear the Android edge-to-edge system nav.
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
-      itemCount: transactions.length + (isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
+      itemCount: items.length + (isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == transactions.length) {
+        if (index == items.length) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
@@ -126,7 +140,15 @@ class _TransactionHistoryScreenState
             ),
           );
         }
-        return _TransactionTile(transaction: transactions[index]);
+        final entry = items[index];
+        if (entry.isHeader) return _DateHeader(date: entry.date!);
+        // Hide the divider on the last row of a day group (next is a header or
+        // the list end) so groups read as tidy blocks.
+        final isLastInGroup = index + 1 >= items.length || items[index + 1].isHeader;
+        return _TransactionTile(
+          transaction: entry.transaction!,
+          showDivider: !isLastInGroup,
+        );
       },
     );
   }
@@ -206,7 +228,14 @@ class _TransactionHistoryScreenState
 class _TransactionTile extends StatelessWidget {
   final Transaction transaction;
 
-  const _TransactionTile({required this.transaction});
+  /// Statement rows sit under a shared date header with a hairline between
+  /// them; the last row of a day group drops its divider.
+  final bool showDivider;
+
+  const _TransactionTile({
+    required this.transaction,
+    this.showDivider = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -214,89 +243,87 @@ class _TransactionTile extends StatelessWidget {
     final amountColor = isCredit
         ? AppColors.semanticSupportMintBgHigh
         : AppColors.semanticErrorFgHigh;
+    final time = DateFormat('HH:mm').format(transaction.createdAt.toLocal());
+    // Time + optional money breakdown on the sub-line — the day already sits in
+    // the header, so the row shows only the clock time.
+    final breakdown = _breakdown(transaction);
+    final subLine = breakdown == null ? time : '$time · $breakdown';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showDetail(context),
-        borderRadius: BorderRadius.circular(12),
         child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: context.palette.surfaceAlt,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          // ── Type icon ─────────────────────────────────────────────────
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: amountColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _typeIcon(transaction.type),
-              color: amountColor,
-              size: 20,
-            ),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: showDivider
+                ? Border(
+                    bottom: BorderSide(color: context.palette.border, width: 0.5),
+                  )
+                : null,
           ),
-          const SizedBox(width: 12),
-
-          // ── Description + meta ────────────────────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  // Human label (ค่าโดยสาร / ค่าคอมมิชชัน / …) instead of the
-                  // raw API description ("Trip #JOB-…"); the job id lives in the
-                  // detail sheet.
-                  _typeLabel(transaction.type),
-                  style: AppTypography.caption3.copyWith(
-                    color: context.palette.textPrimary,
-                  ),
+          child: Row(
+            children: [
+              // ── Type icon ───────────────────────────────────────────────
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: amountColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
                 ),
-                // Money breakdown so a rider can see what the trip earned vs.
-                // what was taken as commission/fees — e.g. "ยอดงาน ฿60 · หักค่าคอม ฿12".
-                if (_breakdown(transaction) != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _breakdown(transaction)!,
-                    style: AppTypography.caption5.copyWith(
-                      color: context.palette.textSecondary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 6),
-                Row(
+                child: Icon(
+                  _typeIcon(transaction.type),
+                  color: amountColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // ── Label + time/breakdown ──────────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat('d MMM yyyy, HH:mm')
-                          .format(transaction.createdAt.toLocal()),
+                      _typeLabel(transaction.type),
+                      style: AppTypography.caption3.copyWith(
+                        color: context.palette.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subLine,
                       style: AppTypography.caption5.copyWith(
                         color: context.palette.textSecondary,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _StatusBadge(status: transaction.status),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+              const SizedBox(width: 8),
 
-          // ── Amount ────────────────────────────────────────────────────
-          Text(
-            '${isCredit ? '+' : ''}฿${transaction.absoluteAmount.toStringAsFixed(0)}',
-            style: AppTypography.caption3.copyWith(
-              color: amountColor,
-              fontWeight: FontWeight.bold,
-            ),
+              // ── Amount (+ status only when it needs attention) ──────────
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${isCredit ? '+' : ''}฿${transaction.absoluteAmount.toStringAsFixed(0)}',
+                    style: AppTypography.caption2.copyWith(
+                      color: amountColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // A green "สำเร็จ" badge on every row is just noise — surface
+                  // the badge only when the status actually needs attention.
+                  if (transaction.status != TransactionStatus.completed) ...[
+                    const SizedBox(height: 4),
+                    _StatusBadge(status: transaction.status),
+                  ],
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ),
     );
@@ -400,8 +427,10 @@ class _TransactionTile extends StatelessWidget {
               const SizedBox(height: 10),
               _StatusBadge(status: t.status),
               Divider(color: context.palette.border, height: 28),
+              // Job id is copyable so a rider can paste it when reporting an
+              // issue to support.
               if (t.jobId != null || t.orderId != null)
-                _detailRow(context, 'งาน', t.jobId ?? t.orderId!),
+                _copyableRow(context, 'งาน', t.jobId ?? t.orderId!),
               if (t.subtotal != null && t.subtotal! > 0)
                 _detailRow(context, 'ยอดงาน', money(t.subtotal!)),
               if (t.commission != null && t.commission! > 0)
@@ -412,11 +441,15 @@ class _TransactionTile extends StatelessWidget {
                 _detailRow(context, 'ส่วนลด', money(t.discount!)),
               if (t.paymentMethod != null && t.paymentMethod!.isNotEmpty)
                 _detailRow(context, 'วิธีชำระเงิน', t.paymentMethod!),
-              _detailRow(context, 'รายละเอียด', t.description),
+              // "รายละเอียด" only when it's meaningful — hide the redundant
+              // id-echo ("Trip #JOB-…" / "Commission for #JOB-…") that just
+              // repeats the job id above. (Pickup/dropoff addresses belong here
+              // but the transaction API doesn't return them yet — see BE.)
+              if (_showDescription(t.description))
+                _detailRow(context, 'รายละเอียด', t.description),
               _detailRow(context, 'วันที่ทำรายการ', date(t.createdAt)),
               if (t.completedAt != null)
                 _detailRow(context, 'เสร็จสิ้นเมื่อ', date(t.completedAt!)),
-              _detailRow(context, 'รหัสรายการ', t.id),
             ],
           ),
         ),
@@ -451,6 +484,70 @@ class _TransactionTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// A detail row whose value can be tapped to copy (job id, for support).
+  Widget _copyableRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: AppTypography.caption5.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('คัดลอกรหัสงานแล้ว'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      value,
+                      style: AppTypography.caption4.copyWith(
+                        color: context.palette.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.copy_rounded,
+                    size: 15,
+                    color: context.palette.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Whether the API description is worth its own row. Hides the redundant
+  /// id-echo ("Trip #JOB-…", "Commission for #JOB-…") that only repeats the
+  /// job id; keeps real notes (e.g. a top-up slip reason).
+  bool _showDescription(String description) {
+    final s = description.trim();
+    if (s.isEmpty) return false;
+    final lower = s.toLowerCase();
+    return !lower.startsWith('trip #') && !lower.startsWith('commission for');
   }
 
   IconData _typeIcon(TransactionType type) {
@@ -524,6 +621,49 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: AppTypography.caption5.copyWith(color: color),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Statement list helpers (date-grouped layout)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One rendered line in the statement list: either a day header or a row.
+class _ListEntry {
+  final DateTime? date;
+  final Transaction? transaction;
+
+  const _ListEntry.header(this.date) : transaction = null;
+  const _ListEntry.txn(this.transaction) : date = null;
+
+  bool get isHeader => date != null;
+}
+
+/// Sticky-looking day header — "31 สิงหาคม 2026" (Thai month, Gregorian year to
+/// match the row timestamps).
+class _DateHeader extends StatelessWidget {
+  final DateTime date;
+
+  const _DateHeader({required this.date});
+
+  static const _thMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final label = '${date.day} ${_thMonths[date.month - 1]} ${date.year}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 4),
+      child: Text(
+        label,
+        style: AppTypography.caption5.copyWith(
+          color: context.palette.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
