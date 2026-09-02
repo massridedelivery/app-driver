@@ -364,6 +364,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildQuickRepliesBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Ghost pills: outlined, transparent fill — reads cleanly against the dark
+    // background instead of the near-invisible white-10% fill.
+    final chipBorder =
+        isDark ? Colors.white.withOpacity(0.24) : context.palette.border;
     return Container(
       height: 48,
       padding: const EdgeInsets.only(top: 8, bottom: 4),
@@ -383,9 +388,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 replyText,
                 style: AppTypography.caption4.copyWith(color: context.palette.textPrimary),
               ),
-              backgroundColor: context.palette.surfaceAlt,
+              backgroundColor: Colors.transparent,
               onPressed: () => _sendText(replyText),
-              side: BorderSide.none,
+              side: BorderSide(color: chipBorder),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -397,10 +402,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildInputBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Ghost input: a solid, slightly-elevated fill with a hairline border so the
+    // field and "+" button stand off the background (the old white-10% fill was
+    // barely visible). Bar itself matches the screen bg (bg + top hairline).
+    final fieldFill =
+        isDark ? const Color(0xFF2A2D34) : context.palette.surfaceAlt;
+    final fieldBorder =
+        isDark ? Colors.white.withOpacity(0.10) : context.palette.border;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: context.palette.surface,
+        color: context.palette.bg,
         border: Border(
           top: BorderSide(color: context.palette.border, width: 0.5),
         ),
@@ -413,8 +426,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: context.palette.surfaceAlt,
+                color: fieldFill,
                 shape: BoxShape.circle,
+                border: Border.all(color: fieldBorder),
               ),
               child: Icon(Icons.add, color: context.palette.textPrimary, size: 24),
             ),
@@ -430,10 +444,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 hintText: 'เขียนข้อความ...',
                 hintStyle: AppTypography.body2.copyWith(color: context.palette.textTertiary),
                 filled: true,
-                fillColor: context.palette.surfaceAlt,
+                fillColor: fieldFill,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(color: fieldBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: fieldBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: fieldBorder),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
