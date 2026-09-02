@@ -1,0 +1,16 @@
+# Copy this file to android/key.properties and fill in the real values.
+# NEVER commit android/key.properties or the .jks keystore (both are gitignored).
+#
+# Driver uses the existing upload keystore "mass-driver-keystore.jks" that is
+# registered with Play App Signing for com.massapp.massdrive. Point storeFile
+# at wherever it lives (an absolute path is fine).
+#
+# Verify the alias in a keystore:
+#   keytool -list -v -keystore <path-to>.jks -storepass <storePassword> | grep "Alias name"
+# Verify the upload cert SHA-1 matches what Play App Signing expects:
+#   keytool -list -v -keystore <path-to>.jks -storepass <storePassword> | grep "SHA1:"
+
+storeFile=/absolute/path/to/mass-driver-keystore.jks
+storePassword=CHANGE_ME
+keyAlias=mass-drive
+keyPassword=CHANGE_ME
