@@ -1,0 +1,9 @@
+# Google Play package name. The Makefile overrides this via PLAY_PACKAGE_NAME.
+# Driver has no Flutter flavors — prod-devapi ships the plain prod package
+# com.massapp.massdrive (no suffix). Default below is that production package.
+package_name(ENV["PLAY_PACKAGE_NAME"] || "com.massapp.massdrive")
+
+# Service-account JSON with "Release manager" access to this app in the Play
+# Console. Kept OUT of git (see android/.gitignore). Path is relative to the
+# android/ directory; override with PLAY_JSON_KEY_FILE.
+json_key_file(ENV["PLAY_JSON_KEY_FILE"] || "fastlane/play-service-account.json")

@@ -35,7 +35,8 @@ ARGS ?=
 .DEFAULT_GOAL := help
 .PHONY: help setup env deps run run-preprod run-prod run-prod-devapi gen watch \
         analyze test format check aab apk apk-dev deploy-dev deploy-prod-devapi \
-        clean devices
+        bump build_aab_prod_devapi upload_play_prod_devapi deploy_play_prod_devapi \
+        deploy_play_check clean devices
 
 # Plain echo lines, one per target: cmd.exe has no grep/awk, and `echo.` for a
 # blank line is not something Make can spawn on Windows.
@@ -227,6 +228,43 @@ deploy-prod-devapi: env
 	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
 	  echo "or set them to have this target upload too."; \
 	fi
+
+# ---------------------------------------------------------------- Google Play
+# Android equivalent of the iOS TestFlight flow. Uploads a signed prod-devapi
+# AAB (prod package com.massapp.massdrive on the dev API) to the Play
+# **internal** track via fastlane `supply`.
+#
+# One-time setup (see docs/android-play-setup.md): android/key.properties
+# (+ upload keystore) and android/fastlane/play-service-account.json, then
+#   cd android && RBENV_VERSION=3.3.5 bundle install
+# Every fastlane command needs the RBENV_VERSION prefix (fastlane is on Ruby 3.3.5).
+
+# Bump the +build number in pubspec.yaml (Android versionCode) — Play requires a
+# strictly higher versionCode on each upload. iOS is unaffected (ExportOptions
+# auto-stamps the TestFlight build number).
+bump:
+	@perl -i -pe 's/^(version:\s*\d+\.\d+\.\d+\+)(\d+)\s*$$/$$1 . ($$2 + 1) . "\n"/e' pubspec.yaml
+	@grep '^version:' pubspec.yaml
+
+# Verify the Play service-account JSON authenticates (no upload).
+deploy_play_check:
+	cd android && RBENV_VERSION=3.3.5 bundle exec fastlane whoami
+
+# Signed prod-devapi AAB (prod package com.massapp.massdrive, dev API). No
+# flavor → output is build/app/outputs/bundle/release/app-release.aab.
+build_aab_prod_devapi: env
+	flutter build appbundle --release $(PROD_DEVAPI)
+	@echo Output: build/app/outputs/bundle/release/app-release.aab
+
+# Upload-only — the AAB must already be built (pairs with build_aab_prod_devapi).
+upload_play_prod_devapi:
+	cd android && \
+		PLAY_PACKAGE_NAME=com.massapp.massdrive \
+		AAB_PATH="$(CURDIR)/build/app/outputs/bundle/release/app-release.aab" \
+		RBENV_VERSION=3.3.5 bundle exec fastlane deploy track:internal
+
+# bump + build + upload prod-devapi to the Google Play internal track.
+deploy_play_prod_devapi: bump build_aab_prod_devapi upload_play_prod_devapi
 
 clean:
 	flutter clean
