@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/directions_service.dart';
@@ -102,18 +103,25 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
       );
     }
 
+    // Custom pins (same as the live screen) — fall back to the default hue
+    // marker until the bitmap finishes rasterizing.
+    final pickupIcon = ref.watch(pickupMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(
+          job.isFood ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
+        );
+    final dropoffIcon = ref.watch(dropoffMarkerProvider).value ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+
     final Set<Marker> markers = {
       Marker(
         markerId: const MarkerId('pickup'),
         position: LatLng(job.pickupLat, job.pickupLng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          job.isFood ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
-        ),
+        icon: pickupIcon,
       ),
       Marker(
         markerId: const MarkerId('dropoff'),
         position: LatLng(job.dropoffLat, job.dropoffLng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: dropoffIcon,
       ),
     };
 

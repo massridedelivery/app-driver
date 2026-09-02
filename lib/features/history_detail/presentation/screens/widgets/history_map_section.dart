@@ -1,17 +1,19 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
+import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 
-class HistoryMapSection extends StatelessWidget {
+class HistoryMapSection extends ConsumerWidget {
   final HistoryDetailEntity data;
 
   const HistoryMapSection({super.key, required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final LatLng? pickup = data.hasRoute
         ? LatLng(data.pickupLat!, data.pickupLng!)
         : null;
@@ -47,17 +49,21 @@ class HistoryMapSection extends StatelessWidget {
                 Marker(
                   markerId: const MarkerId('pickup'),
                   position: pickup,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
-                  ),
+                  // Same custom pins as the offer/live flow: green = pickup,
+                  // red = dropoff (hue fallback until the bitmap is ready).
+                  icon: ref.watch(pickupMarkerProvider).value ??
+                      BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueGreen,
+                      ),
                 ),
               if (dropoff != null)
                 Marker(
                   markerId: const MarkerId('dropoff'),
                   position: dropoff,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueRed,
-                  ),
+                  icon: ref.watch(dropoffMarkerProvider).value ??
+                      BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed,
+                      ),
                 ),
             },
             polylines: {
