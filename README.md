@@ -41,17 +41,25 @@ a new git worktree** — has no key until you add one. The failure is not obviou
 - **Android renders a blank grey map** and logs an authorization failure.
 
 Create both files with a key that has **Maps SDK for iOS** / **Maps SDK for
-Android** enabled (Google Cloud Console → the project's API credentials). If the
-key is restricted to iOS apps, allow bundle ids `com.massapp.massdrive.dev`
-(debug) and `com.massapp.massdrive` (release):
+Android** enabled (Google Cloud Console → the project's API credentials). A key
+restricted to one bundle id / package won't authorize the other, so each side
+takes two keys — one per bundle id — picked by build config: `.dev` (debug) uses
+the `_DEV` key, prod (release, incl. prod_devapi) uses the `_PROD` key.
 
 ```sh
-# iOS — read into Info.plist as $(MAPS_API_KEY) (GMSApiKey) via Debug/Release.xcconfig
-echo 'MAPS_API_KEY = YOUR_IOS_KEY' > ios/Flutter/Secrets.xcconfig
+# iOS — Debug.xcconfig picks _DEV, Release.xcconfig picks _PROD; both feed
+# Info.plist as $(MAPS_API_KEY) (GMSApiKey).
+printf 'MAPS_API_KEY_DEV=YOUR_IOS_DEV_KEY\nMAPS_API_KEY_PROD=YOUR_IOS_PROD_KEY\n' \
+  > ios/Flutter/Secrets.xcconfig
 
-# Android — read by app/build.gradle.kts into the AndroidManifest placeholder
-echo 'MAPS_API_KEY=YOUR_ANDROID_KEY' >> android/local.properties
+# Android — app/build.gradle.kts picks MAPS_API_KEY_DEV for the .dev build and
+# MAPS_API_KEY for prod/preprod/prod_devapi (no suffix).
+printf 'MAPS_API_KEY_DEV=YOUR_ANDROID_DEV_KEY\nMAPS_API_KEY=YOUR_ANDROID_PROD_KEY\n' \
+  >> android/local.properties
 ```
+
+The `_DEV` keys should allow bundle id / package `com.massapp.massdrive.dev`, the
+prod keys `com.massapp.massdrive`.
 
 An iOS-restricted key will not work for Android (and vice versa); restricted
 keys need one per platform. After adding the iOS key, `flutter clean` before

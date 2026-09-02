@@ -6,6 +6,13 @@
 // stays com.massapp.massdrive. (Debug.xcconfig sets .dev for dev builds.)
 BUNDLE_ID_SUFFIX =
 
+// Maps key for the prod bundle (com.massapp.massdrive) — used by both real prod
+// and prod_devapi, which share that bundle id. Info.plist reads $(MAPS_API_KEY);
+// Secrets.xcconfig (included above) supplies the keys. `make deploy-dev` ships
+// the .dev bundle as a Release build, so Release.local.xcconfig below overrides
+// this back to the _DEV key for that one build.
+MAPS_API_KEY = $(MAPS_API_KEY_PROD)
+
 // Home-screen name for prod, substituted into Info.plist as
 // $(APP_DISPLAY_NAME). `make deploy-dev` overrides it below.
 APP_DISPLAY_NAME = Driver
