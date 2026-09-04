@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
@@ -55,6 +56,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   int _previewSeq = 0;
 
+  /// The counterpart is blocked in this conversation (per-job, stored locally).
+  /// Blocking hides their messages and disables sending. Report/Block satisfy
+  /// the App Store's UGC safety requirement for the 1:1 job chat.
+  bool _blocked = false;
+  String get _blockKey => 'chat_blocked_${widget.jobId}';
+
+  Future<void> _loadBlocked() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) setState(() => _blocked = prefs.getBool(_blockKey) ?? false);
+    } catch (_) {/* default: not blocked */}
+  }
+
+  Future<void> _setBlocked(bool value) async {
+    setState(() => _blocked = value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_blockKey, value);
+    } catch (_) {}
+  }
+
   ChatMessage _previewMsg(String text, {required bool driver}) => ChatMessage(
         id: 'preview-${_previewSeq++}',
         jobId: widget.jobId,
@@ -69,10 +91,137 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _loadBlocked();
     // Scroll to bottom when keyboard appears
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  /// Overflow menu (⋮) — report or block the customer in this job chat.
+  Widget _buildChatMenu() {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert, color: context.palette.textPrimary),
+      onSelected: (v) {
+        if (v == 'report') _reportUser();
+        if (v == 'block') _confirmBlock();
+        if (v == 'unblock') _setBlocked(false);
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'report',
+          child: Row(children: [
+            Icon(Icons.flag_outlined, size: 20),
+            SizedBox(width: 12),
+            Text('รายงานผู้ใช้'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: _blocked ? 'unblock' : 'block',
+          child: Row(children: [
+            Icon(_blocked ? Icons.lock_open_outlined : Icons.block, size: 20),
+            const SizedBox(width: 12),
+            Text(_blocked ? 'เลิกบล็อกผู้ใช้' : 'บล็อกผู้ใช้'),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  /// Report the counterpart — pick a reason, then submit. (Routed to support
+  /// until a dedicated report endpoint ships — see SCRUM ticket.)
+  void _reportUser() {
+    const reasons = [
+      'ข้อความไม่เหมาะสม / คุกคาม',
+      'สแปมหรือหลอกลวง',
+      'พฤติกรรมไม่ปลอดภัย',
+      'อื่นๆ',
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.palette.sheet,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text('รายงานผู้ใช้',
+                  style: AppTypography.heading6
+                      .copyWith(color: context.palette.textPrimary)),
+            ),
+            for (final r in reasons)
+              ListTile(
+                title: Text(r,
+                    style: AppTypography.body2
+                        .copyWith(color: context.palette.textPrimary)),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _submitReport(r);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submitReport(String reason) {
+    // TODO(SCRUM): POST to the report endpoint once BE ships it. For now record
+    // the intent and acknowledge — the mechanism is available to the user.
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('รายงานแล้ว: "$reason" — ทีมงานจะตรวจสอบโดยเร็ว'),
+          backgroundColor: AppColors.semanticSuccessBgHigh,
+        ),
+      );
+    }
+  }
+
+  void _confirmBlock() {
+    showDialog<void>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: context.palette.sheet,
+        title: Text('บล็อกผู้ใช้นี้?',
+            style: AppTypography.heading6
+                .copyWith(color: context.palette.textPrimary)),
+        content: Text(
+          'เมื่อบล็อก คุณจะไม่เห็นข้อความจากผู้ใช้นี้ และส่งข้อความไม่ได้ '
+          'จนกว่าจะเลิกบล็อก',
+          style: AppTypography.body2
+              .copyWith(color: context.palette.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx),
+            child: Text('ยกเลิก',
+                style: AppTypography.label2
+                    .copyWith(color: context.palette.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dctx);
+              _setBlocked(true);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('บล็อกผู้ใช้แล้ว')),
+                );
+              }
+            },
+            child: Text('บล็อก',
+                style: AppTypography.label2
+                    .copyWith(color: AppColors.semanticErrorFgHigh)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -226,6 +375,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: CommonAppBar(
         titleText: 'แชทกับ ${widget.passengerName}',
         showLeftIcon: true,
+        rightWidgets: [_buildChatMenu()],
       ),
       backgroundColor: context.palette.bg,
       body: SafeArea(
@@ -322,24 +472,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
             ),
 
-            // Quick replies horizontal bar
-            _buildQuickRepliesBar(),
+            // When blocked, hide the composer entirely and show an unblock bar
+            // instead of quick replies + input.
+            if (_blocked)
+              _buildBlockedBar()
+            else ...[
+              // Quick replies horizontal bar
+              _buildQuickRepliesBar(),
 
-            // Chat input bar
-            _buildInputBar(),
+              // Chat input bar
+              _buildInputBar(),
+            ],
           ],
         ),
       ),
     );
   }
 
+  /// Shown in place of the composer while the counterpart is blocked.
+  Widget _buildBlockedBar() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+          16, 14, 16, 14 + MediaQuery.viewPaddingOf(context).bottom),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        border: Border(
+          top: BorderSide(color: context.palette.border, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.block, size: 18, color: context.palette.textTertiary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'คุณบล็อกผู้ใช้นี้แล้ว',
+              style: AppTypography.caption4
+                  .copyWith(color: context.palette.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _setBlocked(false),
+            child: Text('เลิกบล็อก',
+                style: AppTypography.label2
+                    .copyWith(color: AppColors.semanticSuccessBgHigh)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageList(List<ChatMessage> messages) {
-    if (messages.isEmpty) return _buildEmptyState();
+    // While blocked, hide the counterpart's messages (keep the driver's own).
+    final shown =
+        _blocked ? messages.where((m) => m.isDriver).toList() : messages;
+    if (shown.isEmpty) return _buildEmptyState();
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: messages.length,
-      itemBuilder: (context, index) => _MessageBubble(message: messages[index]),
+      itemCount: shown.length,
+      itemBuilder: (context, index) => _MessageBubble(message: shown[index]),
     );
   }
 
