@@ -32,10 +32,15 @@ PROD_DEVAPI := --dart-define-from-file=config/prod_devapi.json --dart-define-fro
 # Extra args passed through to flutter, e.g. make run ARGS=-v
 ARGS ?=
 
+# Dart debug symbols emitted by --obfuscate on release builds. Kept so a crash
+# stack trace can be de-obfuscated later (mirrors the customer app's
+# build/symbols). Regenerated every build; safe to delete.
+SYMBOLS := build/symbols
+
 .DEFAULT_GOAL := help
 .PHONY: help setup env deps run run-preprod run-prod run-prod-devapi gen watch \
-        analyze test format check aab apk apk-dev deploy-dev deploy-prod-devapi \
-        clean devices
+        analyze test test_cov format fix check pre-pr bump aab apk apk-dev \
+        deploy-dev deploy-prod-devapi clean devices
 
 # Plain echo lines, one per target: cmd.exe has no grep/awk, and `echo.` for a
 # blank line is not something Make can spawn on Windows.
@@ -56,9 +61,13 @@ help:
 	@echo   ---
 	@echo   analyze       Static analysis, same flags as CI
 	@echo   test          Unit/widget tests
+	@echo   test_cov      Tests with coverage - genhtml to coverage/html - POSIX
 	@echo   format        Format lib and test
+	@echo   fix           dart fix --apply then format
 	@echo   check         analyze + test, what CI runs
+	@echo   pre-pr        clean + gen + fix + analyze + test, before a PR
 	@echo   ---
+	@echo   bump          Bump pubspec build number +1 - needs perl
 	@echo   aab           Signed release bundle for Play
 	@echo   apk           Release APK for sideloading
 	@echo   apk-dev       Release APK built against dev, to hand to testers
@@ -122,19 +131,37 @@ analyze: env
 test: env
 	flutter test
 
+# Coverage report as browsable HTML. genhtml ships with lcov (brew install lcov
+# / apt install lcov) — POSIX only, unlike the rest of this file.
+test_cov: env
+	flutter test --coverage
+	genhtml coverage/lcov.info -o coverage/html
+
 format:
+	dart format lib test
+
+# Auto-apply lint fixes, then format. `format` on its own only reformats.
+fix:
+	dart fix --apply
 	dart format lib test
 
 check: analyze test
 
+# The full local gate before opening a PR: clean slate, regenerate code, fix +
+# format, then the CI checks. `check` stays the fast analyze+test subset.
+pre-pr: clean gen fix analyze test
+	@echo All checks passed - ready for PR
+
 # ---------------------------------------------------------------- build
 
+# --obfuscate strips Dart symbols out of libapp.so and writes them to $(SYMBOLS)
+# for later de-obfuscation; keep that dir alongside the artifact you ship.
 aab: env
-	flutter build appbundle --release $(PREPROD)
+	flutter build appbundle --release $(PREPROD) --obfuscate --split-debug-info=$(SYMBOLS)
 	@echo Output: build/app/outputs/bundle/release/app-release.aab
 
 apk: env
-	flutter build apk --release $(PREPROD)
+	flutter build apk --release $(PREPROD) --obfuscate --split-debug-info=$(SYMBOLS)
 	@echo Output: build/app/outputs/flutter-apk/app-release.apk
 
 # A dev-backend Android build to hand to testers, not a Play upload. Publishing
@@ -148,9 +175,18 @@ apk-dev: env
 	# --split-per-abi: one small APK per CPU arch instead of a 68MB universal
 	# APK (which bundled x86_64 + armeabi-v7a + arm64). Hand testers the arm64
 	# one (~28MB) for any modern phone.
-	flutter build apk --release $(DEV) --split-per-abi
+	flutter build apk --release $(DEV) --split-per-abi --obfuscate --split-debug-info=$(SYMBOLS)
 	@echo "Output (per ABI): build/app/outputs/flutter-apk/app-*-release.apk"
 	@echo "Modern phones -> app-arm64-v8a-release.apk"
+
+# Bump the +N build number in pubspec's `version:` by one. Standalone
+# convenience, deliberately NOT wired into the deploy targets: deploy-dev takes
+# BUILD explicitly and deploy-prod-devapi lets Xcode auto-number, so folding a
+# bump in would fight those. Needs perl (Git Bash/macOS) — POSIX only, like the
+# iOS targets below.
+bump:
+	@perl -i -pe 's/^(version:\s*\d+\.\d+\.\d+\+)(\d+)\s*$$/$$1 . ($$2 + 1) . "\n"/e' pubspec.yaml
+	@grep '^version:' pubspec.yaml
 
 # ---------------------------------------------------------------- ship (iOS)
 
@@ -194,6 +230,7 @@ deploy-dev: env
 	printf 'BUNDLE_ID_SUFFIX = .dev\nAPP_DISPLAY_NAME = Massdrive DEV\nMAPS_API_KEY = $$(MAPS_API_KEY_DEV)\n' \
 	  > ios/Flutter/Release.local.xcconfig; \
 	flutter build ipa --release $(DEV) --build-number=$(BUILD) \
+	  --obfuscate --split-debug-info=$(SYMBOLS) \
 	  --export-options-plist=ios/ExportOptions.plist; \
 	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
 	  echo "Uploading build $(BUILD) to TestFlight (MassDriverDev)..."; \
@@ -217,6 +254,7 @@ deploy-dev: env
 deploy-prod-devapi: env
 	@set -e; \
 	flutter build ipa --release $(PROD_DEVAPI) \
+	  --obfuscate --split-debug-info=$(SYMBOLS) \
 	  --export-options-plist=ios/ExportOptions.plist; \
 	if [ -n "$(ASC_KEY_ID)" ] && [ -n "$(ASC_ISSUER_ID)" ]; then \
 	  echo "Uploading to TestFlight (MassDriver)..."; \
