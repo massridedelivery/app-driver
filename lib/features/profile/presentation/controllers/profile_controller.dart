@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/quest_api_service.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
@@ -31,7 +32,7 @@ class ProfileController extends _$ProfileController {
       final merged = await _mergeTierRates(profile);
       state = state.copyWith(isLoading: false, profile: merged);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
     }
   }
 
@@ -67,7 +68,7 @@ class ProfileController extends _$ProfileController {
       await fetchProfile();
       return true;
     } catch (e) {
-      state = state.copyWith(isUpdating: false, errorMessage: e.toString());
+      state = state.copyWith(isUpdating: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
@@ -81,7 +82,7 @@ class ProfileController extends _$ProfileController {
       await fetchProfile();
       return true;
     } catch (e) {
-      state = state.copyWith(isUpdating: false, errorMessage: e.toString());
+      state = state.copyWith(isUpdating: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
