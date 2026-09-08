@@ -40,6 +40,18 @@ abstract class ChatApiService {
 
   /// Gets temporary view URL for the uploaded media.
   Future<Response<Map<String, dynamic>>> getMediaViewUrl(String fileKey);
+
+  /// Reports the chat counterpart for a room (UGC safety).
+  Future<Response<dynamic>> reportChat({
+    required String roomId,
+    required String reason,
+  });
+
+  /// Blocks ([blocked] true) or unblocks (false) the counterpart in a room.
+  Future<Response<dynamic>> setBlock({
+    required String roomId,
+    required bool blocked,
+  });
 }
 
 @LazySingleton(as: ChatApiService)
@@ -142,5 +154,27 @@ class ChatApiServiceImpl implements ChatApiService {
       Endpoints.mediaView,
       queryParameters: {'key': fileKey},
     );
+  }
+
+  @override
+  Future<Response<dynamic>> reportChat({
+    required String roomId,
+    required String reason,
+  }) async {
+    return await _dio.post(
+      Endpoints.chatReport,
+      data: {'room_id': roomId, 'reason': reason},
+    );
+  }
+
+  @override
+  Future<Response<dynamic>> setBlock({
+    required String roomId,
+    required bool blocked,
+  }) async {
+    if (blocked) {
+      return await _dio.post(Endpoints.chatBlock, data: {'room_id': roomId});
+    }
+    return await _dio.delete(Endpoints.chatBlock, data: {'room_id': roomId});
   }
 }
