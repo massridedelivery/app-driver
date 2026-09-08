@@ -27,4 +27,13 @@ abstract class ChatRepository {
     required String text,
     String? fileKey,
   });
+
+  /// Reports the chat counterpart for [id]/[vertical]. Returns true if the
+  /// backend accepted the report (false if it failed or the endpoint isn't up
+  /// yet — the UI still acknowledges to the user).
+  Future<bool> reportChat(String id, ChatVertical vertical, String reason);
+
+  /// Blocks ([blocked] true) or unblocks (false) the counterpart. Returns true
+  /// on success (false if it failed — the app keeps a local block as fallback).
+  Future<bool> setBlock(String id, ChatVertical vertical, bool blocked);
 }

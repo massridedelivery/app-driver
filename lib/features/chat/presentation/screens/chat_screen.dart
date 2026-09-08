@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,9 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
+import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 import 'package:massdrive/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String jobId;
@@ -75,6 +78,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_blockKey, value);
     } catch (_) {}
+    // Persist to backend (best-effort). Local prefs above stay the fallback so
+    // block still works on-device if the endpoint isn't up yet.
+    if (!widget.previewMode) {
+      unawaited(
+        getIt<ChatRepository>().setBlock(widget.jobId, widget.vertical, value),
+      );
+    }
   }
 
   ChatMessage _previewMsg(String text, {required bool driver}) => ChatMessage(
@@ -171,9 +181,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _submitReport(String reason) {
-    // TODO(SCRUM): POST to the report endpoint once BE ships it. For now record
-    // the intent and acknowledge — the mechanism is available to the user.
+  Future<void> _submitReport(String reason) async {
+    // Send to the backend (SCRUM-107). We always acknowledge to the user — the
+    // reporting mechanism is available even if the endpoint isn't up yet.
+    bool ok = true;
+    if (!widget.previewMode) {
+      ok = await getIt<ChatRepository>()
+          .reportChat(widget.jobId, widget.vertical, reason);
+    }
+    if (!ok) {
+      debugPrint('Chat report not persisted (endpoint pending?) reason=$reason');
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

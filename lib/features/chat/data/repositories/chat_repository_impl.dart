@@ -107,4 +107,34 @@ class ChatRepositoryImpl implements ChatRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<bool> reportChat(String id, ChatVertical vertical, String reason) async {
+    try {
+      final response = await _chatApiService.reportChat(
+        roomId: vertical.roomId(id),
+        reason: reason,
+      );
+      final code = response.statusCode ?? 0;
+      return code >= 200 && code < 300;
+    } catch (e) {
+      debugPrint('ChatRepository: reportChat error: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> setBlock(String id, ChatVertical vertical, bool blocked) async {
+    try {
+      final response = await _chatApiService.setBlock(
+        roomId: vertical.roomId(id),
+        blocked: blocked,
+      );
+      final code = response.statusCode ?? 0;
+      return code >= 200 && code < 300;
+    } catch (e) {
+      debugPrint('ChatRepository: setBlock error: $e');
+      return false;
+    }
+  }
 }
