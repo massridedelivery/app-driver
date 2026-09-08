@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:massdrive/core/constants/media_category.dart';
+import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../dependency_injection.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
@@ -151,7 +152,7 @@ class RegistrationController extends _$RegistrationController {
             : null,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
     }
   }
 
@@ -167,7 +168,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
@@ -206,7 +207,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
@@ -245,7 +246,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
@@ -285,7 +286,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
@@ -308,7 +309,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
   }
