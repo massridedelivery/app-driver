@@ -10,6 +10,11 @@ import 'package:flutter/material.dart';
 ///  • a **raw** base64 string with no `data:` prefix → decoded bytes
 ///
 /// Anything that fails to load/decode falls back to a plain QR icon.
+///
+/// CONVENTION: render every payment QR through this widget — never
+/// `Image.network(qr_code_url)`. Flutter's `Image.network` cannot decode a
+/// `data:` URI, so a Beam base64 QR would silently break. Enforced by
+/// test/qr_render_convention_test.dart.
 class QrImage extends StatelessWidget {
   final String source;
   final double size;
