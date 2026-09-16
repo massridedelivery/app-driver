@@ -30,6 +30,11 @@ class TransactionModel {
   final double? subtotal;
   final DateTime? completedAt;
 
+  // Job context (SCRUM-105): which vertical the earning came from and where.
+  final String? service; // ride | food | messenger | mart
+  final String? pickupAddress;
+  final String? dropoffAddress;
+
   const TransactionModel({
     required this.id,
     required this.type,
@@ -49,6 +54,9 @@ class TransactionModel {
     this.platformFee,
     this.subtotal,
     this.completedAt,
+    this.service,
+    this.pickupAddress,
+    this.dropoffAddress,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -114,6 +122,9 @@ class TransactionModel {
       platformFee: (json['platform_fee'] as num?)?.toDouble(),
       subtotal: (json['subtotal'] as num?)?.toDouble(),
       completedAt: parseDate(json['completed_at'] as String?),
+      service: json['service'] as String?,
+      pickupAddress: json['pickup_address'] as String?,
+      dropoffAddress: json['dropoff_address'] as String?,
     );
   }
 
@@ -139,6 +150,9 @@ class TransactionModel {
       platformFee: platformFee,
       subtotal: subtotal,
       completedAt: completedAt,
+      service: service,
+      pickupAddress: pickupAddress,
+      dropoffAddress: dropoffAddress,
     );
   }
 }

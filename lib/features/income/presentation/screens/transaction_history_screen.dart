@@ -298,6 +298,31 @@ class _TransactionTile extends StatelessWidget {
                         color: context.palette.textSecondary,
                       ),
                     ),
+                    // Job context (SCRUM-105): vertical + pickup→dropoff, when
+                    // the backend supplies it for a fare row.
+                    if (_jobContext(transaction) case final ctx?) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 12,
+                            color: context.palette.textSecondary,
+                          ),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              ctx,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.caption5.copyWith(
+                                color: context.palette.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -345,6 +370,41 @@ class _TransactionTile extends StatelessWidget {
       parts.add('ค่าธรรมเนียม ${money(t.platformFee!)}');
     }
     return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// Thai label for the job's vertical (SCRUM-105). Null for unknown/empty.
+  static String? _serviceLabel(String? service) {
+    switch (service) {
+      case 'ride':
+        return 'เรียกรถ';
+      case 'food':
+        return 'ส่งอาหาร';
+      case 'messenger':
+        return 'ส่งพัสดุ';
+      case 'mart':
+        return 'ช้อปปิ้ง';
+      default:
+        return null;
+    }
+  }
+
+  /// "pickup → dropoff" from whichever addresses the API supplies. Null when
+  /// neither is present (e.g. a top-up/withdrawal row).
+  static String? _route(Transaction t) {
+    final p = t.pickupAddress?.trim() ?? '';
+    final d = t.dropoffAddress?.trim() ?? '';
+    if (p.isEmpty && d.isEmpty) return null;
+    if (p.isNotEmpty && d.isNotEmpty) return '$p → $d';
+    return p.isNotEmpty ? p : d;
+  }
+
+  /// One-line job context: "เรียกรถ · ต้นทาง → ปลายทาง". Null when the row has
+  /// no service and no route.
+  String? _jobContext(Transaction t) {
+    final svc = _serviceLabel(t.service);
+    final route = _route(t);
+    if (svc != null && route != null) return '$svc · $route';
+    return route ?? svc;
   }
 
   /// Opens a bottom sheet with the full transaction breakdown (everything the
@@ -431,6 +491,14 @@ class _TransactionTile extends StatelessWidget {
               // issue to support.
               if (t.jobId != null || t.orderId != null)
                 _copyableRow(context, 'งาน', t.jobId ?? t.orderId!),
+              // Job context (SCRUM-105): vertical + pickup/dropoff addresses.
+              if (_serviceLabel(t.service) case final s?)
+                _detailRow(context, 'บริการ', s),
+              if (t.pickupAddress != null && t.pickupAddress!.trim().isNotEmpty)
+                _detailRow(context, 'จุดรับ', t.pickupAddress!.trim()),
+              if (t.dropoffAddress != null &&
+                  t.dropoffAddress!.trim().isNotEmpty)
+                _detailRow(context, 'จุดส่ง', t.dropoffAddress!.trim()),
               if (t.subtotal != null && t.subtotal! > 0)
                 _detailRow(context, 'ยอดงาน', money(t.subtotal!)),
               if (t.commission != null && t.commission! > 0)
