@@ -24,6 +24,11 @@ class Transaction {
   final double? subtotal;
   final DateTime? completedAt;
 
+  // Job context (SCRUM-105): vertical + pickup/dropoff for the earning.
+  final String? service; // ride | food | messenger | mart
+  final String? pickupAddress;
+  final String? dropoffAddress;
+
   const Transaction({
     required this.id,
     required this.type,
@@ -43,6 +48,9 @@ class Transaction {
     this.platformFee,
     this.subtotal,
     this.completedAt,
+    this.service,
+    this.pickupAddress,
+    this.dropoffAddress,
   });
 
   /// Whether the amount adds funds to the wallet.
