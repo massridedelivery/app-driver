@@ -25,6 +25,11 @@ abstract class Endpoints {
   static const mediaConfirm = '/api/media/confirm';
   static const documentConfirm = '/api/driver/documents';
   static const mediaView = '/api/media/view';
+
+  // In-job chat moderation (UGC safety — Apple req). Scoped by room_id
+  // (job:/order:/messenger:{id}); the backend resolves the counterpart.
+  static const chatReport = '/api/driver/chat/report';
+  static const chatBlock = '/api/driver/chat/block';
   // Registration final-submit + status (SCRUM-75). Submit sends the accepted
   // consents (e.g. criminal_record_check); status returns MissingConsents /
   // MissingDocuments. Both auth by the driver token.
