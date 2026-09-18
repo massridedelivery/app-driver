@@ -161,15 +161,70 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
     }
   }
 
+  /// Shown when the backend did not supply the company's bank account for this
+  /// top-up. We must not render the transfer form with any guessed account.
+  Widget _buildMissingBankInfoScreen() {
+    return Scaffold(
+      appBar: CommonAppBar(titleText: 'แจ้งยอดโอนเงิน', showLeftIcon: true),
+      backgroundColor: context.palette.bg,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.account_balance_outlined,
+                    size: 56, color: context.palette.textSecondary),
+                const SizedBox(height: 16),
+                Text(
+                  'ไม่พบข้อมูลบัญชีรับโอน',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.heading6
+                      .copyWith(color: context.palette.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ระบบยังไม่ได้ส่งข้อมูลบัญชีสำหรับโอนเงิน '
+                  'กรุณาลองใหม่อีกครั้งภายหลัง หรือติดต่อฝ่ายสนับสนุน',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body2
+                      .copyWith(color: context.palette.textSecondary),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: Text(
+                    'กลับ',
+                    style: AppTypography.label2
+                        .copyWith(color: AppColors.foundationOrange500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_result != null) {
       return _buildSuccessScreen(_result!);
     }
 
-    final bankName = widget.bankDetails['bank_name']?.toString() ?? 'ธนาคารกสิกรไทย (KBANK)';
-    final accountNumber = widget.bankDetails['account_number']?.toString() ?? '012-3-45678-9';
-    final accountName = widget.bankDetails['account_name']?.toString() ?? 'บริษัท แมสไดรฟ์ จำกัด';
+    final bankName = widget.bankDetails['bank_name']?.toString().trim() ?? '';
+    final accountNumber =
+        widget.bankDetails['account_number']?.toString().trim() ?? '';
+    final accountName = widget.bankDetails['account_name']?.toString().trim() ?? '';
+
+    // Fail-safe: NEVER show a placeholder/guessed account. Transferring real
+    // money to a wrong account is unrecoverable — if the backend didn't supply
+    // the company's bank details, show an error instead of the transfer form.
+    if (bankName.isEmpty || accountNumber.isEmpty || accountName.isEmpty) {
+      return _buildMissingBankInfoScreen();
+    }
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'แจ้งยอดโอนเงิน', showLeftIcon: true),
