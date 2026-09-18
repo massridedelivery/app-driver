@@ -48,6 +48,8 @@
 		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ และสลิปโอนเงินสำหรับการลงทะเบียนและยืนยันการชำระเงิน</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>บันทึกรูป QR สำหรับการชำระเงินลงในคลังรูปภาพ เพื่อให้คุณนำไปสแกนจ่ายในแอปธนาคารได้</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>
