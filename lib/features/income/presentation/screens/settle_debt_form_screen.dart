@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/qr_image.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -26,6 +29,11 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
   Map<String, dynamic>? _settleResult;
+
+  /// Wraps the on-screen QR so it can be captured to a PNG and saved to the
+  /// gallery — the rider then scans it from Photos inside their banking app.
+  final _qrBoundaryKey = GlobalKey();
+  bool _isSavingQr = false;
 
   final _quickAmounts = [100, 200, 300, 500, 1000];
 
@@ -356,6 +364,38 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
     return '$m:$s';
   }
 
+  /// Capture the on-screen QR to a PNG and save it to the device gallery, so the
+  /// rider can open their banking app and pay via "scan from photo/gallery".
+  Future<void> _saveQr() async {
+    if (_isSavingQr) return;
+    setState(() => _isSavingQr = true);
+    try {
+      final boundary = _qrBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) throw Exception('QR boundary not ready');
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) throw Exception('QR encode failed');
+      await Gal.putImageBytes(
+        byteData.buffer.asUint8List(),
+        name: 'massdrive_qr_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('บันทึกรูป QR ลงคลังภาพแล้ว')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('บันทึกรูป QR ไม่สำเร็จ กรุณาลองใหม่')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingQr = false);
+    }
+  }
+
   Widget _buildQRScreen(Map<String, dynamic> result) {
     if (_intentStatus == 'PAID') return _buildSuccessScreen();
 
@@ -394,14 +434,17 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  Container(
-                    width: 220,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                  RepaintBoundary(
+                    key: _qrBoundaryKey,
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(child: QrImage(source: qrCodeUrl)),
                     ),
-                    child: Center(child: QrImage(source: qrCodeUrl)),
                   ),
                   // Dim the QR once it can no longer be paid.
                   if (canRetry)
@@ -433,6 +476,33 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                   color: context.palette.textSecondary,
                 ),
               ),
+              // Save the QR to Photos so the rider can pay from their banking
+              // app via scan-from-gallery.
+              if (!_isTerminal && qrCodeUrl.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isSavingQr ? null : _saveQr,
+                  icon: _isSavingQr
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download_rounded, size: 18),
+                  label: Text('บันทึกรูป QR', style: AppTypography.label2),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.foundationOrange500,
+                    side: BorderSide(
+                      color: AppColors.foundationOrange500.withValues(alpha: 0.5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
