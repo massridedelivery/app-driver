@@ -108,6 +108,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Timer? _pollTimer;
   StreamSubscription? _wsSub;
   bool _loadingQr = false;
+  bool _intentError = false;
   bool _submitting = false;
   String? _intentId;
   String? _qrCodeUrl;
@@ -172,27 +173,38 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Future<void> _startQrFlow() async {
     if (_intentId != null) return; // already started
-    setState(() => _loadingQr = true);
+    setState(() {
+      _loadingQr = true;
+      _intentError = false;
+    });
     Map<String, dynamic> intent = {};
+    bool ok = false;
     try {
       final res = await ref.read(paymentApiServiceProvider).createIntent(
             orderId: _orderId,
             messenger: _isMessenger,
           );
+      // BE returns a non-200 (e.g. 502) with a clear error when the gateway
+      // can't mint the QR — we must NOT render a blank/placeholder QR then.
       if (res.isSuccessful && res.data is Map) {
         intent = Map<String, dynamic>.from(res.data as Map);
+        ok = true;
       }
     } catch (e) {
       if (kDebugMode) debugPrint('PaymentScreen.createIntent: $e');
     }
     if (!mounted) return;
+    final status = intent['status']?.toString() ?? 'AWAITING_PAYMENT';
+    final qr = intent['qr_code_url']?.toString();
     setState(() {
       _intentId = intent['intent_id']?.toString();
-      _qrCodeUrl = intent['qr_code_url']?.toString();
-      _status = intent['status']?.toString() ?? 'AWAITING_PAYMENT';
+      _qrCodeUrl = qr;
+      _status = status;
+      // Error when the call failed OR it came back without a usable QR.
+      _intentError = !ok || ((qr == null || qr.isEmpty) && status != 'PAID');
       _loadingQr = false;
     });
-    if (_paid) return;
+    if (_intentError || _paid) return;
     // Primary: payment_paid WS event. Fallback: poll.
     _wsSub = ref.read(socketServiceProvider).messages.listen((msg) {
       if (msg.type != 'payment_paid') return;
@@ -705,10 +717,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             alignment: Alignment.center,
             child: _loadingQr
                 ? const CircularProgressIndicator(strokeWidth: 2)
-                : _expired
-                    ? const Icon(Icons.timer_off_outlined,
+                : _intentError
+                    ? const Icon(Icons.error_outline,
                         size: 72, color: Colors.black38)
-                    : QrImage(source: _qrCodeUrl ?? ''),
+                    : _expired
+                        ? const Icon(Icons.timer_off_outlined,
+                            size: 72, color: Colors.black38)
+                        : QrImage(source: _qrCodeUrl ?? ''),
           ),
 
           const SizedBox(height: 20),
@@ -726,6 +741,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ),
               ],
             )
+          else if (_intentError) ...[
+            Text(
+              "สร้าง QR ไม่สำเร็จ",
+              textAlign: TextAlign.center,
+              style: AppTypography.body1
+                  .copyWith(color: AppColors.semanticErrorBgHigh),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _requestNewQr,
+              child: Text(
+                "ลองใหม่",
+                style: AppTypography.body1.copyWith(
+                  color: AppColors.foundationOrange500,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ]
           else if (_expired) ...[
             Text(
               "QR หมดอายุแล้ว",
