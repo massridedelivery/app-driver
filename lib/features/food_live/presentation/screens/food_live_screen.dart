@@ -62,14 +62,21 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
       _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
         if (!mounted) return;
         if (msg.type == 'job_status' || msg.type == 'ORDER_STATUS_UPDATED') {
-          final jobId = msg.data?['job_id'] ?? msg.data?['orderId'];
-          final status = msg.data?['status'];
+          // Read top-level (raw) or nested (data) — a customer cancel frame
+          // with top-level fields was missed before, leaving the live screen
+          // stuck until an app restart.
+          final jobId = msg.raw['job_id'] ??
+              msg.raw['orderId'] ??
+              msg.data?['job_id'] ??
+              msg.data?['orderId'];
+          final status = msg.raw['status'] ?? msg.data?['status'];
           final currentJobId = ref
               .read(incomingJobControllerProvider)
               .currentJob
               ?.jobId;
 
           if (currentJobId == jobId && status == 'CANCELLED') {
+            ref.read(incomingJobControllerProvider.notifier).dismissModal();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('ออเดอร์ถูกยกเลิกแล้ว')),
             );
