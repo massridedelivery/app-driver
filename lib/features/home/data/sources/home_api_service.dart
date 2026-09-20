@@ -20,8 +20,14 @@ class HomeApiService {
     );
   }
 
-  Future<ResponseData> goOnline() async {
-    final response = await _dio.post(Endpoints.driverOnline);
+  /// Go online. Sends the driver's current GPS so the backend can add them to
+  /// the dispatch (Redis geo/H3) pool immediately — the pool is fed by location,
+  /// not DB status, so without coords a driver is "online" but undispatchable.
+  Future<ResponseData> goOnline({double? lat, double? lng}) async {
+    final response = await _dio.post(
+      Endpoints.driverOnline,
+      data: (lat != null && lng != null) ? {'lat': lat, 'lng': lng} : null,
+    );
     return ResponseData(
       data: response.data,
       isSuccessful: response.statusCode == 200 || response.statusCode == 201,

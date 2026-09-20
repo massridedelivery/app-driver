@@ -219,22 +219,29 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
 
     try {
       if (value) {
-        // Set Online via API first
+        // Start GPS first (prompts permission) so we can send our position when
+        // registering online — the dispatch pool is fed by location, so BE adds
+        // us as dispatchable right away instead of waiting for the first frame.
+        await locationService.startLocationUpdates();
+        final pos = await locationService.currentPosition();
+
+        // Set Online via API (with current coords)
         if (!skipApiCall) {
           try {
-            final res = await ref.read(homeApiServiceProvider).goOnline();
+            final res = await ref.read(homeApiServiceProvider).goOnline(
+                  lat: pos?.latitude,
+                  lng: pos?.longitude,
+                );
             if (!res.isSuccessful) throw Exception('Failed to go online');
           } catch (e) {
+            locationService.stopLocationUpdates(); // undo GPS on failure
             if (kDebugMode) debugPrint('Go Online API Error: $e');
             rethrow;
           }
         }
 
-        // Connect WebSocket
+        // Connect WebSocket — carries the continuous location_update frames.
         await socketService.connect();
-
-        // Start location stream updates
-        await locationService.startLocationUpdates();
 
         state = state.copyWith(isOnline: true);
       } else {
