@@ -58,10 +58,7 @@ class LocationService {
     _minSendInterval = Duration(seconds: activeJob ? 3 : 8);
 
     _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: accuracy,
-        distanceFilter: distanceFilter,
-      ),
+      locationSettings: _buildSettings(accuracy, distanceFilter),
     ).listen(
       (pos) {
         _lastPosition = pos;
@@ -88,6 +85,36 @@ class LocationService {
         _send(pos);
       }
     });
+  }
+
+  /// Platform location settings that keep updates flowing while the app is
+  /// backgrounded, so the driver stays in the dispatch pool (SCRUM-122):
+  ///  • Android → a foreground service with a persistent notification.
+  ///  • iOS → the background-location mode (blue status indicator).
+  /// Both work with "while in use" permission because the session starts while
+  /// the app is in the foreground (driver taps "online").
+  LocationSettings _buildSettings(LocationAccuracy accuracy, int distanceFilter) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'MassDriver กำลังออนไลน์',
+          notificationText: 'กำลังแชร์ตำแหน่งเพื่อรับงาน',
+          enableWakeLock: true,
+        ),
+      );
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return AppleSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+        allowBackgroundLocationUpdates: true,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    }
+    return LocationSettings(accuracy: accuracy, distanceFilter: distanceFilter);
   }
 
   /// A single fix for one-off needs (map camera, active-job probe). Works
