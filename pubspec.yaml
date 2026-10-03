@@ -106,15 +106,15 @@ flutter_launcher_icons:
 # icon -> splash -> app hand-off. Regenerate after changing the image/colour:
 #   dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#B4312E"
-  image: assets/icon/icon_foreground.png
+  # No native logo — plain ground that matches the in-app splash_screen bg, so
+  # the OS launch screen hands off seamlessly into the branded Flutter splash
+  # (no duplicate logo). Branding lives in splash_screen.dart.
+  color: "#F8F8F9"
   android: true
   ios: true
   web: false
-  # Android 12+ uses the system splash API (the icon is masked to a circle).
   android_12:
-    color: "#B4312E"
-    image: assets/icon/icon_foreground.png
+    color: "#F8F8F9"
 
 flutter:
   uses-material-design: true
