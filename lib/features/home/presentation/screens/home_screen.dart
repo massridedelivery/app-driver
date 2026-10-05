@@ -586,6 +586,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// Re-check verification from the backend (pull-to-refresh on the under-review
+  /// sheet) so a driver whose is_verified just flipped to true doesn't have to
+  /// cold-restart the app to get in.
+  Future<void> _refreshVerification() async {
+    await ref.read(profileControllerProvider.notifier).fetchProfile();
+    if (!mounted) return;
+    final verified =
+        ref.read(profileControllerProvider).profile?.isVerified ?? false;
+    if (verified) {
+      ref.read(onlineStatusProvider.notifier).initStatus(context);
+    } else {
+      await ref.read(registrationControllerProvider.notifier).fetchStatus();
+    }
+  }
+
   /// Shown once the driver has submitted their documents and is awaiting
   /// approval — replaces the "register now" CTA with an under-review status.
   Widget _buildInReviewBottomSheet() {
@@ -606,13 +621,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
         child: SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.hourglass_top_rounded,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.55,
+            ),
+            child: RefreshIndicator(
+              onRefresh: _refreshVerification,
+              child: ListView(
+                shrinkWrap: true,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.hourglass_top_rounded,
                   color: AppColors.foundationOrange500,
                   size: 56,
                 ),
@@ -682,7 +706,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-              ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'ดึงลงเพื่อตรวจสอบสถานะอีกครั้ง',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption5
+                            .copyWith(color: context.palette.textTertiary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
