@@ -56,10 +56,28 @@ class ServiceTypeScreen extends ConsumerWidget {
                     description: _th(service.description),
                     // vehicleTypes use displayName from backend
                     isEnabled: service.isEnabled,
-                    onToggle: () {
-                      ref
+                    onToggle: () async {
+                      final ok = await ref
                           .read(profileControllerProvider.notifier)
                           .toggleVehicleType(service.id, !service.isEnabled);
+                      if (!ok && context.mounted) {
+                        // Backend rejects enabling a type that doesn't belong to
+                        // the driver's physical vehicle (cross-kind) — it comes
+                        // back as a 500, so show a clear message instead of a
+                        // silent no-op.
+                        final msg = ref
+                            .read(profileControllerProvider)
+                            .errorMessage;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              (msg != null && msg.trim().isNotEmpty)
+                                  ? msg
+                                  : 'เปลี่ยนประเภทบริการไม่สำเร็จ — เลือกได้เฉพาะประเภทที่อยู่บนรถคันเดียวกัน',
+                            ),
+                          ),
+                        );
+                      }
                     },
                   );
                 },
