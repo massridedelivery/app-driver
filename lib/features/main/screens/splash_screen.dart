@@ -5,7 +5,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -28,8 +27,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   // (primary #DB1439 / deep #B71130), so the style matches exactly; only the
   // "M" mark and the copy below are the driver's own.
   static const Color _bg = Color(0xFFF8F8F9);
-  static const Color _brand = AppColors.foundationRed700; // #DB1439
-  static const Color _brandDeep = AppColors.foundationRed800; // #B71130
   static const Color _subtitle = Color(0xFF475569);
 
   // MassCustomer holds the splash a flat 2s before handing off to the router.
@@ -118,21 +115,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       backgroundColor: _bg,
       body: Stack(
         children: [
-          // Soft, out-of-focus brand blobs behind the content.
+          // Soft, out-of-focus neutral blobs behind the content — a clean grey
+          // ground (no colour tint) matching the dark brand mark.
           _AuraBlur(
-            color: _brand,
+            color: const Color(0xFF373535),
             diameter: size.width * 0.8,
             top: -size.height * 0.1,
             left: -size.width * 0.1,
           ),
           _AuraBlur(
-            color: _brandDeep,
+            color: const Color(0xFF373535),
             diameter: size.width * 0.7,
             top: size.height * 0.35,
             right: -size.width * 0.2,
           ),
           _AuraBlur(
-            color: _brand,
+            color: const Color(0xFF373535),
             diameter: size.width * 0.6,
             bottom: -size.height * 0.05,
             left: size.width * 0.1,
@@ -153,21 +151,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(30),
-                        gradient: const LinearGradient(
-                          colors: [_brandDeep, _brand],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: const Color(0xFF373535),
                         boxShadow: [
                           BoxShadow(
-                            color: _brand.withOpacity(0.35),
+                            color: Colors.black.withValues(alpha: 0.22),
                             blurRadius: 28,
                             offset: const Offset(0, 14),
                           ),
                         ],
                       ),
-                      // The official MassDriver "M" mark (white, on the red
-                      // tile) — the same brand mark as the store icon.
+                      // The MASS DRIVE "M" mark (white, on the dark brand tile)
+                      // — the same mark as the new store/launcher icon.
                       child: Image.asset(
                         'assets/images/app_logo_mark.png',
                         fit: BoxFit.contain,
@@ -177,12 +171,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'MassDriver',
+                  'MASS DRIVE',
                   style: AppTypography.heading1.copyWith(
-                    fontSize: 44,
+                    fontSize: 36,
                     fontWeight: FontWeight.w900,
-                    color: _brand,
-                    letterSpacing: 1.5,
+                    color: const Color(0xFF373535),
+                    letterSpacing: 2,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -235,7 +229,7 @@ class _AuraBlur extends StatelessWidget {
             height: diameter,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
             ),
           ),
         ),
