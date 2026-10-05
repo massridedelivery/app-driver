@@ -11,6 +11,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'register_controller.g.dart';
 
+/// Outcome of a registration attempt. [alreadyExists] (HTTP 409) means a driver
+/// account for this phone/email already exists → the UI sends them to login.
+enum RegisterResult { success, error, alreadyExists }
+
 @riverpod
 class RegisterController extends _$RegisterController {
   @override
@@ -31,7 +35,7 @@ class RegisterController extends _$RegisterController {
     );
   }
 
-  Future<bool> register() async {
+  Future<RegisterResult> register() async {
     debugPrint('RegisterController.register called');
 
     if (state.fullName.isEmpty ||
@@ -39,7 +43,7 @@ class RegisterController extends _$RegisterController {
         state.phone.isEmpty ||
         state.password.isEmpty) {
       state = state.copyWith(errorMessage: 'Please fill all fields');
-      return false;
+      return RegisterResult.error;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: '');
@@ -94,11 +98,18 @@ class RegisterController extends _$RegisterController {
       await registerUseCase.execute(request);
 
       state = state.copyWith(isLoading: false);
-      return true;
+      return RegisterResult.success;
     } catch (e) {
       debugPrint('RegisterController: Error $e');
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
-      return false;
+      final msg = e.toString();
+      // 409: a driver account for this phone/email already exists → go to login.
+      if (msg.contains('ACCOUNT_EXISTS') ||
+          msg.toLowerCase().contains('already registered')) {
+        state = state.copyWith(isLoading: false);
+        return RegisterResult.alreadyExists;
+      }
+      state = state.copyWith(isLoading: false, errorMessage: msg);
+      return RegisterResult.error;
     }
   }
 }

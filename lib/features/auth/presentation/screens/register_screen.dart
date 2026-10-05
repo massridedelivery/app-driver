@@ -114,9 +114,24 @@ class RegisterScreen extends ConsumerWidget {
                 enabled: isValid && !state.isLoading,
                 loading: state.isLoading,
                 onTap: () async {
-                  final success = await controller.register();
-                  if (success && context.mounted) {
-                    context.go(AppRoutes.homeNamedPage);
+                  final result = await controller.register();
+                  if (!context.mounted) return;
+                  switch (result) {
+                    case RegisterResult.success:
+                      context.go(AppRoutes.homeNamedPage);
+                    case RegisterResult.alreadyExists:
+                      // A driver account already exists for this phone/email —
+                      // send them to login instead (BE 409).
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'เบอร์หรืออีเมลนี้มีบัญชีคนขับอยู่แล้ว เข้าสู่ระบบแทน',
+                          ),
+                        ),
+                      );
+                      context.go(AppRoutes.emailLoginNamedPage);
+                    case RegisterResult.error:
+                      break;
                   }
                 },
               ),
