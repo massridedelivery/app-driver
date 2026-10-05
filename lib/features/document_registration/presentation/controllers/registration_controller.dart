@@ -24,6 +24,26 @@ class RegistrationController extends _$RegistrationController {
     return const RegistrationState();
   }
 
+  /// Whether `fullName` is a genuine name the driver typed, rather than a
+  /// placeholder we must force them to replace in the basic-profile step.
+  /// Two non-names can reach here: the legacy "New Driver" placeholder the app
+  /// used to send at phone signup, and the backend's phone-number fallback when
+  /// signup sends no name at all. The phone match is on the trailing 9
+  /// significant digits so +66/0 formatting differences between the stored name
+  /// and the profile phone do not matter.
+  static bool _isRealName(String? fullName, String? phone) {
+    final name = (fullName ?? '').trim();
+    if (name.isEmpty) return false;
+    if (name.toLowerCase() == 'new driver') return false;
+    String tail(String? s) {
+      final digits = (s ?? '').replaceAll(RegExp(r'\D'), '');
+      return digits.length > 9 ? digits.substring(digits.length - 9) : digits;
+    }
+    final nameTail = tail(name);
+    if (nameTail.isNotEmpty && nameTail == tail(phone)) return false;
+    return true;
+  }
+
   void setTier(KycTier? tier) {
     if (tier == null) {
       state = RegistrationState(
@@ -83,8 +103,15 @@ class RegistrationController extends _$RegistrationController {
         }
       }
 
+      // The profile step is done only when the driver has entered a REAL name.
+      // full_name can be non-empty without that: the legacy app wrote the
+      // placeholder "New Driver" at signup, and the backend falls back to the
+      // phone number when no name is sent. Treating either as "complete" let
+      // drivers finish onboarding still showing a fake name. Require a genuine
+      // name instead.
+      final hasRealName = _isRealName(profile?.fullName, profile?.phone);
       final isProfileComplete = profile != null &&
-          profile.fullName.isNotEmpty &&
+          hasRealName &&
           profile.phone != null &&
           profile.phone!.isNotEmpty;
 
@@ -133,7 +160,11 @@ class RegistrationController extends _$RegistrationController {
         isInsuranceComplete: isInsuranceComplete,
         isBankAccountComplete: isBankAccountComplete,
         bankAccountInfo: activePayout ?? state.bankAccountInfo,
-        profileInfo: profile != null
+        // Prefill the name form only from a real stored name. Splitting a
+        // placeholder ("New Driver" → "New"/"Driver") or the phone-number
+        // fallback into the first/last fields would push that fake value right
+        // back when the driver taps Save, so leave the fields blank instead.
+        profileInfo: profile != null && hasRealName
             ? DriverProfileInfo(
                 // Treat the legacy "New Driver" placeholder as empty so the form
                 // prompts for the real name instead of pre-filling the placeholder.
