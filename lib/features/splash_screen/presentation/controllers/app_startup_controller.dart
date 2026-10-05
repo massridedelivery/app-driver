@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/features/support/data/support_config_service.dart';
 import 'package:massdrive/router/startup_destination.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -26,6 +29,11 @@ class AppStartupController extends _$AppStartupController {
     }
 
     if (!isLoggedIn) return StartupResult.onboarding;
+
+    // Load runtime app config (support/call-center phone) now that the session
+    // is valid. Fire-and-forget so a slow or failed config fetch never blocks
+    // startup; the help UI falls back to "unavailable" until it resolves.
+    unawaited(loadSupportConfig());
 
     // FCM token registration is not triggered here: it follows the session via
     // PushTokenRegistrar (started in main), which also covers a fresh login —
