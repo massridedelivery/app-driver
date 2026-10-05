@@ -15,6 +15,9 @@ abstract class Endpoints {
   static const login = '/auth/login';
   static const register = '/auth/register';
 
+  // MARK: App config (runtime)
+  static const configSupport = '/api/config/support';
+
   // MARK: Driver profile
   static const driverProfile = '/api/driver/profile';
   static const driverOnline = '/api/driver/online';

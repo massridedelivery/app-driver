@@ -4,9 +4,12 @@ class SupportConstant {
 
   /// Call-center number the driver dials from the help sheet.
   ///
-  /// Empty until the real number is known — the UI checks [hasCallCenter] and
-  /// tells the driver it is unavailable rather than dialing something wrong.
-  static const String callCenterNumber = '';
+  /// Populated at runtime from `GET /api/config/support` (`support_phone`) via
+  /// [loadSupportConfig] — never hardcoded, so ops can change the number without
+  /// a release. Stays empty until the config loads; the UI checks
+  /// [hasCallCenter] and tells the driver it is unavailable rather than dialing
+  /// something wrong.
+  static String callCenterNumber = '';
 
   static bool get hasCallCenter => callCenterNumber.trim().isNotEmpty;
 
