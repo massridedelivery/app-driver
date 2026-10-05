@@ -13,6 +13,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -82,6 +83,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           const SizedBox(height: 20),
 
                           _WeeklyOverviewCard(profile: profile),
+
+                          const SizedBox(height: 20),
+
+                          const _QuestsEntry(),
 
                           const SizedBox(height: 20),
 
@@ -183,6 +188,54 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
 
+              Icon(Icons.chevron_right, color: context.palette.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestsEntry extends StatelessWidget {
+  const _QuestsEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => AppNavigator.push(context, const QuestsScreen()),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: context.palette.surface,
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.emoji_events_rounded,
+                  color: AppColors.foundationOrange500, size: 26),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ภารกิจ & รางวัล',
+                      style: AppTypography.label2
+                          .copyWith(color: context.palette.textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'ทำภารกิจให้ครบเพื่อรับโบนัส',
+                      style: AppTypography.caption5
+                          .copyWith(color: context.palette.textTertiary),
+                    ),
+                  ],
+                ),
+              ),
               Icon(Icons.chevron_right, color: context.palette.textSecondary),
             ],
           ),
