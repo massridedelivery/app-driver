@@ -129,6 +129,11 @@ class AuthApiServiceImpl implements AuthApiService {
         'refresh_token': refreshToken,
       };
     } on DioException catch (e) {
+      // 409 = a driver account for this phone/email already exists → the UI
+      // routes to login instead of showing a raw error. (BE multi-type identity.)
+      if (e.response?.statusCode == 409) {
+        throw Exception('ACCOUNT_EXISTS');
+      }
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
