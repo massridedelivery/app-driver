@@ -28,6 +28,40 @@ List<String> _asStringList(dynamic v) {
   return const [];
 }
 
+/// Driver tier/benefits from `GET /api/driver/tier`. Shown as the header on the
+/// Quests screen so it is useful even when there are no active quests.
+class TierInfo {
+  final String currentTier;
+  final String? nextTier;
+  final int jobsToNextTier;
+  final int weeklyJobs;
+  final num questMultiplier;
+  final num baseFareBonus;
+
+  const TierInfo({
+    required this.currentTier,
+    required this.nextTier,
+    required this.jobsToNextTier,
+    required this.weeklyJobs,
+    required this.questMultiplier,
+    required this.baseFareBonus,
+  });
+
+  factory TierInfo.fromJson(Map<String, dynamic> j) {
+    final benefits =
+        (j['benefits'] is Map) ? Map<String, dynamic>.from(j['benefits']) : const {};
+    final next = j['next_tier'];
+    return TierInfo(
+      currentTier: _asString(j['current_tier'] ?? j['tier']),
+      nextTier: (next == null || next.toString().isEmpty) ? null : _asString(next),
+      jobsToNextTier: _asInt(j['jobs_to_next_tier']),
+      weeklyJobs: _asInt(j['weekly_jobs'] ?? j['weekly_completed_jobs']),
+      questMultiplier: _asNum(benefits['quest_multiplier'] ?? 1),
+      baseFareBonus: _asNum(benefits['base_fare_bonus']),
+    );
+  }
+}
+
 /// A single stepped reward within a quest: hit [trips] completed jobs, earn
 /// [bonus]. The bonus is queued for admin approval, not paid instantly.
 class QuestMilestone {

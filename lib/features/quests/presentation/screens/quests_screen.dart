@@ -22,29 +22,53 @@ class QuestsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(questsProvider);
+    final questsAsync = ref.watch(questsProvider);
+    final tier = ref.watch(tierProvider).asData?.value;
     return Scaffold(
       backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'ภารกิจ & รางวัล', showLeftIcon: true),
       body: RefreshIndicator(
-        onRefresh: () async => ref.refresh(questsProvider.future),
-        child: async.when(
-          loading: () => const Center(child: MassLoadingM(size: 64)),
-          error: (_, _) => _empty(
-            context,
-            'โหลดภารกิจไม่สำเร็จ ลองดึงเพื่อรีเฟรช',
-          ),
-          data: (quests) => quests.isEmpty
-              ? _empty(context, 'ยังไม่มีภารกิจตอนนี้')
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: quests.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _QuestCard(
-                    quest: quests[i],
-                    onClaim: () => _claim(context, ref, quests[i]),
-                  ),
+        onRefresh: () async {
+          ref.invalidate(tierProvider);
+          ref.invalidate(questsProvider);
+          await ref.read(questsProvider.future);
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            if (tier != null) ...[
+              _TierCard(tier: tier),
+              const SizedBox(height: 20),
+            ],
+            Text(
+              'ภารกิจ',
+              style: AppTypography.heading5
+                  .copyWith(color: context.palette.textPrimary),
+            ),
+            const SizedBox(height: 12),
+            ...questsAsync.when(
+              loading: () => [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: MassLoadingM(size: 48)),
                 ),
+              ],
+              error: (_, _) =>
+                  [_emptyInline(context, 'โหลดภารกิจไม่สำเร็จ ลองดึงเพื่อรีเฟรช')],
+              data: (quests) => quests.isEmpty
+                  ? [_emptyInline(context, 'ยังไม่มีภารกิจตอนนี้')]
+                  : [
+                      for (int i = 0; i < quests.length; i++) ...[
+                        _QuestCard(
+                          quest: quests[i],
+                          onClaim: () => _claim(context, ref, quests[i]),
+                        ),
+                        if (i < quests.length - 1) const SizedBox(height: 12),
+                      ],
+                    ],
+            ),
+          ],
         ),
       ),
     );
@@ -71,20 +95,86 @@ class QuestsScreen extends ConsumerWidget {
     }
   }
 
-  Widget _empty(BuildContext context, String message) => ListView(
-        children: [
-          const SizedBox(height: 120),
-          Icon(Icons.emoji_events_outlined,
-              size: 64, color: context.palette.textTertiary),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
+  Widget _emptyInline(BuildContext context, String message) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          children: [
+            Icon(Icons.emoji_events_outlined,
+                size: 56, color: context.palette.textTertiary),
+            const SizedBox(height: 12),
+            Text(
               message,
+              textAlign: TextAlign.center,
               style: AppTypography.caption3
                   .copyWith(color: context.palette.textSecondary),
             ),
+          ],
+        ),
+      );
+}
+
+class _TierCard extends StatelessWidget {
+  final TierInfo tier;
+  const _TierCard({required this.tier});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF373535),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.workspace_premium,
+                  color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'ระดับ ${tier.currentTier}',
+                style: AppTypography.heading5.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          if (tier.nextTier != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'อีก ${tier.jobsToNextTier} งาน ถึงระดับ ${tier.nextTier}',
+              style: AppTypography.caption4
+                  .copyWith(color: Colors.white.withValues(alpha: 0.75)),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _benefit('โบนัสภารกิจ x${tier.questMultiplier}'),
+              if (tier.baseFareBonus > 0)
+                _benefit('ค่างาน +${_money.format(tier.baseFareBonus)}'),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _benefit(String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.caption5.copyWith(color: Colors.white),
+        ),
       );
 }
 
