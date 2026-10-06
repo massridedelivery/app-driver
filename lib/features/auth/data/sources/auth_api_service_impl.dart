@@ -57,7 +57,10 @@ class AuthApiServiceImpl implements AuthApiService {
           'otp': otp,
           'ref_id': refId,
           'role': 'driver',
-          'full_name': 'New Driver',
+          // No placeholder name — the driver's real name is set later from the
+          // registration profile form (PUT /api/driver/profile). Sending a
+          // "New Driver" placeholder here made every new driver show up as
+          // "New Driver" in admin/profile. full_name is optional on verify.
         },
         options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.phoneVerify}),
       );
