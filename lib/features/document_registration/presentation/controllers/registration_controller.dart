@@ -135,8 +135,14 @@ class RegistrationController extends _$RegistrationController {
         bankAccountInfo: activePayout ?? state.bankAccountInfo,
         profileInfo: profile != null
             ? DriverProfileInfo(
-                firstName: profile.fullName.split(' ').first,
-                lastName: profile.fullName.split(' ').skip(1).join(' '),
+                // Treat the legacy "New Driver" placeholder as empty so the form
+                // prompts for the real name instead of pre-filling the placeholder.
+                firstName: profile.fullName.trim() == 'New Driver'
+                    ? ''
+                    : profile.fullName.split(' ').first,
+                lastName: profile.fullName.trim() == 'New Driver'
+                    ? ''
+                    : profile.fullName.split(' ').skip(1).join(' '),
                 email: '',
                 emergencyContact: '',
               )
