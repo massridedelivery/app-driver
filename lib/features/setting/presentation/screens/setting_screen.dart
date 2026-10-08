@@ -115,9 +115,9 @@ class SettingScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
             ),
 
-            // UI-preview bypass for the driver→customer review screen. The real
-            // flow shows it after a completed job; the backend submit is still
-            // pending (SCRUM-70), so this opens it with sample data to check UI.
+            // UI-preview for the driver→customer review screen. The real flow
+            // shows it after a completed job and submits to the live endpoints
+            // (SCRUM-70); this opens it with sample data just to check the UI.
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               leading: const _LeadingIconBadge(
