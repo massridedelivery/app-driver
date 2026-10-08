@@ -95,14 +95,11 @@ class AuthApiServiceImpl implements AuthApiService {
       final accessToken = loginResponse.data['access_token'];
       final refreshToken = loginResponse.data['refresh_token'];
 
-      // Temporarily removed _fetchDriverProfile per user request
-      return {
-        'id': 'drv_123',
-        'name': 'Driver (Email)',
-        'phoneNumber': '', // No phone from email login yet
-        'token': accessToken,
-        'refresh_token': refreshToken,
-      };
+      // Fetch the real driver profile with the fresh token (same as the OTP
+      // flow) instead of returning a placeholder.
+      final profile = await _fetchDriverProfile(accessToken, '');
+      profile['refresh_token'] = refreshToken;
+      return profile;
     } on DioException catch (e) {
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
@@ -123,14 +120,22 @@ class AuthApiServiceImpl implements AuthApiService {
       final accessToken = response.data['access_token'];
       final refreshToken = response.data['refresh_token'];
 
-      // Temporarily return user data structuring until backend provides profile from registration or another endpoint is hit
-      return {
-        'id': 'drv_new_123',
-        'name': request.fullName,
-        'phoneNumber': request.phone,
-        'token': accessToken,
-        'refresh_token': refreshToken,
-      };
+      // Fetch the real driver profile with the fresh token. If it isn't
+      // queryable yet right after registration, fall back to the submitted data
+      // (no fake placeholder id) — the real profile loads on the next fetch.
+      try {
+        final profile = await _fetchDriverProfile(accessToken, request.phone);
+        profile['refresh_token'] = refreshToken;
+        return profile;
+      } catch (_) {
+        return {
+          'id': '',
+          'name': request.fullName,
+          'phoneNumber': request.phone,
+          'token': accessToken,
+          'refresh_token': refreshToken,
+        };
+      }
     } on DioException catch (e) {
       // 409 = a driver account for this phone/email already exists → the UI
       // routes to login instead of showing a raw error. (BE multi-type identity.)
