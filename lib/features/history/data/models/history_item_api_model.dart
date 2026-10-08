@@ -71,6 +71,7 @@ class HistoryItemApiModel {
       status: effectiveStatus,
       serviceType: effectiveServiceType,
       rawType: type,
+      jobId: jobId,
     );
   }
 

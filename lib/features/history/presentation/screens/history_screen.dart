@@ -6,7 +6,6 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
-import 'package:massdrive/features/history/domain/models/history_item_model.dart';
 import 'package:massdrive/features/history/presentation/controllers/history_controller.dart';
 import 'package:massdrive/features/history/presentation/widgets/history_item.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
@@ -117,9 +116,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                       AppNavigator.push(
                                         context,
                                         HistoryDetailScreen(
-                                          historyId: item.id,
-                                          isFood: item.serviceType ==
-                                              ServiceType.food,
+                                          jobId: item.jobId ?? item.id,
                                         ),
                                       );
                                     },

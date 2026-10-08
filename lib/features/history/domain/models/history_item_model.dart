@@ -14,6 +14,10 @@ class HistoryItemModel {
   final ServiceType serviceType;
   final String? rawType; // 'FARE_PAYMENT', 'COMMISSION_DEDUCTION', 'TOPUP', 'WITHDRAWAL', etc.
 
+  /// Trip/job this transaction belongs to (`job_id`), used to load the trip
+  /// detail. Null for non-trip entries (top-up, withdrawal).
+  final String? jobId;
+
   HistoryItemModel({
     required this.id,
     required this.dateTime,
@@ -23,6 +27,7 @@ class HistoryItemModel {
     required this.status,
     this.serviceType = ServiceType.ride,
     this.rawType,
+    this.jobId,
   });
 }
 
