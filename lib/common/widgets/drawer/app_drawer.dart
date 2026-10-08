@@ -247,7 +247,7 @@ class _BodyMenu extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5),
               child: Text(
-                'Others',
+                'อื่นๆ',
                 style: AppTypography.label3.copyWith(
                   color: AppColors.foundationGrayscale500,
                 ),
@@ -256,13 +256,13 @@ class _BodyMenu extends ConsumerWidget {
 
             _MenuTile(
               icon: AppAssets.circleQuestionLineIcon,
-              title: 'Chat with Customer Service',
+              title: 'แชทกับฝ่ายบริการลูกค้า',
               onTap: () => onMenuTap?.call(.customerService),
             ),
 
             _MenuTile(
               icon: AppAssets.callCenterLineIcon,
-              title: 'Help Center',
+              title: 'ศูนย์ช่วยเหลือ',
               onTap: () => onMenuTap?.call(.helpCenter),
             ),
 
@@ -271,7 +271,7 @@ class _BodyMenu extends ConsumerWidget {
                 Icons.settings,
                 color: AppColors.semanticGrayNeutralFgHigh,
               ),
-              title: const Text('Settings', style: AppTypography.caption4),
+              title: const Text('ตั้งค่า', style: AppTypography.caption4),
               minTileHeight: 52,
               onTap: () {
                 onMenuTap?.call(.settings);

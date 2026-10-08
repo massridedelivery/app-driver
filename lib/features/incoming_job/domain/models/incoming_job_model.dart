@@ -36,9 +36,9 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'amount_due') double? amountDue,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
-    @JsonKey(name: 'service_type') @Default('Saver Bike') String serviceType,
+    @JsonKey(name: 'service_type') @Default('มอเตอร์ไซค์') String serviceType,
     @JsonKey(name: 'passenger_name', readValue: readCustomerName)
-    @Default('Passenger')
+    @Default('ผู้โดยสาร')
     String passengerName,
     // Customer phone for the in-trip "call" button. Backend sends it either flat
     // (passenger_phone) or nested under customer.phone (JobCustomerInfo).

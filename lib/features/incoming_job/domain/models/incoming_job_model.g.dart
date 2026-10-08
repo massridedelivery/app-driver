@@ -26,9 +26,9 @@ _IncomingJobModel _$IncomingJobModelFromJson(
   amountDue: (json['amount_due'] as num?)?.toDouble(),
   paymentMethod: json['payment_method'] as String,
   points: (json['points'] as num?)?.toInt() ?? 0,
-  serviceType: json['service_type'] as String? ?? 'Saver Bike',
+  serviceType: json['service_type'] as String? ?? 'มอเตอร์ไซค์',
   passengerName:
-      readCustomerName(json, 'passenger_name') as String? ?? 'Passenger',
+      readCustomerName(json, 'passenger_name') as String? ?? 'ผู้โดยสาร',
   passengerPhone: readCustomerPhone(json, 'passenger_phone') as String? ?? '',
   itemSummary: json['item_summary'] as String? ?? '',
   timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 16,
