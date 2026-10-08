@@ -20,9 +20,9 @@ class ReviewCustomerScreen extends ConsumerStatefulWidget {
   /// Secondary line under the name (e.g. phone or a vertical label).
   final String? subtitle;
 
-  /// UI-preview bypass (dev entry): skip the API call — which 404s until the
-  /// backend ships (SCRUM-70) — and just confirm the flow. Lets the screen be
-  /// checked on-device without a real completed job.
+  /// UI-preview bypass (dev entry): skip the submit API so the screen can be
+  /// checked on-device without a real completed job. The review endpoints are
+  /// live (SCRUM-70) — this is only for previewing the UI, not a workaround.
   final bool previewMode;
 
   const ReviewCustomerScreen({
@@ -82,7 +82,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
       return;
     }
 
-    // UI-preview bypass: skip the (not-yet-built) API and just go home.
+    // UI-preview bypass: skip the (live) submit API and just go home.
     if (widget.previewMode) {
       _goHome();
       return;
