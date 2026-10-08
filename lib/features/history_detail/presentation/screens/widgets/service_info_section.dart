@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
@@ -22,7 +21,7 @@ class ServiceInfoSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -34,31 +33,23 @@ class ServiceInfoSection extends StatelessWidget {
           _buildHeader(context, theme),
           const SizedBox(height: 16),
           _buildServiceRow(context,
-            icon: data.isFood ? Icons.fastfood : Icons.two_wheeler_sharp,
             label: "ประเภทบริการ",
             value: _getServiceType(),
-            iconColor: data.isFood
-                ? AppColors.foundationOrange600
-                : null,
           ),
           if (data.isFood && data.restaurantName != null) ...[
             const SizedBox(height: 12),
             _buildServiceRow(context,
-              icon: Icons.storefront,
               label: "ร้านอาหาร",
               value: data.restaurantName!,
-              iconColor: AppColors.foundationOrange600,
             ),
           ],
           const SizedBox(height: 12),
           _buildServiceRow(context,
-            icon: Icons.location_on_outlined,
             label: data.isFood ? "รับอาหารจาก" : "จุดรับ",
             value: data.pickupAddress,
           ),
           const SizedBox(height: 12),
           _buildServiceRow(context,
-            icon: Icons.flag_outlined,
             label: data.isFood ? "ส่งที่" : "จุดส่ง",
             value: data.dropoffAddress,
           ),
@@ -77,34 +68,23 @@ class ServiceInfoSection extends StatelessWidget {
   }
 
   Widget _buildServiceRow(BuildContext context, {
-    required IconData icon,
     required String label,
     required String value,
-    Color? iconColor,
   }) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: iconColor),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: AppTypography.caption5.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-            ],
+        Text(
+          label,
+          style: AppTypography.caption5.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: AppTypography.caption4.copyWith(
+            color: context.palette.textPrimary,
           ),
         ),
       ],
