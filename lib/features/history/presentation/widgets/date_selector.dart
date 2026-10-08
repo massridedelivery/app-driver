@@ -3,9 +3,9 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 
-/// Horizontal date filter for the history list: an "ทั้งหมด" (all) chip plus the
-/// most recent days. Selecting a day filters the list to that day; "ทั้งหมด"
-/// clears the date filter. [selectedDate] null = all.
+/// Horizontal date filter for the history list: an "ทั้งหมด" (all) pill plus the
+/// most recent days as single-line pills ("พฤ 8"). Selecting a day filters the
+/// list to that day; "ทั้งหมด" clears the date filter. [selectedDate] null = all.
 class DateSelector extends StatelessWidget {
   final DateTime? selectedDate;
   final ValueChanged<DateTime?> onSelected;
@@ -35,25 +35,23 @@ class DateSelector extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 72,
+      height: 56,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         itemCount: days.length + 1,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _Chip(
-              top: '',
+            return _Pill(
               label: 'ทั้งหมด',
               selected: selectedDate == null,
               onTap: () => onSelected(null),
             );
           }
           final day = days[index - 1];
-          return _Chip(
-            top: _weekdayTh[day.weekday - 1],
-            label: '${day.day}',
+          return _Pill(
+            label: '${_weekdayTh[day.weekday - 1]} ${day.day}',
             selected: selectedDate != null && _sameDay(selectedDate!, day),
             onTap: () => onSelected(day),
           );
@@ -63,14 +61,12 @@ class DateSelector extends StatelessWidget {
   }
 }
 
-class _Chip extends StatelessWidget {
-  final String top;
+class _Pill extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _Chip({
-    required this.top,
+  const _Pill({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -78,39 +74,29 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected
-        ? AppColors.foundationOrange500
-        : context.palette.surfaceAlt;
-    final fg = selected ? Colors.white : context.palette.textSecondary;
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: Container(
-        width: top.isEmpty ? 64 : 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
+          color: selected
+              ? AppColors.foundationOrange500
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? AppColors.foundationOrange500
+                : context.palette.border,
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (top.isNotEmpty)
-              Text(
-                top,
-                style: AppTypography.caption5.copyWith(
-                  color: fg.withValues(alpha: 0.85),
-                ),
-              ),
-            if (top.isNotEmpty) const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTypography.label2.copyWith(
-                color: fg,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: AppTypography.label2.copyWith(
+            color: selected ? Colors.white : context.palette.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
