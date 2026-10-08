@@ -61,6 +61,9 @@ class AuthApiServiceImpl implements AuthApiService {
           // registration profile form (PUT /api/driver/profile). Sending a
           // "New Driver" placeholder here made every new driver show up as
           // "New Driver" in admin/profile. full_name is optional on verify.
+          // The onboarding checklist also used to read that non-empty placeholder
+          // as "profile step done" and skip the name form — fixed alongside this
+          // in registration_controller (_isRealName gate).
         },
         options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.phoneVerify}),
       );
