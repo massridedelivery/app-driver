@@ -11,6 +11,7 @@ import 'package:massdrive/features/income/presentation/controllers/wallet_contro
 import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
+import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 
 class IncomeScreen extends ConsumerWidget {
   const IncomeScreen({super.key});
@@ -110,6 +111,16 @@ class IncomeScreen extends ConsumerWidget {
                         context,
                         const TransactionHistoryScreen(title: 'รายการทั้งหมด'),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Trip/service history (ride & food) with the per-trip detail
+                    // view (map, pickup/dropoff, distance, net).
+                    _AllTransactionsTile(
+                      count: 0,
+                      label: 'ประวัติการให้บริการ',
+                      valueText: 'ดูการเดินทางทั้งหมด',
+                      onTap: () =>
+                          AppNavigator.push(context, const HistoryScreen()),
                     ),
                     // Held-fares "ค่างานรอตรวจสอบ" section hidden: the manual
                     // payment-override that fed it is disabled for now
@@ -520,9 +531,16 @@ class _EarningsCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _AllTransactionsTile extends StatelessWidget {
   final int count;
+  final String label;
+  final String? valueText;
   final VoidCallback onTap;
 
-  const _AllTransactionsTile({required this.count, required this.onTap});
+  const _AllTransactionsTile({
+    required this.count,
+    this.label = 'รายการทั้งหมด',
+    this.valueText,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -539,14 +557,14 @@ class _AllTransactionsTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'รายการทั้งหมด',
+                    label,
                     style: AppTypography.caption4.copyWith(
                       color: context.palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$count รายการ',
+                    valueText ?? '$count รายการ',
                     style: AppTypography.heading5.copyWith(
                       color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,
