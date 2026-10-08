@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
@@ -10,26 +9,6 @@ import 'package:massdrive/features/history/presentation/controllers/history_cont
 import 'package:massdrive/features/history/presentation/widgets/history_item.dart';
 import 'package:massdrive/features/history/presentation/widgets/date_selector.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
-
-// ---------------------------------------------------------------------------
-// Filter definitions
-// ---------------------------------------------------------------------------
-class _FilterOption {
-  final String label;
-  final String? apiValue; // null = "All"
-
-  const _FilterOption(this.label, this.apiValue);
-}
-
-const _filters = [
-  _FilterOption('ทั้งหมด', null),
-  _FilterOption('ค่าโดยสาร', 'FARE_PAYMENT'),
-  _FilterOption('ค่าคอมมิชชัน', 'COMMISSION_DEDUCTION'),
-  _FilterOption('เติมเงิน', 'TOPUP'),
-  _FilterOption('ถอนเงิน', 'WITHDRAWAL'),
-  _FilterOption('โบนัส', 'BONUS'),
-  _FilterOption('ปรับยอด', 'ADJUSTMENT'),
-];
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -66,15 +45,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
-  void _onFilterTap(String? apiValue) {
-    final current = ref.read(historyControllerProvider).selectedType;
-    // Tap same chip → deselect (show all)
-    ref
-        .read(historyControllerProvider.notifier)
-        .setTypeFilter(current == apiValue ? null : apiValue);
-  }
-
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(historyControllerProvider);
@@ -88,7 +58,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         color: context.palette.bg,
         child: Column(
           children: [
-            _buildFilterBar(state.selectedType),
             DateSelector(
               selectedDate: state.selectedDate,
               onSelected: (date) => ref
@@ -150,31 +119,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   // -------------------------------------------------------------------------
-  // Filter bar
-  // -------------------------------------------------------------------------
-  Widget _buildFilterBar(String? selectedType) {
-    return Container(
-      height: 48,
-      color: context.palette.bg,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: _filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = _filters[index];
-          final isSelected = filter.apiValue == selectedType;
-          return _FilterChip(
-            label: filter.label,
-            isSelected: isSelected,
-            onTap: () => _onFilterTap(filter.apiValue),
-          );
-        },
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------------------
   // Empty state
   // -------------------------------------------------------------------------
   Widget _buildEmptyState() {
@@ -200,49 +144,3 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Filter chip widget
-// ---------------------------------------------------------------------------
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.semanticPrimaryBgLow
-              : context.palette.surfaceAlt,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.semanticPrimaryBgLow
-                : context.palette.border,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.caption5.copyWith(
-            color: isSelected ? Colors.white : context.palette.textSecondary,
-            fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-}
