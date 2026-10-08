@@ -323,13 +323,10 @@ class _BottomMenu extends ConsumerWidget {
                   onMenuTap?.call(AppDrawerMenuType.authentication),
             ),
           ),
-          GestureDetector(
-            onTap: () {},
-            child: Text(
-              '${tr('hamburger.version_title')} $versionName ($buildNumber)',
-              style: AppTypography.label3.copyWith(
-                color: AppColors.foundationGrayscale500,
-              ),
+          Text(
+            '${tr('hamburger.version_title')} $versionName ($buildNumber)',
+            style: AppTypography.label3.copyWith(
+              color: AppColors.foundationGrayscale500,
             ),
           ),
         ],
