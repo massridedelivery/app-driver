@@ -463,7 +463,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          currentJob?.serviceType ?? "Saver Bike",
+          currentJob?.serviceType ?? "มอเตอร์ไซค์",
           style: AppTypography.body2.copyWith(color: Colors.white70),
         ),
       ],
@@ -476,7 +476,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          currentJob?.passengerName ?? "Passenger",
+          currentJob?.passengerName ?? "ผู้โดยสาร",
           style: AppTypography.heading4.copyWith(
             color: AppColors.semanticGrayNeutralFgWhite,
           ),
@@ -485,8 +485,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         Text(
           _currentState == JobLiveState.headingToPickup ||
                   _currentState == JobLiveState.arrivedAtPickup
-              ? (currentJob?.pickupAddress ?? "Pickup Address")
-              : (currentJob?.dropoffAddress ?? "Dropoff Address"),
+              ? (currentJob?.pickupAddress ?? "จุดรับ")
+              : (currentJob?.dropoffAddress ?? "จุดส่ง"),
           style: AppTypography.caption3.copyWith(
             color: Colors.white70,
             height: 1.4,

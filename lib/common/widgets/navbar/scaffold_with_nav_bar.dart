@@ -94,17 +94,17 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                   const BottomNavigationBarItem(
                     icon: _iconHome,
                     activeIcon: _activeIconHome,
-                    label: 'Home',
+                    label: 'หน้าหลัก',
                   ),
                   const BottomNavigationBarItem(
                     icon: _iconAccount,
                     activeIcon: _activeIconAccount,
-                    label: 'Income',
+                    label: 'รายได้',
                   ),
                   const BottomNavigationBarItem(
                     icon: _activeIconAccount,
                     activeIcon: _activeIconHome,
-                    label: 'Profile',
+                    label: 'โปรไฟล์',
                   ),
                 ],
                 onTap: (int index) {

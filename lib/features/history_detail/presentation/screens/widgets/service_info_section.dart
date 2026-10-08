@@ -114,9 +114,9 @@ class ServiceInfoSection extends StatelessWidget {
   /// Map serviceType from entity to display label
   String _getServiceType() {
     if (data.isFood) {
-      return "MassFood Delivery";
+      return "ส่งอาหาร";
     }
-    return "Saver Bike";
+    return "มอเตอร์ไซค์";
   }
 }
 

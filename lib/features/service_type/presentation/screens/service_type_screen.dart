@@ -10,15 +10,31 @@ import 'package:massdrive/features/service_type/presentation/widget/service_togg
 /// names/descriptions, so map the known values to Thai here; anything not in
 /// the map falls back to whatever the API sent.
 const Map<String, String> _serviceLabelTh = {
+  // Names
   'Motorcycle (Ride Only)': 'มอเตอร์ไซค์ (รับส่งคน)',
+  'Motorcycle (Food Only)': 'มอเตอร์ไซค์ (ส่งอาหาร)',
+  'Messenger Bike': 'มอเตอร์ไซค์รับส่งของ',
+  'Messenger Car': 'รถยนต์รับส่งของ',
+  'Comfort Car': 'รถยนต์คอมฟอร์ต',
+  'Economy Car': 'รถยนต์อีโคโนมี',
+  'Tuk-Tuk': 'ตุ๊กตุ๊ก',
+  'Van': 'รถตู้',
+  // Descriptions
   'Standard motorcycle taxi for passenger rides only. Public transport license required.':
       'มอเตอร์ไซค์รับจ้างสำหรับรับส่งผู้โดยสารเท่านั้น ต้องมีใบอนุญาตขับขี่สาธารณะ',
-  'Motorcycle (Food Only)': 'มอเตอร์ไซค์ (ส่งอาหาร)',
   'Standard motorcycle for food delivery only. No public transport license required.':
       'มอเตอร์ไซค์สำหรับส่งอาหารเท่านั้น ไม่ต้องมีใบอนุญาตขับขี่สาธารณะ',
-  'Messenger Bike': 'มอเตอร์ไซค์รับส่งของ',
   'Motorcycle courier for small-to-medium packages':
       'รับส่งพัสดุขนาดเล็กถึงกลาง',
+  'Car courier for larger or bulky packages':
+      'รถยนต์รับส่งพัสดุขนาดใหญ่หรือของหนัก',
+  'Spacious sedan with premium comfort':
+      'รถเก๋งกว้างขวาง นั่งสบายระดับพรีเมียม',
+  'Affordable compact car for everyday rides':
+      'รถเก๋งประหยัด เหมาะสำหรับการเดินทางทั่วไป',
+  'Traditional Thai three-wheeler experience': 'รถสามล้อไทยสไตล์ดั้งเดิม',
+  'Large vehicle for groups up to 6 passengers':
+      'รถคันใหญ่ รองรับผู้โดยสารสูงสุด 6 คน',
 };
 
 String _th(String? value) =>
