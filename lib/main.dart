@@ -156,6 +156,15 @@ class MyApp extends ConsumerWidget {
       theme: appLightTheme,
       darkTheme: appDarkTheme,
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+      // Dismiss the keyboard when tapping outside a text field — app-wide, so
+      // every screen with an input gets it without per-screen wrappers.
+      builder: (context, child) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
