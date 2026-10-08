@@ -20,12 +20,19 @@ class HeaderInterceptor extends Interceptor {
       options.headers['content-language'] = languageCode;
     }
 
+    // Set each device header independently so one failing lookup doesn't drop
+    // the others. device_info_plus can throw a null-cast TypeError on some
+    // devices — when it does we just omit that one header instead of all three.
+    options.headers['device-models'] = Device.isAndroid ? 'Android' : 'iOS';
     try {
       options.headers['app-version'] = await Device.getAppVersion();
-      options.headers['device-models'] = Device.isAndroid ? 'Android' : 'iOS';
+    } catch (e) {
+      if (kDebugMode) debugPrint('HeaderInterceptor: app-version unavailable: $e');
+    }
+    try {
       options.headers['os-device'] = await Device.getOSVersion();
     } catch (e) {
-      debugPrint('HeaderInterceptor Error: $e');
+      if (kDebugMode) debugPrint('HeaderInterceptor: os-device unavailable: $e');
     }
 
     return handler.next(options);
