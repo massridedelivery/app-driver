@@ -8,6 +8,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/history/presentation/controllers/history_controller.dart';
 import 'package:massdrive/features/history/presentation/widgets/history_item.dart';
+import 'package:massdrive/features/history/presentation/widgets/date_selector.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -88,6 +89,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         child: Column(
           children: [
             _buildFilterBar(state.selectedType),
+            DateSelector(
+              selectedDate: state.selectedDate,
+              onSelected: (date) => ref
+                  .read(historyControllerProvider.notifier)
+                  .setDateFilter(date),
+            ),
             Expanded(
               child: state.isLoading
                   ? const Center(child: MassLoadingM(size: 72))

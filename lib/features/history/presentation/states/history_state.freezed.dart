@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HistoryState {
 
- bool get isLoading; bool get isLoadingMore; List<HistoryItemModel> get items; String get errorMessage; int get page; bool get hasMore; String? get selectedType;
+ bool get isLoading; bool get isLoadingMore; List<HistoryItemModel> get items; String get errorMessage; int get page; bool get hasMore; String? get selectedType;// null = all, e.g. 'FARE_PAYMENT'
+ DateTime? get selectedDate;
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $HistoryStateCopyWith<HistoryState> get copyWith => _$HistoryStateCopyWithImpl<H
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.page, page) || other.page == page)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.selectedType, selectedType) || other.selectedType == selectedType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.page, page) || other.page == page)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.selectedType, selectedType) || other.selectedType == selectedType)&&(identical(other.selectedDate, selectedDate) || other.selectedDate == selectedDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,isLoadingMore,const DeepCollectionEquality().hash(items),errorMessage,page,hasMore,selectedType);
+int get hashCode => Object.hash(runtimeType,isLoading,isLoadingMore,const DeepCollectionEquality().hash(items),errorMessage,page,hasMore,selectedType,selectedDate);
 
 @override
 String toString() {
-  return 'HistoryState(isLoading: $isLoading, isLoadingMore: $isLoadingMore, items: $items, errorMessage: $errorMessage, page: $page, hasMore: $hasMore, selectedType: $selectedType)';
+  return 'HistoryState(isLoading: $isLoading, isLoadingMore: $isLoadingMore, items: $items, errorMessage: $errorMessage, page: $page, hasMore: $hasMore, selectedType: $selectedType, selectedDate: $selectedDate)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $HistoryStateCopyWith<$Res>  {
   factory $HistoryStateCopyWith(HistoryState value, $Res Function(HistoryState) _then) = _$HistoryStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLoading, bool isLoadingMore, List<HistoryItemModel> items, String errorMessage, int page, bool hasMore, String? selectedType
+ bool isLoading, bool isLoadingMore, List<HistoryItemModel> items, String errorMessage, int page, bool hasMore, String? selectedType, DateTime? selectedDate
 });
 
 
@@ -62,7 +63,7 @@ class _$HistoryStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? isLoadingMore = null,Object? items = null,Object? errorMessage = null,Object? page = null,Object? hasMore = null,Object? selectedType = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? isLoadingMore = null,Object? items = null,Object? errorMessage = null,Object? page = null,Object? hasMore = null,Object? selectedType = freezed,Object? selectedDate = freezed,}) {
   return _then(_self.copyWith(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
@@ -71,7 +72,8 @@ as List<HistoryItemModel>,errorMessage: null == errorMessage ? _self.errorMessag
 as String,page: null == page ? _self.page : page // ignore: cast_nullable_to_non_nullable
 as int,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
 as bool,selectedType: freezed == selectedType ? _self.selectedType : selectedType // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,selectedDate: freezed == selectedDate ? _self.selectedDate : selectedDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -153,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType,  DateTime? selectedDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HistoryState() when $default != null:
-return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType);case _:
+return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType,_that.selectedDate);case _:
   return orElse();
 
 }
@@ -174,10 +176,10 @@ return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessa
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType,  DateTime? selectedDate)  $default,) {final _that = this;
 switch (_that) {
 case _HistoryState():
-return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType);}
+return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType,_that.selectedDate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -191,10 +193,10 @@ return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessa
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  bool isLoadingMore,  List<HistoryItemModel> items,  String errorMessage,  int page,  bool hasMore,  String? selectedType,  DateTime? selectedDate)?  $default,) {final _that = this;
 switch (_that) {
 case _HistoryState() when $default != null:
-return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType);case _:
+return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessage,_that.page,_that.hasMore,_that.selectedType,_that.selectedDate);case _:
   return null;
 
 }
@@ -206,7 +208,7 @@ return $default(_that.isLoading,_that.isLoadingMore,_that.items,_that.errorMessa
 
 
 class _HistoryState implements HistoryState {
-  const _HistoryState({this.isLoading = false, this.isLoadingMore = false, final  List<HistoryItemModel> items = const [], this.errorMessage = '', this.page = 0, this.hasMore = true, this.selectedType}): _items = items;
+  const _HistoryState({this.isLoading = false, this.isLoadingMore = false, final  List<HistoryItemModel> items = const [], this.errorMessage = '', this.page = 0, this.hasMore = true, this.selectedType, this.selectedDate}): _items = items;
   
 
 @override@JsonKey() final  bool isLoading;
@@ -222,6 +224,8 @@ class _HistoryState implements HistoryState {
 @override@JsonKey() final  int page;
 @override@JsonKey() final  bool hasMore;
 @override final  String? selectedType;
+// null = all, e.g. 'FARE_PAYMENT'
+@override final  DateTime? selectedDate;
 
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +237,16 @@ _$HistoryStateCopyWith<_HistoryState> get copyWith => __$HistoryStateCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.page, page) || other.page == page)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.selectedType, selectedType) || other.selectedType == selectedType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.page, page) || other.page == page)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.selectedType, selectedType) || other.selectedType == selectedType)&&(identical(other.selectedDate, selectedDate) || other.selectedDate == selectedDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,isLoadingMore,const DeepCollectionEquality().hash(_items),errorMessage,page,hasMore,selectedType);
+int get hashCode => Object.hash(runtimeType,isLoading,isLoadingMore,const DeepCollectionEquality().hash(_items),errorMessage,page,hasMore,selectedType,selectedDate);
 
 @override
 String toString() {
-  return 'HistoryState(isLoading: $isLoading, isLoadingMore: $isLoadingMore, items: $items, errorMessage: $errorMessage, page: $page, hasMore: $hasMore, selectedType: $selectedType)';
+  return 'HistoryState(isLoading: $isLoading, isLoadingMore: $isLoadingMore, items: $items, errorMessage: $errorMessage, page: $page, hasMore: $hasMore, selectedType: $selectedType, selectedDate: $selectedDate)';
 }
 
 
@@ -253,7 +257,7 @@ abstract mixin class _$HistoryStateCopyWith<$Res> implements $HistoryStateCopyWi
   factory _$HistoryStateCopyWith(_HistoryState value, $Res Function(_HistoryState) _then) = __$HistoryStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLoading, bool isLoadingMore, List<HistoryItemModel> items, String errorMessage, int page, bool hasMore, String? selectedType
+ bool isLoading, bool isLoadingMore, List<HistoryItemModel> items, String errorMessage, int page, bool hasMore, String? selectedType, DateTime? selectedDate
 });
 
 
@@ -270,7 +274,7 @@ class __$HistoryStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? isLoadingMore = null,Object? items = null,Object? errorMessage = null,Object? page = null,Object? hasMore = null,Object? selectedType = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? isLoadingMore = null,Object? items = null,Object? errorMessage = null,Object? page = null,Object? hasMore = null,Object? selectedType = freezed,Object? selectedDate = freezed,}) {
   return _then(_HistoryState(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
@@ -279,7 +283,8 @@ as List<HistoryItemModel>,errorMessage: null == errorMessage ? _self.errorMessag
 as String,page: null == page ? _self.page : page // ignore: cast_nullable_to_non_nullable
 as int,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
 as bool,selectedType: freezed == selectedType ? _self.selectedType : selectedType // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,selectedDate: freezed == selectedDate ? _self.selectedDate : selectedDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

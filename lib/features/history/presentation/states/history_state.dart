@@ -13,5 +13,6 @@ sealed class HistoryState with _$HistoryState {
     @Default(0) int page,
     @Default(true) bool hasMore,
     String? selectedType, // null = all, e.g. 'FARE_PAYMENT'
+    DateTime? selectedDate, // null = all dates
   }) = _HistoryState;
 }
