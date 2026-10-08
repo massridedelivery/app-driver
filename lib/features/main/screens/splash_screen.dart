@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -140,36 +139,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Breathing gradient logo tile with the white "M" mark.
+                // Breathing "M" mark in the brand dark, placed directly on the
+                // light ground (no tile) — a lighter, airier splash. The white
+                // mark asset is tinted to #373535 via srcIn.
                 ScaleTransition(
                   scale: _scale,
-                  child: Transform.rotate(
-                    angle: -4 * math.pi / 180,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        color: const Color(0xFF373535),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.22),
-                            blurRadius: 28,
-                            offset: const Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      // The MASS DRIVE "M" mark (white, on the dark brand tile)
-                      // — the same mark as the new store/launcher icon.
-                      child: Image.asset(
-                        'assets/images/app_logo_mark.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                  child: Image.asset(
+                    'assets/images/app_logo_mark.png',
+                    width: 168,
+                    color: const Color(0xFF373535),
+                    colorBlendMode: BlendMode.srcIn,
+                    fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
                 Text(
                   'MASS DRIVE',
                   style: AppTypography.heading1.copyWith(
