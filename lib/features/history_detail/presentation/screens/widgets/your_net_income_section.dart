@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -12,6 +13,9 @@ class YourNetIncomeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Commission/fees withheld = gross fare − net paid to the driver.
+    final commission =
+        double.parse((data.total - data.driverNet).toStringAsFixed(2));
 
     return Container(
       width: double.infinity,
@@ -22,7 +26,7 @@ class YourNetIncomeSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -33,11 +37,15 @@ class YourNetIncomeSection extends StatelessWidget {
         children: [
           _buildHeader(context, theme),
           const SizedBox(height: 16),
-          _buildInfoRow(context, title: "ค่าบริการ", value: '฿ 30'),
-          const SizedBox(height: 12),
-          _buildInfoRow(context, title: "โบนัส", value: "฿ 2"),
-          const SizedBox(height: 12),
-          _buildInfoRow(context, title: "หักค่าบริการ", value: "- ฿ 2"),
+          _buildInfoRow(context, title: "ค่าโดยสาร", value: _money(data.total)),
+          if (commission > 0) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              context,
+              title: "หักค่าคอมมิชชัน",
+              value: "- ${_money(commission)}",
+            ),
+          ],
           const Divider(height: 28),
           _buildTotalRow(context, theme),
         ],
@@ -74,20 +82,24 @@ class YourNetIncomeSection extends StatelessWidget {
     );
   }
 
+  /// Formats a baht amount with a thousands separator and up to 2 decimals,
+  /// dropping trailing zeros (e.g. 82.83, 1,200, 30.5).
+  String _money(num value) => '฿${NumberFormat('#,##0.##').format(value)}';
+
   Widget _buildTotalRow(BuildContext context, ThemeData theme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "รวมภาษีแล้ว",
+          "รายได้สุทธิ",
           style: AppTypography.heading5.copyWith(
             color: context.palette.textPrimary,
           ),
         ),
         Text(
-          "฿ ${data.total.toStringAsFixed(0)}",
+          _money(data.driverNet),
           style: AppTypography.heading5.copyWith(
-            color: context.palette.textPrimary,
+            color: AppColors.foundationOrange600,
           ),
         ),
       ],
