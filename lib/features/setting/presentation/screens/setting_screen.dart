@@ -85,6 +85,11 @@ class SettingScreen extends ConsumerWidget {
               trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
               onTap: () => AppNavigator.push(context, const DarkModeScreen()),
             ),
+
+            // App version — moved here from the login screen so the version is
+            // discoverable in Settings but no longer shown on the phone-entry page.
+            const _AppVersionTile(),
+
             // Developer tools — DEV builds only; hidden in preprod/prod.
             if (EnvironmentConfig.env == Environments.dev) ...[
             const _Divider(),
@@ -377,6 +382,41 @@ void _showLogoutDialog(BuildContext parentContext, WidgetRef ref) {
       ],
     ),
   );
+}
+
+/// Read-only app-version row. Reads the real version+build from the bundle so
+/// it never goes stale. Lives in Settings (was previously the login footer).
+class _AppVersionTile extends StatelessWidget {
+  const _AppVersionTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      leading: const _LeadingIconBadge(icon: Icons.info_outline),
+      title: Text(
+        "เวอร์ชันแอป",
+        style: AppTypography.caption3.copyWith(
+          color: context.palette.textPrimary,
+        ),
+      ),
+      trailing: FutureBuilder<PackageInfo>(
+        future: PackageInfo.fromPlatform(),
+        builder: (context, snapshot) {
+          final info = snapshot.data;
+          final text = info == null
+              ? ''
+              : '${info.version} (${info.buildNumber})';
+          return Text(
+            text,
+            style: AppTypography.caption4.copyWith(
+              color: context.palette.textSecondary,
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class SectionHeader extends StatelessWidget {
