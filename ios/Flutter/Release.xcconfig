@@ -15,7 +15,7 @@ MAPS_API_KEY = $(MAPS_API_KEY_PROD)
 
 // Home-screen name for prod, substituted into Info.plist as
 // $(APP_DISPLAY_NAME). `make deploy-dev` overrides it below.
-APP_DISPLAY_NAME = Driver
+APP_DISPLAY_NAME = Mass Drive
 
 // APNs environment for prod (Release/Profile): the production gateway, which is
 // what TestFlight and the App Store use. Substituted into Runner.entitlements as
