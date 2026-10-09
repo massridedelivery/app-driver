@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
+import 'package:massdrive/common/widgets/bank_logo_avatar.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:massdrive/core/constants/thai_banks.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
@@ -27,9 +29,11 @@ class BankAccountFormScreen extends ConsumerStatefulWidget {
 
 class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _bankNameController = TextEditingController();
   final _accountNameController = TextEditingController();
   final _accountNumberController = TextEditingController();
+
+  ThaiBank? _selectedBank;
+  bool _bankError = false;
 
   File? _selectedImage;
   String? _remoteImageUrl;
@@ -46,10 +50,13 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
 
       final state = ref.read(registrationControllerProvider);
       
-      // 2. Pre-populate form text fields with registered bank details
+      // 2. Pre-populate form fields with registered bank details. Resolve the
+      // stored bank_name string back to a ThaiBank so the selector pre-selects.
       final bankInfo = state.bankAccountInfo;
       if (bankInfo != null) {
-        _bankNameController.text = bankInfo.bankName;
+        setState(() {
+          _selectedBank = findThaiBank(bankInfo.bankName);
+        });
         _accountNameController.text = bankInfo.accountName;
         _accountNumberController.text = bankInfo.accountNumber;
       }
@@ -98,7 +105,6 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
 
   @override
   void dispose() {
-    _bankNameController.dispose();
     _accountNameController.dispose();
     _accountNumberController.dispose();
     super.dispose();
@@ -117,7 +123,12 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   }
 
   void _submit() async {
-    if (_formKey.currentState?.validate() ?? false) {
+    // Validate the bank selector alongside the text fields.
+    final fieldsValid = _formKey.currentState?.validate() ?? false;
+    if (_selectedBank == null) {
+      setState(() => _bankError = true);
+    }
+    if (fieldsValid && _selectedBank != null) {
       if (_selectedImage == null && _remoteImageUrl == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -134,7 +145,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
       }
 
       final info = BankAccountInfo(
-        bankName: _bankNameController.text.trim(),
+        bankName: _selectedBank!.nameLong,
         accountName: _accountNameController.text.trim(),
         accountNumber: _accountNumberController.text.trim(),
       );
@@ -197,11 +208,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            _buildTextField(
-              'ธนาคาร (Bank Name)',
-              _bankNameController,
-              hint: 'เช่น กสิกรไทย (KBank)',
-            ),
+            _buildBankSelector(),
             const SizedBox(height: 16),
             _buildTextField(
               'ชื่อบัญชี (Account Name)',
@@ -290,6 +297,215 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
         ),
       ),
     );
+  }
+
+  /// Bank selector: a tappable field that opens a searchable bank picker.
+  Widget _buildBankSelector() {
+    final bank = _selectedBank;
+    final borderColor = _bankError ? AppColors.foundationRed800 : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ธนาคาร (Bank)',
+          style: AppTypography.label2.copyWith(
+            color: context.palette.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: _openBankPicker,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: context.palette.surfaceAlt,
+              borderRadius: BorderRadius.circular(12),
+              border: borderColor != null
+                  ? Border.all(color: borderColor)
+                  : null,
+            ),
+            child: Row(
+              children: [
+                if (bank != null) ...[
+                  BankLogoAvatar(bank: bank, size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      bank.nameLong,
+                      style: AppTypography.caption3.copyWith(
+                        color: context.palette.textPrimary,
+                      ),
+                    ),
+                  ),
+                ] else
+                  Expanded(
+                    child: Text(
+                      'เลือกธนาคาร',
+                      style: AppTypography.caption3.copyWith(
+                        color: context.palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: context.palette.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_bankError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'กรุณาเลือกธนาคาร',
+              style: AppTypography.caption4.copyWith(
+                color: AppColors.foundationRed800,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Bottom-sheet bank picker with a search box and logo + name list.
+  Future<void> _openBankPicker() async {
+    final selected = await showModalBottomSheet<ThaiBank>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.palette.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final q = query.trim().toLowerCase();
+            final banks = q.isEmpty
+                ? kThaiBanks
+                : kThaiBanks
+                    .where((b) =>
+                        b.name.toLowerCase().contains(q) ||
+                        b.nameLong.toLowerCase().contains(q) ||
+                        b.nameEn.toLowerCase().contains(q) ||
+                        b.code.toLowerCase().contains(q))
+                    .toList();
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              ),
+              child: SizedBox(
+                height: MediaQuery.sizeOf(ctx).height * 0.75,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: context.palette.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: Text(
+                        'เลือกธนาคาร',
+                        style: AppTypography.heading5.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: TextField(
+                        autofocus: false,
+                        style: AppTypography.caption3.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
+                        onChanged: (v) => setSheetState(() => query = v),
+                        decoration: InputDecoration(
+                          hintText: 'ค้นหาธนาคาร',
+                          hintStyle: AppTypography.caption3.copyWith(
+                            color: context.palette.textSecondary,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: context.palette.textSecondary,
+                          ),
+                          filled: true,
+                          fillColor: context.palette.surfaceAlt,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: banks.isEmpty
+                          ? Center(
+                              child: Text(
+                                'ไม่พบธนาคาร',
+                                style: AppTypography.caption3.copyWith(
+                                  color: context.palette.textSecondary,
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              itemCount: banks.length,
+                              separatorBuilder: (_, _) => Divider(
+                                height: 1,
+                                color: context.palette.border,
+                              ),
+                              itemBuilder: (_, i) {
+                                final b = banks[i];
+                                final isSel = _selectedBank?.code == b.code;
+                                return ListTile(
+                                  leading: BankLogoAvatar(bank: b, size: 40),
+                                  title: Text(
+                                    b.nameLong,
+                                    style: AppTypography.caption3.copyWith(
+                                      color: context.palette.textPrimary,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    b.nameEn,
+                                    style: AppTypography.caption4.copyWith(
+                                      color: context.palette.textSecondary,
+                                    ),
+                                  ),
+                                  trailing: isSel
+                                      ? Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.foundationOrange600,
+                                        )
+                                      : null,
+                                  onTap: () => Navigator.pop(ctx, b),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        _selectedBank = selected;
+        _bankError = false;
+      });
+    }
   }
 
   Widget _buildTextField(
