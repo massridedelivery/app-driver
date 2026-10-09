@@ -223,6 +223,9 @@ deploy-prod-devapi: env
 	  echo "Uploading to TestFlight (MassDriver)..."; \
 	  xcrun altool --upload-app -t ios -f build/ios/ipa/*.ipa \
 	    --apiKey "$(ASC_KEY_ID)" --apiIssuer "$(ASC_ISSUER_ID)"; \
+	  echo "Assigning the uploaded build to the QA group (waits for processing)..."; \
+	  ASC_KEY_ID="$(ASC_KEY_ID)" ASC_ISSUER_ID="$(ASC_ISSUER_ID)" \
+	    python3 scripts/tf_assign_latest.py; \
 	else \
 	  echo "Built build/ios/ipa/*.ipa."; \
 	  echo "ASC_KEY_ID/ASC_ISSUER_ID not set - upload it with Transporter or Xcode,"; \
