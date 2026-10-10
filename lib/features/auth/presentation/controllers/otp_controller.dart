@@ -1,3 +1,4 @@
+import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/auth/presentation/states/otp_state.dart';
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
@@ -42,9 +43,14 @@ class OtpController extends _$OtpController {
       // navigate first and let this run un-awaited, a late session flip can
       // redirect the just-opened protected screen straight back to /login.
       await ref.read(authControllerProvider.notifier).refresh();
-      return isRegistered ? OtpVerifyResult.home : OtpVerifyResult.registrationChecklist;
+      return isRegistered
+          ? OtpVerifyResult.home
+          : OtpVerifyResult.registrationChecklist;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: friendlyErrorMessage(e),
+      );
       return OtpVerifyResult.error;
     }
   }

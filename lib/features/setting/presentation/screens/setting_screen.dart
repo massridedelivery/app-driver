@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -30,6 +31,7 @@ class SettingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final restricted = AccountStatusNotifier.instance.isRestricted;
     return Scaffold(
       // Match the top bar (palette.bg) rather than the theme's pure-black
       // scaffold, so no black shows through behind the list in night mode.
@@ -39,169 +41,185 @@ class SettingScreen extends ConsumerWidget {
         color: context.palette.bg,
         child: ListView(
           // Clear the Android edge-to-edge system nav.
-          padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom + 16),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+          ),
           children: [
-            SectionHeader(
-              title: "บัญชี",
-              textColor: context.palette.textPrimary,
-            ),
-
-            const _AccountTile(),
-
-            const _Divider(),
-
-            SectionHeader(
-              title: "การเชื่อมต่ออินเทอร์เน็ต",
-              textColor: context.palette.textPrimary,
-            ),
-
-            const _ConnectivityCard(),
-            const _Divider(),
-
-            SectionHeader(
-              title: "การตั้งค่าการให้บริการ",
-              textColor: context.palette.textPrimary,
-            ),
-
-            const _AutoAcceptCard(),
-            const _Divider(),
-
-            SectionHeader(
-              title: "การตั้งค่าแอป",
-              textColor: context.palette.textPrimary,
-            ),
-
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(
-                icon: Icons.brightness_6_outlined,
+            // Deleted / suspended account: only logout is offered here.
+            if (!restricted) ...[
+              SectionHeader(
+                title: "บัญชี",
+                textColor: context.palette.textPrimary,
               ),
-              title: Text(
-                "โหมดสี",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
+
+              const _AccountTile(),
+
+              const _Divider(),
+
+              SectionHeader(
+                title: "การเชื่อมต่ออินเทอร์เน็ต",
+                textColor: context.palette.textPrimary,
+              ),
+
+              const _ConnectivityCard(),
+              const _Divider(),
+
+              SectionHeader(
+                title: "การตั้งค่าการให้บริการ",
+                textColor: context.palette.textPrimary,
+              ),
+
+              const _AutoAcceptCard(),
+              const _Divider(),
+
+              SectionHeader(
+                title: "การตั้งค่าแอป",
+                textColor: context.palette.textPrimary,
+              ),
+
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const _LeadingIconBadge(
+                  icon: Icons.brightness_6_outlined,
                 ),
+                title: Text(
+                  "โหมดสี",
+                  style: AppTypography.caption3.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: context.palette.textTertiary,
+                ),
+                onTap: () => AppNavigator.push(context, const DarkModeScreen()),
               ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => AppNavigator.push(context, const DarkModeScreen()),
-            ),
-            // Developer tools — DEV builds only; hidden in preprod/prod.
-            if (EnvironmentConfig.env == Environments.dev) ...[
-            const _Divider(),
+              // Developer tools — DEV builds only; hidden in preprod/prod.
+              if (EnvironmentConfig.env == Environments.dev) ...[
+                const _Divider(),
 
-            SectionHeader(
-              title: "นักพัฒนา",
-              textColor: context.palette.textPrimary,
-            ),
+                SectionHeader(
+                  title: "นักพัฒนา",
+                  textColor: context.palette.textPrimary,
+                ),
 
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(
-                icon: Icons.bug_report_outlined,
-              ),
-              title: Text(
-                "FCM Debug Log",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const _LeadingIconBadge(
+                    icon: Icons.bug_report_outlined,
+                  ),
+                  title: Text(
+                    "FCM Debug Log",
+                    style: AppTypography.caption3.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "ดู token / สิทธิ์แจ้งเตือน / log การรับ-ส่ง push",
+                    style: AppTypography.caption4.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: context.palette.textTertiary,
+                  ),
+                  onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
                 ),
-              ),
-              subtitle: Text(
-                "ดู token / สิทธิ์แจ้งเตือน / log การรับ-ส่ง push",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => context.push(AppRoutes.fcmDebugNamedPage),
-            ),
 
-            // UI-preview for the driver→customer review screen. The real flow
-            // shows it after a completed job and submits to the live endpoints
-            // (SCRUM-70); this opens it with sample data just to check the UI.
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(
-                icon: Icons.star_outline,
-              ),
-              title: Text(
-                "ตัวอย่างหน้ารีวิวลูกค้า",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
+                // UI-preview for the driver→customer review screen. The real flow
+                // shows it after a completed job and submits to the live endpoints
+                // (SCRUM-70); this opens it with sample data just to check the UI.
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const _LeadingIconBadge(icon: Icons.star_outline),
+                  title: Text(
+                    "ตัวอย่างหน้ารีวิวลูกค้า",
+                    style: AppTypography.caption3.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "ดู UI หน้าให้คะแนนลูกค้า (โหมดตัวอย่าง — ยังไม่ส่งจริง)",
+                    style: AppTypography.caption4.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: context.palette.textTertiary,
+                  ),
+                  onTap: () => context.push(
+                    '/review-customer',
+                    extra: {
+                      'jobId': 'preview',
+                      'service': ReviewService.ride,
+                      'customerName': 'สมชาย ใจดี',
+                      'subtitle': 'ตัวอย่างลูกค้า',
+                      'previewMode': true,
+                    },
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                "ดู UI หน้าให้คะแนนลูกค้า (โหมดตัวอย่าง — ยังไม่ส่งจริง)",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => context.push(
-                '/review-customer',
-                extra: {
-                  'jobId': 'preview',
-                  'service': ReviewService.ride,
-                  'customerName': 'สมชาย ใจดี',
-                  'subtitle': 'ตัวอย่างลูกค้า',
-                  'previewMode': true,
-                },
-              ),
-            ),
 
-            // UI-preview for the chat screen. previewMode renders a sample
-            // thread locally (no socket/REST), so the chat UI can be checked
-            // on-device without a live job.
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(icon: Icons.chat_outlined),
-              title: Text(
-                "ตัวอย่างหน้าแชท",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
+                // UI-preview for the chat screen. previewMode renders a sample
+                // thread locally (no socket/REST), so the chat UI can be checked
+                // on-device without a live job.
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const _LeadingIconBadge(icon: Icons.chat_outlined),
+                  title: Text(
+                    "ตัวอย่างหน้าแชท",
+                    style: AppTypography.caption3.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "ดู UI หน้าแชทกับลูกค้า (โหมดตัวอย่าง)",
+                    style: AppTypography.caption4.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: context.palette.textTertiary,
+                  ),
+                  onTap: () => AppNavigator.push(
+                    context,
+                    const ChatScreen(
+                      jobId: 'preview',
+                      passengerName: 'สมชาย ใจดี',
+                      previewMode: true,
+                    ),
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                "ดู UI หน้าแชทกับลูกค้า (โหมดตัวอย่าง)",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => AppNavigator.push(
-                context,
-                const ChatScreen(
-                  jobId: 'preview',
-                  passengerName: 'สมชาย ใจดี',
-                  previewMode: true,
-                ),
-              ),
-            ),
 
-            // UI-preview for the out-of-service-area warning dialog.
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const _LeadingIconBadge(
-                icon: Icons.wrong_location_outlined,
-              ),
-              title: Text(
-                "ตัวอย่าง dialog นอกพื้นที่",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
+                // UI-preview for the out-of-service-area warning dialog.
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const _LeadingIconBadge(
+                    icon: Icons.wrong_location_outlined,
+                  ),
+                  title: Text(
+                    "ตัวอย่าง dialog นอกพื้นที่",
+                    style: AppTypography.caption3.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "ดู dialog เตือน \"อยู่นอกพื้นที่ให้บริการ\" (โหมดตัวอย่าง)",
+                    style: AppTypography.caption4.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: context.palette.textTertiary,
+                  ),
+                  onTap: () =>
+                      showServiceAreaNoticeDialog(context, areaName: 'นนทบุรี'),
                 ),
-              ),
-              subtitle: Text(
-                "ดู dialog เตือน \"อยู่นอกพื้นที่ให้บริการ\" (โหมดตัวอย่าง)",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textSecondary,
-                ),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
-              onTap: () => showServiceAreaNoticeDialog(
-                context,
-                areaName: 'นนทบุรี',
-              ),
-            ),
-            const _Divider(),
+                const _Divider(),
+              ],
             ],
 
             SectionHeader(
@@ -217,10 +235,9 @@ class SettingScreen extends ConsumerWidget {
             // App version footer (moved from the login screen).
             Center(
               child: Text(
-                ref.watch(appVersionProvider).maybeWhen(
-                      data: (v) => 'เวอร์ชัน $v',
-                      orElse: () => '',
-                    ),
+                ref
+                    .watch(appVersionProvider)
+                    .maybeWhen(data: (v) => 'เวอร์ชัน $v', orElse: () => ''),
                 style: AppTypography.caption4.copyWith(
                   color: context.palette.textTertiary,
                 ),
@@ -247,21 +264,24 @@ void showServiceAreaNoticeDialog(
   final body = (message?.isNotEmpty ?? false)
       ? message!
       : 'ขณะนี้ยังไม่เปิดให้บริการในพื้นที่ของคุณ\n'
-          'กรุณาลองใหม่อีกครั้งภายหลัง';
+            'กรุณาลองใหม่อีกครั้งภายหลัง';
   showDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
       backgroundColor: dialogContext.palette.surface,
       title: Row(
         children: [
-          Icon(Icons.wrong_location_outlined,
-              color: AppColors.foundationOrange500),
+          Icon(
+            Icons.wrong_location_outlined,
+            color: AppColors.foundationOrange500,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'ยังไม่เปิดให้บริการในพื้นที่นี้',
-              style: AppTypography.heading5
-                  .copyWith(color: dialogContext.palette.textPrimary),
+              style: AppTypography.heading5.copyWith(
+                color: dialogContext.palette.textPrimary,
+              ),
             ),
           ),
         ],
@@ -280,8 +300,7 @@ void showServiceAreaNoticeDialog(
           if (areaName?.isNotEmpty ?? false) ...[
             const SizedBox(height: 12),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.foundationOrange500.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
@@ -289,13 +308,17 @@ void showServiceAreaNoticeDialog(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.place_outlined,
-                      size: 16, color: AppColors.foundationOrange600),
+                  Icon(
+                    Icons.place_outlined,
+                    size: 16,
+                    color: AppColors.foundationOrange600,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'ตำแหน่งของคุณ: $areaName',
-                    style: AppTypography.caption4
-                        .copyWith(color: AppColors.foundationOrange600),
+                    style: AppTypography.caption4.copyWith(
+                      color: AppColors.foundationOrange600,
+                    ),
                   ),
                 ],
               ),
@@ -321,8 +344,10 @@ void showServiceAreaNoticeDialog(
                 borderRadius: BorderRadius.circular(28),
               ),
             ),
-            child: Text('รับทราบ',
-                style: AppTypography.label1.copyWith(color: Colors.white)),
+            child: Text(
+              'รับทราบ',
+              style: AppTypography.label1.copyWith(color: Colors.white),
+            ),
           ),
         ),
       ],
@@ -402,8 +427,9 @@ class SectionHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
-        mainAxisAlignment:
-            center ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: center
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
@@ -426,10 +452,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      color: context.palette.border,
-      height: 1,
-    );
+    return Divider(color: context.palette.border, height: 1);
   }
 }
 
@@ -542,10 +565,7 @@ class _ConnectivityCard extends ConsumerWidget {
           IconButton(
             onPressed: () =>
                 ref.read(connectivityMonitorProvider.notifier).refresh(),
-            icon: Icon(
-              Icons.refresh,
-              color: context.palette.textTertiary,
-            ),
+            icon: Icon(Icons.refresh, color: context.palette.textTertiary),
             tooltip: 'ตรวจสอบอีกครั้ง',
           ),
         ],
@@ -562,8 +582,7 @@ class _ConnectivityCard extends ConsumerWidget {
   }
 
   _ConnectivityVisual _visualFor(BuildContext context, NetworkStatus s) {
-    final ping =
-        s.latencyMs != null ? ' · ${_latencyLabel(s.latencyMs!)}' : '';
+    final ping = s.latencyMs != null ? ' · ${_latencyLabel(s.latencyMs!)}' : '';
     final net = s.isMobile ? 'เน็ตมือถือ' : 'Wi-Fi';
     switch (s.quality) {
       case NetworkQuality.good:
@@ -639,11 +658,16 @@ class _AccountTile extends ConsumerWidget {
           width: 120,
           child: LinearProgressIndicator(
             backgroundColor: context.palette.surfaceAlt,
-            valueColor: AlwaysStoppedAnimation<Color>(context.palette.textTertiary),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              context.palette.textTertiary,
+            ),
           ),
         ),
         subtitle: const SizedBox(height: 8),
-        trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: context.palette.textTertiary,
+        ),
         onTap: () {
           AppNavigator.push(context, const EditProfileScreen());
         },
@@ -726,9 +750,7 @@ class _AutoAcceptCard extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
-                  style: AppTypography.caption4.copyWith(
-                    color: Colors.white70,
-                  ),
+                  style: AppTypography.caption4.copyWith(color: Colors.white70),
                 ),
               ],
             ),

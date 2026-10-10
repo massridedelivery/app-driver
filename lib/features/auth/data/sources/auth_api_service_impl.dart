@@ -1,3 +1,4 @@
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
@@ -24,16 +25,25 @@ class AuthApiServiceImpl implements AuthApiService {
 
       final response = await _dio.post(
         Endpoints.otpPhoneRequest,
-        data: {'phone': normalizedPhone, 'device_id': deviceId, 'role': 'driver'},
+        data: {
+          'phone': normalizedPhone,
+          'device_id': deviceId,
+          'role': 'driver',
+        },
         options: Options(
-          extra: {
-            'feature': 'Auth',
-            'endPoint': Endpoints.otpPhoneRequest,
-          },
+          extra: {'feature': 'Auth', 'endPoint': Endpoints.otpPhoneRequest},
         ),
       );
       return OtpResponseModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      // Deleted / suspended driver refused at sign-in → tell them to contact
+      // the company rather than showing the backend's raw English error.
+      if (isAccountRestrictedLoginError(
+        e.response?.statusCode,
+        e.response?.data,
+      )) {
+        throw Exception(accountRestrictedLoginMessage);
+      }
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
@@ -41,9 +51,12 @@ class AuthApiServiceImpl implements AuthApiService {
     }
   }
 
-
   @override
-  Future<Map<String, dynamic>> verifyOtp(String phone, String otp, {String refId = ''}) async {
+  Future<Map<String, dynamic>> verifyOtp(
+    String phone,
+    String otp, {
+    String refId = '',
+  }) async {
     try {
       // Normalize phone to E.164 format: replace leading 0 with +66
       final normalizedPhone = phone.startsWith('0')
@@ -62,7 +75,9 @@ class AuthApiServiceImpl implements AuthApiService {
           // "New Driver" placeholder here made every new driver show up as
           // "New Driver" in admin/profile. full_name is optional on verify.
         },
-        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.phoneVerify}),
+        options: Options(
+          extra: {'feature': 'Auth', 'endPoint': Endpoints.phoneVerify},
+        ),
       );
 
       final accessToken = verifyResponse.data['access_token'];
@@ -73,6 +88,12 @@ class AuthApiServiceImpl implements AuthApiService {
       profile['refresh_token'] = refreshToken;
       return profile;
     } on DioException catch (e) {
+      if (isAccountRestrictedLoginError(
+        e.response?.statusCode,
+        e.response?.data,
+      )) {
+        throw Exception(accountRestrictedLoginMessage);
+      }
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
@@ -89,7 +110,9 @@ class AuthApiServiceImpl implements AuthApiService {
       final loginResponse = await _dio.post(
         Endpoints.login,
         data: {'email': email, 'password': password, 'role': 'driver'},
-        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.login}),
+        options: Options(
+          extra: {'feature': 'Auth', 'endPoint': Endpoints.login},
+        ),
       );
 
       final accessToken = loginResponse.data['access_token'];
@@ -114,7 +137,9 @@ class AuthApiServiceImpl implements AuthApiService {
       final response = await _dio.post(
         Endpoints.register,
         data: request.toJson(),
-        options: Options(extra: {'feature': 'Auth', 'endPoint': Endpoints.register}),
+        options: Options(
+          extra: {'feature': 'Auth', 'endPoint': Endpoints.register},
+        ),
       );
 
       final accessToken = response.data['access_token'];
