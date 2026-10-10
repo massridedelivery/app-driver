@@ -19,10 +19,23 @@ class ApiException implements Exception {
   }
 
   factory ApiException.fromDioError(dynamic error) {
-    if (error.response != null && error.response?.data != null) {
-      return ApiException.fromResponse(error.response?.data);
+    // Keep the HTTP status: the driver API replies with a bare
+    // `{"error": "..."}` body (no `code`/`message`), so without this a 400 and
+    // a 409 were indistinguishable (code 0, message null).
+    final int? statusCode = error.response?.statusCode as int?;
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      return ApiException(
+        data['code'] is int ? data['code'] as int : (statusCode ?? 0),
+        status: data['status'] as String?,
+        message: (data['message'] ?? data['error'])?.toString(),
+        data: data['data'] is Map<String, dynamic>
+            ? data['data'] as Map<String, dynamic>
+            : null,
+      );
     }
-    return ApiException(0, message: error.toString());
+    if (data != null) return ApiException.fromResponse(data);
+    return ApiException(statusCode ?? 0, message: error.toString());
   }
 
   @override

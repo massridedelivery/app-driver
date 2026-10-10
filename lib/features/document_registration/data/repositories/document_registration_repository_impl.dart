@@ -21,10 +21,16 @@ class DocumentRegistrationRepositoryImpl
 
   @override
   Future<void> updateProfile(DriverProfileInfo info) async {
+    // Step 1 sends first/last name + date of birth; the backend composes
+    // full_name itself. Optional contact fields go along only when filled.
     await _profileApi.updateProfile({
-      "full_name": "${info.firstName} ${info.lastName}",
-      "email": info.email,
-      "emergency_contact": info.emergencyContact
+      "first_name": info.firstName.trim(),
+      "last_name": info.lastName.trim(),
+      if (info.dateOfBirth != null)
+        "date_of_birth": DriverProfileInfo.formatApiDate(info.dateOfBirth!),
+      if (info.email.trim().isNotEmpty) "email": info.email.trim(),
+      if (info.emergencyContact.trim().isNotEmpty)
+        "emergency_contact": info.emergencyContact.trim(),
     });
   }
 
