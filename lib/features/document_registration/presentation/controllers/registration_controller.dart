@@ -6,6 +6,7 @@ import '../../../dependency_injection.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../domain/models/bank_account_info.dart';
 import '../../domain/models/driver_profile_info.dart';
+import '../../domain/models/profile_update_error.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/models/vehicle_info.dart';
 import '../../domain/models/driver_document_model.dart';
@@ -83,10 +84,18 @@ class RegistrationController extends _$RegistrationController {
         }
       }
 
-      final isProfileComplete = profile != null &&
-          profile.fullName.isNotEmpty &&
-          profile.phone != null &&
-          profile.phone!.isNotEmpty;
+      // Step 1 = first name + last name + date of birth (mirrors the backend's
+      // registration/status `missing_profile`; submit stays blocked until all
+      // three are set). Read the fields directly — no splitting full_name.
+      final profileInfo = profile == null
+          ? null
+          : DriverProfileInfo(
+              firstName: profile.firstName ?? '',
+              lastName: profile.lastName ?? '',
+              dateOfBirth: DriverProfileInfo.parseApiDate(profile.dateOfBirth),
+              email: profile.email ?? '',
+            );
+      final isProfileComplete = profileInfo?.isComplete ?? false;
 
       final isProfilePhotoComplete = remoteDocs[DocumentType.profilePhoto]?.status == 'approved' ||
           remoteDocs[DocumentType.profilePhoto]?.status == 'pending';
@@ -133,20 +142,7 @@ class RegistrationController extends _$RegistrationController {
         isInsuranceComplete: isInsuranceComplete,
         isBankAccountComplete: isBankAccountComplete,
         bankAccountInfo: activePayout ?? state.bankAccountInfo,
-        profileInfo: profile != null
-            ? DriverProfileInfo(
-                // Treat the legacy "New Driver" placeholder as empty so the form
-                // prompts for the real name instead of pre-filling the placeholder.
-                firstName: profile.fullName.trim() == 'New Driver'
-                    ? ''
-                    : profile.fullName.split(' ').first,
-                lastName: profile.fullName.trim() == 'New Driver'
-                    ? ''
-                    : profile.fullName.split(' ').skip(1).join(' '),
-                email: '',
-                emergencyContact: '',
-              )
-            : null,
+        profileInfo: profileInfo,
         vehicleInfo: profile != null && profile.vehiclePlate != null
             ? VehicleInfo(
                 vehicleType: 'motorcycle',
@@ -162,20 +158,24 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
-  Future<bool> updateProfile(DriverProfileInfo info) async {
+  /// Save Step 1. Returns null on success, or a [ProfileUpdateError] the form
+  /// shows under the offending field (400) or as a general message (409 lock,
+  /// network failure).
+  Future<ProfileUpdateError?> updateProfile(DriverProfileInfo info) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _repository.updateProfile(info);
       state = state.copyWith(
         isLoading: false,
-        isProfileComplete: true,
+        isProfileComplete: info.isComplete,
         profileInfo: info,
       );
       await fetchStatus();
-      return true;
+      return null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
-      return false;
+      final error = ProfileUpdateError.from(e);
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+      return error;
     }
   }
 

@@ -11,6 +11,9 @@ _DriverProfileEntity _$DriverProfileEntityFromJson(
 ) => _DriverProfileEntity(
   userId: json['user_id'] as String,
   fullName: json['full_name'] as String,
+  firstName: json['first_name'] as String?,
+  lastName: json['last_name'] as String?,
+  dateOfBirth: json['date_of_birth'] as String?,
   phone: json['phone'] as String?,
   email: json['email'] as String?,
   rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
@@ -51,6 +54,9 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
 ) => <String, dynamic>{
   'user_id': instance.userId,
   'full_name': instance.fullName,
+  'first_name': instance.firstName,
+  'last_name': instance.lastName,
+  'date_of_birth': instance.dateOfBirth,
   'phone': instance.phone,
   'email': instance.email,
   'rating': instance.rating,

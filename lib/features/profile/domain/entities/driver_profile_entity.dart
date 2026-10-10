@@ -9,6 +9,12 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
   const factory DriverProfileEntity({
     @JsonKey(name: 'user_id') required String userId,
     @JsonKey(name: 'full_name') required String fullName,
+    // Step-1 identity fields. The backend composes full_name from these; read
+    // them directly instead of splitting full_name in the app. Null for drivers
+    // who haven't filled Step 1 yet.
+    @JsonKey(name: 'first_name') String? firstName,
+    @JsonKey(name: 'last_name') String? lastName,
+    @JsonKey(name: 'date_of_birth') String? dateOfBirth,
     String? phone,
     String? email,
     @Default(0.0) double rating,
