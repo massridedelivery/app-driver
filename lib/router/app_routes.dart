@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/features/account_restricted/presentation/screens/account_restricted_screen.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
@@ -49,6 +51,14 @@ class AppRouter {
     AppRoutes.otpNamedPage,
   };
 
+  /// The only places a deleted/suspended driver may be (plus logged-out flow).
+  static const Set<String> _restrictedAllowedRoutes = {
+    AppRoutes.accountRestrictedNamedPage,
+    AppRoutes.settingNamedPage,
+    AppRoutes.splashNamedPage,
+    AppRoutes.loginNamedPage,
+  };
+
   static final GoRouter _router = GoRouter(
     initialLocation: AppRoutes.splashNamedPage,
     debugLogDiagnostics: true,
@@ -57,16 +67,38 @@ class AppRouter {
     // 401 on an authenticated request) so a dead session can't stay on a
     // protected screen — the core fix for "stale session never returns to
     // login".
-    refreshListenable: SessionNotifier.instance,
+    // Also re-run it when the account is flagged deleted/suspended.
+    refreshListenable: Listenable.merge([
+      SessionNotifier.instance,
+      AccountStatusNotifier.instance,
+    ]),
     redirect: (context, state) {
       final loggedIn = SessionNotifier.instance.isAuthenticated;
-      final atPublicRoute = _publicRoutes.contains(state.matchedLocation);
+      final location = state.matchedLocation;
+      final atPublicRoute = _publicRoutes.contains(location);
       if (!loggedIn && !atPublicRoute) {
         return AppRoutes.loginNamedPage;
+      }
+
+      // Deleted / suspended account: keep the driver on the "contact the
+      // company" screen. Settings stays reachable (it only offers logout).
+      final restricted = AccountStatusNotifier.instance.isRestricted;
+      if (loggedIn &&
+          restricted &&
+          !_restrictedAllowedRoutes.contains(location)) {
+        return AppRoutes.accountRestrictedNamedPage;
+      }
+      if (!restricted && location == AppRoutes.accountRestrictedNamedPage) {
+        return AppRoutes.homeNamedPage;
       }
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.accountRestrictedNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: AccountRestrictedScreen()),
+      ),
       GoRoute(
         path: AppRoutes.splashNamedPage,
         pageBuilder: (context, state) =>
