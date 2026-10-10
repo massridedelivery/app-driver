@@ -1,3 +1,4 @@
+import 'package:massdrive/core/utils/friendly_error.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -52,9 +53,14 @@ class LoginController extends _$LoginController {
         debugPrint('LoginController: device info unavailable: $e');
       }
 
-      final otpResponse = await loginUseCase.execute(state.phoneNumber, deviceId);
-      debugPrint('LoginController: Use case success: refId=${otpResponse.refId}, isRegistered=${otpResponse.isRegistered}');
-      
+      final otpResponse = await loginUseCase.execute(
+        state.phoneNumber,
+        deviceId,
+      );
+      debugPrint(
+        'LoginController: Use case success: refId=${otpResponse.refId}, isRegistered=${otpResponse.isRegistered}',
+      );
+
       state = state.copyWith(
         isLoading: false,
         refId: otpResponse.refId,
@@ -63,9 +69,11 @@ class LoginController extends _$LoginController {
       return true; // Navigate to OTP
     } catch (e) {
       debugPrint('LoginController: Error $e');
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: friendlyErrorMessage(e),
+      );
       return false;
     }
   }
 }
-

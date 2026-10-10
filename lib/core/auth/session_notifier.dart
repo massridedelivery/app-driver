@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 
 /// Single source of truth for whether a driver session is currently active.
@@ -23,6 +24,9 @@ class SessionNotifier extends ChangeNotifier {
   void setAuthenticated(bool value) {
     if (_isAuthenticated == value) return;
     _isAuthenticated = value;
+    // A new login or a logout starts clean: a deleted/suspended flag belongs to
+    // the session that saw it (it's re-detected from the API if still true).
+    AccountStatusNotifier.instance.clear();
     notifyListeners();
   }
 
