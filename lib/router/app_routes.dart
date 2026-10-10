@@ -259,8 +259,24 @@ class AppRouter {
             const NoTransitionPage(child: FcmDebugScreen()),
       ),
     ],
-    errorBuilder: (context, state) => const HomeScreen(),
+    // An unknown location (a stale restored route, or a notification `route`
+    // the app doesn't define) used to render HomeScreen via errorBuilder. That
+    // only *looked* like home: the router was left in its error state with no
+    // matched routes, so every later `context.push` (settings, "ไปที่ลงทะเบียน
+    // คนขับ", …) silently did nothing. Navigate to the real /home instead so
+    // the stack is valid again.
+    onException: (context, state, router) {
+      debugPrint('Router: no route for ${state.uri} — going to home');
+      router.go(AppRoutes.homeNamedPage);
+    },
   );
 
   static GoRouter get router => _router;
+
+  /// Whether [location] matches a route this app defines.
+  static bool isKnownLocation(String location) {
+    final uri = Uri.tryParse(location);
+    if (uri == null) return false;
+    return !_router.configuration.findMatch(uri).isError;
+  }
 }
