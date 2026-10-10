@@ -355,8 +355,40 @@ class PushNotificationService {
   }
 
   void _navigateTo(String route) {
-    if (route.startsWith('/')) {
-      AppRouter.router.go(route);
+    final target = resolveNotificationRoute(route, AppRouter.isKnownLocation);
+    if (target == null) {
+      FcmDebugLog.log('Notification route ignored (unknown): $route');
+      return;
     }
+    if (target == AppRoutes.documentRegistrationChecklistNamedPage) {
+      // Open the checklist on top of home so "back" returns there. Our
+      // redirect is synchronous, so the go() is applied before the push and
+      // the push lands on a valid /home base.
+      AppRouter.router.go(AppRoutes.homeNamedPage);
+      AppRouter.router.push(target);
+      return;
+    }
+    AppRouter.router.go(target);
   }
+}
+
+/// Backend notification routes that aren't app routes, mapped to the screen
+/// that handles them. Document-review notifications send `/documents`.
+const Map<String, String> notificationRouteAliases = {
+  '/documents': AppRoutes.documentRegistrationChecklistNamedPage,
+};
+
+/// Turn a notification `route` into an app location, or null to ignore it.
+///
+/// Navigating to a location the router doesn't define used to strand the
+/// driver on a dead "home" where no button navigated (see the router's
+/// onException), so unknown routes are dropped rather than followed.
+String? resolveNotificationRoute(
+  String route,
+  bool Function(String location) isKnown,
+) {
+  if (!route.startsWith('/')) return null;
+  final path = Uri.tryParse(route)?.path ?? route;
+  final target = notificationRouteAliases[path] ?? route;
+  return isKnown(target) ? target : null;
 }

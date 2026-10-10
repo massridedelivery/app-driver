@@ -61,13 +61,31 @@ class RouteRestorationService {
     return !_nonRestorable.contains(path);
   }
 
+  GoRouter? _router;
+
   /// Starts listening to the router and persists the current location whenever
   /// it changes. No-op if storage init failed. Safe to call once during startup.
   void attach(GoRouter router) {
+    _router = router;
     if (_box == null) return;
     router.routerDelegate.addListener(() {
-      _save(router.routerDelegate.currentConfiguration.uri.toString());
+      final config = router.routerDelegate.currentConfiguration;
+      // Never persist the router's error state (a location with no matching
+      // route): restoring it every launch is what stranded drivers on a dead
+      // "home" where no button navigated.
+      if (config.isError || config.matches.isEmpty) return;
+      _save(config.uri.toString());
     });
+  }
+
+  /// False when the router has no route for [location] (e.g. a saved
+  /// `/documents` from a backend notification). Unknown until [attach].
+  bool _matchesRoute(String location) {
+    final router = _router;
+    if (router == null) return true;
+    final uri = Uri.tryParse(location);
+    if (uri == null) return false;
+    return !router.configuration.findMatch(uri).isError;
   }
 
   void _save(String location) {
@@ -85,7 +103,7 @@ class RouteRestorationService {
     if (box == null) return null;
     final saved = box.read<String>(_key);
     if (saved == null) return null;
-    return _isRestorable(saved) ? saved : null;
+    return _isRestorable(saved) && _matchesRoute(saved) ? saved : null;
   }
 
   /// Clears the saved route (e.g. on logout).
