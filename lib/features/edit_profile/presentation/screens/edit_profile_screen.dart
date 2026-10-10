@@ -10,7 +10,9 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
+import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 
@@ -80,13 +82,49 @@ class EditProfileScreen extends ConsumerWidget {
               },
             ),
 
+            // Name and date of birth come from registration Step 1 and are
+            // read-only here: the backend rejects changes after approval (409),
+            // so edits go through customer support.
+            if ((profile.firstName?.isNotEmpty ?? false) ||
+                (profile.lastName?.isNotEmpty ?? false)) ...[
+              _InfoTile(
+                title: "ชื่อ",
+                value: profile.firstName ?? '-',
+                locked: true,
+              ),
+              _InfoTile(
+                title: "นามสกุล",
+                value: profile.lastName ?? '-',
+                locked: true,
+              ),
+            ] else
+              _InfoTile(
+                title: "ชื่อ - นามสกุล",
+                value: profile.fullName,
+                locked: true,
+              ),
             _InfoTile(
-              title: "ชื่อ",
-              value: profile.fullName,
-              showArrow: true,
-              onTap: () {
-                _showUpdateNameSheet(context, ref, profile.fullName);
-              },
+              title: "วันเดือนปีเกิด",
+              value: _dobText(profile.dateOfBirth),
+              locked: true,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 14, color: context.palette.textSecondary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'ติดต่อฝ่ายบริการลูกค้าเพื่อแก้ไข',
+                      style: AppTypography.caption4.copyWith(
+                        color: context.palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             _InfoTile(
@@ -225,81 +263,6 @@ class EditProfileScreen extends ConsumerWidget {
                           "vehicle_plate": plateController.text,
                           "vehicle_model": modelController.text,
                         });
-                    if (success) {
-                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
-                    } else {
-                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
-                    }
-                  },
-                  child: Text(
-                    "บันทึก",
-                    style: AppTypography.heading5.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showUpdateNameSheet(
-    BuildContext context,
-    WidgetRef ref,
-    String currentName,
-  ) {
-    final nameController = TextEditingController(text: currentName);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.sheet,
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 24,
-            right: 24,
-            top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "อัปเดตชื่อ",
-                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                style: TextStyle(color: context.palette.textPrimary),
-                decoration: InputDecoration(
-                  labelText: "ชื่อ - นามสกุล",
-                  labelStyle: TextStyle(color: context.palette.textSecondary),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: context.palette.border),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationGreen600,
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final success = await ref
-                        .read(profileControllerProvider.notifier)
-                        .updateProfile({
-                      "full_name": nameController.text,
-                    });
                     if (success) {
                       ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
                     } else {
@@ -469,17 +432,27 @@ class _ProfileImageTile extends StatelessWidget {
   }
 }
 
+/// "17 พ.ค. 2533" from the backend's `YYYY-MM-DD`, or "-" when not set.
+String _dobText(String? raw) {
+  final d = DriverProfileInfo.parseApiDate(raw);
+  return d == null ? '-' : formatThaiDate(d);
+}
+
 class _InfoTile extends StatelessWidget {
   final String title;
   final String value;
   final bool showArrow;
   final VoidCallback? onTap;
 
+  /// Read-only field: shows a lock instead of an arrow and isn't tappable.
+  final bool locked;
+
   const _InfoTile({
     required this.title,
     required this.value,
     this.showArrow = false,
     this.onTap,
+    this.locked = false,
   });
 
   @override
@@ -502,10 +475,14 @@ class _InfoTile extends StatelessWidget {
               color: context.palette.textPrimary,
             ),
           ),
-          trailing: showArrow
-              ? Icon(Icons.chevron_right, color: context.palette.textTertiary)
-              : null,
-          onTap: onTap,
+          trailing: locked
+              ? Icon(Icons.lock_outline,
+                  size: 18, color: context.palette.textTertiary)
+              : showArrow
+                  ? Icon(Icons.chevron_right,
+                      color: context.palette.textTertiary)
+                  : null,
+          onTap: locked ? null : onTap,
         ),
         Divider(color: context.palette.border, height: 1),
       ],
