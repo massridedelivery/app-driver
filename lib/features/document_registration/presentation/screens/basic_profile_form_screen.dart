@@ -224,20 +224,24 @@ class _BasicProfileFormScreenState
               child: ElevatedButton(
                 onPressed: state.isLoading || !_canSubmit ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.textPrimary,
+                  // Fixed light face in both themes so the black label always
+                  // reads (textPrimary would be black in light mode).
+                  backgroundColor: Colors.white,
                   disabledBackgroundColor: AppColors.semanticDisabledBgLow,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: context.palette.border),
                   ),
                 ),
                 child: state.isLoading
-                    ? CircularProgressIndicator(color: context.palette.bg)
+                    ? const CircularProgressIndicator(color: Colors.black)
                     : Text(
-                        'ถัดไป',
+                        'บันทึก',
+                        // Black label: the button face is light (white when
+                        // enabled in dark mode, light grey while disabled), so
+                        // the old grey disabled label was near-invisible.
                         style: AppTypography.label1.copyWith(
-                          color: _canSubmit
-                              ? context.palette.bg
-                              : context.palette.textSecondary,
+                          color: Colors.black,
                         ),
                       ),
               ),
