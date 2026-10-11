@@ -38,11 +38,12 @@ class AuthApiServiceImpl implements AuthApiService {
     } on DioException catch (e) {
       // Deleted / suspended driver refused at sign-in → tell them to contact
       // the company rather than showing the backend's raw English error.
-      if (isAccountRestrictedLoginError(
-        e.response?.statusCode,
-        e.response?.data,
-      )) {
-        throw Exception(accountRestrictedLoginMessage);
+      final restriction = detectAccountRestriction(
+        statusCode: e.response?.statusCode,
+        data: e.response?.data,
+      );
+      if (restriction != null) {
+        throw AccountRestrictedLoginException(restriction);
       }
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
@@ -88,11 +89,12 @@ class AuthApiServiceImpl implements AuthApiService {
       profile['refresh_token'] = refreshToken;
       return profile;
     } on DioException catch (e) {
-      if (isAccountRestrictedLoginError(
-        e.response?.statusCode,
-        e.response?.data,
-      )) {
-        throw Exception(accountRestrictedLoginMessage);
+      final restriction = detectAccountRestriction(
+        statusCode: e.response?.statusCode,
+        data: e.response?.data,
+      );
+      if (restriction != null) {
+        throw AccountRestrictedLoginException(restriction);
       }
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);

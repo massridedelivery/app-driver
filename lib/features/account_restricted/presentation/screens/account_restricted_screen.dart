@@ -1,25 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
-import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/account_restricted/presentation/widgets/account_restricted_dialog.dart';
 
 /// Shown instead of the app when the driver's account was deleted or
 /// suspended. The router keeps the driver here (settings is the only other
 /// reachable screen, and it only offers logout) until the restriction clears.
 class AccountRestrictedScreen extends StatefulWidget {
   const AccountRestrictedScreen({super.key});
-
-  /// Used when the support config hasn't loaded.
-  static const fallbackSupportPhone = '065-6924555';
 
   @override
   State<AccountRestrictedScreen> createState() =>
@@ -29,23 +25,13 @@ class AccountRestrictedScreen extends StatefulWidget {
 class _AccountRestrictedScreenState extends State<AccountRestrictedScreen> {
   bool _checking = false;
 
-  String get _phone => SupportConstant.hasCallCenter
-      ? SupportConstant.callCenterNumber
-      : AccountRestrictedScreen.fallbackSupportPhone;
+  String get _phone => supportPhone();
 
   Future<void> _call() async {
-    final digits = _phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    try {
-      await launchUrl(
-        Uri.parse('tel:$digits'),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถเปิดแอปโทรออกได้')),
-      );
-    }
+    if (await callSupportPhone() || !mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('ไม่สามารถเปิดแอปโทรออกได้')));
   }
 
   /// Re-read the profile: if the company has restored the account, clearing
@@ -57,14 +43,14 @@ class _AccountRestrictedScreenState extends State<AccountRestrictedScreen> {
       final still = detectAccountRestriction(
         statusCode: res.statusCode,
         data: res.data,
-        isProfileEndpoint: true,
       );
       if (still == null) {
         AccountStatusNotifier.instance.clear();
         return;
       }
     } catch (_) {
-      // 404/403 again (the interceptor keeps the flag) or offline.
+      // 403 account_suspended/deleted again (the interceptor keeps the flag)
+      // or offline.
     }
     if (!mounted) return;
     setState(() => _checking = false);

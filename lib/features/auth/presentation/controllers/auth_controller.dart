@@ -1,3 +1,4 @@
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -102,8 +103,12 @@ class AuthController extends _$AuthController {
   /// and email sessions, since both funnel through [SessionNotifier].
   Future<void> logout() async {
     try {
-      final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
-      await usecase.execute();
+      // A suspended/deleted account's POST /auth/logout is refused with 403
+      // anyway — skip the call and just clear the device session.
+      if (!AccountStatusNotifier.instance.isRestricted) {
+        final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
+        await usecase.execute();
+      }
     } catch (e) {
       debugPrint('AuthController: logout call failed, forcing local logout: $e');
     } finally {
