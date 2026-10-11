@@ -1,3 +1,5 @@
+import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/features/account_restricted/presentation/widgets/account_restricted_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,13 @@ class LoginScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sign-in refused because the account is suspended: explain + offer a call.
+    ref.listen(loginControllerProvider, (prev, next) {
+      if (next.errorMessage == accountRestrictedLoginMessage &&
+          prev?.errorMessage != accountRestrictedLoginMessage) {
+        showAccountRestrictedDialog(context);
+      }
+    });
     final state = ref.watch(loginControllerProvider);
     final controller = ref.read(loginControllerProvider.notifier);
     final bool isPhoneValid = state.phoneNumber.length > 9;

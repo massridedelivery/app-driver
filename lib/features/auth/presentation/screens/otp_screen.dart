@@ -1,3 +1,5 @@
+import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/features/account_restricted/presentation/widgets/account_restricted_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,6 +49,13 @@ class OtpScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sign-in refused because the account is suspended: explain + offer a call.
+    ref.listen(otpControllerProvider, (prev, next) {
+      if (next.errorMessage == accountRestrictedLoginMessage &&
+          prev?.errorMessage != accountRestrictedLoginMessage) {
+        showAccountRestrictedDialog(context);
+      }
+    });
     final state = ref.watch(otpControllerProvider);
     final controller = ref.read(otpControllerProvider.notifier);
     final bool isOtpValid = state.otpCode.length == 6;

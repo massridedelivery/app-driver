@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
@@ -126,6 +127,12 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
         await _clearToken();
         return null;
       }
+    } on _AccountRestrictedRefresh {
+      // Refresh refused with 403 account_suspended / account_deleted: the
+      // session isn't dead, the account is restricted. Keep the tokens (a
+      // lifted suspension makes them usable again) and let the router show the
+      // "contact the company" screen instead of logging the driver out.
+      return null;
     } catch (e) {
       await _clearToken();
       return null;
@@ -156,7 +163,8 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     // Check for specific backend error format
     try {
       final data = e.response?.data;
-      if (data is Map<String, dynamic> && data['error'] == 'missing authorization header') {
+      if (data is Map<String, dynamic> &&
+          data['error'] == 'missing authorization header') {
         return true;
       }
     } catch (_) {}
@@ -185,8 +193,10 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 
       // Support both structured data wrapper and flat json
       final data = response.data;
-      final tokenData = data is Map && data.containsKey('data') ? data['data'] : data;
-      
+      final tokenData = data is Map && data.containsKey('data')
+          ? data['data']
+          : data;
+
       if (tokenData == null) return false;
 
       final authTokenModel = AuthTokenModel.fromJson(tokenData);
@@ -203,6 +213,16 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       ]);
 
       return true;
+    } on DioException catch (e) {
+      final restriction = detectAccountRestriction(
+        statusCode: e.response?.statusCode,
+        data: e.response?.data,
+      );
+      if (restriction != null) {
+        AccountStatusNotifier.instance.markRestricted(restriction);
+        throw const _AccountRestrictedRefresh();
+      }
+      return false;
     } catch (e) {
       return false;
     }
@@ -217,4 +237,9 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 
     return await dio.fetch(options);
   }
+}
+
+/// Internal signal: the refresh was refused because the account is restricted.
+class _AccountRestrictedRefresh implements Exception {
+  const _AccountRestrictedRefresh();
 }
