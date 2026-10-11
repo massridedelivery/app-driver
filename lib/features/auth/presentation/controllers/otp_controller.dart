@@ -1,6 +1,7 @@
 import 'package:massdrive/features/auth/presentation/states/otp_state.dart';
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,10 +18,12 @@ class OtpController extends _$OtpController {
     state = state.copyWith(otpCode: code, errorMessage: '');
   }
 
-  /// [isRegistered] — value from /auth/otp/send response.
-  /// After a successful verify:
-  ///   - isRegistered == true  → navigate to Home
-  ///   - isRegistered == false → navigate to Registration Checklist
+  /// [isRegistered] — value from /auth/otp/send response, used only as a fallback
+  /// hint. The real destination is derived from the driver's actual profile after
+  /// verify (see below), because the backend returns is_registered=true whenever
+  /// an account exists for the phone — even a customer-only or half-registered
+  /// driver — which used to send such drivers straight to Home and skip the whole
+  /// name/registration flow, leaving them with no name (admin then shows the phone).
   Future<OtpVerifyResult> verifyOtp(
     String phone, {
     bool isRegistered = true,
@@ -42,6 +45,24 @@ class OtpController extends _$OtpController {
       // navigate first and let this run un-awaited, a late session flip can
       // redirect the just-opened protected screen straight back to /login.
       await ref.read(authControllerProvider.notifier).refresh();
+
+      // Decide the destination from the driver's actual profile rather than
+      // trusting is_registered alone. A verified driver goes Home; one who has
+      // no real name yet still needs to register, regardless of is_registered.
+      // Falls back to the is_registered hint if the profile can't be read.
+      try {
+        await ref.read(profileControllerProvider.notifier).fetchProfile();
+        final profile = ref.read(profileControllerProvider).profile;
+        if (profile != null) {
+          if (profile.isVerified) return OtpVerifyResult.home;
+          final name = profile.fullName.trim();
+          final hasRealName = name.isNotEmpty && name != 'New Driver';
+          if (!hasRealName) return OtpVerifyResult.registrationChecklist;
+        }
+      } catch (_) {
+        // Profile fetch failed — fall through to the is_registered hint.
+      }
+
       return isRegistered ? OtpVerifyResult.home : OtpVerifyResult.registrationChecklist;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
