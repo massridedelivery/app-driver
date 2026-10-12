@@ -53,7 +53,9 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'โอนเงิน ฿${amount.toStringAsFixed(0)} สำเร็จ',
+            // A request, not a completed transfer — it's processed (or
+            // rejected) afterwards by the company.
+            'ส่งคำขอถอนเงิน ฿${amount.toStringAsFixed(0)} แล้ว รอดำเนินการ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,

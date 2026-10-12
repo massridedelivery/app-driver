@@ -1,3 +1,4 @@
+import 'package:massdrive/core/constants/thai_banks.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -219,21 +220,6 @@ class WalletController extends _$WalletController {
     }
   }
 
-  String _mapBankToCode(String bankName) {
-    final clean = bankName.toLowerCase();
-    if (clean.contains('kbank') || clean.contains('kasikorn') || clean.contains('กสิกร')) {
-      return '002';
-    } else if (clean.contains('scb') || clean.contains('ไทยพาณิชย์')) {
-      return '014';
-    } else if (clean.contains('bbl') || clean.contains('กรุงเทพ')) {
-      return '002';
-    } else if (clean.contains('krung') || clean.contains('ktb') || clean.contains('กรุงไทย')) {
-      return '006';
-    } else if (clean.contains('ayudhya') || clean.contains('bay') || clean.contains('กรุงศรี')) {
-      return '025';
-    }
-    return '002';
-  }
 
   Future<bool> requestPayout(double amount) async {
     state = state.copyWith(isLoading: true, errorMessage: '');
@@ -248,7 +234,15 @@ class WalletController extends _$WalletController {
         state = state.copyWith(bankAccountInfo: bankInfo);
       }
 
-      final bankCode = _mapBankToCode(bankInfo.bankName);
+      // Bank of Thailand code for the payout account. Never default it: the
+      // old mapping sent Bangkok Bank's "002" for KBank and for every bank it
+      // didn't list, which routes the withdrawal to the wrong bank.
+      final bankCode = thaiBankCode(bankInfo.bankName);
+      if (bankCode == null) {
+        throw Exception(
+          'ไม่พบธนาคารของบัญชีรับเงิน กรุณาแก้ไขข้อมูลบัญชีธนาคารก่อนถอนเงิน',
+        );
+      }
       final walletRepo = getIt<WalletRepository>();
       await walletRepo.requestPayout({
         'amount': amount,
