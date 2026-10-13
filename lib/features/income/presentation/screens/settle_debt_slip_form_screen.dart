@@ -1,3 +1,4 @@
+import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,10 +150,12 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
     });
 
     if (result == null) {
+      // 409 already submitted / 400 expired session / other — by code.
+      final reason = ref.read(walletControllerProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+            reason.isNotEmpty ? reason : 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticErrorBgHigh,
@@ -445,7 +448,10 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
 
   Widget _buildSuccessScreen(Map<String, dynamic> result) {
     final intentId = result['intent_id']?.toString() ?? widget.intentId;
-    final status = result['status']?.toString() ?? 'PENDING_REVIEW';
+    // Backend returns "pending" | "approved" | "rejected" — show it in Thai.
+    final status =
+        TopupRequestStatus.parse(result['status']?.toString() ?? 'pending')
+            .label;
     final message = result['message']?.toString() ?? 'ส่งหลักฐานการชำระเงินสำเร็จแล้ว อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ';
 
     return Scaffold(

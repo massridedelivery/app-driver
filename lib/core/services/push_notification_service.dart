@@ -1,3 +1,4 @@
+import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -283,6 +284,9 @@ class PushNotificationService {
     // Payout status changed (payout_approved / _rejected / _completed /
     // _failed): refresh any open payout screen and the balance.
     if (_isPayoutUpdate(message)) PayoutUpdates.instance.notifyChanged();
+    // Slip approved/rejected (topup_approved / topup_rejected): wallet and
+    // COD status changed — refresh them and the slip list.
+    if (_isTopupUpdate(message)) TopupUpdates.instance.notifyChanged();
 
     // iOS presents notifications itself via the foreground options above,
     // including the loud job-alert sound set in `apns.payload.aps.sound` — no
@@ -338,6 +342,13 @@ class PushNotificationService {
       _navigateTo('/held-fares');
       return;
     }
+    // Slip reviewed → open the credit wallet on top of home.
+    if (_isTopupUpdate(message)) {
+      TopupUpdates.instance.notifyChanged();
+      AppRouter.router.go(AppRoutes.homeNamedPage);
+      AppRouter.router.push(AppRoutes.creditWalletNamedPage);
+      return;
+    }
     // Payout status push → open the withdrawal history on top of home.
     if (_isPayoutUpdate(message)) {
       PayoutUpdates.instance.notifyChanged();
@@ -365,6 +376,9 @@ class PushNotificationService {
       FcmDebugLog.log('Refresh: ERROR $e');
     }
   }
+
+  bool _isTopupUpdate(RemoteMessage message) =>
+      message.data['type']?.toString().startsWith('topup_') ?? false;
 
   bool _isPayoutUpdate(RemoteMessage message) =>
       message.data['type']?.toString().startsWith('payout_') ?? false;

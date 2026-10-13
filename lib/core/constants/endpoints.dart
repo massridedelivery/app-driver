@@ -148,6 +148,8 @@ abstract class Endpoints {
   static const driverPayoutsMethod = '/api/driver/payouts/method';
   static const driverPayoutsSummary = '/api/driver/payouts/summary';
   static const driverSettleDebt = '/api/driver/settle-debt';
+  /// MANUAL top-up slips and their review status (newest first).
+  static const driverSettleDebtRequests = '/api/driver/settle-debt/requests';
   static String driverSettleDebtSlip(String intentId) =>
       '/api/driver/settle-debt/$intentId/slip';
   static const driverCodStatus = '/api/driver/cod-status';
