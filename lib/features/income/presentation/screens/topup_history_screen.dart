@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
+import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/topup.dart';
@@ -22,10 +25,19 @@ class TopupHistoryScreen extends ConsumerStatefulWidget {
 class _TopupHistoryScreenState extends ConsumerState<TopupHistoryScreen> {
   late Future<List<TopupRequest>> _future;
 
+  /// Slip images are served from the API (`/api/media/files/...`) and need the
+  /// driver's token.
+  Map<String, String>? _imageHeaders;
+
   @override
   void initState() {
     super.initState();
     _future = _load();
+    SecureStorageManager().read(SecureStorageKey.accessToken).then((t) {
+      if (mounted && t != null) {
+        setState(() => _imageHeaders = {'Authorization': 'Bearer $t'});
+      }
+    });
     TopupUpdates.instance.addListener(_onChanged);
   }
 
@@ -89,7 +101,8 @@ class _TopupHistoryScreenState extends ConsumerState<TopupHistoryScreen> {
               ),
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _TopupCard(request: items[i]),
+              itemBuilder: (_, i) =>
+                  _TopupCard(request: items[i], imageHeaders: _imageHeaders),
             );
           },
         ),
@@ -125,9 +138,14 @@ class _TopupHistoryScreenState extends ConsumerState<TopupHistoryScreen> {
 }
 
 class _TopupCard extends StatelessWidget {
-  const _TopupCard({required this.request});
+  const _TopupCard({required this.request, this.imageHeaders});
 
   final TopupRequest request;
+  final Map<String, String>? imageHeaders;
+
+  /// The backend returns a path (`/api/media/files/...`); resolve it.
+  static String _absolute(String url) =>
+      url.startsWith('http') ? url : '${EnvironmentConfig.apiUrl}$url';
 
   @override
   Widget build(BuildContext context) {
@@ -243,17 +261,26 @@ class _TopupCard extends StatelessWidget {
               ],
             ),
           ),
-          if (slip != null) ...[
+          if (slip != null && imageHeaders != null) ...[
             const SizedBox(width: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                slip,
+                _absolute(slip),
+                headers: imageHeaders,
                 width: 56,
                 height: 72,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    const SizedBox(width: 56, height: 72),
+                errorBuilder: (_, _, _) => Container(
+                  width: 56,
+                  height: 72,
+                  color: context.palette.surfaceAlt,
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 20,
+                    color: context.palette.textTertiary,
+                  ),
+                ),
               ),
             ),
           ],
