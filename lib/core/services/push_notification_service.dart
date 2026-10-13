@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/fcm_debug_log.dart';
+import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 /// Requests notification permission and returns the resulting iOS/Firebase
@@ -279,6 +280,10 @@ class PushNotificationService {
       'Foreground message received: id=${message.messageId} data=${message.data}',
     );
 
+    // Payout status changed (payout_approved / _rejected / _completed /
+    // _failed): refresh any open payout screen and the balance.
+    if (_isPayoutUpdate(message)) PayoutUpdates.instance.notifyChanged();
+
     // iOS presents notifications itself via the foreground options above,
     // including the loud job-alert sound set in `apns.payload.aps.sound` — no
     // local draw needed, and drawing one too would double the alert. Android
@@ -333,6 +338,13 @@ class PushNotificationService {
       _navigateTo('/held-fares');
       return;
     }
+    // Payout status push → open the withdrawal history on top of home.
+    if (_isPayoutUpdate(message)) {
+      PayoutUpdates.instance.notifyChanged();
+      AppRouter.router.go(AppRoutes.homeNamedPage);
+      AppRouter.router.push(AppRoutes.payoutHistoryNamedPage);
+      return;
+    }
     final route = message.data['route'];
     if (route is String) _navigateTo(route);
   }
@@ -353,6 +365,9 @@ class PushNotificationService {
       FcmDebugLog.log('Refresh: ERROR $e');
     }
   }
+
+  bool _isPayoutUpdate(RemoteMessage message) =>
+      message.data['type']?.toString().startsWith('payout_') ?? false;
 
   void _navigateTo(String route) {
     final target = resolveNotificationRoute(route, AppRouter.isKnownLocation);

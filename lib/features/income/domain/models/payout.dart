@@ -1,0 +1,216 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+/// Withdrawal rules from `GET /api/driver/payouts/summary`. The defaults are
+/// the backend's current values, used only until a summary that carries them
+/// has loaded.
+@immutable
+class PayoutLimits {
+  final double minWithdraw;
+  final double maxWithdraw;
+  final int maxPerDay;
+  final int withdrawalsToday;
+
+  /// Withholding tax, deducted when the transfer completes (0.01 = 1%).
+  final double whtRate;
+
+  /// Null when the summary didn't say (older backend) — don't block on it.
+  final bool? hasPayoutMethod;
+  final bool payoutMethodPending;
+
+  const PayoutLimits({
+    this.minWithdraw = 100,
+    this.maxWithdraw = 50000,
+    this.maxPerDay = 5,
+    this.withdrawalsToday = 0,
+    this.whtRate = 0.01,
+    this.hasPayoutMethod,
+    this.payoutMethodPending = false,
+  });
+
+  factory PayoutLimits.fromSummary(Map<String, dynamic> s) {
+    double? d(String k) => (s[k] as num?)?.toDouble();
+    int? i(String k) => (s[k] as num?)?.toInt();
+    const fallback = PayoutLimits();
+    return PayoutLimits(
+      minWithdraw: d('min_withdraw') ?? fallback.minWithdraw,
+      maxWithdraw: d('max_withdraw') ?? fallback.maxWithdraw,
+      maxPerDay: i('max_per_day') ?? fallback.maxPerDay,
+      withdrawalsToday: i('withdrawals_today') ?? 0,
+      whtRate: d('wht_rate') ?? fallback.whtRate,
+      hasPayoutMethod: s['has_payout_method'] as bool?,
+      payoutMethodPending: s['payout_method_pending'] as bool? ?? false,
+    );
+  }
+
+  bool get dailyLimitReached => withdrawalsToday >= maxPerDay;
+
+  /// What the driver receives for [amount] once the tax is withheld.
+  double netFor(double amount) => amount * (1 - whtRate);
+
+  /// Why a withdrawal can't be requested right now (shown instead of letting
+  /// the API refuse it), or null when it can.
+  String? blockReason({required double availableBalance}) {
+    if (hasPayoutMethod == false) {
+      return 'กรุณาเพิ่มบัญชีธนาคารสำหรับรับเงินก่อนถอนเงิน';
+    }
+    if (payoutMethodPending) {
+      return 'บัญชีรับเงินอยู่ระหว่างตรวจสอบ ถอนเงินได้เมื่อบัญชีผ่านการอนุมัติ';
+    }
+    if (dailyLimitReached) {
+      return 'วันนี้ถอนเงินครบ $maxPerDay ครั้งแล้ว ถอนได้อีกครั้งพรุ่งนี้';
+    }
+    if (availableBalance < minWithdraw) {
+      return 'ยอดที่ถอนได้ต่ำกว่าขั้นต่ำ ฿${minWithdraw.toStringAsFixed(0)}';
+    }
+    return null;
+  }
+}
+
+/// Payout lifecycle: pending → approved → processing → completed, or it ends
+/// rejected (not approved) / failed (transfer failed; money stays in wallet).
+enum PayoutStatus {
+  pending,
+  approved,
+  processing,
+  completed,
+  rejected,
+  failed,
+  unknown;
+
+  static PayoutStatus parse(String? raw) => switch (raw?.toLowerCase()) {
+    'pending' => PayoutStatus.pending,
+    'approved' => PayoutStatus.approved,
+    'processing' => PayoutStatus.processing,
+    'completed' => PayoutStatus.completed,
+    'rejected' => PayoutStatus.rejected,
+    'failed' => PayoutStatus.failed,
+    _ => PayoutStatus.unknown,
+  };
+
+  String get label => switch (this) {
+    PayoutStatus.pending => 'รออนุมัติ',
+    PayoutStatus.approved => 'อนุมัติแล้ว',
+    PayoutStatus.processing => 'กำลังโอน',
+    PayoutStatus.completed => 'โอนสำเร็จ',
+    PayoutStatus.rejected => 'ไม่อนุมัติ',
+    PayoutStatus.failed => 'โอนไม่สำเร็จ',
+    PayoutStatus.unknown => 'ไม่ทราบสถานะ',
+  };
+
+  bool get isFinal =>
+      this == PayoutStatus.completed ||
+      this == PayoutStatus.rejected ||
+      this == PayoutStatus.failed;
+}
+
+/// One withdrawal request from `GET /api/driver/payouts`.
+@immutable
+class PayoutRecord {
+  final String id;
+  final double amount;
+  final PayoutStatus status;
+  final DateTime? createdAt;
+  final DateTime? processedAt;
+
+  /// Written by the company for the driver (rejected / failed). Shown as-is.
+  final String? reason;
+  final String? bankName;
+  final String? accountNumber;
+
+  const PayoutRecord({
+    required this.id,
+    required this.amount,
+    required this.status,
+    this.createdAt,
+    this.processedAt,
+    this.reason,
+    this.bankName,
+    this.accountNumber,
+  });
+
+  factory PayoutRecord.fromJson(Map<String, dynamic> j) {
+    final details = j['method_details'] is Map
+        ? Map<String, dynamic>.from(j['method_details'] as Map)
+        : const <String, dynamic>{};
+    final status = PayoutStatus.parse(j['status']?.toString());
+    String? text(Object? v) {
+      final s = v?.toString().trim();
+      return (s == null || s.isEmpty) ? null : s;
+    }
+
+    return PayoutRecord(
+      id: j['id']?.toString() ?? '',
+      amount: (j['amount'] as num?)?.toDouble() ?? 0,
+      status: status,
+      createdAt: DateTime.tryParse(
+        j['created_at']?.toString() ?? '',
+      )?.toLocal(),
+      processedAt: DateTime.tryParse(
+        j['processed_at']?.toString() ?? '',
+      )?.toLocal(),
+      reason: status == PayoutStatus.failed
+          ? text(j['failure_reason']) ?? text(j['rejection_reason'])
+          : text(j['rejection_reason']) ?? text(j['failure_reason']),
+      bankName:
+          text(details['bank_display_name']) ?? text(details['bank_name']),
+      accountNumber: text(details['account_number']),
+    );
+  }
+
+  /// Masked account number, e.g. "xxxxxx4521".
+  String? get maskedAccount {
+    final a = accountNumber;
+    if (a == null || a.length < 4) return a;
+    return 'xxxxxx${a.substring(a.length - 4)}';
+  }
+}
+
+/// A withdrawal the backend refused, carrying its machine-readable `code`.
+class PayoutException implements Exception {
+  const PayoutException(this.code, this.serverMessage);
+
+  final String? code;
+  final String? serverMessage;
+
+  factory PayoutException.from(DioException e) {
+    final data = e.response?.data;
+    String? read(String k) => data is Map ? data[k]?.toString() : null;
+    return PayoutException(read('code'), read('error') ?? read('message'));
+  }
+
+  /// Thai message for the driver, chosen by code (never by the English text).
+  String get message => switch (code) {
+    'payout_below_min' => 'ยอดถอนต่ำกว่าขั้นต่ำที่กำหนด',
+    'payout_above_max' => 'ยอดถอนเกินสูงสุดต่อครั้ง',
+    'payout_limit_exceeded' =>
+      'วันนี้ถอนเงินครบจำนวนครั้งแล้ว ถอนได้อีกครั้งพรุ่งนี้',
+    'insufficient_balance' => 'ยอดเงินที่ถอนได้ไม่พอ',
+    'payout_pending_exists' =>
+      'มีคำขอถอนเงินที่รอดำเนินการอยู่แล้ว กรุณารอให้รายการเดิมเสร็จก่อน',
+    'no_payout_method' => 'กรุณาเพิ่มบัญชีธนาคารสำหรับรับเงินก่อนถอนเงิน',
+    'payout_method_pending' =>
+      'บัญชีรับเงินอยู่ระหว่างตรวจสอบ ถอนเงินได้เมื่อบัญชีผ่านการอนุมัติ',
+    'unknown_bank' || 'invalid_payout_method' =>
+      'ข้อมูลบัญชีรับเงินไม่ถูกต้อง กรุณาแก้ไขบัญชีธนาคาร',
+    _ => 'ถอนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+  };
+
+  /// The fix is in the bank-account screen.
+  bool get needsBankAccount =>
+      code == 'no_payout_method' ||
+      code == 'unknown_bank' ||
+      code == 'invalid_payout_method';
+
+  @override
+  String toString() => 'Exception: $message';
+}
+
+/// Bumped when a `payout_<status>` push arrives so open payout screens and the
+/// wallet balance refresh. A plain notifier: the push service has no Riverpod.
+class PayoutUpdates extends ChangeNotifier {
+  PayoutUpdates._();
+  static final PayoutUpdates instance = PayoutUpdates._();
+
+  void notifyChanged() => notifyListeners();
+}

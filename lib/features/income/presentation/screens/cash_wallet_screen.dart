@@ -8,7 +8,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/payout_form_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/payout_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -88,17 +88,14 @@ class CashWalletScreen extends ConsumerWidget {
                           },
                         ),
                         WalletActionTile(
-                          title: 'ตรวจสอบประวัติการโอนเงิน',
+                          title: 'ประวัติการถอนเงิน',
                           icon: Icons.history_rounded,
-                          onTap: () {
-                            AppNavigator.push(
-                              context,
-                              const TransactionHistoryScreen(
-                                title: 'ประวัติยอดถอนได้',
-                                transactionType: 'payout',
-                              ),
-                            );
-                          },
+                          // Withdrawal requests with their status and any
+                          // rejection/failure reason (GET /api/driver/payouts).
+                          onTap: () => AppNavigator.push(
+                            context,
+                            const PayoutHistoryScreen(),
+                          ),
                         ),
                       ],
                     ),

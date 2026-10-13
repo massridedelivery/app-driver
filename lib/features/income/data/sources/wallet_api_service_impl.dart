@@ -1,3 +1,4 @@
+import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
@@ -42,6 +43,9 @@ class WalletApiServiceImpl implements WalletApiService {
       final response = await _dio.post(Endpoints.driverPayouts, data: data);
       return response.data;
     } on DioException catch (e) {
+      // Keep the backend's `code` so the app can branch on it (limit hit,
+      // pending request, no account, …) instead of showing its English text.
+      if (e.response?.data is Map) throw PayoutException.from(e);
       ApiError.surface(e, 'Failed to request payout');
     }
   }

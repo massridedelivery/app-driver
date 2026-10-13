@@ -145,7 +145,8 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
       }
 
       final info = BankAccountInfo(
-        bankName: _selectedBank!.nameLong,
+        // Backend contract: bank_name is the Bank of Thailand code.
+        bankName: _selectedBank!.botCode,
         accountName: _accountNameController.text.trim(),
         accountNumber: _accountNumberController.text.trim(),
       );
