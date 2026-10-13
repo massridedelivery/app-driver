@@ -10,6 +10,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/services/connectivity_monitor.dart';
+import 'package:massdrive/features/home/presentation/widgets/home_offline_card.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -308,36 +310,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // pixel of scroll but _sheetSize was never used in build(), causing
     // unnecessary full widget-tree rebuilds.
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (kDebugMode) debugPrint('HomeScreen: initState - Calling fetchProfile()');
-      final profileNotifier = ref.read(profileControllerProvider.notifier);
-      await profileNotifier.fetchProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHome());
+  }
 
-      final profile = ref.read(profileControllerProvider).profile;
-      if (kDebugMode) {
-        debugPrint(
-          'HomeScreen: fetchProfile() finished. Verified: ${profile?.isVerified}',
-        );
-      }
+  bool _retrying = false;
 
-      if (profile?.isVerified == true) {
-        if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
-        if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
-        // Check the credit wallet on every app entry (not only when toggling
-        // online) — warn whenever it is below the minimum so the driver always
-        // sees it on open. Safe against an active-job redirect: the helper
-        // re-checks context.mounted after its fetch and no-ops if home is gone.
-        if (mounted) await _maybeShowCreditWarning(context, ref);
-      } else {
-        if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
-        // Load the registration status (reads /api/driver/documents) so the
-        // home can show "กำลังดำเนินการตรวจสอบข้อมูล" once the driver has
-        // submitted, rather than the "register now" CTA.
-        if (mounted) {
-          ref.read(registrationControllerProvider.notifier).fetchStatus();
-        }
+  /// "ลองใหม่" on the offline card: re-probe the network and reload.
+  Future<void> _retryLoad() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    try {
+      await ref.read(connectivityMonitorProvider.notifier).refresh();
+      await _loadHome();
+    } finally {
+      if (mounted) setState(() => _retrying = false);
+    }
+  }
+
+  /// Load the profile, then start the verified/unverified flow. Run on open,
+  /// on "ลองใหม่", and automatically when the connection comes back.
+  Future<void> _loadHome() async {
+    if (kDebugMode) debugPrint('HomeScreen: initState - Calling fetchProfile()');
+    final profileNotifier = ref.read(profileControllerProvider.notifier);
+    await profileNotifier.fetchProfile();
+
+    final profile = ref.read(profileControllerProvider).profile;
+    // Load failed (offline / server error): the offline card shows instead;
+    // don't start the unverified flow on a missing profile.
+    if (profile == null) return;
+    if (kDebugMode) {
+      debugPrint(
+        'HomeScreen: fetchProfile() finished. Verified: ${profile.isVerified}',
+      );
+    }
+
+    if (profile.isVerified == true) {
+      if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
+      if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
+      // Check the credit wallet on every app entry (not only when toggling
+      // online) — warn whenever it is below the minimum so the driver always
+      // sees it on open. Safe against an active-job redirect: the helper
+      // re-checks context.mounted after its fetch and no-ops if home is gone.
+      if (mounted) await _maybeShowCreditWarning(context, ref);
+    } else {
+      if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
+      // Load the registration status (reads /api/driver/documents) so the
+      // home can show "กำลังดำเนินการตรวจสอบข้อมูล" once the driver has
+      // submitted, rather than the "register now" CTA.
+      if (mounted) {
+        ref.read(registrationControllerProvider.notifier).fetchStatus();
       }
-    });
+    }
   }
 
   @override
@@ -368,6 +391,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final inReview =
         !isVerified && regStatus == RegistrationStateStatus.inReview;
 
+    // Offline card (instead of an endless skeleton) when the driver's data
+    // couldn't load. Reload by itself once the connection comes back.
+    final network = ref.watch(connectivityMonitorProvider);
+    final offline = network.quality == NetworkQuality.offline;
+    final loadFailed = profileState.profile == null &&
+        !profileState.isLoading &&
+        (profileState.errorMessage != null || offline);
+    ref.listen(connectivityMonitorProvider, (prev, next) {
+      final recovered = prev?.quality == NetworkQuality.offline &&
+          (next.quality == NetworkQuality.good ||
+              next.quality == NetworkQuality.weak);
+      if (recovered && ref.read(profileControllerProvider).profile == null) {
+        _loadHome();
+      }
+    });
+
     // Ensure the offer controllers are initialized early to catch WebSocket
     // messages (job_offer / food_delivery_offer / messenger_offer).
     ref.watch(incomingJobControllerProvider);
@@ -395,7 +434,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             right: 16,
             child: const ActiveJobBanner(),
           ),
-          profileState.isLoading || profileState.profile == null
+          loadFailed
+              ? HomeOfflineCard(
+                  offline: offline,
+                  retrying: _retrying,
+                  onRetry: _retryLoad,
+                )
+              : profileState.isLoading || profileState.profile == null
               ? _buildSkeletonLoading()
               : (isVerified
                     ? _buildBottomSheet()
