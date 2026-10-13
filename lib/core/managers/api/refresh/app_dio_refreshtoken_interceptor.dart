@@ -127,6 +127,12 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
         await _clearToken();
         return null;
       }
+    } on _RefreshUnreachable {
+      // No connection (offline, DNS, timeout): the refresh token may be
+      // perfectly valid — keep the session. Wiping it here logged drivers out
+      // just for opening the app without internet; the request fails, the
+      // offline card shows, and the next call once online refreshes normally.
+      return null;
     } on _AccountRestrictedRefresh {
       // Refresh refused with 403 account_suspended / account_deleted: the
       // session isn't dead, the account is restricted. Keep the tokens (a
@@ -222,6 +228,11 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
         AccountStatusNotifier.instance.markRestricted(restriction);
         throw const _AccountRestrictedRefresh();
       }
+      // Never reached the server (or it didn't answer): not a verdict on the
+      // token. Only an actual reply rejecting it should end the session.
+      if (e.response == null || (e.response?.statusCode ?? 0) >= 500) {
+        throw const _RefreshUnreachable();
+      }
       return false;
     } catch (e) {
       return false;
@@ -242,4 +253,9 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 /// Internal signal: the refresh was refused because the account is restricted.
 class _AccountRestrictedRefresh implements Exception {
   const _AccountRestrictedRefresh();
+}
+
+/// Internal signal: the refresh couldn't reach the server (offline / 5xx).
+class _RefreshUnreachable implements Exception {
+  const _RefreshUnreachable();
 }
