@@ -1,4 +1,4 @@
-import 'package:massdrive/core/constants/thai_banks.dart';
+import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -121,7 +121,11 @@ class WalletController extends _$WalletController {
       final summary = await walletRepo.getPayoutSummary();
       final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
       final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
-      state = state.copyWith(cashBalance: cash, creditBalance: credit);
+      state = state.copyWith(
+        cashBalance: cash,
+        creditBalance: credit,
+        payoutLimits: PayoutLimits.fromSummary(summary),
+      );
     } catch (e) {
       debugPrint('WalletController: fetchPayoutSummary Error $e');
     }
@@ -135,7 +139,11 @@ class WalletController extends _$WalletController {
     final summary = await walletRepo.getPayoutSummary();
     final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
     final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
-    state = state.copyWith(cashBalance: cash, creditBalance: credit);
+    state = state.copyWith(
+      cashBalance: cash,
+      creditBalance: credit,
+      payoutLimits: PayoutLimits.fromSummary(summary),
+    );
     // Per-service minimums (e.g. Standard Bike / Saver Bike). Tolerant of a few
     // key spellings the backend might use.
     final mins = <ServiceMinimum>[];
@@ -221,50 +229,42 @@ class WalletController extends _$WalletController {
   }
 
 
-  Future<bool> requestPayout(double amount) async {
+  /// Request a withdrawal. The backend always pays the admin-approved payout
+  /// account and ignores any method in the body, so only the amount is sent.
+  /// Returns null on success, or the refusal (branch on [PayoutException.code]).
+  Future<PayoutException?> requestPayout(double amount) async {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
-      var bankInfo = state.bankAccountInfo;
-      if (bankInfo == null) {
-        final repo = getIt<DocumentRegistrationRepository>();
-        bankInfo = await repo.fetchPayoutMethod();
-        if (bankInfo == null) {
-          throw Exception('กรุณาผูกบัญชีธนาคารสำหรับรับเงินก่อนดำเนินการถอน');
-        }
-        state = state.copyWith(bankAccountInfo: bankInfo);
-      }
-
-      // Bank of Thailand code for the payout account. Never default it: the
-      // old mapping sent Bangkok Bank's "002" for KBank and for every bank it
-      // didn't list, which routes the withdrawal to the wrong bank.
-      final bankCode = thaiBankCode(bankInfo.bankName);
-      if (bankCode == null) {
-        throw Exception(
-          'ไม่พบธนาคารของบัญชีรับเงิน กรุณาแก้ไขข้อมูลบัญชีธนาคารก่อนถอนเงิน',
-        );
-      }
       final walletRepo = getIt<WalletRepository>();
-      await walletRepo.requestPayout({
-        'amount': amount,
-        'method': {
-          'type': 'bank_transfer',
-          'details': {
-            'bank_name': bankCode,
-            'account_number': bankInfo.accountNumber,
-            'account_name': bankInfo.accountName,
-          },
-        },
-      });
-
+      await walletRepo.requestPayout({'amount': amount});
       await fetchEarnings();
-      return true;
+      return null;
+    } on PayoutException catch (e) {
+      debugPrint('WalletController: requestPayout refused ${e.code}');
+      state = state.copyWith(errorMessage: e.message);
+      // A refusal can mean the summary is stale (limit hit, pending request).
+      await fetchPayoutSummary();
+      return e;
     } catch (e) {
       debugPrint('WalletController: requestPayout Error $e');
-      state = state.copyWith(errorMessage: e.toString());
-      return false;
+      const err = PayoutException(null, null);
+      state = state.copyWith(errorMessage: err.message);
+      return err;
     } finally {
       state = state.copyWith(isLoading: false);
     }
+  }
+
+  /// Withdrawal requests, newest first (GET /api/driver/payouts).
+  Future<List<PayoutRecord>> fetchPayoutHistory() async {
+    final walletRepo = getIt<WalletRepository>();
+    final res = await walletRepo.getPayouts();
+    final raw = res['payouts'] ?? res['data'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((m) => PayoutRecord.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
   }
 
   Future<Map<String, dynamic>?> settleDebt({

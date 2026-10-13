@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
+import 'package:massdrive/features/income/domain/models/payout.dart';
 
 part 'wallet_state.freezed.dart';
 
@@ -32,5 +33,7 @@ sealed class WalletState with _$WalletState {
     // (SCRUM-42) — the full count, not just the loaded page length.
     @Default(0) int transactionsTotal,
     BankAccountInfo? bankAccountInfo,
+    // Withdrawal rules from GET /api/driver/payouts/summary.
+    @Default(PayoutLimits()) PayoutLimits payoutLimits,
   }) = _WalletState;
 }

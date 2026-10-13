@@ -207,7 +207,8 @@ ThaiBank? findThaiBank(String? stored) {
   final q = stored.trim().toLowerCase();
   if (q.isEmpty) return null;
   for (final b in kThaiBanks) {
-    if (b.nameLong.toLowerCase() == q ||
+    if (b.botCode == q ||
+        b.nameLong.toLowerCase() == q ||
         b.name.toLowerCase() == q ||
         b.nameEn.toLowerCase() == q ||
         b.code.toLowerCase() == q) {

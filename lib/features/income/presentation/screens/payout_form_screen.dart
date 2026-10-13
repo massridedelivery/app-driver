@@ -8,6 +8,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
+import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 
 class PayoutFormScreen extends ConsumerStatefulWidget {
@@ -24,11 +25,8 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
 
-  // Withdraw rules (SCRUM-42 §9 / Screen 3).
-  static const double _minWithdraw = 100;
-  static const double _maxWithdraw = 50000;
-  static const int _maxPerDay = 5;
-  static const double _whtRate = 0.01; // 1% withholding tax
+  /// Withdrawal rules from GET /api/driver/payouts/summary.
+  PayoutLimits get _limits => ref.read(walletControllerProvider).payoutLimits;
 
   @override
   void dispose() {
@@ -41,51 +39,62 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     setState(() => _isSubmitting = true);
 
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
-    final success = await ref
+    final error = await ref
         .read(walletControllerProvider.notifier)
         .requestPayout(amount);
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    if (success) {
+    if (error == null) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            // A request, not a completed transfer — it's processed (or
-            // rejected) afterwards by the company.
-            'ส่งคำขอถอนเงิน ฿${amount.toStringAsFixed(0)} แล้ว รอดำเนินการ',
+            // A request, not a completed transfer — an admin approves and
+            // transfers it (usually within 1–2 business days).
+            'ส่งคำขอถอนเงิน ฿${amount.toStringAsFixed(0)} แล้ว รอการอนุมัติ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,
         ),
       );
-    } else {
-      final error = ref.read(walletControllerProvider).errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.isNotEmpty ? error : 'โอนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
-            style: AppTypography.label2.copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.semanticErrorBgHigh,
-        ),
-      );
+      return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error.message,
+          style: AppTypography.label2.copyWith(color: Colors.white),
+        ),
+        backgroundColor: AppColors.semanticErrorBgHigh,
+        action: error.needsBankAccount
+            ? SnackBarAction(
+                label: 'แก้ไขบัญชี',
+                textColor: Colors.white,
+                onPressed: () =>
+                    AppNavigator.push(context, const BankAccountFormScreen()),
+              )
+            : null,
+      ),
+    );
   }
 
-  /// WHT 1% breakdown — 1% withholding is deducted from the gross withdrawal
-  /// (SCRUM-42 §9); the driver receives the net. Shown once the amount is valid.
-  Widget _buildWhtBreakdown() {
+  /// Withholding-tax breakdown: the backend deducts `wht_rate` when the
+  /// transfer completes, so the driver receives the net. Shown once the amount
+  /// is valid.
+  Widget _buildWhtBreakdown(PayoutLimits limits) {
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
-    if (amount < _minWithdraw ||
-        amount > _maxWithdraw ||
+    if (amount < limits.minWithdraw ||
+        amount > limits.maxWithdraw ||
         amount > widget.availableBalance) {
       return const SizedBox.shrink();
     }
-    final wht = amount * _whtRate;
-    final net = amount - wht;
+    final net = limits.netFor(amount);
+    final wht = amount - net;
+    final pct = (limits.whtRate * 100).toStringAsFixed(
+      limits.whtRate * 100 % 1 == 0 ? 0 : 1,
+    );
     final fmt = NumberFormat('#,##0');
 
     return Container(
@@ -99,9 +108,16 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
         children: [
           _whtRow('ยอดถอน', '฿${fmt.format(amount)}'),
           const SizedBox(height: 6),
-          _whtRow('หัก ณ ที่จ่าย (1%)', '−฿${fmt.format(wht)}'),
+          _whtRow('หัก ณ ที่จ่าย ($pct%)', '−฿${fmt.format(wht)}'),
           Divider(height: 16, color: context.palette.border),
           _whtRow('ยอดรับสุทธิ', '฿${fmt.format(net)}', highlight: true),
+          const SizedBox(height: 8),
+          Text(
+            'หักภาษี ณ ที่จ่ายเมื่อโอนสำเร็จ · โอนภายใน 1–2 วันทำการหลังอนุมัติ',
+            style: AppTypography.caption5.copyWith(
+              color: context.palette.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -131,6 +147,9 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
   Widget build(BuildContext context) {
     final walletState = ref.watch(walletControllerProvider);
     final bankInfo = walletState.bankAccountInfo;
+    final limits = walletState.payoutLimits;
+    final blockReason =
+        limits.blockReason(availableBalance: widget.availableBalance);
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โอนเงินไปยังบัญชี', showLeftIcon: true),
@@ -273,7 +292,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    bankInfo.bankName,
+                                    bankInfo.bankLabel,
                                     style: AppTypography.caption3.copyWith(
                                       color: context.palette.textPrimary,
                                       fontWeight: FontWeight.bold,
@@ -345,11 +364,11 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     if (amount == null || amount <= 0) {
                       return 'กรุณากรอกจำนวนเงิน';
                     }
-                    if (amount < _minWithdraw) {
-                      return 'ถอนเงินขั้นต่ำ ฿${_minWithdraw.toStringAsFixed(0)}';
+                    if (amount < _limits.minWithdraw) {
+                      return 'ถอนเงินขั้นต่ำ ฿${_limits.minWithdraw.toStringAsFixed(0)}';
                     }
-                    if (amount > _maxWithdraw) {
-                      return 'ถอนสูงสุด ฿${NumberFormat('#,##0').format(_maxWithdraw)} ต่อครั้ง';
+                    if (amount > _limits.maxWithdraw) {
+                      return 'ถอนสูงสุด ฿${NumberFormat('#,##0').format(_limits.maxWithdraw)} ต่อครั้ง';
                     }
                     if (amount > widget.availableBalance) {
                       return 'ยอดเงินไม่เพียงพอ';
@@ -360,14 +379,43 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  'ขั้นต่ำ ฿${_minWithdraw.toStringAsFixed(0)} | สูงสุด ฿${NumberFormat('#,##0').format(_maxWithdraw)}/ครั้ง | ไม่เกิน $_maxPerDay ครั้ง/วัน',
+                  'ขั้นต่ำ ฿${limits.minWithdraw.toStringAsFixed(0)} | สูงสุด ฿${NumberFormat('#,##0').format(limits.maxWithdraw)}/ครั้ง | ไม่เกิน ${limits.maxPerDay} ครั้ง/วัน (วันนี้ ${limits.withdrawalsToday}/${limits.maxPerDay})',
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),
                 ),
 
-                // WHT 1% breakdown — shown once a valid amount is entered.
-                _buildWhtBreakdown(),
+                // Withholding breakdown — shown once a valid amount is entered.
+                _buildWhtBreakdown(limits),
+
+                // Why a withdrawal can't be made right now (from the summary),
+                // so the driver isn't left guessing why the button is off.
+                if (blockReason != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.semanticErrorBgHigh.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline,
+                            size: 18, color: AppColors.semanticErrorBgHigh),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            blockReason,
+                            style: AppTypography.caption4.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const Spacer(),
 
@@ -375,7 +423,10 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: (_isSubmitting || bankInfo == null) ? null : _submit,
+                    onPressed:
+                        (_isSubmitting || bankInfo == null || blockReason != null)
+                            ? null
+                            : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.foundationGreen600,
                       shape: RoundedRectangleBorder(
@@ -386,7 +437,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                     child: _isSubmitting
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                            'ยืนยันการโอนเงิน',
+                            'ยืนยันถอนเงิน',
                             style: AppTypography.heading5.copyWith(
                               color: Colors.white,
                             ),

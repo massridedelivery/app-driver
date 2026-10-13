@@ -178,6 +178,9 @@ class DocumentRegistrationRepositoryImpl
         bankName: details['bank_name'] as String? ?? '',
         accountNumber: details['account_number'] as String? ?? '',
         accountName: details['account_name'] as String? ?? '',
+        bankDisplayName: (details['bank_display_name'] ??
+                methodData['bank_display_name'])
+            ?.toString(),
       );
     } catch (e) {
       debugPrint('Error parsing payout method: $e');

@@ -25,6 +25,7 @@ class AppRoutes {
   static const historyDetailDetailsNamedPage = 'details';
   static const cashWalletNamedPage = '/cash-wallet';
   static const creditWalletNamedPage = '/credit-wallet';
+  static const payoutHistoryNamedPage = '/payout-history';
   static const settingNamedPage = '/setting';
   static const accountRestrictedNamedPage = '/account-restricted';
   static const settingDetailsNamedPage = 'details';

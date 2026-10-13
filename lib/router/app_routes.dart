@@ -18,6 +18,7 @@ import 'package:massdrive/features/auth/presentation/screens/register_screen.dar
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:massdrive/features/job_live/presentation/screens/job_live_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/held_fares_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/payout_history_screen.dart';
 import 'package:massdrive/features/payment/presentation/screens/payment_screen.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/review/presentation/screens/review_customer_screen.dart';
@@ -149,6 +150,11 @@ class AppRouter {
         path: AppRoutes.cashWalletNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: CashWalletScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.payoutHistoryNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: PayoutHistoryScreen()),
       ),
       GoRoute(
         path: AppRoutes.creditWalletNamedPage,
