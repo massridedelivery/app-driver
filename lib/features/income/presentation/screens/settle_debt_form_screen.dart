@@ -169,6 +169,11 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
           backgroundColor: AppColors.semanticErrorBgHigh,
         ),
       );
+      // Company receiving account not set: leave this form — the credit
+      // wallet now hides the MANUAL option and PromptPay remains.
+      if (ref.read(walletControllerProvider).manualTopupUnavailable) {
+        Navigator.of(context).maybePop();
+      }
       return;
     }
 

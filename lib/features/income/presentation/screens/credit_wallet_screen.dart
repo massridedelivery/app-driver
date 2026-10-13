@@ -1,3 +1,4 @@
+import 'package:massdrive/features/income/presentation/screens/topup_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
@@ -77,15 +78,30 @@ class CreditWalletScreen extends ConsumerWidget {
                             );
                           },
                         ),
+                        // Hidden once the backend says the company's receiving
+                        // account isn't set (POST /settle-debt MANUAL → 400);
+                        // PromptPay stays the main channel.
+                        if (!state.manualTopupUnavailable)
+                          WalletActionTile(
+                            title: 'โอนเงินเข้าบัญชี (Manual)',
+                            icon: Icons.account_balance_rounded,
+                            onTap: () {
+                              AppNavigator.push(
+                                context,
+                                const SettleDebtFormScreen(
+                                  paymentMethod: 'MANUAL',
+                                ),
+                              );
+                            },
+                          ),
                         WalletActionTile(
-                          title: 'โอนเงินเข้าบัญชี (Manual)',
-                          icon: Icons.account_balance_rounded,
-                          onTap: () {
-                            AppNavigator.push(
-                              context,
-                              const SettleDebtFormScreen(paymentMethod: 'MANUAL'),
-                            );
-                          },
+                          title: 'ประวัติการแจ้งโอนเงิน',
+                          icon: Icons.receipt_long_rounded,
+                          // MANUAL slips + review status/rejection reason.
+                          onTap: () => AppNavigator.push(
+                            context,
+                            const TopupHistoryScreen(),
+                          ),
                         ),
                         WalletActionTile(
                           title: 'ตรวจสอบประวัติการโอนเงิน',

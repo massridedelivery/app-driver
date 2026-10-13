@@ -1,3 +1,5 @@
+import 'package:massdrive/core/utils/friendly_error.dart';
+import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -57,6 +59,11 @@ class WalletController extends _$WalletController {
   @override
   WalletState build() {
     Future.microtask(() => fetchAll());
+    // A slip was approved/rejected (topup_* push): balances and COD status
+    // changed server-side, so reload them.
+    void onTopupChanged() => fetchAll();
+    TopupUpdates.instance.addListener(onTopupChanged);
+    ref.onDispose(() => TopupUpdates.instance.removeListener(onTopupChanged));
     return const WalletState();
   }
 
@@ -280,9 +287,16 @@ class WalletController extends _$WalletController {
       });
       await fetchEarnings();
       return result;
+    } on ManualTopupUnavailable catch (e) {
+      // The company hasn't set its receiving account: hide MANUAL for now.
+      state = state.copyWith(
+        manualTopupUnavailable: true,
+        errorMessage: friendlyErrorMessage(e),
+      );
+      return null;
     } catch (e) {
       debugPrint('WalletController: settleDebt Error $e');
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(errorMessage: friendlyErrorMessage(e));
       return null;
     } finally {
       state = state.copyWith(isLoading: false);
@@ -351,10 +365,22 @@ class WalletController extends _$WalletController {
       return result;
     } catch (e) {
       debugPrint('WalletController: submitSettlementSlip Error $e');
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(errorMessage: friendlyErrorMessage(e));
       return null;
     } finally {
       state = state.copyWith(isLoading: false);
     }
+  }
+
+  /// Submitted MANUAL slips with their review status, newest first
+  /// (GET /api/driver/settle-debt/requests).
+  Future<List<TopupRequest>> fetchTopupRequests() async {
+    final res = await getIt<WalletApiService>().getSettlementRequests();
+    final raw = res['items'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((m) => TopupRequest.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
   }
 }

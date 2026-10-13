@@ -35,5 +35,8 @@ sealed class WalletState with _$WalletState {
     BankAccountInfo? bankAccountInfo,
     // Withdrawal rules from GET /api/driver/payouts/summary.
     @Default(PayoutLimits()) PayoutLimits payoutLimits,
+    // MANUAL top-up refused with 400 (company receiving account not set):
+    // the credit wallet hides "โอนเงินเข้าบัญชี" and points to PromptPay.
+    @Default(false) bool manualTopupUnavailable,
   }) = _WalletState;
 }

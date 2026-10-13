@@ -1,3 +1,4 @@
+import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
@@ -24,6 +25,22 @@ class WalletApiServiceImpl implements WalletApiService {
       return response.data;
     } on DioException catch (e) {
       ApiError.surface(e, 'Failed to fetch payouts');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getSettlementRequests({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _dio.get(
+        Endpoints.driverSettleDebtRequests,
+        queryParameters: {'limit': limit, 'offset': offset},
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      ApiError.surface(e, 'Failed to fetch top-up requests');
     }
   }
 
@@ -56,6 +73,11 @@ class WalletApiServiceImpl implements WalletApiService {
       final response = await _dio.post(Endpoints.driverSettleDebt, data: data);
       return response.data;
     } on DioException catch (e) {
+      // MANUAL before the company has set its receiving account → 400.
+      if (data['payment_method'] == 'MANUAL' &&
+          e.response?.statusCode == 400) {
+        throw ManualTopupUnavailable(ApiError.serverMessage(e));
+      }
       ApiError.surface(e, 'Failed to settle debt');
     }
   }
@@ -80,6 +102,8 @@ class WalletApiServiceImpl implements WalletApiService {
       final response = await _dio.post(url, data: data);
       return response.data;
     } on DioException catch (e) {
+      // 409 SLIP_ALREADY_SUBMITTED / 400 expired session → explain, by code.
+      if (e.response != null) throw SlipSubmitException.from(e);
       ApiError.surface(e, 'Failed to submit settlement slip');
     }
   }
