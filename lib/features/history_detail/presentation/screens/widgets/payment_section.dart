@@ -3,6 +3,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class PaymentSection extends StatelessWidget {
   final HistoryDetailEntity data;
@@ -103,7 +104,7 @@ class PaymentSection extends StatelessWidget {
           ),
         ),
         Text(
-          "฿ ${data.total.toStringAsFixed(0)}",
+          formatBaht(data.total),
           style: AppTypography.heading5.copyWith(
             color: context.palette.textPrimary,
           ),

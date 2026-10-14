@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Withdrawal rules from `GET /api/driver/payouts/summary`. The defaults are
 /// the backend's current values, used only until a summary that carries them
@@ -45,8 +46,13 @@ class PayoutLimits {
 
   bool get dailyLimitReached => withdrawalsToday >= maxPerDay;
 
-  /// What the driver receives for [amount] once the tax is withheld.
-  double netFor(double amount) => amount * (1 - whtRate);
+  /// Tax withheld on [amount], rounded to the satang exactly like the
+  /// backend (`round(amount × rate × 100) / 100`).
+  double whtFor(double amount) => (amount * whtRate * 100).round() / 100;
+
+  /// What the driver receives for [amount]: amount − [whtFor], so the
+  /// breakdown rows always add up.
+  double netFor(double amount) => amount - whtFor(amount);
 
   /// Why a withdrawal can't be requested right now (shown instead of letting
   /// the API refuse it), or null when it can.
@@ -61,7 +67,7 @@ class PayoutLimits {
       return 'วันนี้ถอนเงินครบ $maxPerDay ครั้งแล้ว ถอนได้อีกครั้งพรุ่งนี้';
     }
     if (availableBalance < minWithdraw) {
-      return 'ยอดที่ถอนได้ต่ำกว่าขั้นต่ำ ฿${minWithdraw.toStringAsFixed(0)}';
+      return 'ยอดที่ถอนได้ต่ำกว่าขั้นต่ำ ${formatBaht(minWithdraw)}';
     }
     return null;
   }

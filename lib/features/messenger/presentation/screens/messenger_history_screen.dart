@@ -8,6 +8,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Completed (DELIVERED) messenger deliveries, paginated (SCRUM-41 §2).
 class MessengerHistoryScreen extends StatefulWidget {
@@ -168,7 +169,7 @@ class _HistoryTile extends StatelessWidget {
             ),
           ),
           Text(
-            '฿${order.fare.toStringAsFixed(0)}',
+            formatBaht(order.fare),
             style: AppTypography.caption3.copyWith(
               color: context.palette.textPrimary,
               fontWeight: FontWeight.bold,

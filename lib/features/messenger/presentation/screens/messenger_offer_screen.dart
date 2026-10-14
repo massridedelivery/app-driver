@@ -13,6 +13,7 @@ import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
 /// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
@@ -211,7 +212,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            offer.fare.toInt().toString(),
+                            formatBahtNumber(offer.fare),
                             style: AppTypography.heading2.copyWith(
                               color: AppColors.semanticGrayNeutralFgWhite,
                               fontSize: 32,
@@ -339,7 +340,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'เก็บเงินปลายทาง ฿${offer.codAmount.toInt()}',
+                      'เก็บเงินปลายทาง ${formatBaht(offer.codAmount)}',
                       style: AppTypography.caption4.copyWith(
                         color: AppColors.foundationOrange500,
                       ),

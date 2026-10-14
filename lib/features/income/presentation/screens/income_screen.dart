@@ -12,6 +12,7 @@ import 'package:massdrive/features/income/presentation/screens/cash_wallet_scree
 import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class IncomeScreen extends ConsumerWidget {
   const IncomeScreen({super.key});
@@ -236,7 +237,6 @@ class _TotalBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedBalance = NumberFormat('#,##0', 'th_TH').format(balance);
     final formattedDate = lastUpdated != null
         ? DateFormat('dd MMM yyyy HH:mm', 'th_TH').format(lastUpdated!.toLocal())
         : null;
@@ -286,7 +286,7 @@ class _TotalBalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '฿$formattedBalance',
+                balanceText(balance),
                 style: AppTypography.heading2.copyWith(
                   color: context.palette.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -372,7 +372,7 @@ class _WalletMiniCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '฿${NumberFormat('#,##0', 'th_TH').format(amount)}',
+              balanceText(amount),
               style: AppTypography.heading5.copyWith(
                 color: context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -509,7 +509,7 @@ class _EarningsCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '฿${NumberFormat('#,##0', 'th_TH').format(amount)}',
+                  balanceText(amount),
                   maxLines: 1,
                   style: AppTypography.heading1.copyWith(
                     color: context.palette.textPrimary,

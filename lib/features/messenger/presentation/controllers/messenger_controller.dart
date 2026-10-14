@@ -142,7 +142,7 @@ class MessengerController extends _$MessengerController {
     }
 
     // 2. Accepted. Fetch full detail; if it lags/fails, fall back to the offer.
-    final order = await _safeGetActive() ?? _orderFromOffer(offer);
+    final order = await _safeGetActive() ?? MessengerOrder.fromOffer(offer);
     _goLive(order);
   }
 
@@ -164,24 +164,6 @@ class MessengerController extends _$MessengerController {
     );
     AppRouter.router.go('/messenger-live');
   }
-
-  /// Minimal order built from the offer, used when the active-detail fetch is
-  /// unavailable right after accept (offer carries no recipient PII).
-  MessengerOrder _orderFromOffer(MessengerOffer o) => MessengerOrder(
-        id: o.id,
-        status: 'ACCEPTED',
-        pickupLat: o.pickupLat,
-        pickupLng: o.pickupLng,
-        pickupAddress: o.pickupAddress,
-        dropoffLat: o.dropoffLat,
-        dropoffLng: o.dropoffLng,
-        dropoffAddress: o.dropoffAddress,
-        packageSizeTier: o.packageSizeTier,
-        codAmount: o.codAmount,
-        paymentMethod: o.paymentMethod,
-        distanceKm: o.distanceKm,
-        fare: o.fare,
-      );
 
   Future<void> rejectOffer() async {
     final offer = state.currentOffer;

@@ -9,6 +9,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
 
 class IncomingFoodModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -186,7 +188,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
             Row(
               children: [
                 Text(
-                  job.netIncome.toInt().toString(),
+                  formatBahtNumber(job.netIncome),
                   style: AppTypography.heading2.copyWith(
                     color: AppColors.semanticGrayNeutralFgWhite,
                     fontSize: 28,
@@ -281,11 +283,10 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
             ),
           ),
           const SizedBox(height: 8),
-          ...job.orderItems.map((item) {
-            final name = item['name'] ?? '';
-            final qty = item['qty'] ?? 1;
-            final price = (item['price'] as num?)?.toDouble() ?? 0.0;
-            final note = item['note'] as String?;
+          ...FoodOrderLine.listFrom(job.orderItems).map((line) {
+            final name = line.name;
+            final qty = line.qty;
+            final note = line.note;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -329,7 +330,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
                     ),
                   ),
                   Text(
-                    '฿${price.toStringAsFixed(0)}',
+                    formatBaht(line.lineTotal),
                     style: AppTypography.caption4.copyWith(
                       color: Colors.white70,
                     ),
@@ -424,17 +425,11 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
   }
 
   Widget _buildOrderSummary() {
-    final subtotal = job.subtotal > 0
-        ? job.subtotal
-        : job.orderItems.fold<double>(
-            0,
-            (sum, item) =>
-                sum +
-                ((item['price'] as num?)?.toDouble() ?? 0) *
-                    ((item['qty'] as int?) ?? 1),
-          );
-    final deliveryFee = job.deliveryFee;
-    final total = subtotal + deliveryFee;
+    final totals = FoodOrderTotals.from(
+      lines: FoodOrderLine.listFrom(job.orderItems),
+      subtotal: job.subtotal,
+      deliveryFee: job.deliveryFee,
+    );
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -444,13 +439,13 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
       ),
       child: Column(
         children: [
-          _summaryRow('ค่าอาหาร', '฿${subtotal.toStringAsFixed(0)}'),
+          _summaryRow('ค่าอาหาร', formatBaht(totals.itemsSubtotal)),
           const SizedBox(height: 4),
-          _summaryRow('ค่าส่ง', '฿${deliveryFee.toStringAsFixed(0)}'),
+          _summaryRow('ค่าส่ง', formatBaht(totals.deliveryFee)),
           const Divider(color: Colors.white12, height: 16),
           _summaryRow(
             'รวม',
-            '฿${total.toStringAsFixed(0)}',
+            formatBaht(totals.total),
             isBold: true,
           ),
         ],

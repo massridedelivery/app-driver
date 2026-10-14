@@ -9,6 +9,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// The driver's withdrawal requests and where each one stands
 /// (GET /api/driver/payouts). Refreshes when a `payout_<status>` push arrives.
@@ -53,7 +54,7 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final whtRate = ref.watch(walletControllerProvider).payoutLimits.whtRate;
+    final limits = ref.watch(walletControllerProvider).payoutLimits;
 
     return Scaffold(
       backgroundColor: context.palette.bg,
@@ -92,7 +93,7 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (_, i) =>
-                  _PayoutCard(record: items[i], whtRate: whtRate),
+                  _PayoutCard(record: items[i], limits: limits),
             );
           },
         ),
@@ -129,10 +130,12 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
 }
 
 class _PayoutCard extends StatelessWidget {
-  const _PayoutCard({required this.record, required this.whtRate});
+  const _PayoutCard({required this.record, required this.limits});
 
   final PayoutRecord record;
-  final double whtRate;
+  /// The backend's payout record has no net, so the net is worked out with
+  /// the backend's own WHT rule.
+  final PayoutLimits limits;
 
   (Color, Color) _statusColors() => switch (record.status) {
     PayoutStatus.completed => (
@@ -156,7 +159,6 @@ class _PayoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat('#,##0.##');
     final date = DateFormat('d MMM yyyy HH:mm', 'th_TH');
     final (bg, fg) = _statusColors();
     final hint = _hint();
@@ -177,7 +179,7 @@ class _PayoutCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '฿${money.format(record.amount)}',
+                  formatBaht(record.amount),
                   style: AppTypography.heading4.copyWith(
                     color: context.palette.textPrimary,
                   ),
@@ -211,7 +213,7 @@ class _PayoutCard extends StatelessWidget {
             _line(
               context,
               'ได้รับสุทธิ',
-              '฿${money.format(record.amount * (1 - whtRate))}',
+              formatBaht(limits.netFor(record.amount)),
             ),
           if (record.bankName != null)
             _line(

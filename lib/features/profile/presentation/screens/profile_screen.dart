@@ -14,6 +14,7 @@ import 'package:massdrive/features/edit_profile/presentation/screens/edit_profil
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -442,7 +443,7 @@ class _TodayTripTile extends StatelessWidget {
             ),
           ),
           Text(
-            "+฿${trip.absoluteAmount.toStringAsFixed(0)}",
+            formatSignedBaht(trip.amount, plus: true),
             style: AppTypography.caption3.copyWith(
               color: AppColors.semanticSupportMintBgHigh,
               fontWeight: FontWeight.bold,

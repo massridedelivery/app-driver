@@ -3,6 +3,8 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
+import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
 
 class OrderItemsSection extends StatelessWidget {
   final HistoryDetailEntity data;
@@ -52,11 +54,10 @@ class OrderItemsSection extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Item list
-          ...items.map((item) {
-            final name = item['name'] ?? '';
-            final qty = item['qty'] ?? 1;
-            final price = (item['price'] as num?)?.toDouble() ?? 0.0;
-            final note = item['note'] as String?;
+          ...FoodOrderLine.listFrom(items).map((line) {
+            final name = line.name;
+            final qty = line.qty;
+            final note = line.note;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -105,7 +106,7 @@ class OrderItemsSection extends StatelessWidget {
                   ),
                   // Price
                   Text(
-                    '฿${price.toStringAsFixed(0)}',
+                    formatBaht(line.lineTotal),
                     style: AppTypography.caption4.copyWith(
                       color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -128,7 +129,11 @@ class OrderItemsSection extends StatelessWidget {
                 ),
               ),
               Text(
-                "฿${_subtotal.toStringAsFixed(0)}",
+                formatBaht(
+                  FoodOrderTotals.from(
+                    lines: FoodOrderLine.listFrom(items),
+                  ).itemsSubtotal,
+                ),
                 style: AppTypography.caption4.copyWith(
                   color: context.palette.textPrimary,
                 ),
@@ -137,18 +142,6 @@ class OrderItemsSection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  double get _subtotal {
-    final items = data.orderItems;
-    if (items == null) return 0;
-    return items.fold<double>(
-      0,
-      (sum, item) =>
-          sum +
-          ((item['price'] as num?)?.toDouble() ?? 0) *
-              ((item['qty'] as int?) ?? 1),
     );
   }
 }

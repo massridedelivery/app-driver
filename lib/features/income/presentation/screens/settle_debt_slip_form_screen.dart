@@ -10,6 +10,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class SettleDebtSlipFormScreen extends ConsumerStatefulWidget {
   final String intentId;
@@ -262,7 +263,7 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                     _buildBankInfoRow('ธนาคาร:', bankName),
                     _buildBankInfoRow('เลขที่บัญชี:', accountNumber),
                     _buildBankInfoRow('ชื่อบัญชี:', accountName),
-                    _buildBankInfoRow('จำนวนเงิน:', '฿${widget.amount.toStringAsFixed(0)}'),
+                    _buildBankInfoRow('จำนวนเงิน:', formatBaht(widget.amount)),
                     _buildBankInfoRow('หมายเลขรายการ:', widget.intentId),
                   ],
                 ),

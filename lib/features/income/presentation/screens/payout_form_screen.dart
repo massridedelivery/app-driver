@@ -10,6 +10,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class PayoutFormScreen extends ConsumerStatefulWidget {
   final double availableBalance;
@@ -53,7 +54,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
           content: Text(
             // A request, not a completed transfer — an admin approves and
             // transfers it (usually within 1–2 business days).
-            'ส่งคำขอถอนเงิน ฿${amount.toStringAsFixed(0)} แล้ว รอการอนุมัติ',
+            'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,
@@ -90,12 +91,11 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
         amount > widget.availableBalance) {
       return const SizedBox.shrink();
     }
+    final wht = limits.whtFor(amount);
     final net = limits.netFor(amount);
-    final wht = amount - net;
     final pct = (limits.whtRate * 100).toStringAsFixed(
       limits.whtRate * 100 % 1 == 0 ? 0 : 1,
     );
-    final fmt = NumberFormat('#,##0');
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -106,11 +106,11 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       ),
       child: Column(
         children: [
-          _whtRow('ยอดถอน', '฿${fmt.format(amount)}'),
+          _whtRow('ยอดถอน', formatBaht(amount)),
           const SizedBox(height: 6),
-          _whtRow('หัก ณ ที่จ่าย ($pct%)', '−฿${fmt.format(wht)}'),
+          _whtRow('หัก ณ ที่จ่าย ($pct%)', '−${formatBaht(wht)}'),
           Divider(height: 16, color: context.palette.border),
-          _whtRow('ยอดรับสุทธิ', '฿${fmt.format(net)}', highlight: true),
+          _whtRow('ยอดรับสุทธิ', formatBaht(net), highlight: true),
           const SizedBox(height: 8),
           Text(
             'หักภาษี ณ ที่จ่ายเมื่อโอนสำเร็จ · โอนภายใน 1–2 วันทำการหลังอนุมัติ',
@@ -188,7 +188,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '฿${widget.availableBalance.toStringAsFixed(0)}',
+                        formatBaht(widget.availableBalance),
                         style: AppTypography.heading2.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
