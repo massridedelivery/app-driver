@@ -428,7 +428,7 @@ class _TransactionTile extends StatelessWidget {
         : AppColors.semanticErrorFgHigh;
     const money = formatBaht;
     String date(DateTime d) =>
-        DateFormat('d MMM yyyy, HH:mm').format(d.toLocal());
+        DateFormat('d MMM yyyy, HH:mm', 'th_TH').format(d.toLocal());
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -614,6 +614,18 @@ class _TransactionTile extends StatelessWidget {
     final s = description.trim();
     if (s.isEmpty) return false;
     final lower = s.toLowerCase();
+    // A bare type name ("Topup", "withdrawal"…) only repeats the row title.
+    const typeEchoes = {
+      'topup',
+      'top-up',
+      'withdrawal',
+      'payout',
+      'adjustment',
+      'bonus',
+      'fare_payment',
+      'commission_deduction',
+    };
+    if (typeEchoes.contains(lower)) return false;
     return !lower.startsWith('trip #') && !lower.startsWith('commission for');
   }
 

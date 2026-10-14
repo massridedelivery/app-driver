@@ -74,7 +74,10 @@ class CashWalletScreen extends ConsumerWidget {
                             if (state.cashBalance <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('ไม่มียอดที่สามารถถอนได้'),
+                                  content: Text(
+                                    'ไม่มียอดที่สามารถถอนได้',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                   backgroundColor: AppColors.semanticErrorBgHigh,
                                 ),
                               );
