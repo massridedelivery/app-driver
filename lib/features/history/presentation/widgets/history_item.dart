@@ -26,15 +26,11 @@ class HistoryItemWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Service / vehicle icon — the same Mass 3D set as the customer app.
-            Container(
+            // Service / vehicle icon — the same Mass 3D set as the customer
+            // app, shown on its own (no frame).
+            SizedBox(
               width: 36,
               height: 36,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: context.palette.surfaceAlt,
-                borderRadius: BorderRadius.circular(8),
-              ),
               child: Image.asset(
                 serviceIconAsset(
                   service: isFood ? 'food' : item.service,
