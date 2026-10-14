@@ -124,6 +124,7 @@ flutter:
     - assets/fonts/
     - assets/images/
     - assets/images/icons/
+    - assets/images/icons/vehicles/
     - assets/locales/
 
   fonts:

@@ -25,6 +25,7 @@ class HistoryItemApiModel {
   @JsonKey(name: 'payment_method')
   final String? paymentMethod;
   final String? title;
+  final String? service; // ride | food | messenger (SCRUM-105)
 
   HistoryItemApiModel({
     this.id,
@@ -39,6 +40,7 @@ class HistoryItemApiModel {
     this.distanceKm,
     this.paymentMethod,
     this.title,
+    this.service,
   });
 
   factory HistoryItemApiModel.fromJson(Map<String, dynamic> json) =>
@@ -49,16 +51,18 @@ class HistoryItemApiModel {
   HistoryItemModel toEntity() {
     final effectiveId = id ?? jobId ?? '';
     final effectiveDateStr = createdAt ?? completedAt;
-    final effectiveDate = effectiveDateStr != null
-        ? (DateTime.tryParse(effectiveDateStr) ?? DateTime.now())
-        : DateTime.now();
+    // The API sends UTC; the list shows the driver's local (Thai) time.
+    final effectiveDate =
+        (effectiveDateStr != null ? DateTime.tryParse(effectiveDateStr) : null)
+            ?.toLocal() ??
+        DateTime.now();
     final effectiveAmount = amount ?? earnings;
     final rawDescription = description ?? title ?? _typeLabel(type);
     final effectiveTitle = _formatDescription(rawDescription, type);
     final effectiveStatus = _parseStatus(status);
 
-    // Determine service type: payout/topup = ride icon, food type = food icon
-    final effectiveServiceType = type?.toLowerCase() == 'food'
+    final effectiveServiceType =
+        (type?.toLowerCase() == 'food' || service?.toLowerCase() == 'food')
         ? ServiceType.food
         : ServiceType.ride;
 
@@ -72,6 +76,7 @@ class HistoryItemApiModel {
       serviceType: effectiveServiceType,
       rawType: type,
       jobId: jobId,
+      service: service,
     );
   }
 

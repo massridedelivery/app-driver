@@ -18,6 +18,12 @@ class HistoryItemModel {
   /// detail. Null for non-trip entries (top-up, withdrawal).
   final String? jobId;
 
+  /// `ride` | `food` | `messenger` when the API says so.
+  final String? service;
+
+  /// The job's vehicle type (e.g. "motorcycle"), joined from the trip list.
+  final String? vehicleTypeName;
+
   HistoryItemModel({
     required this.id,
     required this.dateTime,
@@ -28,6 +34,26 @@ class HistoryItemModel {
     this.serviceType = ServiceType.ride,
     this.rawType,
     this.jobId,
+    this.service,
+    this.vehicleTypeName,
   });
+
+  /// Belongs to a trip (fare, commission…). Top-ups, adjustments and
+  /// withdrawals have no job and live in their own history screens.
+  bool get isTripEntry => jobId != null && jobId!.isNotEmpty;
+
+  HistoryItemModel withVehicleType(String? name) => HistoryItemModel(
+    id: id,
+    dateTime: dateTime,
+    title: title,
+    amount: amount,
+    paymentType: paymentType,
+    status: status,
+    serviceType: serviceType,
+    rawType: rawType,
+    jobId: jobId,
+    service: service,
+    vehicleTypeName: name,
+  );
 }
 

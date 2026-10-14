@@ -20,6 +20,7 @@ HistoryItemApiModel _$HistoryItemApiModelFromJson(Map<String, dynamic> json) =>
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       paymentMethod: json['payment_method'] as String?,
       title: json['title'] as String?,
+      service: json['service'] as String?,
     );
 
 Map<String, dynamic> _$HistoryItemApiModelToJson(
@@ -37,4 +38,5 @@ Map<String, dynamic> _$HistoryItemApiModelToJson(
   'distance_km': instance.distanceKm,
   'payment_method': instance.paymentMethod,
   'title': instance.title,
+  'service': instance.service,
 };
