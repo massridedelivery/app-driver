@@ -18,8 +18,8 @@ class HistoryController extends _$HistoryController {
   /// so the list isn't empty while trips exist further back.
   static const int _maxPagesPerLoad = 5;
 
-  /// job id → vehicle type, for the row icons. Loaded once per screen.
-  Map<String, String>? _vehicleByJob;
+  /// job id → vehicle type + backend net, for the cards. Loaded once.
+  Map<String, TripSummary>? _trips;
 
   @override
   HistoryState build() => const HistoryState();
@@ -106,7 +106,7 @@ class HistoryController extends _$HistoryController {
   Future<({List<HistoryItemModel> rows, int nextOffset, bool hasMore})>
   _loadTripRows({required int offset, String? type, String? date}) async {
     final useCase = getIt<GetHistoryListUseCase>();
-    final vehicles = await _vehicleTypes();
+    final trips = await _tripSummaries();
     final rows = <HistoryItemModel>[];
     var next = offset;
     var hasMore = true;
@@ -120,21 +120,22 @@ class HistoryController extends _$HistoryController {
       );
       next += raw.length;
       hasMore = raw.length >= _pageLimit;
-      rows.addAll(tripRows(raw, vehicles));
+      rows.addAll(tripRows(raw, trips));
     }
     return (rows: rows, nextOffset: next, hasMore: hasMore);
   }
 
-  /// Best effort: without it the rows just show the generic ride icon.
-  Future<Map<String, String>> _vehicleTypes() async {
-    final cached = _vehicleByJob;
+  /// Best effort: without it the cards show the generic ride icon and
+  /// "รอสรุปยอด".
+  Future<Map<String, TripSummary>> _tripSummaries() async {
+    final cached = _trips;
     if (cached != null) return cached;
     try {
       final res = await getIt<Dio>().get(
         Endpoints.driverEarningsTrips,
         queryParameters: {'limit': 100},
       );
-      return _vehicleByJob = vehicleTypesByJob(res.data);
+      return _trips = tripSummariesByJob(res.data);
     } catch (e) {
       debugPrint('HistoryController: vehicle types unavailable $e');
       return const {};

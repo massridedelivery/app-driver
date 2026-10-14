@@ -6,11 +6,11 @@ import 'history_item_model.dart';
 /// history screens.
 List<HistoryItemModel> tripRows(
   Iterable<HistoryItemModel> raw,
-  Map<String, String> vehicleByJob,
-) => raw
-    .where((i) => i.isTripEntry)
-    .map((i) => i.withVehicleType(vehicleByJob[i.jobId]))
-    .toList();
+  Map<String, TripSummary> trips,
+) => raw.where((i) => i.isTripEntry).map((i) {
+  final t = trips[i.jobId];
+  return i.withTrip(vehicleTypeName: t?.vehicleTypeName, tripNet: t?.driverNet);
+}).toList();
 
 /// What the trip list (`GET /api/driver/earnings/trips`) knows about a job:
 /// its vehicle type and the backend-resolved whole-baht net.
@@ -50,3 +50,22 @@ Map<String, String> vehicleTypesByJob(Object? response) => {
   for (final e in tripSummariesByJob(response).entries)
     if (e.value.vehicleTypeName != null) e.key: e.value.vehicleTypeName!,
 };
+
+/// Card line label for a history row: the fare / commission by type, the
+/// row's own (already Thai) title otherwise.
+String historyLineLabel(HistoryItemModel i) =>
+    switch (i.rawType?.toUpperCase()) {
+      'FARE_PAYMENT' => 'ค่าโดยสาร',
+      'COMMISSION_DEDUCTION' => 'หักค่าคอมมิชชัน',
+      _ => i.title,
+    };
+
+/// A job's rows in card order: fare first, then the commission, then the rest.
+List<HistoryItemModel> jobCardOrder(Iterable<HistoryItemModel> rows) {
+  int rank(HistoryItemModel i) => switch (i.rawType?.toUpperCase()) {
+    'FARE_PAYMENT' => 0,
+    'COMMISSION_DEDUCTION' => 1,
+    _ => 2,
+  };
+  return [...rows]..sort((a, b) => rank(a).compareTo(rank(b)));
+}

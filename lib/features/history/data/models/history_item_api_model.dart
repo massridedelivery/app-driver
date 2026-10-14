@@ -26,6 +26,8 @@ class HistoryItemApiModel {
   final String? paymentMethod;
   final String? title;
   final String? service; // ride | food | messenger (SCRUM-105)
+  @JsonKey(name: 'pickup_address')
+  final String? pickupAddress;
 
   HistoryItemApiModel({
     this.id,
@@ -41,6 +43,7 @@ class HistoryItemApiModel {
     this.paymentMethod,
     this.title,
     this.service,
+    this.pickupAddress,
   });
 
   factory HistoryItemApiModel.fromJson(Map<String, dynamic> json) =>
@@ -77,6 +80,7 @@ class HistoryItemApiModel {
       rawType: type,
       jobId: jobId,
       service: service,
+      pickupAddress: pickupAddress,
     );
   }
 

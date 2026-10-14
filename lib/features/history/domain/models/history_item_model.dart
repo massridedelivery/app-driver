@@ -24,6 +24,11 @@ class HistoryItemModel {
   /// The job's vehicle type (e.g. "motorcycle"), joined from the trip list.
   final String? vehicleTypeName;
 
+  /// The job's backend whole-baht `driver_net`, joined from the trip list.
+  final int? tripNet;
+
+  final String? pickupAddress;
+
   HistoryItemModel({
     required this.id,
     required this.dateTime,
@@ -36,13 +41,16 @@ class HistoryItemModel {
     this.jobId,
     this.service,
     this.vehicleTypeName,
+    this.tripNet,
+    this.pickupAddress,
   });
 
   /// Belongs to a trip (fare, commission…). Top-ups, adjustments and
   /// withdrawals have no job and live in their own history screens.
   bool get isTripEntry => jobId != null && jobId!.isNotEmpty;
 
-  HistoryItemModel withVehicleType(String? name) => HistoryItemModel(
+  HistoryItemModel withTrip({String? vehicleTypeName, int? tripNet}) =>
+      HistoryItemModel(
     id: id,
     dateTime: dateTime,
     title: title,
@@ -53,7 +61,9 @@ class HistoryItemModel {
     rawType: rawType,
     jobId: jobId,
     service: service,
-    vehicleTypeName: name,
+    vehicleTypeName: vehicleTypeName,
+    tripNet: tripNet,
+    pickupAddress: pickupAddress,
   );
 }
 
