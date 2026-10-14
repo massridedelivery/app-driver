@@ -28,3 +28,28 @@ String serviceIconAsset({String? service, String? vehicleTypeName}) {
   // economy / saver / taxi and anything else → the sedan.
   return '$_dir/ic_car_economy.png';
 }
+
+/// Thai name for the card title ("มอเตอร์ไซค์ · งาน #03d8f5"), from the same
+/// inputs as [serviceIconAsset].
+String serviceLabel({String? service, String? vehicleTypeName}) {
+  switch (service?.toLowerCase()) {
+    case 'food':
+      return 'ส่งอาหาร';
+    case 'messenger':
+      return 'ส่งพัสดุ';
+  }
+  final n = (vehicleTypeName ?? '').toLowerCase();
+  if (n.isEmpty) return 'เรียกรถ';
+  if (n.contains('bike') || n.contains('motorcycle')) return 'มอเตอร์ไซค์';
+  if (n.contains('taxi')) return 'แท็กซี่';
+  if (n.contains('tuk')) return 'ตุ๊กตุ๊ก';
+  if (n.contains('luxury')) return 'รถหรู';
+  if (n.contains('premium')) return 'รถพรีเมียม';
+  if (n.contains('xl') ||
+      n.contains('van') ||
+      n.contains('suv') ||
+      n.contains('6')) {
+    return 'รถ 6 ที่นั่ง';
+  }
+  return 'รถยนต์';
+}
