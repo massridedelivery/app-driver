@@ -12,21 +12,41 @@ List<HistoryItemModel> tripRows(
     .map((i) => i.withVehicleType(vehicleByJob[i.jobId]))
     .toList();
 
-/// job id → vehicle type name from `GET /api/driver/earnings/trips`
-/// (`driver_info.vehicle_type_name`, or a top-level `vehicle_type_name`).
-Map<String, String> vehicleTypesByJob(Object? response) {
+/// What the trip list (`GET /api/driver/earnings/trips`) knows about a job:
+/// its vehicle type and the backend-resolved whole-baht net.
+class TripSummary {
+  const TripSummary({this.vehicleTypeName, this.driverNet});
+
+  /// `driver_info.vehicle_type_name` (or a top-level `vehicle_type_name`).
+  final String? vehicleTypeName;
+
+  /// `driver_net`; null until the trip settles.
+  final int? driverNet;
+}
+
+/// job id → [TripSummary] from the trip list response.
+Map<String, TripSummary> tripSummariesByJob(Object? response) {
   final list = response is Map ? response['data'] : null;
   if (list is! List) return const {};
-  final out = <String, String>{};
+  final out = <String, TripSummary>{};
   for (final t in list.whereType<Map>()) {
     final id = t['id']?.toString();
+    if (id == null || id.isEmpty) continue;
     final info = t['driver_info'];
     final name =
         (info is Map ? info['vehicle_type_name'] : null) ??
         t['vehicle_type_name'];
-    if (id != null && id.isNotEmpty && name != null) {
-      out[id] = name.toString();
-    }
+    final net = t['driver_net'];
+    out[id] = TripSummary(
+      vehicleTypeName: name?.toString(),
+      driverNet: net is num ? net.round() : null,
+    );
   }
   return out;
 }
+
+/// job id → vehicle type name (jobs without one are left out).
+Map<String, String> vehicleTypesByJob(Object? response) => {
+  for (final e in tripSummariesByJob(response).entries)
+    if (e.value.vehicleTypeName != null) e.key: e.value.vehicleTypeName!,
+};

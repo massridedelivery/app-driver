@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,8 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/constants/endpoints.dart';
+import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
@@ -13,7 +16,12 @@ import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart
 import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'package:massdrive/features/wallet/presentation/controllers/transaction_controller.dart';
+import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/history/domain/models/service_icon.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
+import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:massdrive/features/income/presentation/statement_entries.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   final String title;
@@ -36,12 +44,27 @@ class _TransactionHistoryScreenState
     extends ConsumerState<TransactionHistoryScreen> {
   late final ScrollController _scrollController;
 
+  /// Vehicle type + backend net per job, for the job cards. Best effort: the
+  /// cards fall back to the generic ride icon and "รอสรุปยอด" without it.
+  Map<String, TripSummary> _trips = const {};
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _loadTrips();
+  }
+
+  Future<void> _loadTrips() async {
+    try {
+      final res = await getIt<Dio>().get(
+        Endpoints.driverEarningsTrips,
+        queryParameters: {'limit': 100},
+      );
+      if (mounted) setState(() => _trips = tripSummariesByJob(res.data));
+    } catch (_) {}
   }
 
   void _load() {
@@ -114,19 +137,9 @@ class _TransactionHistoryScreenState
   }
 
   Widget _buildList(List<Transaction> transactions, bool isLoadingMore) {
-    // Statement layout: rows grouped under a date header. Transactions arrive
-    // newest-first; insert a header whenever the day changes.
-    final items = <_ListEntry>[];
-    String? lastDay;
-    for (final t in transactions) {
-      final local = t.createdAt.toLocal();
-      final dayKey = DateFormat('yyyy-MM-dd').format(local);
-      if (dayKey != lastDay) {
-        items.add(_ListEntry.header(local));
-        lastDay = dayKey;
-      }
-      items.add(_ListEntry.txn(t));
-    }
+    // Statement layout: a date header per day; within a day, every row of the
+    // same job (fare, commission) folds into one card with its net.
+    final items = buildStatement(transactions);
 
     return ListView.builder(
       controller: _scrollController,
@@ -142,15 +155,17 @@ class _TransactionHistoryScreenState
             ),
           );
         }
-        final entry = items[index];
-        if (entry.isHeader) return _DateHeader(date: entry.date!);
-        // Hide the divider on the last row of a day group (next is a header or
-        // the list end) so groups read as tidy blocks.
-        final isLastInGroup = index + 1 >= items.length || items[index + 1].isHeader;
-        return _TransactionTile(
-          transaction: entry.transaction!,
-          showDivider: !isLastInGroup,
-        );
+        return switch (items[index]) {
+          StatementDay(:final date) => _DateHeader(date: date),
+          StatementJob job => _JobCard(job: job, trip: _trips[job.jobId]),
+          // Hide the divider when the next line isn't another plain row, so
+          // groups read as tidy blocks.
+          StatementTxn(:final transaction) => _TransactionTile(
+            transaction: transaction,
+            showDivider:
+                index + 1 < items.length && items[index + 1] is StatementTxn,
+          ),
+        };
       },
     );
   }
@@ -619,7 +634,7 @@ class _TransactionTile extends StatelessWidget {
     }
   }
 
-  String _typeLabel(TransactionType type) {
+  static String _typeLabel(TransactionType type) {
     switch (type) {
       case TransactionType.farePayment:
         return 'ค่าโดยสาร';
@@ -682,15 +697,137 @@ class _StatusBadge extends StatelessWidget {
 // Statement list helpers (date-grouped layout)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// One rendered line in the statement list: either a day header or a row.
-class _ListEntry {
-  final DateTime? date;
-  final Transaction? transaction;
+// ─────────────────────────────────────────────────────────────────────────────
+// Job card — fare + commission of one job with the backend net
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _ListEntry.header(this.date) : transaction = null;
-  const _ListEntry.txn(this.transaction) : date = null;
+class _JobCard extends StatelessWidget {
+  final StatementJob job;
+  final TripSummary? trip;
 
-  bool get isHeader => date != null;
+  const _JobCard({required this.job, this.trip});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = job.service;
+    final vehicle = trip?.vehicleTypeName;
+    final shortId = job.jobId.length > 6 ? job.jobId.substring(0, 6) : job.jobId;
+    final time = DateFormat('HH:mm').format(job.time.toLocal());
+    final pickup = job.pickupAddress;
+    final net = trip?.driverNet;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Material(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => AppNavigator.push(
+            context,
+            HistoryDetailScreen(jobId: job.jobId),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // The vehicle on its own — no frame (same Mass 3D set as
+                    // the customer app).
+                    Image.asset(
+                      serviceIconAsset(service: service, vehicleTypeName: vehicle),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${serviceLabel(service: service, vehicleTypeName: vehicle)} · งาน #$shortId',
+                            style: AppTypography.caption3.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            pickup == null ? time : '$time · $pickup',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.caption5.copyWith(
+                              color: context.palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                for (final t in job.transactions) _line(context, t),
+                Divider(color: context.palette.border, height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'รายได้สุทธิ',
+                      style: AppTypography.caption3.copyWith(
+                        color: context.palette.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    // Whole-baht net from the backend only — never summed here.
+                    Text(
+                      net == null ? 'รอสรุปยอด' : formatBaht(net.toDouble()),
+                      style: AppTypography.caption3.copyWith(
+                        color: AppColors.foundationOrange600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _line(BuildContext context, Transaction t) {
+    final color = t.isCredit
+        ? AppColors.semanticSupportMintBgHigh
+        : AppColors.semanticErrorFgHigh;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              t.type == TransactionType.commissionDeduction
+                  ? 'หักค่าคอมมิชชัน'
+                  : _TransactionTile._typeLabel(t.type),
+              style: AppTypography.caption4.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
+          ),
+          if (t.status != TransactionStatus.completed) ...[
+            _StatusBadge(status: t.status),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            transactionAmountText(t),
+            style: AppTypography.caption4.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Sticky-looking day header — "31 สิงหาคม 2026" (Thai month, Gregorian year to
