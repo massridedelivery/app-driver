@@ -9,6 +9,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/features/splash_screen/presentation/controllers/app_startup_controller.dart';
 import 'package:massdrive/router/startup_destination.dart';
+import 'package:massdrive/router/app_routes.dart';
 
 /// Splash styled to match the MassCustomer app (blurred brand auras, a gently
 /// breathing gradient logo tile, and a fixed minimum dwell time before routing
@@ -80,7 +81,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             break;
           case StartupDestination.home:
             final restored = RouteRestorationService.instance.lastRoute;
-            context.go(restored ?? AppRoutes.homeNamedPage);
+            context.go(AppRoutes.homeNamedPage);
+            // Restore the last screen ON TOP of home, never in place of it:
+            // `go(restored)` left it as the only page, so back and the app
+            // bar arrow had nowhere to go and the driver was stuck there.
+            if (restored != null && restored != AppRoutes.homeNamedPage) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => AppRouter.router.push(restored),
+              );
+            }
             break;
         }
       }),

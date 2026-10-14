@@ -188,6 +188,9 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
           intentId: intentId,
           amount: amount,
           bankDetails: bankDetails,
+          expiresAt: DateTime.tryParse(
+            result['expires_at']?.toString() ?? '',
+          )?.toLocal(),
         ),
       );
     }

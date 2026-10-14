@@ -17,11 +17,15 @@ class SettleDebtSlipFormScreen extends ConsumerStatefulWidget {
   final double amount;
   final Map<String, dynamic> bankDetails;
 
+  /// Last moment to send the slip for this transfer (MANUAL `expires_at`).
+  final DateTime? expiresAt;
+
   const SettleDebtSlipFormScreen({
     super.key,
     required this.intentId,
     required this.amount,
     required this.bankDetails,
+    this.expiresAt,
   });
 
   @override
@@ -265,6 +269,11 @@ class _SettleDebtSlipFormScreenState extends ConsumerState<SettleDebtSlipFormScr
                     _buildBankInfoRow('ชื่อบัญชี:', accountName),
                     _buildBankInfoRow('จำนวนเงิน:', formatBaht(widget.amount)),
                     _buildBankInfoRow('หมายเลขรายการ:', widget.intentId),
+                    if (widget.expiresAt case final until?)
+                      _buildBankInfoRow(
+                        'ส่งสลิปภายใน:',
+                        DateFormat('d MMM yyyy HH:mm', 'th_TH').format(until),
+                      ),
                   ],
                 ),
               ),
