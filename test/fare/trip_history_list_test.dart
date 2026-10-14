@@ -58,7 +58,7 @@ final _txns = [
 
 void main() {
   final items = _page(_txns).data.map((m) => m.toEntity()).toList();
-  final vehicles = vehicleTypesByJob({
+  final response = {
     'data': [
       {
         'id': '03d8f581-ff91-4362-a94c-c88100d69d18',
@@ -67,36 +67,38 @@ void main() {
       {'id': 'other', 'vehicle_type_name': 'premium'},
       {'id': 'no-type'},
     ],
-  });
+  };
+  final vehicles = vehicleTypesByJob(response);
+  final trips = tripSummariesByJob(response);
 
   group('rows', () {
     test('only trip entries stay — top-up and adjustment are left out', () {
-      final rows = tripRows(items, vehicles);
+      final rows = tripRows(items, trips);
       expect(rows.map((r) => r.id), ['t1', 't2', 't5']);
       expect(rows.map((r) => r.title), isNot(contains('adjustment')));
       expect(rows.map((r) => r.title), isNot(contains('เติมเงินเครดิต')));
     });
 
     test('titles are Thai with the short job id', () {
-      final rows = tripRows(items, vehicles);
+      final rows = tripRows(items, trips);
       expect(rows[0].title, 'ค่าคอมมิชชัน (งาน #03d8f5)');
       expect(rows[1].title, 'รายได้จากงาน #03d8f5');
     });
 
     test('amounts keep their sign and satang', () {
-      final rows = tripRows(items, vehicles);
+      final rows = tripRows(items, trips);
       expect(formatSignedBaht(rows[0].amount!), '-฿0.40');
       expect(formatSignedBaht(rows[1].amount!), '฿2');
     });
 
     test('time is the local time, not UTC', () {
-      final row = tripRows(items, vehicles)[1];
+      final row = tripRows(items, trips)[1];
       expect(row.dateTime.isUtc, isFalse);
       expect(row.dateTime, DateTime.utc(2026, 9, 19, 3, 19, 33).toLocal());
     });
 
     test('each row carries its job vehicle type', () {
-      final rows = tripRows(items, vehicles);
+      final rows = tripRows(items, trips);
       expect(rows[0].vehicleTypeName, 'motorcycle');
       expect(rows[2].vehicleTypeName, isNull);
       expect(rows[2].service, 'food');

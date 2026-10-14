@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/earnings/job_earnings_card.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -17,7 +18,6 @@ import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'package:massdrive/features/wallet/presentation/controllers/transaction_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
-import 'package:massdrive/features/history/domain/models/service_icon.dart';
 import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
@@ -156,7 +156,7 @@ class _TransactionHistoryScreenState
           );
         }
         return switch (items[index]) {
-          StatementDay(:final date) => _DateHeader(date: date),
+          StatementDay(:final date) => EarningsDayHeader(date: date),
           StatementJob job => _JobCard(job: job, trip: _trips[job.jobId]),
           // Hide the divider when the next line isn't another plain row, so
           // groups read as tidy blocks.
@@ -697,10 +697,7 @@ class _StatusBadge extends StatelessWidget {
 // Statement list helpers (date-grouped layout)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Job card — fare + commission of one job with the backend net
-// ─────────────────────────────────────────────────────────────────────────────
-
+/// A job's rows as a [JobEarningsCard]; tap opens the trip detail.
 class _JobCard extends StatelessWidget {
   final StatementJob job;
   final TripSummary? trip;
@@ -708,152 +705,26 @@ class _JobCard extends StatelessWidget {
   const _JobCard({required this.job, this.trip});
 
   @override
-  Widget build(BuildContext context) {
-    final service = job.service;
-    final vehicle = trip?.vehicleTypeName;
-    final shortId = job.jobId.length > 6 ? job.jobId.substring(0, 6) : job.jobId;
-    final time = DateFormat('HH:mm').format(job.time.toLocal());
-    final pickup = job.pickupAddress;
-    final net = trip?.driverNet;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Material(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => AppNavigator.push(
-            context,
-            HistoryDetailScreen(jobId: job.jobId),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // The vehicle on its own — no frame (same Mass 3D set as
-                    // the customer app).
-                    Image.asset(
-                      serviceIconAsset(service: service, vehicleTypeName: vehicle),
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${serviceLabel(service: service, vehicleTypeName: vehicle)} · งาน #$shortId',
-                            style: AppTypography.caption3.copyWith(
-                              color: context.palette.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            pickup == null ? time : '$time · $pickup',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.caption5.copyWith(
-                              color: context.palette.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                for (final t in job.transactions) _line(context, t),
-                Divider(color: context.palette.border, height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'รายได้สุทธิ',
-                      style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // Whole-baht net from the backend only — never summed here.
-                    Text(
-                      net == null ? 'รอสรุปยอด' : formatBaht(net.toDouble()),
-                      style: AppTypography.caption3.copyWith(
-                        color: AppColors.foundationOrange600,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+  Widget build(BuildContext context) => JobEarningsCard(
+    jobId: job.jobId,
+    time: job.time,
+    service: job.service,
+    vehicleTypeName: trip?.vehicleTypeName,
+    pickupAddress: job.pickupAddress,
+    driverNet: trip?.driverNet,
+    lines: [
+      for (final t in job.transactions)
+        JobCardLine(
+          label: t.type == TransactionType.commissionDeduction
+              ? 'หักค่าคอมมิชชัน'
+              : _TransactionTile._typeLabel(t.type),
+          amount: t.amount,
+          badge: t.status == TransactionStatus.completed
+              ? null
+              : _StatusBadge(status: t.status),
         ),
-      ),
-    );
-  }
-
-  Widget _line(BuildContext context, Transaction t) {
-    final color = t.isCredit
-        ? AppColors.semanticSupportMintBgHigh
-        : AppColors.semanticErrorFgHigh;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              t.type == TransactionType.commissionDeduction
-                  ? 'หักค่าคอมมิชชัน'
-                  : _TransactionTile._typeLabel(t.type),
-              style: AppTypography.caption4.copyWith(
-                color: context.palette.textSecondary,
-              ),
-            ),
-          ),
-          if (t.status != TransactionStatus.completed) ...[
-            _StatusBadge(status: t.status),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            transactionAmountText(t),
-            style: AppTypography.caption4.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Sticky-looking day header — "31 สิงหาคม 2026" (Thai month, Gregorian year to
-/// match the row timestamps).
-class _DateHeader extends StatelessWidget {
-  final DateTime date;
-
-  const _DateHeader({required this.date});
-
-  static const _thMonths = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final label = '${date.day} ${_thMonths[date.month - 1]} ${date.year}';
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 4),
-      child: Text(
-        label,
-        style: AppTypography.caption5.copyWith(
-          color: context.palette.textSecondary,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
+    ],
+    onTap: () =>
+        AppNavigator.push(context, HistoryDetailScreen(jobId: job.jobId)),
+  );
 }

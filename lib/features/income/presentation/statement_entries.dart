@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+import 'package:massdrive/common/widgets/earnings/day_job_groups.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 
@@ -59,38 +59,18 @@ int _order(TransactionType t) => switch (t) {
 /// Builds the statement from newest-first transactions: a day header when
 /// the (local) day changes, and within a day every row of the same job folded
 /// into one [StatementJob] at the position of its newest row.
-List<StatementEntry> buildStatement(List<Transaction> transactions) {
-  final dayKey = DateFormat('yyyy-MM-dd');
-  final out = <StatementEntry>[];
-  String? lastDay;
-  // Jobs already placed today, so later rows of the same job join that card.
-  final jobsToday = <String, List<Transaction>>{};
-  for (final t in transactions) {
-    final local = t.createdAt.toLocal();
-    final key = dayKey.format(local);
-    if (key != lastDay) {
-      out.add(StatementDay(local));
-      lastDay = key;
-      jobsToday.clear();
-    }
-    final job = t.jobId?.trim() ?? '';
-    if (job.isEmpty) {
-      out.add(StatementTxn(t));
-      continue;
-    }
-    final rows = jobsToday[job];
-    if (rows != null) {
-      rows.add(t);
-    } else {
-      final list = [t];
-      jobsToday[job] = list;
-      out.add(StatementJob(job, list));
-    }
-  }
-  for (final e in out) {
-    if (e is StatementJob) {
-      e.transactions.sort((a, b) => _order(a.type).compareTo(_order(b.type)));
-    }
-  }
-  return out;
-}
+List<StatementEntry> buildStatement(List<Transaction> transactions) => [
+  for (final e in groupByDayAndJob<Transaction>(
+    transactions,
+    time: (t) => t.createdAt,
+    jobId: (t) => t.jobId,
+  ))
+    switch (e) {
+      DayHeader(:final date) => StatementDay(date),
+      SingleRow(:final item) => StatementTxn(item),
+      JobGroup(:final jobId, :final items) => StatementJob(
+        jobId,
+        [...items]..sort((a, b) => _order(a.type).compareTo(_order(b.type))),
+      ),
+    },
+];

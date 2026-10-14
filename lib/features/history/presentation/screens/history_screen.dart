@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
+import 'package:massdrive/common/widgets/earnings/day_job_groups.dart';
+import 'package:massdrive/common/widgets/earnings/job_earnings_card.dart';
+import 'package:massdrive/core/constants/app_colors.dart';
+import 'package:massdrive/features/history/domain/models/history_item_model.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
+import 'package:massdrive/features/history/presentation/states/history_state.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
@@ -72,35 +78,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       : CustomScrollView(
                           controller: _scrollController,
                           slivers: [
-                            SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  if (index == state.items.length) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            vertical: 16),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
-                                  }
-
-                                  final item = state.items[index];
-                                  return HistoryItemWidget(
-                                    item: item,
-                                    onTap: () {
-                                      AppNavigator.push(
-                                        context,
-                                        HistoryDetailScreen(
-                                          jobId: item.jobId ?? item.id,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                                childCount: state.items.length +
-                                    (state.isLoadingMore ? 1 : 0),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
+                              sliver: _buildCards(state),
                             ),
                             // Clear the Android edge-to-edge system nav.
                             SliverToBoxAdapter(
@@ -115,6 +97,76 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Job cards (design E) under a day header — same card as รายการทั้งหมด
+  // -------------------------------------------------------------------------
+  Widget _buildCards(HistoryState state) {
+    final entries = groupByDayAndJob<HistoryItemModel>(
+      state.items,
+      time: (i) => i.dateTime,
+      jobId: (i) => i.jobId,
+    );
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index == entries.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          return switch (entries[index]) {
+            DayHeader(:final date) => EarningsDayHeader(date: date),
+            JobGroup(:final jobId, :final items) => _card(jobId, items),
+            SingleRow(:final item) => HistoryItemWidget(
+              item: item,
+              onTap: () => AppNavigator.push(
+                context,
+                HistoryDetailScreen(jobId: item.jobId ?? item.id),
+              ),
+            ),
+          };
+        },
+        childCount: entries.length + (state.isLoadingMore ? 1 : 0),
+      ),
+    );
+  }
+
+  Widget _card(String jobId, List<HistoryItemModel> items) {
+    final rows = jobCardOrder(items);
+    final first = rows.first;
+    return JobEarningsCard(
+      jobId: jobId,
+      time: items
+          .map((i) => i.dateTime)
+          .reduce((a, b) => a.isAfter(b) ? a : b),
+      service: first.serviceType == ServiceType.food ? 'food' : first.service,
+      vehicleTypeName: first.vehicleTypeName,
+      pickupAddress: rows
+          .map((i) => i.pickupAddress)
+          .firstWhere((a) => a != null && a.trim().isNotEmpty, orElse: () => null),
+      driverNet: first.tripNet,
+      lines: [
+        for (final i in rows)
+          JobCardLine(
+            label: historyLineLabel(i),
+            amount: i.amount ?? 0,
+            badge: i.status == HistoryStatus.cancelled
+                ? Text(
+                    'ยกเลิก',
+                    style: AppTypography.caption5.copyWith(
+                      color: AppColors.semanticSupportRedBgHigh,
+                    ),
+                  )
+                : null,
+          ),
+      ],
+      onTap: () => AppNavigator.push(context, HistoryDetailScreen(jobId: jobId)),
     );
   }
 
