@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history/domain/models/history_item_model.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/history/domain/models/service_icon.dart';
 
 class HistoryItemWidget extends StatelessWidget {
   final HistoryItemModel item;
@@ -24,28 +26,27 @@ class HistoryItemWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Service type icon
+            // Service / vehicle icon — the same Mass 3D set as the customer app.
             Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: isFood
-                    ? AppColors.foundationOrange600.withOpacity(0.2)
-                    : AppColors.semanticPrimaryBgLow.withOpacity(0.2),
+                color: context.palette.surfaceAlt,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                isFood ? Icons.fastfood : Icons.two_wheeler,
-                size: 18,
-                color: isFood
-                    ? AppColors.foundationOrange500
-                    : AppColors.semanticPrimaryBgLow,
+              child: Image.asset(
+                serviceIconAsset(
+                  service: isFood ? 'food' : item.service,
+                  vehicleTypeName: item.vehicleTypeName,
+                ),
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: 12),
             // Time
             Text(
-              "${item.dateTime.hour.toString().padLeft(2, '0')}:${item.dateTime.minute.toString().padLeft(2, '0')}",
+              DateFormat('HH:mm').format(item.dateTime.toLocal()),
               style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
             ),
             const SizedBox(width: 12),
