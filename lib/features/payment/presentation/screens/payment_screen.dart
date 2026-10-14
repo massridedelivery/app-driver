@@ -97,6 +97,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return CollectionAmounts.resolve(
       messenger: _isMessenger,
       prepaid: _alreadyPaid,
+      intentAmount: _intentAmount,
       routeAmount: widget.amount,
       jobAmountDue: job?.amountDue,
       jobFare: job?.netIncome,
@@ -119,6 +120,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool _submitting = false;
   String? _intentId;
   String? _qrCodeUrl;
+
+  /// The live intent's amount (fare + waiting fee) once the QR is minted.
+  double? _intentAmount;
   String _status = 'AWAITING_PAYMENT';
   String? _overrideReason;
   // Hidden for now (per product): the "ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?" manual
@@ -206,6 +210,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     setState(() {
       _intentId = intent['intent_id']?.toString();
       _qrCodeUrl = qr;
+      _intentAmount = (intent['amount'] as num?)?.toDouble();
       _status = status;
       // Error when the call failed OR it came back without a usable QR.
       _intentError = !ok || ((qr == null || qr.isEmpty) && status != 'PAID');
@@ -233,6 +238,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final status = (res.data is Map) ? res.data['status']?.toString() : null;
       if (status == 'PAID') {
         _markPaid();
+      } else if (status == 'VOIDED') {
+        // The amount changed (waiting fee / toll) and the server voided this
+        // QR — mint the new one straight away.
+        if (mounted) await _requestNewQr();
       } else if (status == 'EXPIRED' || status == 'FAILED') {
         // QR expired/failed (10-min TTL) — stop polling and let the driver
         // request a fresh QR (or switch to cash). The order is NOT cancelled.
@@ -253,6 +262,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     setState(() {
       _intentId = null;
       _qrCodeUrl = null;
+      _intentAmount = null;
       _status = 'AWAITING_PAYMENT';
     });
     await _startQrFlow();

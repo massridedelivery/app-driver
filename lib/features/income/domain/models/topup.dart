@@ -37,6 +37,13 @@ class TopupRequest {
   final DateTime? createdAt;
   final DateTime? processedAt;
 
+  /// When the transfer session (intent) ends — the last moment to resend.
+  final DateTime? intentExpiresAt;
+
+  /// The backend's answer to "can this slip be sent again" (rejected, intent
+  /// still live, no other pending/approved slip on it). Null on old payloads.
+  final bool? canResubmitFlag;
+
   const TopupRequest({
     required this.id,
     required this.intentId,
@@ -46,13 +53,15 @@ class TopupRequest {
     this.slipImageUrl,
     this.createdAt,
     this.processedAt,
+    this.intentExpiresAt,
+    this.canResubmitFlag,
   });
 
-  /// A rejected slip can be resent while its transfer session is live — 24h
-  /// from when the transfer started, which is never later than the slip. Past
-  /// that the session has certainly expired. The API doesn't send the session's
-  /// expiry, so this errs on the side of "expired".
+  /// Whether a rejected slip can be sent again. The backend's `can_resubmit`
+  /// decides; on payloads without it, fall back to the 24h session rule
+  /// (the session never starts later than the slip).
   bool canResubmit({DateTime? now}) {
+    if (canResubmitFlag != null) return canResubmitFlag!;
     if (status != TopupRequestStatus.rejected || createdAt == null) {
       return false;
     }
@@ -79,6 +88,10 @@ class TopupRequest {
       processedAt: DateTime.tryParse(
         j['processed_at']?.toString() ?? '',
       )?.toLocal(),
+      intentExpiresAt: DateTime.tryParse(
+        j['intent_expires_at']?.toString() ?? '',
+      )?.toLocal(),
+      canResubmitFlag: j['can_resubmit'] as bool?,
     );
   }
 }
