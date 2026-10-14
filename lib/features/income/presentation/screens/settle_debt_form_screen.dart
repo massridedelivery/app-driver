@@ -14,6 +14,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/settle_debt_slip_form_screen.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class SettleDebtFormScreen extends ConsumerStatefulWidget {
   final String paymentMethod; // "PROMPTPAY" or "MANUAL"
@@ -306,9 +307,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  creditBalance < 0
-                      ? 'เครดิตติดลบ ฿${creditBalance.toStringAsFixed(0)} — เติมให้เป็นบวกเพื่อรับงานต่อได้'
-                      : 'เครดิตคงเหลือ ฿${creditBalance.toStringAsFixed(0)}',
+                  creditBalanceHint(creditBalance),
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),

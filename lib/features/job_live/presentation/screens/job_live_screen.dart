@@ -17,6 +17,8 @@ import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
+import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -496,7 +498,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         Row(
           children: [
             Text(
-              "฿${currentJob?.netIncome.toInt() ?? 0}",
+              formatBaht(currentJob?.netIncome ?? 0),
               style: AppTypography.heading3.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),
@@ -629,9 +631,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               // amount explicitly (amount_due when real, else fare) so the
               // collect screen never depends on live controller state.
               final job = ref.read(incomingJobControllerProvider).currentJob;
-              final collect = ((job?.amountDue ?? 0) > 0)
-                  ? job!.amountDue!
-                  : (job?.netIncome ?? 0);
+              final collect = rideAmountToCollect(
+                amountDue: job?.amountDue,
+                fare: job?.netIncome ?? 0,
+              );
               context.push('/payment', extra: {
                 'gateCompletion': true,
                 'amount': collect,

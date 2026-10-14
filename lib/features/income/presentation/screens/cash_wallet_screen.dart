@@ -11,6 +11,7 @@ import 'package:massdrive/features/income/presentation/screens/payout_form_scree
 import 'package:massdrive/features/income/presentation/screens/payout_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class CashWalletScreen extends ConsumerWidget {
   const CashWalletScreen({super.key});
@@ -50,7 +51,7 @@ class CashWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.cashBalance.toStringAsFixed(0)}',
+                            balanceText(state.cashBalance),
                             style: AppTypography.heading1.copyWith(
                               color: context.palette.textPrimary,
                               fontSize: 48,

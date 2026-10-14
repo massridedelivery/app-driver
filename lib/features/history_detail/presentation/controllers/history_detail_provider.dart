@@ -45,7 +45,11 @@ final historyDetailProvider = FutureProvider.autoDispose
     }
   }
   if (trip == null) return null;
+  return historyDetailFromTrip(trip);
+});
 
+/// Maps one `GET /api/driver/earnings/trips` row to the detail screen's data.
+HistoryDetailEntity historyDetailFromTrip(Map<String, dynamic> trip) {
   final fare = _d(trip['fare']);
   // updated_at moves on any later write (rating, settlement…), so only the
   // real completion time gives a trustworthy duration.
@@ -78,7 +82,7 @@ final historyDetailProvider = FutureProvider.autoDispose
         ? null
         : _d(trip['dropoff_lng']),
   );
-});
+}
 
 String _paymentLabel(String raw) {
   switch (raw.toUpperCase()) {

@@ -3,6 +3,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history/domain/models/history_item_model.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class HistoryItemWidget extends StatelessWidget {
   final HistoryItemModel item;
@@ -80,7 +81,7 @@ class HistoryItemWidget extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    "฿${item.amount?.toStringAsFixed(0) ?? '0'}",
+                    formatSignedBaht(item.amount ?? 0),
                     style: AppTypography.caption4.copyWith(
                       color: context.palette.textPrimary,
                       fontWeight: FontWeight.bold,

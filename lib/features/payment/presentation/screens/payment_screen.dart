@@ -17,6 +17,8 @@ import 'package:massdrive/features/job_live/domain/repositories/job_live_reposit
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/payment/data/payment_api_service.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
+import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -87,21 +89,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _others => double.tryParse(_othersController.text) ?? 0.0;
 
-  double get _baseFare {
-    final job = ref.read(incomingJobControllerProvider).currentJob;
-    // Prefer amount_due (fare + en-route tolls/waiting) when the BE actually
-    // ships a real value; dev BE currently sends 0/null, so fall back to the
-    // fare — never collect ฿0 (SCRUM-86 §6).
-    for (final v in [widget.amount, job?.amountDue, job?.netIncome, widget.baseFare]) {
-      if (v != null && v > 0) return v;
-    }
-    return 0;
-  }
-
   // The customer pays the job fare (already net of any discount) plus any
   // real add-ons the driver enters (tolls / others). No app fee is added on
   // top of the customer's bill — platform commission is deducted separately.
-  double get _totalFare => _baseFare + _tolls + _others;
+  CollectionAmounts get _amounts {
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    return CollectionAmounts.resolve(
+      messenger: _isMessenger,
+      prepaid: _alreadyPaid,
+      routeAmount: widget.amount,
+      jobAmountDue: job?.amountDue,
+      jobFare: job?.netIncome,
+      baseFare: widget.baseFare,
+      tolls: _tolls,
+      others: _others,
+      cod: widget.codAmount,
+    );
+  }
+
+  double get _baseFare => _amounts.fee;
+  double get _totalFare => _amounts.feeTotal;
 
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
   static const _pollInterval = Duration(seconds: 3);
@@ -125,7 +132,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool get _alreadyPaid =>
       (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
   bool get _isMessenger => widget.service == ReviewService.messenger;
-  double get _codAmount => widget.codAmount ?? 0.0;
+  double get _codAmount => _amounts.cod;
 
   /// Messenger context line: who to collect from + at which stage (dev14).
   String? get _collectContext {
@@ -481,7 +488,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _totalFare.toStringAsFixed(0),
+                        formatBahtNumber(_totalFare),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 56,
@@ -624,7 +631,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ],
               ),
               Text(
-                "฿${_totalFare.toStringAsFixed(0)}",
+                formatBaht(_totalFare),
                 style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
               ),
             ],
@@ -643,7 +650,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                 ),
                 Text(
-                  "฿${(_totalFare + _codAmount).toStringAsFixed(0)}",
+                  formatBaht(_amounts.cashTotal),
                   style: AppTypography.body2.copyWith(
                     color: context.palette.textSecondary,
                   ),
@@ -904,7 +911,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       children: [
         Text(title, style: AppTypography.body1.copyWith(color: context.palette.textPrimary)),
         Text(
-          value.toStringAsFixed(0),
+          formatBahtNumber(value),
           style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
         ),
       ],

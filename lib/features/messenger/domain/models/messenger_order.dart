@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 
 part 'messenger_order.g.dart';
@@ -119,6 +120,29 @@ class MessengerOrder {
 
   factory MessengerOrder.fromJson(Map<String, dynamic> json) =>
       _$MessengerOrderFromJson(json);
+
+  /// Minimal order built from the offer, used when the active-detail fetch is
+  /// unavailable right after accept (offer carries no recipient PII). Keeps
+  /// the server's fee (amount_due) and who/where it's collected, so the
+  /// collect screen asks for the same amount the offer showed.
+  factory MessengerOrder.fromOffer(MessengerOffer o) => MessengerOrder(
+        id: o.id,
+        status: 'ACCEPTED',
+        pickupLat: o.pickupLat,
+        pickupLng: o.pickupLng,
+        pickupAddress: o.pickupAddress,
+        dropoffLat: o.dropoffLat,
+        dropoffLng: o.dropoffLng,
+        dropoffAddress: o.dropoffAddress,
+        packageSizeTier: o.packageSizeTier,
+        codAmount: o.codAmount,
+        paymentMethod: o.paymentMethod,
+        distanceKm: o.distanceKm,
+        fare: o.fare,
+        payer: o.payer,
+        collectAt: o.collectAt,
+        amountDue: o.amountDue,
+      );
 
   MessengerStatus get statusEnum => MessengerStatus.fromApi(status);
   bool get isCod => paymentMethod.toUpperCase() == 'COD';

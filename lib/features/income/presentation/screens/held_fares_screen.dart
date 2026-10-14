@@ -8,6 +8,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/held_fare.dart';
 import 'package:massdrive/features/payment/data/payment_api_service.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Held fares awaiting finance review — the fares a driver closed via the
 /// manual payment-override (SCRUM-86 §D). Endpoint ships in dev15; until then
@@ -82,7 +83,7 @@ class _HeldFareCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '฿${NumberFormat('#,##0').format(item.amount)}',
+                formatBaht(item.amount),
                 style: AppTypography.heading5
                     .copyWith(color: context.palette.textPrimary),
               ),

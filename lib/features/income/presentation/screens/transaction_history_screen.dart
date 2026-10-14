@@ -13,6 +13,7 @@ import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart
 import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'package:massdrive/features/wallet/presentation/controllers/transaction_controller.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   final String title;
@@ -247,7 +248,7 @@ class _TransactionTile extends StatelessWidget {
     final time = DateFormat('HH:mm').format(transaction.createdAt.toLocal());
     // Time + optional money breakdown on the sub-line — the day already sits in
     // the header, so the row shows only the clock time.
-    final breakdown = _breakdown(transaction);
+    final breakdown = transactionBreakdown(transaction);
     final subLine = breakdown == null ? time : '$time · $breakdown';
 
     return Material(
@@ -334,7 +335,7 @@ class _TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${isCredit ? '+' : ''}${formatBaht(transaction.absoluteAmount)}',
+                    transactionAmountText(transaction),
                     style: AppTypography.caption2.copyWith(
                       color: amountColor,
                       fontWeight: FontWeight.bold,
@@ -353,24 +354,6 @@ class _TransactionTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// A one-line earnings breakdown from whatever the API provides, so a rider
-  /// can read a fare row without guessing what was deducted. Null when there's
-  /// nothing meaningful to show (e.g. a plain top-up/withdrawal).
-  String? _breakdown(Transaction t) {
-    const money = formatBaht;
-    final parts = <String>[];
-    if (t.subtotal != null && t.subtotal! > 0) {
-      parts.add('ยอดงาน ${money(t.subtotal!)}');
-    }
-    if (t.commission != null && t.commission! > 0) {
-      parts.add('หักค่าคอม ${money(t.commission!)}');
-    }
-    if (t.platformFee != null && t.platformFee! > 0) {
-      parts.add('ค่าธรรมเนียม ${money(t.platformFee!)}');
-    }
-    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   /// Thai label for the job's vertical (SCRUM-105). Null for unknown/empty.
@@ -477,7 +460,7 @@ class _TransactionTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${isCredit ? '+' : ''}${money(t.absoluteAmount)}',
+                    transactionAmountText(t),
                     style: AppTypography.heading6.copyWith(
                       color: amountColor,
                       fontWeight: FontWeight.bold,

@@ -19,6 +19,7 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
 ///
@@ -553,7 +554,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         Row(
           children: [
             Text(
-              '฿${currentJob?.netIncome.toInt() ?? 0}',
+              formatBaht(currentJob?.netIncome ?? 0),
               style: AppTypography.heading3.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),

@@ -9,6 +9,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -129,7 +130,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                             Row(
                               children: [
                                 Text(
-                                  job.netIncome.toInt().toString(),
+                                  formatBahtNumber(job.netIncome),
                                   style: AppTypography.heading2.copyWith(
                                     color: AppColors.semanticGrayNeutralFgWhite,
                                     fontSize: 32,

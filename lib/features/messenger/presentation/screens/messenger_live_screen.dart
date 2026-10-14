@@ -13,6 +13,7 @@ import 'package:massdrive/features/messenger/domain/models/messenger_order.dart'
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Active messenger delivery — advances arrived → picked-up → delivered via the
 /// per-vertical REST actions (SCRUM-41 §7).
@@ -174,12 +175,12 @@ class _LiveSheet extends ConsumerWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text('฿${order.fare.toStringAsFixed(0)}',
+              Text(formatBaht(order.fare),
                   style: AppTypography.heading3.copyWith(color: Colors.white)),
               const SizedBox(width: 12),
               Text(
                   order.isCod
-                      ? 'COD ฿${order.codAmount.toInt()}'
+                      ? 'COD ${formatBaht(order.codAmount)}'
                       : order.paymentMethod.toUpperCase() == 'PROMPTPAY'
                           ? (order.isFeePaid ? 'จ่ายแล้ว' : 'QR พร้อมเพย์')
                           : 'เงินสด',
@@ -224,7 +225,7 @@ class _LiveSheet extends ConsumerWidget {
                     : () => controller.collectFeeQr(),
                 icon: const Icon(Icons.qr_code_2, color: Colors.white),
                 label: Text(
-                  'แสดง QR รับเงิน (฿${order.feeDue.toStringAsFixed(0)})',
+                  'แสดง QR รับเงิน (${formatBaht(order.feeDue)})',
                   style: AppTypography.heading6.copyWith(color: Colors.white),
                 ),
                 style: OutlinedButton.styleFrom(

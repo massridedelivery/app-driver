@@ -9,6 +9,8 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/usecases/get_transaction_list_usecase.dart';
+import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 /// Income schedule (Grab-style): pick a day or a week and see the total
 /// earnings, completed-trip count and trip list for that range. Earnings are
@@ -73,8 +75,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
         // Net earnings for the range = the sum of every completed job's fare.
         // (The wallet-overview "earnings" nets out COD debt/commission and can
         // read negative, which isn't what this schedule should show.)
-        _netEarnings = result.transactions
-            .fold<double>(0, (sum, t) => sum + t.absoluteAmount);
+        _netEarnings = sumEarnings(result.transactions);
         _trips = result.transactions;
         _loading = false;
       });
@@ -266,7 +267,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '฿${_loading ? '—' : _netEarnings.toStringAsFixed(0)}',
+            _loading ? '฿—' : formatSignedBaht(_netEarnings),
             style: AppTypography.heading2.copyWith(
               color: context.palette.textPrimary,
             ),
@@ -360,7 +361,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             ),
           ),
           Text(
-            '+฿${t.absoluteAmount.toStringAsFixed(0)}',
+            formatSignedBaht(t.amount, plus: true),
             style: AppTypography.caption3.copyWith(
               color: AppColors.semanticSupportMintBgHigh,
               fontWeight: FontWeight.bold,

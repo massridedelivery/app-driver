@@ -12,6 +12,7 @@ import 'package:massdrive/features/income/presentation/screens/settle_debt_form_
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class CreditWalletScreen extends ConsumerWidget {
   const CreditWalletScreen({super.key});
@@ -50,7 +51,7 @@ class CreditWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '฿${state.creditBalance.toStringAsFixed(0)}',
+                            balanceText(state.creditBalance),
                             style: AppTypography.heading1.copyWith(
                               color: context.palette.textPrimary,
                               fontSize: 48,

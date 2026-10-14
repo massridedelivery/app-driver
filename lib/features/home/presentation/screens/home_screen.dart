@@ -38,6 +38,7 @@ import 'package:massdrive/features/profile/presentation/screens/profile_screen.d
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class OnlineStatusState {
   final bool isOnline;
@@ -1224,24 +1225,7 @@ void _showCreditWarningDialog(
   required CreditStatus status,
   required bool blocking,
 }) {
-  final String balanceText = '฿${status.balance.toStringAsFixed(0)}';
-
-  // Top-up minimum line: prefer the per-service breakdown (e.g. "Standard Bike
-  // ฿30, Saver Bike ฿30"), else a single overall minimum.
-  final String minLine = status.serviceMinimums.isNotEmpty
-      ? status.serviceMinimums
-          .map((s) => '${s.name} ฿${s.min.toStringAsFixed(0)}')
-          .join(', ')
-      : '฿${status.minBalanceRequired.toStringAsFixed(0)}';
-
-  final String title = blocking ? 'เครดิตไม่พอรับงาน' : 'เครดิตใกล้หมด';
-  final String message = blocking
-      ? 'เครดิตคงเหลือ $balanceText — ไม่สามารถรับงานได้\n'
-          'กรุณาเติมเงินเครดิตก่อน ระบบจึงจะจ่ายงานให้\n\n'
-          'ยอดขั้นต่ำ: $minLine'
-      : 'เครดิตคงเหลือ $balanceText ไม่พอสำหรับบางประเภทบริการที่คุณลงทะเบียน\n'
-          'คุณอาจรับงานได้อีกไม่กี่งาน กรุณาเติมเงินเครดิตเพื่อรับงานต่อเนื่อง\n\n'
-          'ยอดขั้นต่ำ: $minLine';
+  final (:title, :message) = creditWarningCopy(status, blocking: blocking);
 
   showDialog(
     context: context,
