@@ -166,7 +166,9 @@ class _TopupCard extends StatelessWidget {
       TopupRequestStatus.pending => 'อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ',
       TopupRequestStatus.approved => 'หักหนี้ COD ก่อน ส่วนที่เกินเป็นเครดิต',
       TopupRequestStatus.rejected =>
-        'ส่งสลิปใหม่ได้ภายใน 24 ชั่วโมงหลังเริ่มรายการโอน',
+        request.canResubmit()
+            ? 'ส่งสลิปใหม่ได้ภายใน 24 ชั่วโมงหลังเริ่มรายการโอน'
+            : 'รายการโอนนี้หมดอายุแล้ว หากโอนเงินแล้วกรุณาติดต่อฝ่ายบริการลูกค้า',
       TopupRequestStatus.unknown => null,
     };
     final slip = request.slipImageUrl;

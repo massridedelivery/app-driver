@@ -7,6 +7,7 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
@@ -333,7 +334,7 @@ class _TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${isCredit ? '+' : ''}฿${transaction.absoluteAmount.toStringAsFixed(0)}',
+                    '${isCredit ? '+' : ''}${formatBaht(transaction.absoluteAmount)}',
                     style: AppTypography.caption2.copyWith(
                       color: amountColor,
                       fontWeight: FontWeight.bold,
@@ -358,7 +359,7 @@ class _TransactionTile extends StatelessWidget {
   /// can read a fare row without guessing what was deducted. Null when there's
   /// nothing meaningful to show (e.g. a plain top-up/withdrawal).
   String? _breakdown(Transaction t) {
-    String money(double v) => '฿${v.toStringAsFixed(0)}';
+    const money = formatBaht;
     final parts = <String>[];
     if (t.subtotal != null && t.subtotal! > 0) {
       parts.add('ยอดงาน ${money(t.subtotal!)}');
@@ -427,7 +428,7 @@ class _TransactionTile extends StatelessWidget {
     final amountColor = isCredit
         ? AppColors.semanticSupportMintBgHigh
         : AppColors.semanticErrorFgHigh;
-    String money(double v) => '฿${v.toStringAsFixed(0)}';
+    const money = formatBaht;
     String date(DateTime d) =>
         DateFormat('d MMM yyyy, HH:mm').format(d.toLocal());
 

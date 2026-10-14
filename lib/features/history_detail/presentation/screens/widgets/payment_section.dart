@@ -33,16 +33,24 @@ class PaymentSection extends StatelessWidget {
         children: [
           _buildHeader(context, theme),
           const SizedBox(height: 16),
-          _buildInfoRow(context, title: "วิธีชำระเงิน", value: data.paymentMethod),
+          _buildInfoRow(
+            context,
+            title: "วิธีชำระเงิน",
+            value: data.paymentMethod,
+          ),
           const SizedBox(height: 12),
-          _buildInfoRow(context,
+          _buildInfoRow(
+            context,
             title: "ระยะทาง",
             value: "${data.distanceKm.toStringAsFixed(2)} km",
           ),
           const SizedBox(height: 12),
-          _buildInfoRow(context,
+          _buildInfoRow(
+            context,
             title: "ระยะเวลา",
-            value: "${data.durationMinute} นาที",
+            value: data.durationMinute == null
+                ? "-"
+                : "${data.durationMinute} นาที",
           ),
           const Divider(height: 28),
           _buildTotalRow(context, theme),
@@ -60,7 +68,11 @@ class PaymentSection extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, {required String title, required String value}) {
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required String title,
+    required String value,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

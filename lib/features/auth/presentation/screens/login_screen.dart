@@ -68,7 +68,7 @@ class LoginScreen extends ConsumerWidget {
                   vertical: 16,
                 ),
                 child: Text(
-                  'MassDriver',
+                  'Mass Drive',
                   style: AppTypography.heading4.copyWith(
                     color: _kBrand,
                     fontWeight: FontWeight.w800,
