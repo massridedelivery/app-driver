@@ -4,10 +4,19 @@ class HistoryDetailEntity {
   final String pickupAddress;
   final String dropoffAddress;
   final double distanceKm;
-  final int durationMinute;
+
+  /// Accepted → completed, in minutes. Null when the trip has no completion
+  /// time, so the screen shows "-" instead of a made-up figure.
+  final int? durationMinute;
   final double total;
   final String paymentMethod;
   final double driverNet;
+
+  /// Settled earnings in whole baht, resolved by the backend
+  /// (gross_fare − commission == driver_net). All null until the trip settles.
+  final int? grossFare;
+  final int? commission;
+  final int? settledNet;
   final String serviceType; // 'ride' or 'food'
   final String? restaurantName;
   final List<Map<String, dynamic>>? orderItems;
@@ -29,6 +38,9 @@ class HistoryDetailEntity {
     required this.total,
     required this.paymentMethod,
     required this.driverNet,
+    this.grossFare,
+    this.commission,
+    this.settledNet,
     this.serviceType = 'ride',
     this.restaurantName,
     this.orderItems,
@@ -47,4 +59,3 @@ class HistoryDetailEntity {
       dropoffLat != null &&
       dropoffLng != null;
 }
-

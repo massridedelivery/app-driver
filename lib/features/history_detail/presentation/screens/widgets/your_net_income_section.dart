@@ -13,9 +13,10 @@ class YourNetIncomeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Commission/fees withheld = gross fare − net paid to the driver.
-    final commission =
-        double.parse((data.total - data.driverNet).toStringAsFixed(2));
+    // Whole-baht figures come from the backend only (gross − commission ==
+    // net). Until the trip settles they're null and the net shows as pending.
+    final gross = data.grossFare ?? data.total.round();
+    final commission = data.commission;
 
     return Container(
       width: double.infinity,
@@ -37,8 +38,8 @@ class YourNetIncomeSection extends StatelessWidget {
         children: [
           _buildHeader(context, theme),
           const SizedBox(height: 16),
-          _buildInfoRow(context, title: "ค่าโดยสาร", value: _money(data.total)),
-          if (commission > 0) ...[
+          _buildInfoRow(context, title: "ค่าโดยสาร", value: _money(gross)),
+          if (commission != null && commission > 0) ...[
             const SizedBox(height: 12),
             _buildInfoRow(
               context,
@@ -62,7 +63,11 @@ class YourNetIncomeSection extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, {required String title, required String value}) {
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required String title,
+    required String value,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -82,9 +87,7 @@ class YourNetIncomeSection extends StatelessWidget {
     );
   }
 
-  /// Formats a baht amount with a thousands separator and up to 2 decimals,
-  /// dropping trailing zeros (e.g. 82.83, 1,200, 30.5).
-  String _money(num value) => '฿${NumberFormat('#,##0.##').format(value)}';
+  String _money(num value) => '฿${NumberFormat('#,##0').format(value)}';
 
   Widget _buildTotalRow(BuildContext context, ThemeData theme) {
     return Row(
@@ -97,7 +100,7 @@ class YourNetIncomeSection extends StatelessWidget {
           ),
         ),
         Text(
-          _money(data.driverNet),
+          data.settledNet == null ? 'รอสรุปยอด' : _money(data.settledNet!),
           style: AppTypography.heading5.copyWith(
             color: AppColors.foundationOrange600,
           ),

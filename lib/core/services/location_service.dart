@@ -99,7 +99,7 @@ class LocationService {
         accuracy: accuracy,
         distanceFilter: distanceFilter,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'MassDriver กำลังออนไลน์',
+          notificationTitle: 'Mass Drive กำลังออนไลน์',
           notificationText: 'กำลังแชร์ตำแหน่งเพื่อรับงาน',
           enableWakeLock: true,
         ),

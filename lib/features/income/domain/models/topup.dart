@@ -48,6 +48,18 @@ class TopupRequest {
     this.processedAt,
   });
 
+  /// A rejected slip can be resent while its transfer session is live — 24h
+  /// from when the transfer started, which is never later than the slip. Past
+  /// that the session has certainly expired. The API doesn't send the session's
+  /// expiry, so this errs on the side of "expired".
+  bool canResubmit({DateTime? now}) {
+    if (status != TopupRequestStatus.rejected || createdAt == null) {
+      return false;
+    }
+    return (now ?? DateTime.now()).difference(createdAt!) <
+        const Duration(hours: 24);
+  }
+
   factory TopupRequest.fromJson(Map<String, dynamic> j) {
     String? text(Object? v) {
       final s = v?.toString().trim();

@@ -95,7 +95,7 @@ class HistoryModel {
       pickupAddress: entity.pickupAddress,
       dropoffAddress: entity.dropoffAddress,
       distanceKm: entity.distanceKm,
-      durationMinute: entity.durationMinute,
+      durationMinute: entity.durationMinute ?? 0,
       total: entity.total,
       paymentMethod: entity.paymentMethod,
       driverNet: entity.driverNet,
