@@ -53,6 +53,37 @@ void main() {
       expect(find.text('00:07'), findsOneWidget);
     });
 
+    testWidgets('design 5: net in green, debit in red (dark + light)', (
+      t,
+    ) async {
+      Future<void> pumpIn(Brightness b) => t.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: b),
+          home: Scaffold(
+            body: JobEarningsCard(
+              jobId: 'J',
+              time: DateTime(2026),
+              driverNet: 2,
+              lines: const [
+                JobCardLine(label: 'หักค่าคอมมิชชัน', amount: -0.4),
+              ],
+            ),
+          ),
+        ),
+      );
+      Color colorOf(String text) =>
+          t.widget<Text>(find.text(text)).style!.color!;
+
+      await pumpIn(Brightness.dark);
+      expect(colorOf('฿2'), const Color(0xFF4ADE80));
+      expect(colorOf('-฿0.40'), const Color(0xFFFCA5A5));
+
+      await pumpIn(Brightness.light);
+      await t.pumpAndSettle(); // the theme change animates
+      expect(colorOf('฿2'), const Color(0xFF15803D));
+      expect(colorOf('-฿0.40'), const Color(0xFFB91C1C));
+    });
+
     testWidgets('tapping opens the detail', (t) async {
       var tapped = false;
       await _pump(

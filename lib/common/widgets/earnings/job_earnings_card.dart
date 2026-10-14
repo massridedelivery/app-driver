@@ -1,10 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/history/domain/models/service_icon.dart';
+
+/// Job-card palette (design 5, "รายได้สีเขียว"): a green-tinted card where
+/// the net reads green = money in. Light and dark variants.
+class _CardColors {
+  const _CardColors({
+    required this.bg,
+    required this.border,
+    required this.title,
+    required this.subtitle,
+    required this.label,
+    required this.credit,
+    required this.debit,
+    required this.divider,
+    required this.net,
+  });
+
+  final Color bg;
+  final Color border;
+  final Color title;
+  final Color subtitle;
+  final Color label;
+  final Color credit;
+  final Color debit;
+  final Color divider;
+  final Color net;
+
+  static const dark = _CardColors(
+    bg: Color(0xFF1F2A27),
+    border: Color(0xFF234A3C),
+    title: Color(0xFFF0FDF4),
+    subtitle: Color(0xFF86A99B),
+    label: Color(0xFFA7C4B8),
+    credit: Color(0xFFA7F3D0),
+    debit: Color(0xFFFCA5A5),
+    divider: Color(0xFF2F4A40),
+    net: Color(0xFF4ADE80),
+  );
+
+  static const light = _CardColors(
+    bg: Color(0xFFF0FDF4),
+    border: Color(0xFFBBF7D0),
+    title: Color(0xFF052E16),
+    subtitle: Color(0xFF4B7C6B),
+    label: Color(0xFF3F6B5C),
+    credit: Color(0xFF047857),
+    debit: Color(0xFFB91C1C),
+    divider: Color(0xFFBBF7D0),
+    net: Color(0xFF15803D),
+  );
+
+  static _CardColors of(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? dark : light;
+}
 
 /// One money movement on a job card ("ค่าโดยสาร +฿2").
 class JobCardLine {
@@ -49,12 +101,16 @@ class JobEarningsCard extends StatelessWidget {
     final shortId = jobId.length > 6 ? jobId.substring(0, 6) : jobId;
     final clock = DateFormat('HH:mm').format(time.toLocal());
     final pickup = pickupAddress?.trim();
+    final c = _CardColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Material(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: c.bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: c.border),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
@@ -82,7 +138,8 @@ class JobEarningsCard extends StatelessWidget {
                           Text(
                             '${serviceLabel(service: service, vehicleTypeName: vehicleTypeName)} · งาน #$shortId',
                             style: AppTypography.caption3.copyWith(
-                              color: context.palette.textPrimary,
+                              color: c.title,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -93,7 +150,7 @@ class JobEarningsCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.caption5.copyWith(
-                              color: context.palette.textSecondary,
+                              color: c.subtitle,
                             ),
                           ),
                         ],
@@ -102,15 +159,15 @@ class JobEarningsCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                for (final l in lines) _line(context, l),
-                Divider(color: context.palette.border, height: 16),
+                for (final l in lines) _line(l, c),
+                Divider(color: c.divider, height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'รายได้สุทธิ',
                       style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
+                        color: c.title,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -118,8 +175,8 @@ class JobEarningsCard extends StatelessWidget {
                       driverNet == null
                           ? 'รอสรุปยอด'
                           : formatBaht(driverNet!.toDouble()),
-                      style: AppTypography.caption3.copyWith(
-                        color: AppColors.foundationOrange600,
+                      style: AppTypography.heading5.copyWith(
+                        color: c.net,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -133,10 +190,8 @@ class JobEarningsCard extends StatelessWidget {
     );
   }
 
-  Widget _line(BuildContext context, JobCardLine l) {
-    final color = l.amount >= 0
-        ? AppColors.semanticSupportMintBgHigh
-        : AppColors.semanticErrorFgHigh;
+  Widget _line(JobCardLine l, _CardColors c) {
+    final color = l.amount >= 0 ? c.credit : c.debit;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -144,15 +199,13 @@ class JobEarningsCard extends StatelessWidget {
           Expanded(
             child: Text(
               l.label,
-              style: AppTypography.caption4.copyWith(
-                color: context.palette.textSecondary,
-              ),
+              style: AppTypography.caption5.copyWith(color: c.label),
             ),
           ),
           if (l.badge != null) ...[l.badge!, const SizedBox(width: 6)],
           Text(
             formatSignedBaht(l.amount, plus: true),
-            style: AppTypography.caption4.copyWith(color: color),
+            style: AppTypography.caption5.copyWith(color: color),
           ),
         ],
       ),
