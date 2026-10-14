@@ -124,6 +124,11 @@ class PayoutRecord {
   final String? bankName;
   final String? accountNumber;
 
+  /// Tax withheld and what reached the bank, as recorded by the backend when
+  /// the request was made. Shown as-is — never recomputed from wht_rate.
+  final double? whtAmount;
+  final double? netAmount;
+
   const PayoutRecord({
     required this.id,
     required this.amount,
@@ -133,6 +138,8 @@ class PayoutRecord {
     this.reason,
     this.bankName,
     this.accountNumber,
+    this.whtAmount,
+    this.netAmount,
   });
 
   factory PayoutRecord.fromJson(Map<String, dynamic> j) {
@@ -161,6 +168,8 @@ class PayoutRecord {
       bankName:
           text(details['bank_display_name']) ?? text(details['bank_name']),
       accountNumber: text(details['account_number']),
+      whtAmount: (j['wht_amount'] as num?)?.toDouble(),
+      netAmount: (j['net_amount'] as num?)?.toDouble(),
     );
   }
 

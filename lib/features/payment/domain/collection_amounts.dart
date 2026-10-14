@@ -28,6 +28,8 @@ class CollectionAmounts {
   /// Cash the driver physically takes at the door: fee side + COD.
   double get cashTotal => feeTotal + cod;
 
+  /// [intentAmount] is the live QR intent's amount — the server's figure,
+  /// which includes waiting fees, so it wins when present.
   /// [routeAmount] is what the caller pushed. A messenger order always sends
   /// its own fee (0 when there is none), so it never borrows a ride job's
   /// fare. Ride/food fall back to the live job's amount_due → fare → baseFare,
@@ -35,6 +37,7 @@ class CollectionAmounts {
   factory CollectionAmounts.resolve({
     required bool messenger,
     bool prepaid = false,
+    double? intentAmount,
     double? routeAmount,
     double? jobAmountDue,
     double? jobFare,
@@ -46,6 +49,9 @@ class CollectionAmounts {
     double fee = 0;
     if (prepaid) {
       fee = 0;
+    } else if ((intentAmount ?? 0) > 0) {
+      // The live QR's own amount (fare + waiting fee) is what gets charged.
+      fee = intentAmount!;
     } else if (messenger) {
       fee = (routeAmount ?? 0) > 0 ? routeAmount! : 0;
     } else {

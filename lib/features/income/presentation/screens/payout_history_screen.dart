@@ -54,7 +54,6 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final limits = ref.watch(walletControllerProvider).payoutLimits;
 
     return Scaffold(
       backgroundColor: context.palette.bg,
@@ -93,7 +92,7 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (_, i) =>
-                  _PayoutCard(record: items[i], limits: limits),
+                  _PayoutCard(record: items[i]),
             );
           },
         ),
@@ -130,12 +129,9 @@ class _PayoutHistoryScreenState extends ConsumerState<PayoutHistoryScreen> {
 }
 
 class _PayoutCard extends StatelessWidget {
-  const _PayoutCard({required this.record, required this.limits});
+  const _PayoutCard({required this.record});
 
   final PayoutRecord record;
-  /// The backend's payout record has no net, so the net is worked out with
-  /// the backend's own WHT rule.
-  final PayoutLimits limits;
 
   (Color, Color) _statusColors() => switch (record.status) {
     PayoutStatus.completed => (
@@ -209,11 +205,13 @@ class _PayoutCard extends StatelessWidget {
             _line(context, 'แจ้งถอน', date.format(record.createdAt!)),
           if (completed && record.processedAt != null)
             _line(context, 'โอนสำเร็จ', date.format(record.processedAt!)),
-          if (completed)
+          if (record.whtAmount case final wht? when wht > 0)
+            _line(context, 'หัก ณ ที่จ่าย', '−${formatBaht(wht)}'),
+          if (record.netAmount case final net?)
             _line(
               context,
-              'ได้รับสุทธิ',
-              formatBaht(limits.netFor(record.amount)),
+              completed ? 'ได้รับสุทธิ' : 'ยอดเข้าบัญชี',
+              formatBaht(net),
             ),
           if (record.bankName != null)
             _line(

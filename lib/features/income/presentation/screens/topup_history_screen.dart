@@ -165,10 +165,15 @@ class _TopupCard extends StatelessWidget {
     final hint = switch (request.status) {
       TopupRequestStatus.pending => 'อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ',
       TopupRequestStatus.approved => 'หักหนี้ COD ก่อน ส่วนที่เกินเป็นเครดิต',
-      TopupRequestStatus.rejected =>
-        request.canResubmit()
-            ? 'ส่งสลิปใหม่ได้ภายใน 24 ชั่วโมงหลังเริ่มรายการโอน'
-            : 'รายการโอนนี้หมดอายุแล้ว หากโอนเงินแล้วกรุณาติดต่อฝ่ายบริการลูกค้า',
+      TopupRequestStatus.rejected => switch ((
+        request.canResubmit(),
+        request.intentExpiresAt,
+      )) {
+        (true, final until?) => 'ส่งสลิปใหม่ได้ถึง ${date.format(until)}',
+        (true, null) => 'ส่งสลิปใหม่ได้ภายใน 24 ชั่วโมงหลังเริ่มรายการโอน',
+        (false, _) =>
+          'รายการโอนนี้หมดอายุแล้ว หากโอนเงินแล้วกรุณาติดต่อฝ่ายบริการลูกค้า',
+      },
       TopupRequestStatus.unknown => null,
     };
     final slip = request.slipImageUrl;
@@ -273,14 +278,32 @@ class _TopupCard extends StatelessWidget {
                 width: 56,
                 height: 72,
                 fit: BoxFit.cover,
+                // 404 file_not_found (the file was purged), 403 or a bad
+                // key: say the image isn't available instead of a broken icon.
                 errorBuilder: (_, _, _) => Container(
                   width: 56,
                   height: 72,
                   color: context.palette.surfaceAlt,
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 20,
-                    color: context.palette.textTertiary,
+                  padding: const EdgeInsets.all(4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 18,
+                        color: context.palette.textTertiary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'รูปไม่พร้อมใช้งาน',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption5.copyWith(
+                          color: context.palette.textTertiary,
+                          fontSize: 9,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
