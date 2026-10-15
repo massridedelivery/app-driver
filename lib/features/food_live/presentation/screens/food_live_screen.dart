@@ -20,6 +20,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
 ///
@@ -524,11 +525,22 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // Fare info
+        // What the driver earns (driver_net) when the backend sent it; else
+        // the delivery fee, labelled as such.
+        Text(
+          offerHeadline(
+            fare: currentJob?.netIncome ?? 0,
+            driverNet: currentJob?.driverNet,
+            delivery: true,
+          ).label,
+          style: AppTypography.caption4.copyWith(color: Colors.white70),
+        ),
         Row(
           children: [
             Text(
-              formatBaht(currentJob?.netIncome ?? 0),
+              formatBaht(
+                currentJob?.driverNet ?? currentJob?.netIncome ?? 0,
+              ),
               style: AppTypography.heading3.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),

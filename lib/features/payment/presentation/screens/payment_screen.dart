@@ -110,6 +110,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   double get _baseFare => _amounts.fee;
+
+  /// The driver's own net for this ride, from the offer (BE #191).
+  double? get _driverNet =>
+      ref.read(incomingJobControllerProvider).currentJob?.driverNet;
   double get _totalFare => _amounts.feeTotal;
 
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
@@ -515,11 +519,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _currentMethod == PaymentMethod.cash
+                    _amounts.cashTotal <= 0
+                        // A promo covered the whole fare.
+                        ? "ไม่ต้องเก็บเงินจากผู้โดยสาร"
+                        : _currentMethod == PaymentMethod.cash
                         ? "เก็บเงินสด"
                         : "สแกนจ่าย",
                     style: AppTypography.heading6.copyWith(color: Colors.white),
                   ),
+                  // The big figure is what the passenger pays; show what the
+                  // driver actually earns too (ride offers carry driver_net).
+                  if (!_isMessenger && _driverNet != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'รายได้สุทธิของคุณ ${formatBaht(_driverNet!)}',
+                      style: AppTypography.body1.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                   // Tell the driver who to collect from and at which stage
                   // (messenger PICKUP/DELIVERY) — dev14.
                   if (_collectContext != null) ...[

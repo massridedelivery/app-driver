@@ -82,7 +82,7 @@ Future<ActiveJobResume?> resolveActiveJob(Ref ref) async {
       return null;
   }
 
-  final jobJson = _extractJobJson(detail);
+  final jobJson = extractJobJson(detail);
   if (jobJson == null) return null;
 
   final job = IncomingJobModel.fromJson(jobJson);
@@ -124,7 +124,7 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
       map['ride'] ??
       map['food'] ??
       map;
-  final json = _extractJobJson(vertical);
+  final json = extractJobJson(vertical);
   if (json != null) {
     ref
         .read(incomingJobControllerProvider.notifier)
@@ -134,7 +134,8 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
   return null;
 }
 
-Map<String, dynamic>? _extractJobJson(dynamic data) {
+/// The job JSON from an active-job response (bare, `{job: …}` or a list).
+Map<String, dynamic>? extractJobJson(dynamic data) {
   if (data is Map<String, dynamic>) {
     final job = data['job'];
     if (job is Map<String, dynamic>) return job;

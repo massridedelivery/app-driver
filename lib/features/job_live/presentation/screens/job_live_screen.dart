@@ -19,6 +19,10 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
+import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
+import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -446,8 +450,42 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
+  bool _collecting = false;
+
+  /// At the drop-off: read what the passenger owes now (fare + toll + waiting
+  /// − promo) from the backend, then open the collect screen with it. The
+  /// in-memory offer can't be used — its amount_due is always 0.
+  Future<void> _goCollect() async {
+    if (_collecting) return;
+    _collecting = true;
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    double? serverDue;
+    try {
+      final detail = await getIt<JobLiveRepository>().getActiveJob();
+      final v = extractJobJson(detail)?['amount_due'];
+      if (v is num) serverDue = v.toDouble();
+    } catch (_) {
+      // Offline / read failed: fall back to the quoted fare below.
+    }
+    _collecting = false;
+    if (!mounted) return;
+    context.push('/payment', extra: {
+      'gateCompletion': true,
+      'amount': rideAmountToCollect(
+        serverAmountDue: serverDue,
+        fare: job?.netIncome ?? 0,
+      ),
+    });
+  }
+
   Widget _buildPassengerInfo() {
     final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
+    // What the driver earns from this job (driver_net), not what the
+    // passenger pays — the fare only when the backend gave no net.
+    final headline = offerHeadline(
+      fare: currentJob?.netIncome ?? 0,
+      driverNet: currentJob?.driverNet,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -469,10 +507,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           ),
         ),
         const SizedBox(height: 12),
+        Text(
+          headline.label,
+          style: AppTypography.caption4.copyWith(color: Colors.white70),
+        ),
         Row(
           children: [
             Text(
-              formatBaht(currentJob?.netIncome ?? 0),
+              formatBaht(headline.amount),
               style: AppTypography.heading3.copyWith(
                 color: AppColors.semanticGrayNeutralFgWhite,
               ),
@@ -604,15 +646,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               // the fare and marks COMPLETED only once it's settled. Pass the
               // amount explicitly (amount_due when real, else fare) so the
               // collect screen never depends on live controller state.
-              final job = ref.read(incomingJobControllerProvider).currentJob;
-              final collect = rideAmountToCollect(
-                amountDue: job?.amountDue,
-                fare: job?.netIncome ?? 0,
-              );
-              context.push('/payment', extra: {
-                'gateCompletion': true,
-                'amount': collect,
-              });
+              _goCollect();
               break;
           }
         });
