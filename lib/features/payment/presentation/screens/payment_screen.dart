@@ -115,6 +115,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// (BE #191 driver_earnings). Never computed here.
   double? get _driverNet =>
       ref.read(incomingJobControllerProvider).currentJob?.driverNet;
+  /// The ride's quoted fare, and how far the amount to collect is below it —
+  /// a platform-funded promo. 0 for messenger or when nothing is discounted.
+  double? get _jobFare =>
+      _isMessenger ? null : ref.read(incomingJobControllerProvider).currentJob?.netIncome;
+  double get _promoDiscount {
+    final fare = _jobFare;
+    if (fare == null || _alreadyPaid) return 0;
+    final gap = fare - _baseFare;
+    return gap > 0 ? gap : 0;
+  }
+
   double? get _driverCommission =>
       ref.read(incomingJobControllerProvider).currentJob?.driverCommission;
 
@@ -651,7 +662,30 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 24),
 
           // Breakdown
-          _buildBreakdownRow(_isMessenger ? "ค่าส่ง" : "ค่าโดยสาร", _baseFare),
+          // A promo lowers what the passenger owes below the fare: show the
+          // fare and the platform-funded discount so ฿0 to collect reads right.
+          if (_promoDiscount > 0) ...[
+            _buildBreakdownRow("ค่าโดยสาร", _jobFare!),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "ส่วนลดคูปอง (บริษัทออกให้)",
+                  style: AppTypography.body1.copyWith(
+                    color: AppColors.semanticSupportMintBgHigh,
+                  ),
+                ),
+                Text(
+                  "−${formatBahtNumber(_promoDiscount)}",
+                  style: AppTypography.body1.copyWith(
+                    color: AppColors.semanticSupportMintBgHigh,
+                  ),
+                ),
+              ],
+            ),
+          ] else
+            _buildBreakdownRow(_isMessenger ? "ค่าส่ง" : "ค่าโดยสาร", _baseFare),
           const SizedBox(height: 16),
           if (_tolls > 0) ...[
             _buildBreakdownRow("ค่าทางด่วน", _tolls),
