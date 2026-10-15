@@ -31,6 +31,8 @@ void main() {
         }),
       );
       expect(job.driverNet, 32);
+      expect(job.driverCommission, 8); // shown as หักค่าคอมมิชชัน on collect
+      expect(job.netIncome - job.driverCommission!, job.driverNet);
       final h = offerHeadline(fare: job.netIncome, driverNet: job.driverNet);
       expect(h.label, 'รายได้สุทธิ');
       expect(h.amount, 32);
