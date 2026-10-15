@@ -9,6 +9,7 @@ import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/router/app_routes.dart';
+import 'package:massdrive/core/services/job_cancellation.dart';
 
 /// Requests notification permission and returns the resulting iOS/Firebase
 /// [AuthorizationStatus] name for display. Shared by app startup and the FCM
@@ -287,6 +288,12 @@ class PushNotificationService {
     // Slip approved/rejected (topup_approved / topup_rejected): wallet and
     // COD status changed — refresh them and the slip list.
     if (_isTopupUpdate(message)) TopupUpdates.instance.notifyChanged();
+    // The job was cancelled (customer / admin / system): the app-root
+    // listener closes the job screen and shows its own dialog.
+    if (jobCancelFromPush(message.data) case final cancel?) {
+      JobCancellations.instance.report(cancel);
+      return;
+    }
 
     // iOS presents notifications itself via the foreground options above,
     // including the loud job-alert sound set in `apns.payload.aps.sound` — no
@@ -338,6 +345,10 @@ class PushNotificationService {
     FcmDebugLog.log('Notification tapped: id=${message.messageId} route=${message.data['route']}');
     // Finance decided on a held (override-claimed) fare → open the held list.
     final type = message.data['type']?.toString();
+    if (jobCancelFromPush(message.data) case final cancel?) {
+      JobCancellations.instance.report(cancel);
+      return;
+    }
     if (type == 'held_fare_approved' || type == 'held_fare_rejected') {
       _navigateTo('/held-fares');
       return;

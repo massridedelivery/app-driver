@@ -14,6 +14,7 @@ import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart'
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
 /// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
@@ -163,6 +164,9 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
   @override
   Widget build(BuildContext context) {
     final offer = widget.offer;
+    // Messenger offers carry no driver_earnings yet — the fee isn't the
+    // driver's net, so it's labelled as the delivery fee (BE #191).
+    final headline = offerHeadline(fare: offer.fare, delivery: true);
     final autoAccept = ref.watch(autoAcceptProvider);
     final isSubmitting = ref.watch(
       messengerControllerProvider.select((s) => s.isSubmitting),
@@ -201,7 +205,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'รายได้สุทธิ',
+                        headline.label,
                         style: AppTypography.body1.copyWith(
                           color: AppColors.semanticGrayNeutralFgWhite,
                         ),
@@ -212,7 +216,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            formatBahtNumber(offer.fare),
+                            formatBahtNumber(headline.amount),
                             style: AppTypography.heading2.copyWith(
                               color: AppColors.semanticGrayNeutralFgWhite,
                               fontSize: 32,

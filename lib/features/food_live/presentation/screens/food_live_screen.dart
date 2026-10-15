@@ -38,7 +38,6 @@ class FoodLiveScreen extends ConsumerStatefulWidget {
 }
 
 class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
-  StreamSubscription? _socketSub;
   FoodLiveState _currentState = FoodLiveState.headingToRestaurant;
   bool _isLoading = false;
   final DirectionsService _directionsService = DirectionsService();
@@ -60,31 +59,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
 
-      _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
-        if (!mounted) return;
-        if (msg.type == 'job_status' || msg.type == 'ORDER_STATUS_UPDATED') {
-          // Read top-level (raw) or nested (data) — a customer cancel frame
-          // with top-level fields was missed before, leaving the live screen
-          // stuck until an app restart.
-          final jobId = msg.raw['job_id'] ??
-              msg.raw['orderId'] ??
-              msg.data?['job_id'] ??
-              msg.data?['orderId'];
-          final status = msg.raw['status'] ?? msg.data?['status'];
-          final currentJobId = ref
-              .read(incomingJobControllerProvider)
-              .currentJob
-              ?.jobId;
-
-          if (currentJobId == jobId && status == 'CANCELLED') {
-            ref.read(incomingJobControllerProvider.notifier).dismissModal();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('ออเดอร์ถูกยกเลิกแล้ว')),
-            );
-            context.go('/home');
-          }
-        }
-      });
+      // A cancelled order is closed by the app-root JobCancelListener.
     });
   }
 
@@ -143,7 +118,6 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
 
   @override
   void dispose() {
-    _socketSub?.cancel();
     _sheetController.dispose();
     super.dispose();
   }

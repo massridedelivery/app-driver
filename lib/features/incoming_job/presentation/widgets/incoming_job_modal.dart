@@ -10,6 +10,7 @@ import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -84,6 +85,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
+    final headline = offerHeadline(fare: job.netIncome, driverNet: job.driverNet);
     final autoAccept = ref.watch(autoAcceptProvider);
     return Container(
       decoration: const BoxDecoration(
@@ -121,7 +123,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                         Column(
                           children: [
                             Text(
-                              'รายได้สุทธิ',
+                              headline.label,
                               style: AppTypography.body1.copyWith(
                                 color: AppColors.semanticGrayNeutralFgWhite,
                               ),
@@ -130,7 +132,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                             Row(
                               children: [
                                 Text(
-                                  formatBahtNumber(job.netIncome),
+                                  formatBahtNumber(headline.amount),
                                   style: AppTypography.heading2.copyWith(
                                     color: AppColors.semanticGrayNeutralFgWhite,
                                     fontSize: 32,
