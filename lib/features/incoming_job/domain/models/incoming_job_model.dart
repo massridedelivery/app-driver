@@ -34,6 +34,10 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     // that accrued en route) — distinct from the display `fare`. Collecting
     // `fare` under-charges (SCRUM-86 §6). Null until BE ships it.
     @JsonKey(name: 'amount_due') double? amountDue,
+    // What the driver earns (BE #191): fare − this driver's commission, whole
+    // baht, toll included, promo NOT deducted. Null on older payloads — the
+    // card then shows the fare as "ค่าโดยสาร", never as รายได้สุทธิ.
+    @JsonKey(name: 'driver_net', readValue: readDriverNet) double? driverNet,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
     @JsonKey(name: 'service_type') @Default('มอเตอร์ไซค์') String serviceType,
@@ -74,6 +78,12 @@ sealed class IncomingJobModel with _$IncomingJobModel {
 /// map draws the real road route instead of the Google-Directions fallback.
 Object? readPolyline(Map json, String key) =>
     json['encoded_polyline'] ?? json['polyline'] ?? json['overview_polyline'];
+
+/// `driver_earnings.driver_net` from the offer (BE #191).
+Object? readDriverNet(Map json, String key) {
+  final e = json['driver_earnings'];
+  return e is Map ? e['driver_net'] : null;
+}
 
 /// Reads the customer name from either a flat `passenger_name` field or the
 /// nested `customer.full_name` (JobCustomerInfo) the backend actually sends.

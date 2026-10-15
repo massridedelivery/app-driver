@@ -19,6 +19,7 @@ import 'package:massdrive/features/payment/data/payment_api_service.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
+import 'package:massdrive/core/services/job_cancellation.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -323,6 +324,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return true;
     } catch (e) {
       if (kDebugMode) debugPrint('PaymentScreen.complete: $e');
+      // Cancelled meanwhile (409 job_cancelled): leave, don't offer a retry.
+      if (isJobCancelledError(e)) {
+        JobCancellations.instance.report(JobCancelEvent(_orderId));
+        return false;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('จบงานไม่สำเร็จ กรุณาลองใหม่')),

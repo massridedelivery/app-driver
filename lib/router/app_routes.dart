@@ -40,6 +40,10 @@ import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_scre
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  /// Context of the root navigator, for app-wide dialogs raised outside any
+  /// screen (e.g. "งานถูกยกเลิก").
+  static BuildContext? get rootContext => _rootNavigatorKey.currentContext;
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
   /// Routes reachable while logged out. Everything else requires a live session;

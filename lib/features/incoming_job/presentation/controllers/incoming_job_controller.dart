@@ -11,6 +11,7 @@ import 'package:massdrive/features/incoming_job/presentation/states/incoming_job
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:massdrive/core/services/job_cancellation.dart';
 
 part 'incoming_job_controller.g.dart';
 
@@ -55,19 +56,12 @@ class IncomingJobController extends _$IncomingJobController {
         } catch (e) {
           if (kDebugMode) debugPrint('IncomingJobController Parse Error (job_accepted): $e');
         }
-      } else if (msg.type == 'job_status') {
-        final jobId = msg.raw['job_id'] ?? msg.data?['job_id'];
-        final status = msg.raw['status'] ?? msg.data?['status'];
-
-        if (kDebugMode) {
-          debugPrint(
-            'IncomingJobController Status Change: job=$jobId, status=$status',
-          );
-        }
-
-        if (state.currentJob?.jobId == jobId && status == 'CANCELLED') {
-          dismissModal();
-        }
+      } else if (jobCancelFromSocket(msg.type, msg.raw, msg.data)
+          case final cancel?) {
+        // The app-root JobCancelListener closes the job screen and tells the
+        // driver who cancelled (BE #191).
+        if (kDebugMode) debugPrint('IncomingJobController: cancelled ${cancel.jobId}');
+        JobCancellations.instance.report(cancel);
       }
     });
 

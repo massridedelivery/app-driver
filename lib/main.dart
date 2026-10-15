@@ -15,6 +15,7 @@ import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/job_cancel_listener.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -159,10 +160,12 @@ class MyApp extends ConsumerWidget {
       // Dismiss the keyboard when tapping outside a text field — app-wide, so
       // every screen with an input gets it without per-screen wrappers.
       builder: (context, child) {
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-          child: child ?? const SizedBox.shrink(),
+        return JobCancelListener(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

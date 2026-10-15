@@ -58,7 +58,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   double _sheetFitExtent = 0.5;
   bool _didInitialFit = false;
 
-  StreamSubscription? _socketSub;
   final DirectionsService _directionsService = DirectionsService();
 
   late JobLiveState _currentState =
@@ -72,31 +71,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
 
-      _socketSub = ref.read(socketServiceProvider).messages.listen((msg) {
-        if (!mounted) return;
-        if (msg.type == 'job_status') {
-          // BE may put the fields at the top level (raw) or nested in data —
-          // read both, matching IncomingJobController. Reading only `data`
-          // missed top-level frames, so a customer cancel never cleared the
-          // live screen (driver had to kill the app).
-          final jobId = msg.raw['job_id'] ?? msg.data?['job_id'];
-          final status = msg.raw['status'] ?? msg.data?['status'];
-          final currentJobId = ref
-              .read(incomingJobControllerProvider)
-              .currentJob
-              ?.jobId;
-
-          if (currentJobId == jobId && status == 'CANCELLED') {
-            // Clear the active job state, then leave the live screen so the
-            // job disappears immediately (no app restart needed).
-            ref.read(incomingJobControllerProvider.notifier).dismissModal();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('ผู้โดยสารยกเลิกงานนี้แล้ว')),
-            );
-            context.go('/home');
-          }
-        }
-      });
+      // A cancelled job is closed by the app-root JobCancelListener.
     });
   }
 
@@ -208,7 +183,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   @override
   void dispose() {
-    _socketSub?.cancel();
     _sheetController.dispose();
     super.dispose();
   }

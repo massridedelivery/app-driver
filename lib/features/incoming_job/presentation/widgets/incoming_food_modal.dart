@@ -11,6 +11,7 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
+import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 class IncomingFoodModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -154,6 +155,11 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
   }
 
   Widget _buildHeader() {
+    final headline = offerHeadline(
+      fare: job.netIncome,
+      driverNet: job.driverNet,
+      delivery: true,
+    );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -182,13 +188,13 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'รายได้สุทธิ',
+              headline.label,
               style: AppTypography.caption5.copyWith(color: Colors.white70),
             ),
             Row(
               children: [
                 Text(
-                  formatBahtNumber(job.netIncome),
+                  formatBahtNumber(headline.amount),
                   style: AppTypography.heading2.copyWith(
                     color: AppColors.semanticGrayNeutralFgWhite,
                     fontSize: 28,
