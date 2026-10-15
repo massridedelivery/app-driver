@@ -111,9 +111,61 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _baseFare => _amounts.fee;
 
-  /// The driver's own net for this ride, from the offer (BE #191).
+  /// The driver's own net and commission for this ride, from the offer
+  /// (BE #191 driver_earnings). Never computed here.
   double? get _driverNet =>
       ref.read(incomingJobControllerProvider).currentJob?.driverNet;
+  double? get _driverCommission =>
+      ref.read(incomingJobControllerProvider).currentJob?.driverCommission;
+
+  /// Under the amount to collect: what the platform keeps and what the
+  /// driver really earns — "เก็บ ฿44 · หักค่าคอม −฿7 · รายได้สุทธิ ฿37".
+  List<Widget> _earningsRows() {
+    final net = _driverNet;
+    if (_isMessenger || net == null) return const [];
+    final commission = _driverCommission;
+    return [
+      const SizedBox(height: 12),
+      if (commission != null && commission > 0) ...[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'หักค่าคอมมิชชัน',
+              style: AppTypography.body2.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
+            Text(
+              '−${formatBaht(commission)}',
+              style: AppTypography.body2.copyWith(
+                color: AppColors.semanticErrorFgHigh,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'รายได้สุทธิของคุณ',
+            style: AppTypography.heading6.copyWith(
+              color: context.palette.textPrimary,
+            ),
+          ),
+          Text(
+            formatBaht(net),
+            style: AppTypography.heading5.copyWith(
+              color: AppColors.semanticSupportMintBgHigh,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
   double get _totalFare => _amounts.feeTotal;
 
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
@@ -527,18 +579,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         : "สแกนจ่าย",
                     style: AppTypography.heading6.copyWith(color: Colors.white),
                   ),
-                  // The big figure is what the passenger pays; show what the
-                  // driver actually earns too (ride offers carry driver_net).
-                  if (!_isMessenger && _driverNet != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'รายได้สุทธิของคุณ ${formatBaht(_driverNet!)}',
-                      style: AppTypography.body1.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+
                   // Tell the driver who to collect from and at which stage
                   // (messenger PICKUP/DELIVERY) — dev14.
                   if (_collectContext != null) ...[
@@ -694,6 +735,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             ),
           ],
 
+          ..._earningsRows(),
+
           const Spacer(),
 
           // Confirm Button — cash settles on confirm.
@@ -835,6 +878,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ),
               ],
             ),
+
+                  ..._earningsRows(),
 
                   const Spacer(),
 

@@ -38,6 +38,9 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     // baht, toll included, promo NOT deducted. Null on older payloads — the
     // card then shows the fare as "ค่าโดยสาร", never as รายได้สุทธิ.
     @JsonKey(name: 'driver_net', readValue: readDriverNet) double? driverNet,
+    // This driver's commission on the job (driver_earnings.commission).
+    @JsonKey(name: 'commission', readValue: readDriverCommission)
+    double? driverCommission,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
     @JsonKey(name: 'service_type') @Default('มอเตอร์ไซค์') String serviceType,
@@ -83,6 +86,12 @@ Object? readPolyline(Map json, String key) =>
 Object? readDriverNet(Map json, String key) {
   final e = json['driver_earnings'];
   return e is Map ? e['driver_net'] : null;
+}
+
+/// `driver_earnings.commission` from the offer (BE #191).
+Object? readDriverCommission(Map json, String key) {
+  final e = json['driver_earnings'];
+  return e is Map ? e['commission'] : null;
 }
 
 /// Reads the customer name from either a flat `passenger_name` field or the

@@ -25,6 +25,8 @@ _IncomingJobModel _$IncomingJobModelFromJson(
   netIncome: (json['fare'] as num).toDouble(),
   amountDue: (json['amount_due'] as num?)?.toDouble(),
   driverNet: (readDriverNet(json, 'driver_net') as num?)?.toDouble(),
+  driverCommission: (readDriverCommission(json, 'commission') as num?)
+      ?.toDouble(),
   paymentMethod: json['payment_method'] as String,
   points: (json['points'] as num?)?.toInt() ?? 0,
   serviceType: json['service_type'] as String? ?? 'มอเตอร์ไซค์',
@@ -65,6 +67,7 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'fare': instance.netIncome,
       'amount_due': instance.amountDue,
       'driver_net': instance.driverNet,
+      'commission': instance.driverCommission,
       'payment_method': instance.paymentMethod,
       'points': instance.points,
       'service_type': instance.serviceType,
