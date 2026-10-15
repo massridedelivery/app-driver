@@ -1,8 +1,15 @@
-/// What a ride hands to the collect screen: the backend's `amount_due` (fare +
-/// en-route tolls/waiting) when it is real, else the fare — never ฿0 for an
-/// unpaid ride (SCRUM-86 §6).
-double rideAmountToCollect({double? amountDue, required double fare}) =>
-    (amountDue ?? 0) > 0 ? amountDue! : fare;
+/// What a ride collects from the passenger. [serverAmountDue] is the
+/// backend's `amount_due` from a fresh active-job read (fare + toll + waiting
+/// − promo) and is used as-is — ฿0 included, since a promo can cover the whole
+/// fare. Only when that read failed does it fall back to the quoted fare.
+///
+/// (The offer kept in memory always carries amount_due 0, so it must never be
+/// passed here — that's why the old rule refused ฿0 and over-collected
+/// fully-discounted rides.)
+double rideAmountToCollect({double? serverAmountDue, required double fare}) {
+  if (serverAmountDue == null) return fare;
+  return serverAmountDue < 0 ? 0 : serverAmountDue;
+}
 
 /// The money on the collect (payment) screen.
 class CollectionAmounts {
@@ -32,8 +39,9 @@ class CollectionAmounts {
   /// which includes waiting fees, so it wins when present.
   /// [routeAmount] is what the caller pushed. A messenger order always sends
   /// its own fee (0 when there is none), so it never borrows a ride job's
-  /// fare. Ride/food fall back to the live job's amount_due → fare → baseFare,
-  /// the first that is > 0.
+  /// fare. A ride's pushed amount is the server's amount_due and is used as-is;
+  /// food (nothing pushed) falls back to the live job's amount_due → fare →
+  /// baseFare, the first that is > 0.
   factory CollectionAmounts.resolve({
     required bool messenger,
     bool prepaid = false,
@@ -54,8 +62,12 @@ class CollectionAmounts {
       fee = intentAmount!;
     } else if (messenger) {
       fee = (routeAmount ?? 0) > 0 ? routeAmount! : 0;
+    } else if (routeAmount != null) {
+      // Ride: the live screen pushes the server's amount_due — trust it, ฿0
+      // included (a promo covering the whole fare).
+      fee = routeAmount < 0 ? 0 : routeAmount;
     } else {
-      for (final v in [routeAmount, jobAmountDue, jobFare, baseFare]) {
+      for (final v in [jobAmountDue, jobFare, baseFare]) {
         if (v != null && v > 0) {
           fee = v;
           break;
