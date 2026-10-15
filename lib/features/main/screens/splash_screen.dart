@@ -81,15 +81,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             break;
           case StartupDestination.home:
             final restored = RouteRestorationService.instance.lastRoute;
-            context.go(AppRoutes.homeNamedPage);
             // Restore the last screen ON TOP of home, never in place of it:
             // `go(restored)` left it as the only page, so back and the app
             // bar arrow had nowhere to go and the driver was stuck there.
             if (restored != null && restored != AppRoutes.homeNamedPage) {
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => AppRouter.router.push(restored),
+              pushWhenOn(
+                AppRouter.router,
+                AppRoutes.homeNamedPage,
+                restored,
               );
             }
+            context.go(AppRoutes.homeNamedPage);
             break;
         }
       }),
@@ -228,4 +230,19 @@ class _AuraBlur extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pushes [location] once [router] has actually landed on [base]. `go` is
+/// applied asynchronously, so a push issued right after it (even a frame
+/// later) is dropped when the `go` lands and replaces the stack.
+@visibleForTesting
+void pushWhenOn(GoRouter router, String base, String location) {
+  final delegate = router.routerDelegate;
+  void listener() {
+    if (delegate.currentConfiguration.uri.path != base) return;
+    delegate.removeListener(listener);
+    router.push(location);
+  }
+
+  delegate.addListener(listener);
 }
