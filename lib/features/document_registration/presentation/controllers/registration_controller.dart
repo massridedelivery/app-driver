@@ -26,25 +26,12 @@ class RegistrationController extends _$RegistrationController {
   }
 
   void setTier(KycTier? tier) {
-    if (tier == null) {
-      state = RegistrationState(
-        isLoading: state.isLoading,
-        errorMessage: state.errorMessage,
-        isProfileComplete: state.isProfileComplete,
-        isProfilePhotoComplete: state.isProfilePhotoComplete,
-        isIdCardComplete: state.isIdCardComplete,
-        isDrivingLicenseComplete: state.isDrivingLicenseComplete,
-        isVehicleInfoComplete: state.isVehicleInfoComplete,
-        isVehiclePhotoComplete: state.isVehiclePhotoComplete,
-        isInsuranceComplete: state.isInsuranceComplete,
-        isBankAccountComplete: state.isBankAccountComplete,
-        isConsentGiven: state.isConsentGiven,
-        selectedTier: null,
-        overallStatus: state.overallStatus,
-      );
-    } else {
-      state = state.copyWith(selectedTier: tier);
-    }
+    // Only the tier changes. Everything fetched from the backend (document
+    // statuses, payout, profile) still holds whichever tier the driver picks,
+    // and the checklist doesn't re-fetch when the tier is switched in place.
+    state = tier == null
+        ? state.copyWith(clearSelectedTier: true)
+        : state.copyWith(selectedTier: tier);
   }
 
   Future<void> fetchStatus() async {
