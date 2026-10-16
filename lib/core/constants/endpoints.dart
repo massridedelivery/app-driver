@@ -114,6 +114,9 @@ abstract class Endpoints {
   static const driverJobsStopsDepart =
       '/api/driver/jobs/:id/stops/:stop_id/depart';
   static const driverJobsStatus = '/api/driver/jobs/:id/status';
+  // Accept a ride offer (BE #198): 200 accepted (a repeat by the same driver
+  // too), 409 {"code":"job_taken"} when another driver got it.
+  static const driverJobsAccept = '/api/driver/jobs/:id/accept';
   static const driverJobsActive = '/api/driver/jobs/active';
   // Cross-vertical pending-offer recovery (dev15). Replaces the ride-only
   // /api/driver/jobs/active_offer, which spoke for one vertical and deleted the

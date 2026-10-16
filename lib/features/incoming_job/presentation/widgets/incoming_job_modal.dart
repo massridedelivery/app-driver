@@ -11,6 +11,7 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 
 class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -62,11 +63,24 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
     });
   }
 
-  void _accept() {
+  bool _accepting = false;
+
+  Future<void> _accept() async {
     if (_resolved) return;
     _resolved = true;
     _timer?.cancel();
-    ref.read(incomingJobControllerProvider.notifier).acceptJob();
+    // Disable the buttons until the backend answers (BE #198).
+    setState(() => _accepting = true);
+    final outcome =
+        await ref.read(incomingJobControllerProvider.notifier).acceptJob();
+    if (!mounted) return;
+    // Failed but not taken: let the driver try again.
+    if (outcome == AcceptOutcome.failed) {
+      setState(() {
+        _accepting = false;
+        _resolved = false;
+      });
+    }
   }
 
   void _decline() {
@@ -292,6 +306,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 autoAccept: autoAccept,
                 onAccept: _accept,
                 onDecline: _decline,
+                isSubmitting: _accepting,
               ),
             ],
           ),

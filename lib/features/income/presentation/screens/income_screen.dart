@@ -13,6 +13,7 @@ import 'package:massdrive/features/income/presentation/screens/credit_wallet_scr
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:massdrive/features/income/presentation/statement_entries.dart';
 
 class IncomeScreen extends ConsumerStatefulWidget {
   const IncomeScreen({super.key});
@@ -127,10 +128,17 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
 
                     // ── All transactions ─────────────────────────────
                     _AllTransactionsTile(
+                      // The API total counts top-ups too, so no number here.
                       count: state.transactionsTotal,
+                      valueText: 'ดูรายการขับส่งทั้งหมด',
                       onTap: () => AppNavigator.push(
                         context,
-                        const TransactionHistoryScreen(title: 'รายการทั้งหมด'),
+                        // Driving only — top-ups / adjustments live in the
+                        // credit wallet's ประวัติเครดิต.
+                        const TransactionHistoryScreen(
+                          title: 'รายการทั้งหมด',
+                          scope: StatementScope.jobs,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

@@ -179,6 +179,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
   double get _totalFare => _amounts.feeTotal;
 
+  /// Ride whose amount_due is 0 (full-fare promo) and no COD.
+  bool get _nothingToCollect =>
+      !_isMessenger && widget.amount == 0 && (widget.codAmount ?? 0) <= 0;
+
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
   static const _pollInterval = Duration(seconds: 3);
   Timer? _pollTimer;
@@ -241,6 +245,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     // so completion is ungated and skip the intent/poll entirely.
     if (_alreadyPaid) {
       _status = 'PAID';
+      return;
+    }
+    // A ride a promo covered in full (amount_due 0, BE #198): nothing to
+    // collect — no QR to mint, no cash to confirm, just finish the job.
+    if (_nothingToCollect) {
+      _currentMethod = PaymentMethod.cash;
       return;
     }
     // Food's payment-intent endpoint isn't defined yet (BE) — keep the static
@@ -583,8 +593,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _amounts.cashTotal <= 0
-                        // A promo covered the whole fare.
-                        ? "ไม่ต้องเก็บเงินจากผู้โดยสาร"
+                        // A promo covered the whole fare (BE #198 copy).
+                        ? "ลูกค้าไม่ต้องชำระเงินสด (ใช้ส่วนลดเต็มจำนวน)"
                         : _currentMethod == PaymentMethod.cash
                         ? "เก็บเงินสด"
                         : "สแกนจ่าย",
@@ -718,7 +728,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               Row(
                 children: [
                   Text(
-                    "ทั้งหมด",
+                    _isMessenger ? "ทั้งหมด" : "เก็บเงินลูกค้า",
                     style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
                   ),
                   const SizedBox(width: 8),
@@ -774,7 +784,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const Spacer(),
 
           // Confirm Button — cash settles on confirm.
-          _buildConfirmButton(label: 'รับเงินสดแล้ว'),
+          // Nothing to collect: finishing the job is all that's left.
+          _buildConfirmButton(
+            label: _nothingToCollect ? 'จบงาน' : 'รับเงินสดแล้ว',
+          ),
         ],
       ),
     );

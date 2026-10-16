@@ -12,6 +12,9 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:flutter/material.dart';
 
 part 'incoming_job_controller.g.dart';
 
@@ -162,24 +165,63 @@ class IncomingJobController extends _$IncomingJobController {
   }
 
   /// Accept a ride job via WebSocket
-  void acceptJob() {
+  /// Accept the ride on offer via POST /api/driver/jobs/:id/accept (BE #198)
+  /// and open the live screen only once the backend says it's ours.
+  ///
+  /// - 200 → accepted (a repeat by this driver is also 200).
+  /// - 409 `job_taken` → someone else got it: close the offer, "มีคนรับงานนี้
+  ///   ไปแล้ว" — never "งานถูกยกเลิก".
+  /// - Anything else / timeout → ask GET /api/driver/active whether we hold
+  ///   it after all; if not, the driver can try again.
+  Future<AcceptOutcome> acceptJob() async {
     // Stop the ~10s job-alert notification sound the moment the driver acts.
     PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
-    if (job != null) {
-      ref.read(socketServiceProvider).acceptJob(job.jobId);
-      _sendLocationUpdate();
-      
+    if (job == null) {
       state = state.copyWith(isModalVisible: false);
-      final isFood = job.serviceType.toLowerCase().contains('food');
-      if (isFood) {
-        AppRouter.router.go(AppRoutes.foodLiveNamedPage);
-      } else {
-        AppRouter.router.go('/job-live');
-      }
-    } else {
-      state = state.copyWith(isModalVisible: false);
+      return AcceptOutcome.failed;
     }
+
+    final repo = getIt<JobLiveRepository>();
+    var outcome = AcceptOutcome.failed;
+    try {
+      await repo.acceptJob(job.jobId);
+      outcome = AcceptOutcome.accepted;
+    } catch (e) {
+      if (isJobTakenError(e)) {
+        outcome = AcceptOutcome.taken;
+      } else {
+        try {
+          final active = await repo.getActiveSummary();
+          if (active.any((a) => a.id == job.jobId)) {
+            outcome = AcceptOutcome.accepted;
+          }
+        } catch (_) {}
+      }
+      if (kDebugMode) debugPrint('IncomingJobController: accept $outcome ($e)');
+    }
+
+    switch (outcome) {
+      case AcceptOutcome.accepted:
+        _sendLocationUpdate();
+        state = state.copyWith(isModalVisible: false);
+        final isFood = job.serviceType.toLowerCase().contains('food');
+        AppRouter.router.go(isFood ? AppRoutes.foodLiveNamedPage : '/job-live');
+      case AcceptOutcome.taken:
+        dismissModal();
+        _toast(acceptOutcomeMessage(outcome));
+      case AcceptOutcome.failed:
+        _toast(acceptOutcomeMessage(outcome));
+    }
+    return outcome;
+  }
+
+  void _toast(String message) {
+    final ctx = AppRouter.rootContext;
+    if (ctx == null || !ctx.mounted) return;
+    ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Accept a food delivery job via REST API

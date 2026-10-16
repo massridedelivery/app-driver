@@ -56,12 +56,37 @@ int _order(TransactionType t) => switch (t) {
   _ => 2,
 };
 
+/// Which rows a statement shows.
+enum StatementScope {
+  /// Every movement.
+  all,
+
+  /// Only what belongs to a job — fares, commissions (รายการทั้งหมด).
+  jobs,
+
+  /// Only wallet movements with no job — top-ups, adjustments, withdrawals…
+  /// (ประวัติเครดิต).
+  wallet,
+}
+
+bool _inScope(Transaction t, StatementScope scope) {
+  final hasJob = (t.jobId?.trim() ?? '').isNotEmpty;
+  return switch (scope) {
+    StatementScope.all => true,
+    StatementScope.jobs => hasJob,
+    StatementScope.wallet => !hasJob,
+  };
+}
+
 /// Builds the statement from newest-first transactions: a day header when
 /// the (local) day changes, and within a day every row of the same job folded
 /// into one [StatementJob] at the position of its newest row.
-List<StatementEntry> buildStatement(List<Transaction> transactions) => [
+List<StatementEntry> buildStatement(
+  List<Transaction> transactions, {
+  StatementScope scope = StatementScope.all,
+}) => [
   for (final e in groupByDayAndJob<Transaction>(
-    transactions,
+    transactions.where((t) => _inScope(t, scope)),
     time: (t) => t.createdAt,
     jobId: (t) => t.jobId,
   ))

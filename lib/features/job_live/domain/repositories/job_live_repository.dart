@@ -5,6 +5,7 @@ abstract class JobLiveRepository {
   Future<void> arriveAtStop(String jobId, String stopId);
   Future<void> departFromStop(String jobId, String stopId);
   Future<void> updateJobStatus(String jobId, Map<String, dynamic> data);
+  Future<void> acceptJob(String jobId);
 
   /// Cross-vertical active index (SCRUM-45). Returns `[]` when idle.
   Future<List<ActiveItem>> getActiveSummary();

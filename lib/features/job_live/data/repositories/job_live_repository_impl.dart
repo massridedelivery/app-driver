@@ -27,6 +27,11 @@ class JobLiveRepositoryImpl implements JobLiveRepository {
   }
 
   @override
+  Future<void> acceptJob(String jobId) async {
+    await _apiService.acceptJob(jobId);
+  }
+
+  @override
   Future<void> updateJobStatus(String jobId, Map<String, dynamic> data) async {
     await _apiService.updateJobStatus(jobId, data);
   }
