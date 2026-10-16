@@ -49,6 +49,14 @@ class WalletOverviewModel {
   @JsonKey(defaultValue: 0.0)
   final double thisYearGrossEarnings;
 
+  // ── income: what the driver actually earned (gross − commission +
+  // incentives), the same for cash and online trips. BE says to bind the
+  // driver-facing "รายได้" figures to these. Nullable: absent on older BE.
+  final double? todayIncome;
+  final double? thisWeekIncome;
+  final double? thisMonthIncome;
+  final double? thisYearIncome;
+
   // ── ranged (single window) ──
   /// Period total when start_date & end_date are supplied.
   @JsonKey(defaultValue: 0.0)
@@ -77,6 +85,10 @@ class WalletOverviewModel {
     this.thisWeekGrossEarnings = 0.0,
     this.thisMonthGrossEarnings = 0.0,
     this.thisYearGrossEarnings = 0.0,
+    this.todayIncome,
+    this.thisWeekIncome,
+    this.thisMonthIncome,
+    this.thisYearIncome,
     this.earnings = 0.0,
     this.totalTripsToday = 0,
     this.isVerified = false,
@@ -102,6 +114,10 @@ class WalletOverviewModel {
       thisWeekGrossEarnings: thisWeekGrossEarnings,
       thisMonthGrossEarnings: thisMonthGrossEarnings,
       thisYearGrossEarnings: thisYearGrossEarnings,
+      todayIncome: todayIncome,
+      thisWeekIncome: thisWeekIncome,
+      thisMonthIncome: thisMonthIncome,
+      thisYearIncome: thisYearIncome,
       earnings: earnings,
       totalTripsToday: totalTripsToday,
       isVerified: isVerified,

@@ -13,6 +13,7 @@ import 'package:massdrive/features/income/presentation/states/wallet_state.dart'
 import 'package:massdrive/features/wallet/domain/usecases/get_wallet_overview_usecase.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
 
 part 'wallet_controller.g.dart';
 
@@ -64,11 +65,20 @@ class WalletController extends _$WalletController {
     void onTopupChanged() => fetchAll();
     TopupUpdates.instance.addListener(onTopupChanged);
     ref.onDispose(() => TopupUpdates.instance.removeListener(onTopupChanged));
+    // keepAlive outlives a logout: start clean on every login / logout so the
+    // next driver never sees the previous one's totals.
+    void onSessionChanged() => ref.invalidateSelf();
+    SessionNotifier.instance.addListener(onSessionChanged);
+    ref.onDispose(
+      () => SessionNotifier.instance.removeListener(onSessionChanged),
+    );
     return const WalletState();
   }
 
-  Future<void> fetchAll() async {
-    state = state.copyWith(isLoading: true, errorMessage: '');
+  /// [silent] refreshes in place (no full-screen loader) when figures are
+  /// already on screen.
+  Future<void> fetchAll({bool silent = false}) async {
+    state = state.copyWith(isLoading: !silent, errorMessage: '');
     try {
       await fetchEarnings();
       await fetchTransactionSummary();
@@ -100,10 +110,14 @@ class WalletController extends _$WalletController {
         lastUpdated: overview.lastUpdated ?? DateTime.now(),
         // Rolling breakdown comes in the single no-range earnings response
         // (v1.6.0-dev16) — no separate ranged call needed.
-        earningsToday: overview.todayGrossEarnings,
-        earningsWeek: overview.thisWeekGrossEarnings,
-        earningsMonth: overview.thisMonthGrossEarnings,
-        earningsYear: overview.thisYearGrossEarnings,
+        // What the driver really earned (after commission) — a ฿44 fare at
+        // 7 commission reads ฿37, not ฿44. Gross only if the BE predates
+        // the *_income fields.
+        earningsToday: overview.todayIncome ?? overview.todayGrossEarnings,
+        earningsWeek: overview.thisWeekIncome ?? overview.thisWeekGrossEarnings,
+        earningsMonth:
+            overview.thisMonthIncome ?? overview.thisMonthGrossEarnings,
+        earningsYear: overview.thisYearIncome ?? overview.thisYearGrossEarnings,
         totalTripsToday: overview.totalTripsToday,
         // A previous failure is resolved — clear it so the screen leaves the
         // error state.

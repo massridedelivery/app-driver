@@ -14,11 +14,31 @@ import 'package:massdrive/features/income/presentation/screens/transaction_histo
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
 
-class IncomeScreen extends ConsumerWidget {
+class IncomeScreen extends ConsumerStatefulWidget {
   const IncomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IncomeScreen> createState() => _IncomeScreenState();
+}
+
+class _IncomeScreenState extends ConsumerState<IncomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // The wallet controller lives for the whole app session, so reload on
+    // every visit — otherwise the totals and "รายการทั้งหมด N รายการ" stay as
+    // they were the first time this screen opened.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref
+          .read(walletControllerProvider.notifier)
+          .fetchAll(
+            silent: ref.read(walletControllerProvider).lastUpdated != null,
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(walletControllerProvider);
 
     return Scaffold(
