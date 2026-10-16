@@ -13,6 +13,7 @@ import 'package:massdrive/features/income/presentation/screens/transaction_histo
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:massdrive/features/income/presentation/statement_entries.dart';
 
 class CreditWalletScreen extends ConsumerWidget {
   const CreditWalletScreen({super.key});
@@ -105,14 +106,16 @@ class CreditWalletScreen extends ConsumerWidget {
                           ),
                         ),
                         WalletActionTile(
-                          title: 'ตรวจสอบประวัติการโอนเงิน',
+                          title: 'ประวัติเครดิต (เติมเงิน / ปรับยอด)',
                           icon: Icons.history_rounded,
                           onTap: () {
                             AppNavigator.push(
                               context,
+                              // Every wallet movement with no job: top-ups,
+                              // adjustments, debt settlements…
                               const TransactionHistoryScreen(
                                 title: 'ประวัติเครดิต',
-                                transactionType: 'topup',
+                                scope: StatementScope.wallet,
                               ),
                             );
                           },

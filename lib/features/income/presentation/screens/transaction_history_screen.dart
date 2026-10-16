@@ -22,6 +22,7 @@ import 'package:massdrive/features/history/domain/models/trip_history_rows.dart'
 import 'package:massdrive/features/history_detail/presentation/screens/history_detail_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
 import 'package:massdrive/features/income/presentation/statement_entries.dart';
+import 'package:massdrive/features/wallet/presentation/states/transaction_state.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   final String title;
@@ -29,10 +30,14 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
   /// Optional type filter (e.g. "FARE_PAYMENT" / "payout").
   final String? transactionType;
 
+  /// Job rows only (รายการทั้งหมด), wallet rows only (ประวัติเครดิต) or all.
+  final StatementScope scope;
+
   const TransactionHistoryScreen({
     super.key,
     this.title = 'ประวัติการโอนเงิน',
     this.transactionType,
+    this.scope = StatementScope.all,
   });
 
   @override
@@ -105,7 +110,10 @@ class _TransactionHistoryScreenState
       body: Column(
         children: [
           // ── Total count banner ──────────────────────────────────────
-          if (!state.isLoading && state.total > 0)
+          // The API total counts every row, so only show it unfiltered.
+          if (!state.isLoading &&
+              state.total > 0 &&
+              widget.scope == StatementScope.all)
             Container(
               width: double.infinity,
               padding:
@@ -127,19 +135,35 @@ class _TransactionHistoryScreenState
                 // when the request errored is as misleading as inventing rows.
                 : state.errorMessage.isNotEmpty && state.transactions.isEmpty
                     ? _buildErrorState(state.errorMessage)
-                    : state.transactions.isEmpty
-                        ? _buildEmptyState()
-                        : _buildList(state.transactions, state.isLoadingMore),
+                    : _buildScoped(state),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildList(List<Transaction> transactions, bool isLoadingMore) {
+  /// The list for this screen's scope. A page can hold no rows of the scope
+  /// (e.g. all top-ups), so read ahead until something shows or the API runs
+  /// out.
+  Widget _buildScoped(TransactionState state) {
+    final items = buildStatement(state.transactions, scope: widget.scope);
+    final hasMore = state.transactions.length < state.total;
+    if (items.length < 8 && hasMore && !state.isLoadingMore) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(transactionControllerProvider.notifier).loadMore();
+      });
+    }
+    if (items.isEmpty) {
+      return state.isLoadingMore || hasMore
+          ? const Center(child: MassLoadingM(size: 72))
+          : _buildEmptyState();
+    }
+    return _buildList(items, state.isLoadingMore);
+  }
+
+  Widget _buildList(List<StatementEntry> items, bool isLoadingMore) {
     // Statement layout: a date header per day; within a day, every row of the
     // same job (fare, commission) folds into one card with its net.
-    final items = buildStatement(transactions);
 
     return ListView.builder(
       controller: _scrollController,
@@ -227,7 +251,11 @@ class _TransactionHistoryScreenState
           ),
           const SizedBox(height: 16),
           Text(
-            'ไม่มีประวัติการทำรายการ',
+            switch (widget.scope) {
+              StatementScope.jobs => 'ยังไม่มีรายการขับส่ง',
+              StatementScope.wallet => 'ยังไม่มีประวัติเครดิต',
+              StatementScope.all => 'ไม่มีประวัติการทำรายการ',
+            },
             style: AppTypography.caption3.copyWith(
               color: context.palette.textSecondary,
             ),
