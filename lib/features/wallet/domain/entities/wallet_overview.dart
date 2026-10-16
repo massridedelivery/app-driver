@@ -28,6 +28,13 @@ class WalletOverview {
   final double thisMonthGrossEarnings;
   final double thisYearGrossEarnings;
 
+  /// What the driver actually earned per window (gross − commission +
+  /// incentives) — the figure the รายได้ screen shows. Null on older BE.
+  final double? todayIncome;
+  final double? thisWeekIncome;
+  final double? thisMonthIncome;
+  final double? thisYearIncome;
+
   /// Period total (ranged shape, when start_date & end_date are supplied).
   final double earnings;
 
@@ -54,6 +61,10 @@ class WalletOverview {
     this.thisWeekGrossEarnings = 0.0,
     this.thisMonthGrossEarnings = 0.0,
     this.thisYearGrossEarnings = 0.0,
+    this.todayIncome,
+    this.thisWeekIncome,
+    this.thisMonthIncome,
+    this.thisYearIncome,
     this.earnings = 0.0,
     required this.totalTripsToday,
     required this.isVerified,
