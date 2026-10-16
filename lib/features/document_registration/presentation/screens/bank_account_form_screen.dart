@@ -126,6 +126,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   }
 
   void _submit() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     // Validate the bank selector alongside the text fields.
     final fieldsValid = _formKey.currentState?.validate() ?? false;
     if (_selectedBank == null) {
