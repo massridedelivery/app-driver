@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/features/main/screens/splash_screen.dart';
 
 /// Cold start restores the last screen on top of home, so back goes home.
@@ -55,5 +56,35 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('/home'), findsOneWidget);
     expect(r.canPop(), isFalse);
+  });
+
+  testWidgets('a pushed screen is what gets saved, not the base /home', (
+    t,
+  ) async {
+    final r = router();
+    await t.pumpWidget(MaterialApp.router(routerConfig: r));
+    r.go('/home');
+    await t.pumpAndSettle();
+    expect(
+      RouteRestorationService.topLocation(
+        r.routerDelegate.currentConfiguration,
+      ),
+      '/home',
+    );
+
+    r.push('/cash-wallet');
+    await t.pumpAndSettle();
+    final config = r.routerDelegate.currentConfiguration;
+    expect(config.uri.toString(), '/home'); // why pushes were never restored
+    expect(RouteRestorationService.topLocation(config), '/cash-wallet');
+
+    r.pop();
+    await t.pumpAndSettle();
+    expect(
+      RouteRestorationService.topLocation(
+        r.routerDelegate.currentConfiguration,
+      ),
+      '/home',
+    );
   });
 }

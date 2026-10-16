@@ -24,6 +24,11 @@ class AppRoutes {
   static const historyDetailNamedPage = '/history_detail';
   static const historyDetailDetailsNamedPage = 'details';
   static const cashWalletNamedPage = '/cash-wallet';
+  static const questsNamedPage = '/quests';
+  static const tripCalendarNamedPage = '/trip-calendar';
+  static const topupHistoryNamedPage = '/topup-history';
+  static const transactionsNamedPage = '/transactions';
+  static const creditHistoryNamedPage = '/credit-history';
   static const creditWalletNamedPage = '/credit-wallet';
   static const payoutHistoryNamedPage = '/payout-history';
   static const settingNamedPage = '/setting';

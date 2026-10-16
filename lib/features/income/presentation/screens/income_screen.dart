@@ -6,14 +6,10 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
-import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/screens/cash_wallet_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/credit_wallet_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
-import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
-import 'package:massdrive/features/income/presentation/statement_entries.dart';
+import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 
 class IncomeScreen extends ConsumerStatefulWidget {
   const IncomeScreen({super.key});
@@ -92,10 +88,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                             icon: Icons.attach_money_rounded,
                             iconBg: AppColors.foundationOrange600,
                             iconColor: Colors.white,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              const CashWalletScreen(),
-                            ),
+                            onTap: () => context.push(AppRoutes.cashWalletNamedPage),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -106,10 +99,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                             icon: Icons.work_rounded,
                             iconBg: AppColors.foundationOrange100,
                             iconColor: AppColors.foundationOrange700,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              const CreditWalletScreen(),
-                            ),
+                            onTap: () => context.push(AppRoutes.creditWalletNamedPage),
                           ),
                         ),
                       ],
@@ -131,15 +121,9 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                       // The API total counts top-ups too, so no number here.
                       count: state.transactionsTotal,
                       valueText: 'ดูรายการขับส่งทั้งหมด',
-                      onTap: () => AppNavigator.push(
-                        context,
-                        // Driving only — top-ups / adjustments live in the
+                      onTap: () => // Driving only — top-ups / adjustments live in the
                         // credit wallet's ประวัติเครดิต.
-                        const TransactionHistoryScreen(
-                          title: 'รายการทั้งหมด',
-                          scope: StatementScope.jobs,
-                        ),
-                      ),
+                        context.push(AppRoutes.transactionsNamedPage),
                     ),
                     const SizedBox(height: 12),
                     // Trip/service history (ride & food) with the per-trip detail
@@ -149,7 +133,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                       label: 'ประวัติการให้บริการ',
                       valueText: 'ดูการเดินทางทั้งหมด',
                       onTap: () =>
-                          AppNavigator.push(context, const HistoryScreen()),
+                          context.push(AppRoutes.historyNamedPage),
                     ),
                     // Held-fares "ค่างานรอตรวจสอบ" section hidden: the manual
                     // payment-override that fed it is disabled for now

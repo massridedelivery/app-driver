@@ -185,7 +185,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'ยังไม่มีรายการธุรกรรม',
+            // This screen lists jobs only (fares, commissions).
+            ref.read(historyControllerProvider).selectedDate == null
+                ? 'ยังไม่มีงาน'
+                : 'ยังไม่มีงานในวันนี้',
             style: AppTypography.caption3.copyWith(
               color: context.palette.textSecondary,
             ),

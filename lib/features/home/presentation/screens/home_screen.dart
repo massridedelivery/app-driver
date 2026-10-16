@@ -15,14 +15,12 @@ import 'package:massdrive/features/home/presentation/widgets/home_offline_card.d
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
-import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/screens/income_screen.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -34,8 +32,6 @@ import 'package:massdrive/features/messenger/presentation/controllers/messenger_
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/presentation/controllers/registration_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
-import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
@@ -848,16 +844,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _circleMenu(Icons.card_giftcard, "รายได้", () {
-            AppNavigator.push(context, IncomeScreen());
+            context.push(AppRoutes.incomeNamedPage);
           }),
           _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
-            AppNavigator.push(context, ServiceTypeScreen());
+            context.push(AppRoutes.serviceTypeNamedPage);
           }),
           _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
-            AppNavigator.push(context, ProfileScreen());
+            context.push(AppRoutes.profileNamedPage);
           }),
           _circleMenu(Icons.settings_sharp, "การตั้งค่า", () {
-            AppNavigator.push(context, SettingScreen());
+            context.push(AppRoutes.settingNamedPage);
           }),
         ],
       ),
