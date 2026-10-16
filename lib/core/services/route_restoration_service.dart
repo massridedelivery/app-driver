@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -48,6 +49,9 @@ class RouteRestorationService {
     AppRoutes.foodLiveNamedPage,
     '/messenger-live',
     '/messenger-offer',
+    // Built from navigation `extra` that doesn't survive a restart.
+    '/review-customer',
+    AppRoutes.documentRegistrationUploadNamedPage,
   };
 
   String? _lastSaved;
@@ -74,12 +78,22 @@ class RouteRestorationService {
       // route): restoring it every launch is what stranded drivers on a dead
       // "home" where no button navigated.
       if (config.isError || config.matches.isEmpty) return;
-      _save(config.uri.toString());
+      _save(topLocation(config));
     });
   }
 
   /// False when the router has no route for [location] (e.g. a saved
   /// `/documents` from a backend notification). Unknown until [attach].
+  /// The screen actually on top. `config.uri` stays at the base location
+  /// when a route is pushed (go_router keeps it for the URL), so a pushed
+  /// screen used to be saved as /home and never restored.
+  @visibleForTesting
+  static String topLocation(RouteMatchList config) {
+    final top = config.lastOrNull;
+    if (top is ImperativeRouteMatch) return top.matches.uri.toString();
+    return config.uri.toString();
+  }
+
   bool _matchesRoute(String location) {
     final router = _router;
     if (router == null) return true;

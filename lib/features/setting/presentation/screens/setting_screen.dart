@@ -13,7 +13,6 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/connectivity_monitor.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -669,7 +668,7 @@ class _AccountTile extends ConsumerWidget {
           color: context.palette.textTertiary,
         ),
         onTap: () {
-          AppNavigator.push(context, const EditProfileScreen());
+          context.push(AppRoutes.editProfileNamedPage);
         },
       );
     }
@@ -706,7 +705,7 @@ class _AccountTile extends ConsumerWidget {
       ),
       trailing: Icon(Icons.chevron_right, color: context.palette.textTertiary),
       onTap: () {
-        AppNavigator.push(context, const EditProfileScreen());
+        context.push(AppRoutes.editProfileNamedPage);
       },
     );
   }

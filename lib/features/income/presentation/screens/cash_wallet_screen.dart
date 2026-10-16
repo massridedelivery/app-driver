@@ -8,10 +8,11 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/payout_form_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/payout_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 
 class CashWalletScreen extends ConsumerWidget {
   const CashWalletScreen({super.key});
@@ -96,10 +97,7 @@ class CashWalletScreen extends ConsumerWidget {
                           icon: Icons.history_rounded,
                           // Withdrawal requests with their status and any
                           // rejection/failure reason (GET /api/driver/payouts).
-                          onTap: () => AppNavigator.push(
-                            context,
-                            const PayoutHistoryScreen(),
-                          ),
+                          onTap: () => context.push(AppRoutes.payoutHistoryNamedPage),
                         ),
                       ],
                     ),

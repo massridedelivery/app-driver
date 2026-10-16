@@ -3,18 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/features/profile/presentation/controllers/today_trips_provider.dart';
-import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
-import 'package:massdrive/core/navigation/app_navigator.dart';
-import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -74,10 +72,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           _ProfileHeader(
                             profile: profile,
                             onTap: () {
-                              AppNavigator.push(
-                                context,
-                                const EditProfileScreen(),
-                              );
+                              context.push(AppRoutes.editProfileNamedPage);
                             },
                           ),
 
@@ -207,7 +202,7 @@ class _QuestsEntry extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => AppNavigator.push(context, const QuestsScreen()),
+        onTap: () => context.push(AppRoutes.questsNamedPage),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
           decoration: BoxDecoration(
@@ -258,7 +253,7 @@ class _WeeklyOverviewCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () =>
-            AppNavigator.push(context, const TripCalendarScreen()),
+            context.push(AppRoutes.tripCalendarNamedPage),
         child: Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(

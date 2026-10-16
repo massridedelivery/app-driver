@@ -37,6 +37,12 @@ import 'package:massdrive/features/document_registration/presentation/screens/ve
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
 import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_screen.dart';
+import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
+import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
+import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/topup_history_screen.dart';
+import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
+import 'package:massdrive/features/income/presentation/statement_entries.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -149,6 +155,46 @@ class AppRouter {
         path: AppRoutes.incomeNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: IncomeScreen()),
+      ),
+      // Lists opened from รายได้ / โปรไฟล์ — routes (not bare Navigator pages)
+      // so a background kill can bring the driver back to them.
+      GoRoute(
+        path: AppRoutes.historyNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: HistoryScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.questsNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: QuestsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.tripCalendarNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: TripCalendarScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.topupHistoryNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: TopupHistoryScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.transactionsNamedPage,
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: TransactionHistoryScreen(
+            title: 'รายการทั้งหมด',
+            scope: StatementScope.jobs,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.creditHistoryNamedPage,
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: TransactionHistoryScreen(
+            title: 'ประวัติเครดิต',
+            scope: StatementScope.wallet,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.cashWalletNamedPage,

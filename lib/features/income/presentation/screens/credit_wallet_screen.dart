@@ -1,4 +1,3 @@
-import 'package:massdrive/features/income/presentation/screens/topup_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
@@ -9,11 +8,11 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/settle_debt_form_screen.dart';
-import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/widgets/wallet_action_tile.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
-import 'package:massdrive/features/income/presentation/statement_entries.dart';
+import 'package:go_router/go_router.dart';
+import 'package:massdrive/core/constants/app_routes.dart';
 
 class CreditWalletScreen extends ConsumerWidget {
   const CreditWalletScreen({super.key});
@@ -100,24 +99,15 @@ class CreditWalletScreen extends ConsumerWidget {
                           title: 'ประวัติการแจ้งโอนเงิน',
                           icon: Icons.receipt_long_rounded,
                           // MANUAL slips + review status/rejection reason.
-                          onTap: () => AppNavigator.push(
-                            context,
-                            const TopupHistoryScreen(),
-                          ),
+                          onTap: () => context.push(AppRoutes.topupHistoryNamedPage),
                         ),
                         WalletActionTile(
                           title: 'ประวัติเครดิต (เติมเงิน / ปรับยอด)',
                           icon: Icons.history_rounded,
                           onTap: () {
-                            AppNavigator.push(
-                              context,
-                              // Every wallet movement with no job: top-ups,
+                            // Every wallet movement with no job: top-ups,
                               // adjustments, debt settlements…
-                              const TransactionHistoryScreen(
-                                title: 'ประวัติเครดิต',
-                                scope: StatementScope.wallet,
-                              ),
-                            );
+                              context.push(AppRoutes.creditHistoryNamedPage);
                           },
                         ),
                       ],
