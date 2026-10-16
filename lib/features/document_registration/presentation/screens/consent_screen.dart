@@ -18,6 +18,16 @@ class ConsentScreen extends ConsumerStatefulWidget {
 class _ConsentScreenState extends ConsumerState<ConsentScreen> {
   bool _isConsentChecked = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // This screen has no text field, so a keyboard left open by an earlier
+    // form step could never be closed from here — drop that focus on entry.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
+
   void _submit() async {
     final success = await ref
         .read(registrationControllerProvider.notifier)
