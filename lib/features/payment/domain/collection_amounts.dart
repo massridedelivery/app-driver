@@ -1,15 +1,8 @@
-/// What a ride collects from the passenger. [serverAmountDue] is the
-/// backend's `amount_due` from a fresh active-job read (fare + toll + waiting
-/// − promo) and is used as-is — ฿0 included, since a promo can cover the whole
-/// fare. Only when that read failed does it fall back to the quoted fare.
-///
-/// (The offer kept in memory always carries amount_due 0, so it must never be
-/// passed here — that's why the old rule refused ฿0 and over-collected
-/// fully-discounted rides.)
-double rideAmountToCollect({double? serverAmountDue, required double fare}) {
-  if (serverAmountDue == null) return fare;
-  return serverAmountDue < 0 ? 0 : serverAmountDue;
-}
+/// What a ride collects from the passenger: the backend's `amount_due` from
+/// a fresh active-job read (fare + toll + waiting − discount; 0 once paid by
+/// QR/card) — used as-is, never replaced by the fare (BE #199).
+double rideAmountToCollect({required double serverAmountDue}) =>
+    serverAmountDue < 0 ? 0 : serverAmountDue;
 
 /// The money on the collect (payment) screen.
 class CollectionAmounts {

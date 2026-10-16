@@ -41,6 +41,13 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     // This driver's commission on the job (driver_earnings.commission).
     @JsonKey(name: 'commission', readValue: readDriverCommission)
     double? driverCommission,
+    // What makes up amount_due (= fare + toll + waiting − discount), shown as
+    // the collect screen's breakdown. From the active-job read (BE #198/#199).
+    @JsonKey(name: 'toll_fee') @Default(0.0) double tollFee,
+    @JsonKey(name: 'waiting_fee') @Default(0.0) double waitingFee,
+    @JsonKey(name: 'discount') @Default(0.0) double discount,
+    // "PAID" once the customer paid by QR/card — then nothing is collected.
+    @JsonKey(name: 'payment_status') String? paymentStatus,
     @JsonKey(name: 'payment_method') required String paymentMethod,
     @JsonKey(name: 'points') @Default(0) int points,
     @JsonKey(name: 'service_type') @Default('มอเตอร์ไซค์') String serviceType,

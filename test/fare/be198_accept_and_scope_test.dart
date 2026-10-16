@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
+import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/income/presentation/statement_entries.dart';
 import 'package:massdrive/features/wallet/data/models/transaction_model.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
@@ -71,6 +72,59 @@ void main() {
       final e = buildStatement(txns);
       expect(e.whereType<StatementJob>().length, 1);
       expect(e.whereType<StatementTxn>().length, 2);
+    });
+  });
+
+  group('active job read (BE #199 cases, commission 15%)', () {
+    IncomingJobModel job(Map<String, dynamic> extra) =>
+        IncomingJobModel.fromJson({
+          'id': 'J',
+          'pickup_address': 'A',
+          'dropoff_address': 'B',
+          'pickup_lat': 18.5,
+          'pickup_lng': 99.0,
+          'dropoff_lat': 18.6,
+          'dropoff_lng': 99.1,
+          'payment_method': 'CASH',
+          'fare': 44,
+          'driver_earnings': {
+            'commission_rate': 0.15,
+            'commission': 7,
+            'driver_net': 37,
+          },
+          ...extra,
+        });
+
+    test('A: cash 44, coupon 44 → collect 0, net 37', () {
+      final j = job({'discount': 44, 'amount_due': 0});
+      expect(j.amountDue, 0);
+      expect(j.discount, 44);
+      expect(j.driverNet, 37);
+      expect(j.driverCommission, 7);
+      expect(j.netIncome + j.tollFee + j.waitingFee - j.discount, j.amountDue);
+    });
+
+    test('B: cash 44, coupon 20 → collect 24, net still 37', () {
+      final j = job({'discount': 20, 'amount_due': 24});
+      expect(j.amountDue, 24);
+      expect(j.driverNet, 37);
+    });
+
+    test('C: QR 44 paid → collect 0, payment_status PAID', () {
+      final j = job({
+        'payment_method': 'PROMPTPAY',
+        'amount_due': 0,
+        'payment_status': 'PAID',
+      });
+      expect(j.amountDue, 0);
+      expect(j.paymentStatus, 'PAID');
+    });
+
+    test('toll and waiting are read for the breakdown', () {
+      final j = job({'toll_fee': 25, 'waiting_fee': 6, 'amount_due': 75});
+      expect(j.tollFee, 25);
+      expect(j.waitingFee, 6);
+      expect(j.netIncome + j.tollFee + j.waitingFee - j.discount, j.amountDue);
     });
   });
 }

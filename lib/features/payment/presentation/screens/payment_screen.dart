@@ -20,6 +20,7 @@ import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -115,15 +116,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// (BE #191 driver_earnings). Never computed here.
   double? get _driverNet =>
       ref.read(incomingJobControllerProvider).currentJob?.driverNet;
-  /// The ride's quoted fare, and how far the amount to collect is below it —
-  /// a platform-funded promo. 0 for messenger or when nothing is discounted.
-  double? get _jobFare =>
-      _isMessenger ? null : ref.read(incomingJobControllerProvider).currentJob?.netIncome;
-  double get _promoDiscount {
-    final fare = _jobFare;
-    if (fare == null || _alreadyPaid) return 0;
-    final gap = fare - _baseFare;
-    return gap > 0 ? gap : 0;
+  /// The ride as last read from the server (fare, toll, waiting, discount,
+  /// payment status) — the parts of amount_due. Null for messenger.
+  IncomingJobModel? get _rideJob =>
+      _isMessenger ? null : ref.read(incomingJobControllerProvider).currentJob;
+
+  /// The customer already paid by QR/card (amount_due 0, payment_status PAID).
+  bool get _customerPaid =>
+      (_rideJob?.paymentStatus ?? '').toUpperCase() == 'PAID';
+
+  /// Show the fare / toll / waiting / discount lines (BE #199) when the ride
+  /// has any part beyond the plain fare.
+  bool get _showRideParts {
+    final j = _rideJob;
+    return j != null && (j.tollFee > 0 || j.waitingFee > 0 || j.discount > 0);
   }
 
   double? get _driverCommission =>
@@ -593,8 +599,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _amounts.cashTotal <= 0
-                        // A promo covered the whole fare (BE #198 copy).
-                        ? "ลูกค้าไม่ต้องชำระเงินสด (ใช้ส่วนลดเต็มจำนวน)"
+                        // Nothing to collect: paid by QR/card, or a promo
+                        // covered it all (BE #199).
+                        ? (_customerPaid
+                              ? "ลูกค้าชำระแล้ว · ไม่ต้องเก็บเงินสด"
+                              : "ไม่ต้องเก็บเงินสด (ใช้ส่วนลดเต็มจำนวน)")
                         : _currentMethod == PaymentMethod.cash
                         ? "เก็บเงินสด"
                         : "สแกนจ่าย",
@@ -672,28 +681,38 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           const SizedBox(height: 24),
 
           // Breakdown
-          // A promo lowers what the passenger owes below the fare: show the
-          // fare and the platform-funded discount so ฿0 to collect reads right.
-          if (_promoDiscount > 0) ...[
-            _buildBreakdownRow("ค่าโดยสาร", _jobFare!),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "ส่วนลดคูปอง (บริษัทออกให้)",
-                  style: AppTypography.body1.copyWith(
-                    color: AppColors.semanticSupportMintBgHigh,
+          // The parts of amount_due as the server gave them (BE #199):
+          // fare + toll + waiting − discount = เก็บเงินลูกค้า.
+          if (_showRideParts) ...[
+            _buildBreakdownRow("ค่าโดยสาร", _rideJob!.netIncome),
+            if (_rideJob!.tollFee > 0) ...[
+              const SizedBox(height: 16),
+              _buildBreakdownRow("ค่าทางด่วน", _rideJob!.tollFee),
+            ],
+            if (_rideJob!.waitingFee > 0) ...[
+              const SizedBox(height: 16),
+              _buildBreakdownRow("ค่ารอ", _rideJob!.waitingFee),
+            ],
+            if (_rideJob!.discount > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "ส่วนลด (บริษัทออกให้)",
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.semanticSupportMintBgHigh,
+                    ),
                   ),
-                ),
-                Text(
-                  "−${formatBahtNumber(_promoDiscount)}",
-                  style: AppTypography.body1.copyWith(
-                    color: AppColors.semanticSupportMintBgHigh,
+                  Text(
+                    "−${formatBahtNumber(_rideJob!.discount)}",
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.semanticSupportMintBgHigh,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ] else
             _buildBreakdownRow(_isMessenger ? "ค่าส่ง" : "ค่าโดยสาร", _baseFare),
           const SizedBox(height: 16),

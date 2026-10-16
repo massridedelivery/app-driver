@@ -15,6 +15,7 @@ import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 
 part 'incoming_job_controller.g.dart';
 
@@ -164,6 +165,26 @@ class IncomingJobController extends _$IncomingJobController {
     state = state.copyWith(currentJob: job, isModalVisible: false);
   }
 
+  /// Fresh copy of the job the driver is on from GET /api/driver/jobs/active
+  /// (driver_earnings, amount_due and its parts change during the trip —
+  /// never keep the offer's). Null when there's no active job or it failed.
+  Future<IncomingJobModel?> refreshActiveJob() async {
+    final current = state.currentJob;
+    try {
+      final detail = await getIt<JobLiveRepository>().getActiveJob();
+      final json = extractJobJson(detail);
+      if (json == null) return null;
+      final fresh = IncomingJobModel.fromJson(json);
+      if (current == null || current.jobId == fresh.jobId) {
+        state = state.copyWith(currentJob: fresh);
+      }
+      return fresh;
+    } catch (e) {
+      if (kDebugMode) debugPrint('IncomingJobController: refresh failed $e');
+      return null;
+    }
+  }
+
   /// Accept a ride job via WebSocket
   /// Accept the ride on offer via POST /api/driver/jobs/:id/accept (BE #198)
   /// and open the live screen only once the backend says it's ours.
@@ -171,7 +192,7 @@ class IncomingJobController extends _$IncomingJobController {
   /// - 200 → accepted (a repeat by this driver is also 200).
   /// - 409 `job_taken` → someone else got it: close the offer, "มีคนรับงานนี้
   ///   ไปแล้ว" — never "งานถูกยกเลิก".
-  /// - Anything else / timeout → ask GET /api/driver/active whether we hold
+  /// - Anything else / timeout → ask GET /api/driver/jobs/active whether we hold
   ///   it after all; if not, the driver can try again.
   Future<AcceptOutcome> acceptJob() async {
     // Stop the ~10s job-alert notification sound the moment the driver acts.
@@ -191,12 +212,9 @@ class IncomingJobController extends _$IncomingJobController {
       if (isJobTakenError(e)) {
         outcome = AcceptOutcome.taken;
       } else {
-        try {
-          final active = await repo.getActiveSummary();
-          if (active.any((a) => a.id == job.jobId)) {
-            outcome = AcceptOutcome.accepted;
-          }
-        } catch (_) {}
+        // Timeout / network error: GET /api/driver/jobs/active decides.
+        final held = await refreshActiveJob();
+        if (held?.jobId == job.jobId) outcome = AcceptOutcome.accepted;
       }
       if (kDebugMode) debugPrint('IncomingJobController: accept $outcome ($e)');
     }
