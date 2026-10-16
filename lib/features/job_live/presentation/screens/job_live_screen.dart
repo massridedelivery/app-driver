@@ -19,9 +19,6 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
-import 'package:massdrive/features/dependency_injection.dart';
-import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
-import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
@@ -74,6 +71,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
+      // The live figures (driver_net, amount_due) come from the server, not
+      // the offer — read them now and again at every stage.
+      ref.read(incomingJobControllerProvider.notifier).refreshActiveJob();
 
       // A cancelled job is closed by the app-root JobCancelListener.
     });
@@ -452,29 +452,39 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   bool _collecting = false;
 
+  /// Re-read the job shortly after a status change (waiting fee accrues at
+  /// pickup), so รายได้สุทธิ on screen follows the server.
+  void _refreshSoon() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        ref.read(incomingJobControllerProvider.notifier).refreshActiveJob();
+      }
+    });
+  }
+
   /// At the drop-off: read what the passenger owes now (fare + toll + waiting
   /// − promo) from the backend, then open the collect screen with it. The
   /// in-memory offer can't be used — its amount_due is always 0.
   Future<void> _goCollect() async {
     if (_collecting) return;
     _collecting = true;
-    final job = ref.read(incomingJobControllerProvider).currentJob;
-    double? serverDue;
-    try {
-      final detail = await getIt<JobLiveRepository>().getActiveJob();
-      final v = extractJobJson(detail)?['amount_due'];
-      if (v is num) serverDue = v.toDouble();
-    } catch (_) {
-      // Offline / read failed: fall back to the quoted fare below.
-    }
+    final fresh = await ref
+        .read(incomingJobControllerProvider.notifier)
+        .refreshActiveJob();
     _collecting = false;
     if (!mounted) return;
+    // amount_due only — never the fare (BE #199). Without it, don't guess.
+    if (fresh == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ตรวจยอดที่ต้องเก็บไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'),
+        ),
+      );
+      return;
+    }
     context.push('/payment', extra: {
       'gateCompletion': true,
-      'amount': rideAmountToCollect(
-        serverAmountDue: serverDue,
-        fare: job?.netIncome ?? 0,
-      ),
+      'amount': rideAmountToCollect(serverAmountDue: fresh.amountDue ?? 0),
     });
   }
 
@@ -633,12 +643,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
               _currentState = JobLiveState.arrivedAtPickup;
               if (jobId != null) {
                 socket.updateJobStatus(jobId, 'ARRIVED_AT_PICK_UP');
+                _refreshSoon();
               }
               break;
             case JobLiveState.arrivedAtPickup:
               _currentState = JobLiveState.headingToDropoff;
               if (jobId != null) {
                 socket.updateJobStatus(jobId, 'PICKED_UP');
+                _refreshSoon();
               }
               break;
             case JobLiveState.headingToDropoff:

@@ -6,18 +6,13 @@ import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 /// (payment) screen asks the customer for.
 void main() {
   group('ride → collect screen', () {
-    test("uses the server's amount_due (fare + toll + waiting − promo)", () {
-      expect(rideAmountToCollect(serverAmountDue: 95, fare: 82), 95);
-    });
-
-    test('a promo covering the whole fare → collect ฿0, not the fare', () {
-      // ฿44 ride, ฿44 coupon: the passenger owes nothing (A07/iOS 2026-10-16).
-      expect(rideAmountToCollect(serverAmountDue: 0, fare: 44), 0);
-      expect(rideAmountToCollect(serverAmountDue: -3, fare: 44), 0);
-    });
-
-    test('only when the server read failed does it fall back to the fare', () {
-      expect(rideAmountToCollect(serverAmountDue: null, fare: 82), 82);
+    test("collects the server's amount_due as-is (BE #199)", () {
+      expect(rideAmountToCollect(serverAmountDue: 95), 95);
+      // ฿44 ride, ฿44 coupon — or paid by QR: nothing to collect.
+      expect(rideAmountToCollect(serverAmountDue: 0), 0);
+      expect(rideAmountToCollect(serverAmountDue: -3), 0);
+      // ฿44 ride, ฿20 coupon (case B).
+      expect(rideAmountToCollect(serverAmountDue: 24), 24);
     });
 
     test('a pushed ฿0 is collected as ฿0 on the collect screen', () {
