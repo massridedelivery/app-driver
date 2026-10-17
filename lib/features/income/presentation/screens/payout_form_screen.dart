@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -30,6 +29,16 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
   PayoutLimits get _limits => ref.read(walletControllerProvider).payoutLimits;
 
   @override
+  void initState() {
+    super.initState();
+    // Limits and today's count change server-side (other requests, admin
+    // deletions) — read them fresh every time the form opens.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.read(walletControllerProvider.notifier).fetchPayoutSummary(),
+    );
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
@@ -40,7 +49,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     setState(() => _isSubmitting = true);
 
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
-    final error = await ref
+    final (:receipt, :error) = await ref
         .read(walletControllerProvider.notifier)
         .requestPayout(amount);
 
@@ -48,13 +57,16 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     setState(() => _isSubmitting = false);
 
     if (error == null) {
+      final net = receipt?.netAmount;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             // A request, not a completed transfer — an admin approves and
             // transfers it (usually within 1–2 business days).
-            'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ',
+            net == null
+                ? 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ'
+                : 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว · ได้รับ ${formatBaht(net)} · รอการอนุมัติ',
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,
@@ -85,10 +97,10 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
   /// transfer completes, so the driver receives the net. Shown once the amount
   /// is valid.
   Widget _buildWhtBreakdown(PayoutLimits limits) {
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
-    if (amount < limits.minWithdraw ||
-        amount > limits.maxWithdraw ||
-        amount > widget.availableBalance) {
+    final amount = double.tryParse(_amountController.text.trim());
+    if (amount == null ||
+        limits.amountError(amount, availableBalance: widget.availableBalance) !=
+            null) {
       return const SizedBox.shrink();
     }
     final wht = limits.whtFor(amount);
@@ -336,7 +348,10 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  // Baht with up to 2 decimals (e.g. 1, 0.5, 120.75).
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                  ],
                   style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
@@ -359,27 +374,15 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                       vertical: 18,
                     ),
                   ),
-                  validator: (value) {
-                    final amount = double.tryParse(value ?? '');
-                    if (amount == null || amount <= 0) {
-                      return 'กรุณากรอกจำนวนเงิน';
-                    }
-                    if (amount < _limits.minWithdraw) {
-                      return 'ถอนเงินขั้นต่ำ ฿${_limits.minWithdraw.toStringAsFixed(0)}';
-                    }
-                    if (amount > _limits.maxWithdraw) {
-                      return 'ถอนสูงสุด ฿${NumberFormat('#,##0').format(_limits.maxWithdraw)} ต่อครั้ง';
-                    }
-                    if (amount > widget.availableBalance) {
-                      return 'ยอดเงินไม่เพียงพอ';
-                    }
-                    return null;
-                  },
+                  validator: (value) => _limits.amountError(
+                    double.tryParse(value ?? ''),
+                    availableBalance: widget.availableBalance,
+                  ),
                 ),
 
                 const SizedBox(height: 12),
                 Text(
-                  'ขั้นต่ำ ฿${limits.minWithdraw.toStringAsFixed(0)} | สูงสุด ฿${NumberFormat('#,##0').format(limits.maxWithdraw)}/ครั้ง | ไม่เกิน ${limits.maxPerDay} ครั้ง/วัน (วันนี้ ${limits.withdrawalsToday}/${limits.maxPerDay})',
+                  'ถอนได้อีก ${limits.remainingToday} ครั้งวันนี้ · สูงสุด ${formatBaht(limits.maxWithdraw)}/ครั้ง',
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),

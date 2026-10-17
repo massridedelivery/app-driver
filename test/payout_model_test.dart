@@ -45,9 +45,11 @@ void main() {
         }).blockReason(availableBalance: 500),
         contains('ครบ 5 ครั้ง'),
       );
+      // No minimum any more (dev103) — only an empty balance blocks.
+      expect(const PayoutLimits().blockReason(availableBalance: 50), isNull);
       expect(
-        const PayoutLimits().blockReason(availableBalance: 50),
-        contains('ขั้นต่ำ'),
+        const PayoutLimits().blockReason(availableBalance: 0),
+        'ยังไม่มียอดที่ถอนได้',
       );
     });
   });

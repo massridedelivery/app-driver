@@ -89,16 +89,13 @@ void main() {
       expect(l.netFor(1000), 970);
     });
 
-    test('minimum-balance reason shows the minimum', () {
+    test('a small balance can be withdrawn (no ฿100 minimum)', () {
       final l = PayoutLimits.fromSummary({
-        'min_withdraw': 100,
+        'min_withdraw': 0,
         'has_payout_method': true,
       });
-      expect(
-        l.blockReason(availableBalance: 99.6),
-        'ยอดที่ถอนได้ต่ำกว่าขั้นต่ำ ฿100',
-      );
-      expect(l.blockReason(availableBalance: 100), isNull);
+      expect(l.blockReason(availableBalance: 0.99), isNull);
+      expect(l.blockReason(availableBalance: 0), 'ยังไม่มียอดที่ถอนได้');
     });
   });
 
