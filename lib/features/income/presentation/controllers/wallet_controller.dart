@@ -253,24 +253,28 @@ class WalletController extends _$WalletController {
   /// Request a withdrawal. The backend always pays the admin-approved payout
   /// account and ignores any method in the body, so only the amount is sent.
   /// Returns null on success, or the refusal (branch on [PayoutException.code]).
-  Future<PayoutException?> requestPayout(double amount) async {
+  /// Sends the request; returns the receipt (wht / net the backend recorded)
+  /// or the refusal. The summary is reloaded either way (limits, balance).
+  Future<({PayoutReceipt? receipt, PayoutException? error})> requestPayout(
+    double amount,
+  ) async {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       final walletRepo = getIt<WalletRepository>();
-      await walletRepo.requestPayout({'amount': amount});
+      final res = await walletRepo.requestPayout({'amount': amount});
       await fetchEarnings();
-      return null;
+      return (receipt: PayoutReceipt.fromJson(res), error: null);
     } on PayoutException catch (e) {
       debugPrint('WalletController: requestPayout refused ${e.code}');
       state = state.copyWith(errorMessage: e.message);
       // A refusal can mean the summary is stale (limit hit, pending request).
       await fetchPayoutSummary();
-      return e;
+      return (receipt: null, error: e);
     } catch (e) {
       debugPrint('WalletController: requestPayout Error $e');
       const err = PayoutException(null, null);
       state = state.copyWith(errorMessage: err.message);
-      return err;
+      return (receipt: null, error: err);
     } finally {
       state = state.copyWith(isLoading: false);
     }

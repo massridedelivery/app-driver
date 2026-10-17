@@ -20,9 +20,10 @@ class PayoutLimits {
   final bool payoutMethodPending;
 
   const PayoutLimits({
-    this.minWithdraw = 100,
+    // An amount must be MORE than this (0 = any positive amount).
+    this.minWithdraw = 0,
     this.maxWithdraw = 50000,
-    this.maxPerDay = 5,
+    this.maxPerDay = 3,
     this.withdrawalsToday = 0,
     this.whtRate = 0.01,
     this.hasPayoutMethod,
@@ -46,6 +47,27 @@ class PayoutLimits {
 
   bool get dailyLimitReached => withdrawalsToday >= maxPerDay;
 
+  /// Withdrawals still allowed today (Thai day, counted by the backend).
+  int get remainingToday =>
+      (maxPerDay - withdrawalsToday).clamp(0, maxPerDay).toInt();
+
+  /// Why [amount] can't be requested, or null when it can: more than
+  /// [minWithdraw], at most [maxWithdraw] and the withdrawable balance, and
+  /// no more than 2 decimals.
+  String? amountError(double? amount, {required double availableBalance}) {
+    if (amount == null || amount <= minWithdraw) {
+      return 'กรุณาใส่จำนวนเงินมากกว่า ${formatBahtNumber(minWithdraw)}';
+    }
+    if (((amount * 100).round() - amount * 100).abs() > 1e-6) {
+      return 'ใส่ทศนิยมได้ไม่เกิน 2 ตำแหน่ง';
+    }
+    if (amount > maxWithdraw) {
+      return 'ถอนได้สูงสุด ${formatBaht(maxWithdraw)} ต่อครั้ง';
+    }
+    if (amount > availableBalance) return 'ยอดเงินไม่เพียงพอ';
+    return null;
+  }
+
   /// Tax withheld on [amount], rounded to the satang exactly like the
   /// backend (`round(amount × rate × 100) / 100`).
   double whtFor(double amount) => (amount * whtRate * 100).round() / 100;
@@ -64,11 +86,9 @@ class PayoutLimits {
       return 'บัญชีรับเงินอยู่ระหว่างตรวจสอบ ถอนเงินได้เมื่อบัญชีผ่านการอนุมัติ';
     }
     if (dailyLimitReached) {
-      return 'วันนี้ถอนเงินครบ $maxPerDay ครั้งแล้ว ถอนได้อีกครั้งพรุ่งนี้';
+      return 'ครบ $maxPerDay ครั้งแล้ววันนี้ ถอนได้อีกครั้งพรุ่งนี้';
     }
-    if (availableBalance < minWithdraw) {
-      return 'ยอดที่ถอนได้ต่ำกว่าขั้นต่ำ ${formatBaht(minWithdraw)}';
-    }
+    if (availableBalance <= minWithdraw) return 'ยังไม่มียอดที่ถอนได้';
     return null;
   }
 }
@@ -196,13 +216,13 @@ class PayoutException implements Exception {
 
   /// Thai message for the driver, chosen by code (never by the English text).
   String get message => switch (code) {
-    'payout_below_min' => 'ยอดถอนต่ำกว่าขั้นต่ำที่กำหนด',
-    'payout_above_max' => 'ยอดถอนเกินสูงสุดต่อครั้ง',
-    'payout_limit_exceeded' =>
-      'วันนี้ถอนเงินครบจำนวนครั้งแล้ว ถอนได้อีกครั้งพรุ่งนี้',
+    'payout_below_min' => 'กรุณาใส่จำนวนเงินมากกว่า 0',
+    'payout_above_max' => 'ถอนได้สูงสุด 50,000 บาทต่อครั้ง',
+    // 429 — never retried automatically.
+    'payout_limit_exceeded' => 'ถอนครบ 3 ครั้งแล้ววันนี้',
     'insufficient_balance' => 'ยอดเงินที่ถอนได้ไม่พอ',
     'payout_pending_exists' =>
-      'มีคำขอถอนเงินที่รอดำเนินการอยู่แล้ว กรุณารอให้รายการเดิมเสร็จก่อน',
+      'มีคำขอถอนที่รอดำเนินการอยู่ รอให้เสร็จก่อนถอนใหม่',
     'no_payout_method' => 'กรุณาเพิ่มบัญชีธนาคารสำหรับรับเงินก่อนถอนเงิน',
     'payout_method_pending' =>
       'บัญชีรับเงินอยู่ระหว่างตรวจสอบ ถอนเงินได้เมื่อบัญชีผ่านการอนุมัติ',
@@ -228,4 +248,24 @@ class PayoutUpdates extends ChangeNotifier {
   static final PayoutUpdates instance = PayoutUpdates._();
 
   void notifyChanged() => notifyListeners();
+}
+
+/// A withdrawal request the backend accepted: what it recorded as withheld
+/// and what will reach the bank (POST /api/driver/payouts response).
+@immutable
+class PayoutReceipt {
+  const PayoutReceipt({this.whtAmount, this.netAmount});
+
+  final double? whtAmount;
+  final double? netAmount;
+
+  factory PayoutReceipt.fromJson(Map<String, dynamic>? j) {
+    final body = j?['payout'] is Map
+        ? Map<String, dynamic>.from(j!['payout'] as Map)
+        : j;
+    return PayoutReceipt(
+      whtAmount: (body?['wht_amount'] as num?)?.toDouble(),
+      netAmount: (body?['net_amount'] as num?)?.toDouble(),
+    );
+  }
 }
