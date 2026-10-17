@@ -12,7 +12,8 @@ class PayoutLimits {
   final int maxPerDay;
   final int withdrawalsToday;
 
-  /// Withholding tax, deducted when the transfer completes (0.01 = 1%).
+  /// Withholding tax on a withdrawal, from the summary only (0 since the
+  /// backend stopped withholding; never assumed).
   final double whtRate;
 
   /// Null when the summary didn't say (older backend) — don't block on it.
@@ -25,7 +26,7 @@ class PayoutLimits {
     this.maxWithdraw = 50000,
     this.maxPerDay = 3,
     this.withdrawalsToday = 0,
-    this.whtRate = 0.01,
+    this.whtRate = 0,
     this.hasPayoutMethod,
     this.payoutMethodPending = false,
   });
