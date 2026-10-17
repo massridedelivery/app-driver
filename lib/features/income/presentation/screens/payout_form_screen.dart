@@ -64,7 +64,8 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
           content: Text(
             // A request, not a completed transfer — an admin approves and
             // transfers it (usually within 1–2 business days).
-            net == null
+            // Mention what reaches the bank only if it differs (a tax).
+            net == null || net == amount
                 ? 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ'
                 : 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว · ได้รับ ${formatBaht(net)} · รอการอนุมัติ',
             style: AppTypography.label2.copyWith(color: Colors.white),
@@ -93,9 +94,9 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     );
   }
 
-  /// Withholding-tax breakdown: the backend deducts `wht_rate` when the
-  /// transfer completes, so the driver receives the net. Shown once the amount
-  /// is valid.
+  /// What the driver will receive for a valid amount. Withholding tax is
+  /// shown only if the summary's `wht_rate` is above 0 — today it is 0, so the
+  /// driver gets the full amount.
   Widget _buildWhtBreakdown(PayoutLimits limits) {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null ||
@@ -108,6 +109,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
     final pct = (limits.whtRate * 100).toStringAsFixed(
       limits.whtRate * 100 % 1 == 0 ? 0 : 1,
     );
+    final withholds = wht > 0;
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -118,14 +120,19 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
       ),
       child: Column(
         children: [
-          _whtRow('ยอดถอน', formatBaht(amount)),
-          const SizedBox(height: 6),
-          _whtRow('หัก ณ ที่จ่าย ($pct%)', '−${formatBaht(wht)}'),
-          Divider(height: 16, color: context.palette.border),
-          _whtRow('ยอดรับสุทธิ', formatBaht(net), highlight: true),
+          if (withholds) ...[
+            _whtRow('ยอดถอน', formatBaht(amount)),
+            const SizedBox(height: 6),
+            _whtRow('หัก ณ ที่จ่าย ($pct%)', '−${formatBaht(wht)}'),
+            Divider(height: 16, color: context.palette.border),
+            _whtRow('ยอดรับสุทธิ', formatBaht(net), highlight: true),
+          ] else
+            _whtRow('ยอดที่จะได้รับ', formatBaht(net), highlight: true),
           const SizedBox(height: 8),
           Text(
-            'หักภาษี ณ ที่จ่ายเมื่อโอนสำเร็จ · โอนภายใน 1–2 วันทำการหลังอนุมัติ',
+            withholds
+                ? 'หักภาษี ณ ที่จ่ายเมื่อโอนสำเร็จ · โอนภายใน 1–2 วันทำการหลังอนุมัติ'
+                : 'ได้รับเต็มจำนวน · โอนภายใน 1–2 วันทำการหลังอนุมัติ',
             style: AppTypography.caption5.copyWith(
               color: context.palette.textSecondary,
             ),

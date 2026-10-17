@@ -59,7 +59,8 @@ void main() {
   });
 
   group('withdrawal tax (หัก ณ ที่จ่าย)', () {
-    const limits = PayoutLimits(); // default 1%
+    // A summary that withholds 1% (the rule still holds if it ever returns).
+    const limits = PayoutLimits(whtRate: 0.01);
 
     test('matches the backend rule: wht = round(amount × 1%, 2)', () {
       expect(limits.whtFor(1000), 10);

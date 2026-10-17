@@ -18,9 +18,9 @@ void main() {
       expect(l.blockReason(availableBalance: 500), isNull);
     });
 
-    test('defaults to 1% and does not block when the backend is older', () {
+    test('no tax unless the summary says so; does not block on older BE', () {
       final l = PayoutLimits.fromSummary({'available_balance': 500});
-      expect(l.whtRate, 0.01);
+      expect(l.whtRate, 0);
       expect(l.hasPayoutMethod, isNull);
       expect(l.blockReason(availableBalance: 500), isNull);
     });

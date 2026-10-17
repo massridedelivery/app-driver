@@ -109,4 +109,17 @@ void main() {
     expect(nested.netAmount, 148.5);
     expect(PayoutReceipt.fromJson(null).netAmount, isNull);
   });
+
+  test('no withholding (wht_rate 0): ถอน ฿10 ได้รับ ฿10 เต็ม', () {
+    final l = PayoutLimits.fromSummary({'wht_rate': 0, 'max_per_day': 3});
+    expect(l.whtFor(10), 0);
+    expect(l.netFor(10), 10);
+    final r = PayoutReceipt.fromJson({
+      'amount': 10,
+      'wht_amount': 0,
+      'net_amount': 10,
+    });
+    expect(r.whtAmount, 0);
+    expect(r.netAmount, 10);
+  });
 }
