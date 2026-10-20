@@ -9,19 +9,34 @@ List<HistoryItemModel> tripRows(
   Map<String, TripSummary> trips,
 ) => raw.where((i) => i.isTripEntry).map((i) {
   final t = trips[i.jobId];
-  return i.withTrip(vehicleTypeName: t?.vehicleTypeName, tripNet: t?.driverNet);
+  return i.withTrip(
+    vehicleTypeName: t?.vehicleTypeName,
+    tripNet: t?.driverNet,
+    distanceKm: t?.distanceKm,
+    tripPaymentMethod: t?.paymentMethod,
+  );
 }).toList();
 
 /// What the trip list (`GET /api/driver/earnings/trips`) knows about a job:
 /// its vehicle type and the backend-resolved whole-baht net.
 class TripSummary {
-  const TripSummary({this.vehicleTypeName, this.driverNet});
+  const TripSummary({
+    this.vehicleTypeName,
+    this.driverNet,
+    this.distanceKm,
+    this.paymentMethod,
+  });
 
   /// `driver_info.vehicle_type_name` (or a top-level `vehicle_type_name`).
   final String? vehicleTypeName;
 
   /// `driver_net`; null until the trip settles.
   final int? driverNet;
+
+  /// `distance_km` and `payment_method` (CASH / PROMPTPAY / …) for the
+  /// receipt card's sub-line.
+  final double? distanceKm;
+  final String? paymentMethod;
 }
 
 /// job id → [TripSummary] from the trip list response.
@@ -37,9 +52,13 @@ Map<String, TripSummary> tripSummariesByJob(Object? response) {
         (info is Map ? info['vehicle_type_name'] : null) ??
         t['vehicle_type_name'];
     final net = t['driver_net'];
+    final km = t['distance_km'];
+    final pay = t['payment_method']?.toString().trim();
     out[id] = TripSummary(
       vehicleTypeName: name?.toString(),
       driverNet: net is num ? net.round() : null,
+      distanceKm: km is num ? km.toDouble() : null,
+      paymentMethod: (pay == null || pay.isEmpty) ? null : pay,
     );
   }
   return out;
@@ -69,3 +88,12 @@ List<HistoryItemModel> jobCardOrder(Iterable<HistoryItemModel> rows) {
   };
   return [...rows]..sort((a, b) => rank(a).compareTo(rank(b)));
 }
+
+/// Thai label for a trip's payment method on the receipt card.
+String paymentMethodLabel(String? raw) => switch (raw?.toUpperCase()) {
+  'CASH' => 'เงินสด',
+  'PROMPTPAY' || 'QR' || 'QR_PAYMENT' => 'QR',
+  'CARD' || 'CREDIT_CARD' => 'บัตร',
+  null || '' => '',
+  final other => other,
+};

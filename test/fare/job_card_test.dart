@@ -174,4 +174,62 @@ void main() {
     expect(groups.length, 2); // same job, two days → two cards
     expect(groups.first.items.length, 2);
   });
+
+  group('receipt layout (design 4, ประวัติการให้บริการ)', () {
+    testWidgets('time · km · payment, status chip, fare / commission / net', (
+      t,
+    ) async {
+      await _pump(
+        t,
+        JobEarningsCard(
+          jobId: '54a9a4ff',
+          time: DateTime(2026, 10, 20, 0, 50),
+          vehicleTypeName: 'motorcycle',
+          pickupAddress: 'ไม่ต้องแสดงในแบบใบเสร็จ',
+          driverNet: 37,
+          receipt: const JobReceiptInfo(
+            distanceKm: 3.0,
+            paymentLabel: 'เงินสด',
+          ),
+          lines: const [
+            JobCardLine(label: 'ค่าโดยสาร', amount: 44),
+            JobCardLine(label: 'หักค่าคอมมิชชัน', amount: -7),
+          ],
+        ),
+      );
+      expect(find.text('มอเตอร์ไซค์ · งาน #54a9a4'), findsOneWidget);
+      expect(find.text('00:50 · 3.0 กม. · เงินสด'), findsOneWidget);
+      expect(find.textContaining('ไม่ต้องแสดง'), findsNothing);
+      expect(find.text('สำเร็จ'), findsOneWidget);
+      expect(find.text('+฿44'), findsOneWidget);
+      expect(find.text('-฿7'), findsOneWidget);
+      expect(find.text('฿37'), findsOneWidget);
+    });
+
+    testWidgets('cancelled job shows a ยกเลิก chip', (t) async {
+      await _pump(
+        t,
+        JobEarningsCard(
+          jobId: 'J',
+          time: DateTime(2026),
+          lines: const [],
+          receipt: const JobReceiptInfo(statusLabel: 'ยกเลิก', statusOk: false),
+        ),
+      );
+      expect(find.text('ยกเลิก'), findsOneWidget);
+    });
+
+    test('trip list gives distance and payment; labels in Thai', () {
+      final trips = tripSummariesByJob({
+        'data': [
+          {'id': 'J', 'distance_km': 3, 'payment_method': 'CASH'},
+        ],
+      });
+      expect(trips['J']!.distanceKm, 3.0);
+      expect(paymentMethodLabel(trips['J']!.paymentMethod), 'เงินสด');
+      expect(paymentMethodLabel('PROMPTPAY'), 'QR');
+      expect(paymentMethodLabel('CARD'), 'บัตร');
+      expect(paymentMethodLabel(null), '');
+    });
+  });
 }

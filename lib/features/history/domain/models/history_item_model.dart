@@ -29,6 +29,10 @@ class HistoryItemModel {
 
   final String? pickupAddress;
 
+  /// From the trip list, for the receipt card's "เวลา · กม. · วิธีจ่าย".
+  final double? distanceKm;
+  final String? tripPaymentMethod;
+
   HistoryItemModel({
     required this.id,
     required this.dateTime,
@@ -43,13 +47,20 @@ class HistoryItemModel {
     this.vehicleTypeName,
     this.tripNet,
     this.pickupAddress,
+    this.distanceKm,
+    this.tripPaymentMethod,
   });
 
   /// Belongs to a trip (fare, commission…). Top-ups, adjustments and
   /// withdrawals have no job and live in their own history screens.
   bool get isTripEntry => jobId != null && jobId!.isNotEmpty;
 
-  HistoryItemModel withTrip({String? vehicleTypeName, int? tripNet}) =>
+  HistoryItemModel withTrip({
+    String? vehicleTypeName,
+    int? tripNet,
+    double? distanceKm,
+    String? tripPaymentMethod,
+  }) =>
       HistoryItemModel(
     id: id,
     dateTime: dateTime,
@@ -64,6 +75,8 @@ class HistoryItemModel {
     vehicleTypeName: vehicleTypeName,
     tripNet: tripNet,
     pickupAddress: pickupAddress,
+    distanceKm: distanceKm,
+    tripPaymentMethod: tripPaymentMethod,
   );
 }
 
