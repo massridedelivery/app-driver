@@ -21,6 +21,7 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -34,7 +35,6 @@ import 'package:massdrive/features/document_registration/presentation/controller
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:massdrive/features/income/presentation/money_text.dart';
 
 class OnlineStatusState {
   final bool isOnline;
@@ -344,11 +344,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (profile.isVerified == true) {
       if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
       if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
-      // Check the credit wallet on every app entry (not only when toggling
-      // online) — warn whenever it is below the minimum so the driver always
-      // sees it on open. Safe against an active-job redirect: the helper
-      // re-checks context.mounted after its fetch and no-ops if home is gone.
-      if (mounted) await _maybeShowCreditWarning(context, ref);
+      // Refresh the cash-job gate on every home entry (app open, back from a
+      // job or a top-up): the card under the online button reads it.
+      if (mounted) {
+        await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
+      }
     } else {
       if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
       // Load the registration status (reads /api/driver/documents) so the
@@ -813,6 +813,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
+                      const CashJobGateCard(),
                       const _StatusCard(),
                       _buildMenuRow(),
                     ],
@@ -938,9 +939,9 @@ class _OnlineButton extends ConsumerWidget {
             // The driver just went online but can't share location if GPS is
             // off or location is permanently denied — nudge them to Settings.
             await _promptLocationIfNeeded(context, ref);
-            // Warn (in Thai) when the credit wallet is too low to keep taking
-            // jobs — or empty/negative, where the backend won't dispatch at all.
-            if (context.mounted) await _maybeShowCreditWarning(context, ref);
+            // Going online is never refused for credit (BE dev115); refresh
+            // the cash-job card in case the balance moved.
+            await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
           }
         } catch (e) {
           if (context.mounted && newValue) {
@@ -1182,110 +1183,6 @@ Future<ServiceAreaResult> _checkServiceArea(double lat, double lng) async {
     blocked = r;
   }
   return blocked;
-}
-
-/// After going online, check the credit wallet and warn (in Thai) when it is
-/// too low. Two tiers driven by the backend (SCRUM-97 / dev16): empty/negative
-/// or `can_receive_jobs == false` → the backend won't dispatch (must top up);
-/// below `min_balance_required` → still gets a few jobs but should top up soon.
-/// No dialog when the balance is healthy.
-Future<void> _maybeShowCreditWarning(BuildContext context, WidgetRef ref) async {
-  CreditStatus status;
-  try {
-    status = await ref.read(walletControllerProvider.notifier).fetchCreditStatus();
-  } catch (_) {
-    // Don't block going online on a wallet-fetch failure.
-    return;
-  }
-  if (!context.mounted) return;
-  // Block when the backend won't dispatch (empty/negative). Warn when the
-  // balance is below the highest applicable minimum — the per-service minimum
-  // when the breakdown is present ("insufficient for one of your registered
-  // service types"), otherwise the single min_balance_required.
-  double warnThreshold = status.minBalanceRequired;
-  for (final s in status.serviceMinimums) {
-    if (s.min > warnThreshold) warnThreshold = s.min;
-  }
-  final bool blocking = !status.canReceiveJobs || status.balance <= 0;
-  final bool warn = status.balance < warnThreshold;
-  if (!blocking && !warn) return;
-  _showCreditWarningDialog(context, status: status, blocking: blocking);
-}
-
-/// The low-credit dialog. Copy is composed locally in Thai (always Thai, shows
-/// the live balance + per-service minimums). `blocking` (empty/negative / can't
-/// receive) uses stronger, red copy since the backend stops dispatching jobs
-/// until the driver tops up.
-void _showCreditWarningDialog(
-  BuildContext context, {
-  required CreditStatus status,
-  required bool blocking,
-}) {
-  final (:title, :message) = creditWarningCopy(status, blocking: blocking);
-
-  showDialog(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      backgroundColor: dialogContext.palette.surface,
-      title: Text(
-        title,
-        style: AppTypography.heading5.copyWith(
-          // Foreground error red (readable on both light & dark surfaces) for
-          // the block tier; the theme text color for the softer warn tier.
-          color: blocking
-              ? AppColors.semanticErrorFgHigh
-              : dialogContext.palette.textPrimary,
-        ),
-      ),
-      content: Text(
-        message,
-        style: AppTypography.caption4.copyWith(
-          color: dialogContext.palette.textSecondary,
-          height: 1.5,
-        ),
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      actions: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  // push (not go) so the credit wallet keeps a back stack to
-                  // home — otherwise the driver is stranded with no way back.
-                  context.push(AppRoutes.creditWalletNamedPage);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.foundationGreen700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                child: Text(
-                  'เติมเงินเครดิต',
-                  style: AppTypography.label1.copyWith(color: Colors.white),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'รับทราบ',
-                style: AppTypography.caption3.copyWith(
-                  color: dialogContext.palette.textTertiary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
 }
 
 // Reusable static dialog — called from _OnlineButton which is outside the

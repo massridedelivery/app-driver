@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 
 /// Converts any thrown error into a short, user-facing Thai message.
 ///
@@ -23,6 +24,9 @@ String friendlyErrorMessage(Object error) {
       case DioExceptionType.badResponse:
       case DioExceptionType.unknown:
         final code = error.response?.statusCode ?? 0;
+        if (isCashJobBlockedError(error)) {
+          return CashJobGate.defaultBlockedMessage;
+        }
         if (code >= 500) {
           return 'เซิร์ฟเวอร์ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งในภายหลัง';
         }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/messenger/data/sources/messenger_api_service.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
@@ -69,7 +70,10 @@ class MessengerRepositoryImpl implements MessengerRepository {
     try {
       await _api.acceptOrder(orderId);
     } on DioException catch (e) {
-      // 403 → COD-blocked, 409 → already taken (SCRUM-41 §4).
+      // 403 → cash-job limit (BE dev115), 409 → already taken (SCRUM-41 §4).
+      if (isCashJobBlockedError(e)) {
+        throw CashJobBlockedException(_message(e, ''));
+      }
       throw Exception(_message(e, 'Failed to accept order'));
     }
   }

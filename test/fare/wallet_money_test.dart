@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/income/domain/models/held_fare.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
-import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
 
 /// Flow 8 — income, cash/credit wallets, settle-debt, withdrawals, held fares.
@@ -17,44 +16,12 @@ void main() {
     });
 
     test('settle-debt hint never doubles the minus', () {
+      expect(creditBalanceHint(-13), 'เครดิตติดลบ ฿13');
       expect(
-        creditBalanceHint(-13),
-        'เครดิตติดลบ ฿13 — เติมให้เป็นบวกเพื่อรับงานต่อได้',
+        creditBalanceHint(-35, cashBlocked: true),
+        'เครดิตติดลบ ฿35 — เติมเครดิตเพื่อรับงานเงินสดอีกครั้ง',
       );
       expect(creditBalanceHint(40), 'เครดิตคงเหลือ ฿40');
-    });
-  });
-
-  group('low-credit dialog on home', () {
-    test('blocking copy with per-service minimums', () {
-      const status = CreditStatus(
-        balance: -13,
-        canReceiveJobs: false,
-        minBalanceRequired: 25,
-        serviceMinimums: [
-          ServiceMinimum('Standard Bike', 30),
-          ServiceMinimum('Saver Bike', 25.5),
-        ],
-      );
-      final c = creditWarningCopy(status, blocking: true);
-      expect(c.title, 'เครดิตไม่พอรับงาน');
-      expect(c.message, contains('เครดิตคงเหลือ -฿13 — ไม่สามารถรับงานได้'));
-      expect(
-        c.message,
-        contains('ยอดขั้นต่ำ: Standard Bike ฿30, Saver Bike ฿25.50'),
-      );
-    });
-
-    test('warning copy falls back to the overall minimum', () {
-      const status = CreditStatus(
-        balance: 12,
-        canReceiveJobs: true,
-        minBalanceRequired: 25,
-      );
-      final c = creditWarningCopy(status, blocking: false);
-      expect(c.title, 'เครดิตใกล้หมด');
-      expect(c.message, startsWith('เครดิตคงเหลือ ฿12 ไม่พอ'));
-      expect(c.message, endsWith('ยอดขั้นต่ำ: ฿25'));
     });
   });
 

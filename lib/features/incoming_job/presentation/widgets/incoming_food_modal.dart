@@ -6,6 +6,7 @@ import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -63,11 +64,14 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
     });
   }
 
-  void _accept() {
+  Future<void> _accept() async {
     if (_resolved) return;
     _resolved = true;
     _timer?.cancel();
-    ref.read(incomingJobControllerProvider.notifier).acceptFoodJob();
+    final outcome =
+        await ref.read(incomingJobControllerProvider.notifier).acceptFoodJob();
+    // Failed but still on offer: let the driver try again.
+    if (mounted && outcome == AcceptOutcome.failed) _resolved = false;
   }
 
   void _decline() {

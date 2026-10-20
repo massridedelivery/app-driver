@@ -1,4 +1,5 @@
 import 'package:massdrive/core/utils/friendly_error.dart';
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'dart:io';
@@ -16,44 +17,6 @@ import 'package:massdrive/features/income/data/sources/wallet_api_service.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 
 part 'wallet_controller.g.dart';
-
-/// Per-service minimum credit (e.g. Standard Bike ฿30, Saver Bike ฿30).
-class ServiceMinimum {
-  final String name;
-  final double min;
-  const ServiceMinimum(this.name, this.min);
-}
-
-/// Credit-gate status from `GET /api/driver/payouts/summary` (SCRUM-97 / dev16).
-/// The backend is the source of truth for the numbers (balance, thresholds,
-/// block flag); the warning COPY is composed locally in Thai (SCRUM-97 follow-
-/// up — the client owns the wording so it is always Thai and shows the live
-/// balance + per-service minimums).
-class CreditStatus {
-  /// Current credit; can be negative (commission pushed it below zero).
-  final double balance;
-
-  /// false when the backend won't dispatch (balance <= 0). Defaults to true so
-  /// a missing field never blocks the driver.
-  final bool canReceiveJobs;
-
-  /// Warn threshold (default 25, admin-configurable).
-  final double minBalanceRequired;
-
-  /// "INSUFFICIENT_CREDIT" (=0) | "NEGATIVE_CREDIT" (<0) | null (healthy).
-  final String? reason;
-
-  /// Per-service minimums for the top-up hint; empty → use [minBalanceRequired].
-  final List<ServiceMinimum> serviceMinimums;
-
-  const CreditStatus({
-    required this.balance,
-    required this.canReceiveJobs,
-    required this.minBalanceRequired,
-    this.reason,
-    this.serviceMinimums = const [],
-  });
-}
 
 @Riverpod(keepAlive: true)
 class WalletController extends _$WalletController {
@@ -103,7 +66,6 @@ class WalletController extends _$WalletController {
       // client-side ledger workaround couldn't cover.
       state = state.copyWith(
         balance: overview.balance,
-        currentBalance: overview.balance,
         currency: overview.currency,
         isVerified: overview.isVerified,
         // API has no last_updated (SCRUM-42 Gaps #4) — fall back to fetch time.
@@ -125,7 +87,6 @@ class WalletController extends _$WalletController {
       );
 
       await fetchPayoutSummary();
-      await fetchCodStatus();
     } catch (e) {
       debugPrint('WalletController: fetchEarnings Error $e');
       // This is the screen's primary data. Swallowing the failure leaves the
@@ -136,74 +97,25 @@ class WalletController extends _$WalletController {
 
   /// Cash vs Credit wallet split (SCRUM-42 §2, GET /api/driver/payouts/summary).
   /// Cash = `available_balance` (withdrawable); Credit = `credit_balance`.
-  Future<void> fetchPayoutSummary() async {
+  /// Also the cash-job gate (BE dev115): returns it, or null when the fetch
+  /// failed (the last known gate stays in state).
+  Future<CashJobGate?> fetchPayoutSummary() async {
     try {
       final walletRepo = getIt<WalletRepository>();
       final summary = await walletRepo.getPayoutSummary();
       final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
       final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
+      final gate = CashJobGate.fromSummary(summary);
       state = state.copyWith(
         cashBalance: cash,
         creditBalance: credit,
         payoutLimits: PayoutLimits.fromSummary(summary),
+        cashJobGate: gate,
       );
+      return gate;
     } catch (e) {
       debugPrint('WalletController: fetchPayoutSummary Error $e');
-    }
-  }
-
-  /// Fetch the credit-gate status (SCRUM-97 / dev16) from the same
-  /// payouts/summary payload, and refresh the cash/credit balances in state.
-  /// Used by the go-online low-credit dialog.
-  Future<CreditStatus> fetchCreditStatus() async {
-    final walletRepo = getIt<WalletRepository>();
-    final summary = await walletRepo.getPayoutSummary();
-    final cash = (summary['available_balance'] as num?)?.toDouble() ?? 0.0;
-    final credit = (summary['credit_balance'] as num?)?.toDouble() ?? 0.0;
-    state = state.copyWith(
-      cashBalance: cash,
-      creditBalance: credit,
-      payoutLimits: PayoutLimits.fromSummary(summary),
-    );
-    // Per-service minimums (e.g. Standard Bike / Saver Bike). Tolerant of a few
-    // key spellings the backend might use.
-    final mins = <ServiceMinimum>[];
-    final rawMins = summary['service_minimums'];
-    if (rawMins is List) {
-      for (final e in rawMins) {
-        if (e is Map) {
-          final name = (e['service'] ?? e['name'] ?? e['label'])?.toString();
-          final m = e['min'] ?? e['min_balance'] ?? e['minimum'];
-          if (name != null && name.isNotEmpty && m is num) {
-            mins.add(ServiceMinimum(name, m.toDouble()));
-          }
-        }
-      }
-    }
-    return CreditStatus(
-      balance: credit,
-      canReceiveJobs: (summary['can_receive_jobs'] as bool?) ?? true,
-      minBalanceRequired:
-          (summary['min_balance_required'] as num?)?.toDouble() ?? 25.0,
-      reason: summary['reason']?.toString(),
-      serviceMinimums: mins,
-    );
-  }
-
-  Future<void> fetchCodStatus() async {
-    try {
-      final walletRepo = getIt<WalletRepository>();
-      final codStatus = await walletRepo.getCodStatus();
-      final codDebt = (codStatus['cod_debt'] as num?)?.toDouble() ?? 0.0;
-      final currentBalance = (codStatus['current_balance'] as num?)?.toDouble() ?? 0.0;
-      final codThreshold = (codStatus['cod_threshold'] as num?)?.toDouble() ?? -500.0;
-      state = state.copyWith(
-        codDebt: codDebt,
-        currentBalance: currentBalance,
-        codThreshold: codThreshold,
-      );
-    } catch (e) {
-      debugPrint('WalletController: fetchCodStatus Error $e');
+      return null;
     }
   }
 
