@@ -78,6 +78,11 @@ class JobReceiptInfo {
     this.paymentLabel,
     this.statusLabel = 'สำเร็จ',
     this.statusOk = true,
+    this.discount,
+    this.paidInCash = true,
+    this.customerPaid,
+    this.cashCollected,
+    this.walletCredit,
   });
 
   final double? distanceKm;
@@ -86,6 +91,18 @@ class JobReceiptInfo {
 
   /// Green chip when true (completed), red otherwise (cancelled…).
   final bool statusOk;
+
+  /// "ลูกค้าชำระ" block, shown only when a promo was applied. Figures come
+  /// from the backend as-is: the discount (platform-funded), what the
+  /// customer paid, the cash the driver took, and what the trip moved in the
+  /// wallet. A null figure is simply not shown.
+  final double? discount;
+  final bool paidInCash;
+  final double? customerPaid;
+  final double? cashCollected;
+  final double? walletCredit;
+
+  bool get hasPromo => (discount ?? 0) > 0;
 }
 
 /// Everything one job moved, as one card (design E): the vehicle on its own
@@ -220,12 +237,59 @@ class JobEarningsCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                // How the customer paid — information only, it doesn't
+                // change รายได้สุทธิ (promos are platform-funded).
+                if (r != null && r.hasPromo) ..._customerPaidBlock(r, c),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  List<Widget> _customerPaidBlock(JobReceiptInfo r, _CardColors c) {
+    Widget row(String label, String value, {Color? color}) => Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.caption5.copyWith(color: c.label),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTypography.caption5.copyWith(color: color ?? c.label),
+          ),
+        ],
+      ),
+    );
+    final wallet = r.walletCredit;
+    return [
+      const SizedBox(height: 10),
+      Text(
+        'ลูกค้าชำระ',
+        style: AppTypography.caption4.copyWith(
+          color: c.subtitle,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      row(
+        'ส่วนลด (บริษัทออกให้)',
+        '−${formatBaht(r.discount!)}',
+        color: c.credit,
+      ),
+      if (r.paidInCash && r.cashCollected != null)
+        row('เก็บเงินสดจากลูกค้า', formatBaht(r.cashCollected!))
+      else if (!r.paidInCash && r.customerPaid != null)
+        row('ลูกค้าจ่ายผ่าน QR', formatBaht(r.customerPaid!)),
+      if (wallet != null)
+        wallet >= 0
+            ? row('บริษัทโอนเข้ากระเป๋า', formatBaht(wallet), color: c.credit)
+            : row('หักจากกระเป๋า', '−${formatBaht(wallet)}', color: c.debit),
+    ];
   }
 
   Widget _statusChip(JobReceiptInfo r) {

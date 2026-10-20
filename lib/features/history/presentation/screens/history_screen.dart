@@ -159,6 +159,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             ? 'ยกเลิก'
             : 'สำเร็จ',
         statusOk: !rows.any((i) => i.status == HistoryStatus.cancelled),
+        discount: first.trip?.discount,
+        paidInCash: (first.tripPaymentMethod ?? 'CASH').toUpperCase() == 'CASH',
+        customerPaid: first.trip?.customerPaid,
+        cashCollected: first.trip?.cashCollected,
+        walletCredit: first.trip?.walletCredit,
       ),
       lines: [
         for (final i in rows)
