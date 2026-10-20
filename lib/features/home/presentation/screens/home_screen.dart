@@ -22,6 +22,7 @@ import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
+import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -349,6 +350,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (mounted) {
         await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
       }
+      // First home visit on this install: walk through the main controls.
+      if (mounted) unawaited(HomeCoachMarks.maybeShow(context));
     } else {
       if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
       // Load the registration status (reads /api/driver/documents) so the
@@ -814,7 +817,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                       const SizedBox(height: 24),
                       const CashJobGateCard(),
-                      const _StatusCard(),
+                      KeyedSubtree(
+                        key: HomeCoachMarks.statusCard,
+                        child: const _StatusCard(),
+                      ),
                       _buildMenuRow(),
                     ],
                   ),
@@ -823,11 +829,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
 
-            const Positioned(
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: Center(child: _OnlineButton()),
+              child: Center(
+                child: KeyedSubtree(
+                  key: HomeCoachMarks.onlineButton,
+                  child: _OnlineButton(),
+                ),
+              ),
             ),
           ],
         );
@@ -844,10 +855,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _circleMenu(Icons.card_giftcard, "รายได้", () {
+          _circleMenu(Icons.card_giftcard, "รายได้", key: HomeCoachMarks.incomeMenu, () {
             context.push(AppRoutes.incomeNamedPage);
           }),
-          _circleMenu(Icons.directions_car, "ประเภทบริการ", () {
+          _circleMenu(Icons.directions_car, "ประเภทบริการ", key: HomeCoachMarks.serviceMenu, () {
             context.push(AppRoutes.serviceTypeNamedPage);
           }),
           _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
@@ -861,8 +872,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _circleMenu(IconData icon, String text, VoidCallback onTap) {
+  Widget _circleMenu(
+    IconData icon,
+    String text,
+    VoidCallback onTap, {
+    Key? key,
+  }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       borderRadius: BorderRadius.circular(50),
       child: Column(

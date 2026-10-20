@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:massdrive/router/app_routes.dart';
+import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
@@ -92,6 +94,30 @@ class SettingScreen extends ConsumerWidget {
                   color: context.palette.textTertiary,
                 ),
                 onTap: () => AppNavigator.push(context, const DarkModeScreen()),
+              ),
+              // Replays the home tour: clear the flag, go home, it plays again.
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const _LeadingIconBadge(icon: Icons.tips_and_updates_outlined),
+                title: Text(
+                  "ดูคำแนะนำการใช้งานหน้าแรก",
+                  style: AppTypography.caption3.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: context.palette.textTertiary,
+                ),
+                onTap: () async {
+                  await HomeCoachMarks.reset();
+                  if (!context.mounted) return;
+                  context.go(AppRoutes.homeNamedPage);
+                  // Home may keep its state (no reload), so start it here too;
+                  // maybeShow ignores a second call.
+                  final root = AppRouter.rootContext;
+                  if (root != null) await HomeCoachMarks.maybeShow(root);
+                },
               ),
               // Developer tools — DEV builds only; hidden in preprod/prod.
               if (EnvironmentConfig.env == Environments.dev) ...[
