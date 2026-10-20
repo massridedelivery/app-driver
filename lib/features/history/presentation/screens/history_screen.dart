@@ -151,6 +151,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           .map((i) => i.pickupAddress)
           .firstWhere((a) => a != null && a.trim().isNotEmpty, orElse: () => null),
       driverNet: first.tripNet,
+      // Receipt layout (design 4): time · km · payment, status chip.
+      receipt: JobReceiptInfo(
+        distanceKm: first.distanceKm,
+        paymentLabel: paymentMethodLabel(first.tripPaymentMethod),
+        statusLabel: rows.any((i) => i.status == HistoryStatus.cancelled)
+            ? 'ยกเลิก'
+            : 'สำเร็จ',
+        statusOk: !rows.any((i) => i.status == HistoryStatus.cancelled),
+      ),
       lines: [
         for (final i in rows)
           JobCardLine(

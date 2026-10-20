@@ -69,6 +69,25 @@ class JobCardLine {
   final Widget? badge;
 }
 
+/// The receipt layout's extras (design 4, ประวัติการให้บริการ): the sub-line
+/// shows "เวลา · กม. · วิธีจ่าย" instead of the pickup, a status chip sits on
+/// the right and dashed rules frame the money lines.
+class JobReceiptInfo {
+  const JobReceiptInfo({
+    this.distanceKm,
+    this.paymentLabel,
+    this.statusLabel = 'สำเร็จ',
+    this.statusOk = true,
+  });
+
+  final double? distanceKm;
+  final String? paymentLabel;
+  final String statusLabel;
+
+  /// Green chip when true (completed), red otherwise (cancelled…).
+  final bool statusOk;
+}
+
 /// Everything one job moved, as one card (design E): the vehicle on its own
 /// (Mass 3D icon, no frame) + Thai type and short job id, time · pickup, each
 /// movement with its signed amount, and รายได้สุทธิ from the backend's
@@ -85,7 +104,11 @@ class JobEarningsCard extends StatelessWidget {
     this.pickupAddress,
     this.driverNet,
     this.onTap,
+    this.receipt,
   });
+
+  /// Set → receipt layout (ประวัติการให้บริการ); null → the statement card.
+  final JobReceiptInfo? receipt;
 
   final String jobId;
   final DateTime time;
@@ -102,6 +125,16 @@ class JobEarningsCard extends StatelessWidget {
     final clock = DateFormat('HH:mm').format(time.toLocal());
     final pickup = pickupAddress?.trim();
     final c = _CardColors.of(context);
+    final r = receipt;
+    final subLine = r != null
+        ? [
+            clock,
+            if (r.distanceKm != null) '${r.distanceKm!.toStringAsFixed(1)} กม.',
+            if ((r.paymentLabel ?? '').isNotEmpty) r.paymentLabel!,
+          ].join(' · ')
+        : (pickup == null || pickup.isEmpty)
+        ? clock
+        : '$clock · $pickup';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -144,9 +177,7 @@ class JobEarningsCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            (pickup == null || pickup.isEmpty)
-                                ? clock
-                                : '$clock · $pickup',
+                            subLine,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.caption5.copyWith(
@@ -156,11 +187,18 @@ class JobEarningsCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (r != null) _statusChip(r),
                   ],
                 ),
-                const SizedBox(height: 8),
+                if (r != null)
+                  _DashedRule(color: c.divider)
+                else
+                  const SizedBox(height: 8),
                 for (final l in lines) _line(l, c),
-                Divider(color: c.divider, height: 18),
+                if (r != null)
+                  _DashedRule(color: c.divider)
+                else
+                  Divider(color: c.divider, height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -186,6 +224,22 @@ class JobEarningsCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _statusChip(JobReceiptInfo r) {
+    final fg = r.statusOk ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5);
+    final bg = r.statusOk ? const Color(0xFF14532D) : const Color(0xFF7F1D1D);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        r.statusLabel,
+        style: AppTypography.caption5.copyWith(color: fg),
       ),
     );
   }
@@ -249,4 +303,30 @@ class EarningsDayHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A dashed horizontal rule — the receipt's tear lines.
+class _DashedRule extends StatelessWidget {
+  const _DashedRule({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: LayoutBuilder(
+      builder: (_, box) {
+        const dash = 5.0, gap = 4.0;
+        final n = (box.maxWidth / (dash + gap)).floor();
+        return Row(
+          children: [
+            for (var i = 0; i < n; i++) ...[
+              Container(width: dash, height: 1, color: color),
+              const SizedBox(width: gap),
+            ],
+          ],
+        );
+      },
+    ),
+  );
 }
