@@ -87,4 +87,38 @@ void main() {
 
     expect(options.headers.containsKey('Authorization'), isFalse);
   });
+
+  test(
+    'a wrong OTP (401 on /auth/otp/verify) never wipes the session',
+    () async {
+      final storage = _StubStorage({SecureStorageKey.accessToken: 'kept'});
+      final guarded = AppDioRefreshTokenInterceptor(
+        secureStorage: storage,
+        dio: Dio(),
+      );
+      final options = RequestOptions(path: '/auth/otp/verify');
+      final err = DioException(
+        requestOptions: options,
+        response: Response(
+          requestOptions: options,
+          statusCode: 401,
+          data: {'error': 'รหัส OTP ไม่ถูกต้อง', 'code': 'INVALID_OTP'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final handler = ErrorInterceptorHandler();
+      // The 401 goes straight on to the OTP screen, untouched.
+      final passedOn = handler.future.then(
+        (_) => false,
+        // next() completes with the error; a refresh + retry would resolve.
+        onError: (Object _) => true,
+      );
+
+      await guarded.onError(err, handler);
+
+      expect(await passedOn, isTrue);
+      expect(await storage.read(SecureStorageKey.accessToken), 'kept');
+    },
+  );
 }

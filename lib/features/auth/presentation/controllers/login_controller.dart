@@ -2,6 +2,7 @@ import 'package:massdrive/core/utils/friendly_error.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/features/auth/domain/otp_errors.dart';
 import 'package:massdrive/features/auth/domain/usecase/login_with_phone_usecase.dart';
 import 'package:massdrive/features/auth/presentation/states/login_state.dart';
 import 'package:massdrive/features/dependency_injection.dart';
@@ -28,7 +29,11 @@ class LoginController extends _$LoginController {
       return false;
     }
 
-    state = state.copyWith(isLoading: true, errorMessage: '');
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: '',
+      clearRetryAfter: true,
+    );
     try {
       debugPrint('LoginController: Calling use case...');
       final loginUseCase = getIt<LoginWithPhoneUseCase>();
@@ -72,6 +77,7 @@ class LoginController extends _$LoginController {
       state = state.copyWith(
         isLoading: false,
         errorMessage: friendlyErrorMessage(e),
+        retryAfter: e is OtpRateLimitedException ? e.retryAfter : null,
       );
       return false;
     }

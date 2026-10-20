@@ -5,6 +5,7 @@ import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/features/auth/data/models/register_request_model.dart';
 import 'package:massdrive/features/auth/data/models/otp_response_model.dart';
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
+import 'package:massdrive/features/auth/domain/otp_errors.dart';
 
 @LazySingleton(as: AuthApiService)
 class AuthApiServiceImpl implements AuthApiService {
@@ -45,6 +46,8 @@ class AuthApiServiceImpl implements AuthApiService {
       if (restriction != null) {
         throw AccountRestrictedLoginException(restriction);
       }
+      final limited = otpRateLimitFrom(e);
+      if (limited != null) throw limited;
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
@@ -96,9 +99,10 @@ class AuthApiServiceImpl implements AuthApiService {
       if (restriction != null) {
         throw AccountRestrictedLoginException(restriction);
       }
-      if (e.response?.data != null && e.response?.data['error'] != null) {
-        throw Exception(e.response?.data['error']);
-      }
+      // Wrong / expired / too many tries: the backend's Thai message, plus
+      // the code so the screen can offer a new OTP right away.
+      final verifyError = otpVerifyErrorFrom(e);
+      if (verifyError != null) throw verifyError;
       throw Exception('Failed to verify OTP');
     }
   }
