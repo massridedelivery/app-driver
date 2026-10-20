@@ -87,7 +87,9 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (!_isUnauthorized(err) || _isRefreshTokenRequest(err.requestOptions)) {
+    if (!_isUnauthorized(err) ||
+        _isRefreshTokenRequest(err.requestOptions) ||
+        _isOtpRequest(err.requestOptions)) {
       return handler.next(err);
     }
 
@@ -150,6 +152,13 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 
   bool _isRefreshTokenRequest(RequestOptions options) {
     return options.path.endsWith(Endpoints.refreshToken);
+  }
+
+  /// Sign-in calls: a 401 there is a wrong OTP (`INVALID_OTP`), not a dead
+  /// session — refreshing would wipe tokens and fire the logout path.
+  bool _isOtpRequest(RequestOptions options) {
+    return options.path.endsWith(Endpoints.otpPhoneRequest) ||
+        options.path.endsWith(Endpoints.phoneVerify);
   }
 
   /// Only a 401 means "this token is no longer good". 403 is the opposite —

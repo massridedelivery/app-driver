@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/features/auth/presentation/controllers/otp_controller.dart';
 import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
+import 'package:massdrive/features/auth/presentation/states/otp_state.dart';
 
 void main() {
   test('formatCountdown shows mm:ss', () {
@@ -61,5 +63,29 @@ void main() {
     await tester.tap(find.text('แก้ไขเบอร์โทรศัพท์'));
     await tester.pumpAndSettle();
     expect(find.text('login'), findsOneWidget);
+  });
+
+  testWidgets('an expired code unlocks resend at once', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: OtpScreen(phoneNumber: '0653333333', refId: 'abcd1234'),
+        ),
+      ),
+    );
+    expect(find.text('รับรหัส OTP ใหม่'), findsNothing);
+
+    // What OtpController sets after a 410 OTP_EXPIRED.
+    container.read(otpControllerProvider.notifier).state = const OtpState(
+      errorMessage: 'รหัส OTP หมดอายุ กรุณาขอรหัสใหม่',
+      needsNewCode: true,
+    );
+    await tester.pump();
+
+    expect(find.text('รับรหัส OTP ใหม่'), findsOneWidget);
+    expect(find.text('รหัส OTP หมดอายุ กรุณาขอรหัสใหม่'), findsOneWidget);
   });
 }

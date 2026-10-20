@@ -61,9 +61,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     super.dispose();
   }
 
-  void _startCooldown() {
+  void _startCooldown([Duration wait = otpResendCooldown]) {
     _timer?.cancel();
-    _left = otpResendCooldown;
+    _left = wait;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       final next = _left - const Duration(seconds: 1);
       setState(() => _left = next.isNegative ? Duration.zero : next);
@@ -82,7 +82,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _resending = false);
     final messenger = ScaffoldMessenger.of(context);
     if (!ok) {
-      final err = ref.read(loginControllerProvider).errorMessage;
+      final login = ref.read(loginControllerProvider);
+      final err = login.errorMessage;
+      // Rate-limited (429 OTP_RATE_LIMITED): lock resend for retry_after.
+      final wait = login.retryAfter;
+      if (wait != null) setState(() => _startCooldown(wait));
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -127,6 +131,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       if (next.errorMessage == accountRestrictedLoginMessage &&
           prev?.errorMessage != accountRestrictedLoginMessage) {
         showAccountRestrictedDialog(context);
+      }
+      // Expired / replaced / too many wrong tries: this code is dead, so
+      // unlock "รับรหัส OTP ใหม่" now instead of making the driver wait.
+      if (next.needsNewCode && !(prev?.needsNewCode ?? false)) {
+        _timer?.cancel();
+        _pin.clear();
+        setState(() => _left = Duration.zero);
       }
     });
     final state = ref.watch(otpControllerProvider);

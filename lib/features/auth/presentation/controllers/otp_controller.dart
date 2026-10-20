@@ -1,4 +1,5 @@
 import 'package:massdrive/core/utils/friendly_error.dart';
+import 'package:massdrive/features/auth/domain/otp_errors.dart';
 import 'package:massdrive/features/auth/presentation/states/otp_state.dart';
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
@@ -32,7 +33,11 @@ class OtpController extends _$OtpController {
       return OtpVerifyResult.error;
     }
 
-    state = state.copyWith(isLoading: true, errorMessage: '');
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: '',
+      needsNewCode: false,
+    );
     try {
       final verifyOtpUseCase = getIt<VerifyOtpUseCase>();
       await verifyOtpUseCase.execute(phone, state.otpCode, refId: refId);
@@ -50,6 +55,7 @@ class OtpController extends _$OtpController {
       state = state.copyWith(
         isLoading: false,
         errorMessage: friendlyErrorMessage(e),
+        needsNewCode: e is OtpVerifyException && e.needsNewCode,
       );
       return OtpVerifyResult.error;
     }
