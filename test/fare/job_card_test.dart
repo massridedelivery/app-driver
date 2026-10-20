@@ -232,4 +232,104 @@ void main() {
       expect(paymentMethodLabel(null), '');
     });
   });
+
+  group('receipt ลูกค้าชำระ block (promo)', () {
+    Future<void> pumpReceipt(WidgetTester t, JobReceiptInfo r) => _pump(
+      t,
+      JobEarningsCard(
+        jobId: '54a9a4',
+        time: DateTime(2026, 10, 20, 0, 50),
+        driverNet: 37,
+        receipt: r,
+        lines: const [
+          JobCardLine(label: 'ค่าโดยสาร', amount: 44),
+          JobCardLine(label: 'หักค่าคอมมิชชัน', amount: -7),
+        ],
+      ),
+    );
+
+    testWidgets('full coupon, cash: discount 44 / cash 0 / wallet +37', (
+      t,
+    ) async {
+      await pumpReceipt(
+        t,
+        const JobReceiptInfo(
+          discount: 44,
+          customerPaid: 0,
+          cashCollected: 0,
+          walletCredit: 37,
+        ),
+      );
+      expect(find.text('ลูกค้าชำระ'), findsOneWidget);
+      expect(find.text('−฿44'), findsOneWidget);
+      expect(find.text('เก็บเงินสดจากลูกค้า'), findsOneWidget);
+      expect(find.text('฿0'), findsOneWidget);
+      expect(find.text('บริษัทโอนเข้ากระเป๋า'), findsOneWidget);
+      expect(find.text('฿37'), findsNWidgets(2)); // net + wallet
+    });
+
+    testWidgets('partial coupon, cash: collect 24, wallet +13', (t) async {
+      await pumpReceipt(
+        t,
+        const JobReceiptInfo(
+          discount: 20,
+          customerPaid: 24,
+          cashCollected: 24,
+          walletCredit: 13,
+        ),
+      );
+      expect(find.text('−฿20'), findsOneWidget);
+      expect(find.text('฿24'), findsOneWidget);
+      expect(find.text('฿13'), findsOneWidget);
+    });
+
+    testWidgets('QR with a coupon shows what the customer paid', (t) async {
+      await pumpReceipt(
+        t,
+        const JobReceiptInfo(
+          discount: 10,
+          paidInCash: false,
+          customerPaid: 34,
+          walletCredit: 37,
+        ),
+      );
+      expect(find.text('ลูกค้าจ่ายผ่าน QR'), findsOneWidget);
+      expect(find.text('฿34'), findsOneWidget);
+      expect(find.text('เก็บเงินสดจากลูกค้า'), findsNothing);
+    });
+
+    testWidgets('BE without the new fields → discount line only', (t) async {
+      await pumpReceipt(t, const JobReceiptInfo(discount: 44));
+      expect(find.text('ส่วนลด (บริษัทออกให้)'), findsOneWidget);
+      expect(find.text('เก็บเงินสดจากลูกค้า'), findsNothing);
+      expect(find.text('บริษัทโอนเข้ากระเป๋า'), findsNothing);
+    });
+
+    testWidgets('no promo → no ลูกค้าชำระ block', (t) async {
+      await pumpReceipt(
+        t,
+        const JobReceiptInfo(discount: 0, cashCollected: 44),
+      );
+      expect(find.text('ลูกค้าชำระ'), findsNothing);
+    });
+
+    test('trip list fields are read as-is', () {
+      final trips = tripSummariesByJob({
+        'data': [
+          {
+            'id': 'J',
+            'discount': 44,
+            'customer_paid': 0,
+            'cash_collected': 0,
+            'wallet_credit': 37,
+          },
+        ],
+      });
+      final t = trips['J']!;
+      expect(t.discount, 44);
+      expect(t.customerPaid, 0);
+      expect(t.cashCollected, 0);
+      expect(t.walletCredit, 37);
+    });
+  });
 }

@@ -1,3 +1,5 @@
+import 'trip_summary.dart';
+
 enum PaymentType { grabPay, cash }
 
 enum HistoryStatus { completed, cancelled }
@@ -12,7 +14,8 @@ class HistoryItemModel {
   final PaymentType? paymentType;
   final HistoryStatus status;
   final ServiceType serviceType;
-  final String? rawType; // 'FARE_PAYMENT', 'COMMISSION_DEDUCTION', 'TOPUP', 'WITHDRAWAL', etc.
+  final String?
+  rawType; // 'FARE_PAYMENT', 'COMMISSION_DEDUCTION', 'TOPUP', 'WITHDRAWAL', etc.
 
   /// Trip/job this transaction belongs to (`job_id`), used to load the trip
   /// detail. Null for non-trip entries (top-up, withdrawal).
@@ -33,6 +36,9 @@ class HistoryItemModel {
   final double? distanceKm;
   final String? tripPaymentMethod;
 
+  /// The whole trip-list entry (incl. how the customer paid).
+  final TripSummary? trip;
+
   HistoryItemModel({
     required this.id,
     required this.dateTime,
@@ -49,19 +55,14 @@ class HistoryItemModel {
     this.pickupAddress,
     this.distanceKm,
     this.tripPaymentMethod,
+    this.trip,
   });
 
   /// Belongs to a trip (fare, commission…). Top-ups, adjustments and
   /// withdrawals have no job and live in their own history screens.
   bool get isTripEntry => jobId != null && jobId!.isNotEmpty;
 
-  HistoryItemModel withTrip({
-    String? vehicleTypeName,
-    int? tripNet,
-    double? distanceKm,
-    String? tripPaymentMethod,
-  }) =>
-      HistoryItemModel(
+  HistoryItemModel withTrip(TripSummary? t) => HistoryItemModel(
     id: id,
     dateTime: dateTime,
     title: title,
@@ -72,11 +73,11 @@ class HistoryItemModel {
     rawType: rawType,
     jobId: jobId,
     service: service,
-    vehicleTypeName: vehicleTypeName,
-    tripNet: tripNet,
+    vehicleTypeName: t?.vehicleTypeName,
+    tripNet: t?.driverNet,
     pickupAddress: pickupAddress,
-    distanceKm: distanceKm,
-    tripPaymentMethod: tripPaymentMethod,
+    distanceKm: t?.distanceKm,
+    tripPaymentMethod: t?.paymentMethod,
+    trip: t,
   );
 }
-
