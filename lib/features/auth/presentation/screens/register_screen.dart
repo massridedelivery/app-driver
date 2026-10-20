@@ -129,7 +129,7 @@ class RegisterScreen extends ConsumerWidget {
                           ),
                         ),
                       );
-                      context.go(AppRoutes.emailLoginNamedPage);
+                      context.go(AppRoutes.loginNamedPage);
                     case RegisterResult.error:
                       break;
                   }

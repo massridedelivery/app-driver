@@ -36,7 +36,6 @@ class RouteRestorationService {
   static const Set<String> _nonRestorable = {
     AppRoutes.splashNamedPage,
     AppRoutes.loginNamedPage,
-    AppRoutes.emailLoginNamedPage,
     AppRoutes.registerNamedPage,
     AppRoutes.otpNamedPage,
     '/payment',

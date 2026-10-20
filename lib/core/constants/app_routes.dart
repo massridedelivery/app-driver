@@ -6,7 +6,6 @@ class AppRoutes {
   static const root = '/';
   static const splashNamedPage = '/splash';
   static const loginNamedPage = '/login';
-  static const emailLoginNamedPage = '/email-login';
   static const registerNamedPage = '/register';
   static const otpNamedPage = '/otp_screen';
   static const homeNamedPage = '/home';

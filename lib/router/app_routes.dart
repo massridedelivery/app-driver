@@ -12,7 +12,6 @@ import 'package:massdrive/features/main/screens/splash_screen.dart';
 import 'package:massdrive/features/profile/presentation/screens/profile_screen.dart';
 import 'package:massdrive/features/service_type/presentation/screens/service_type_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/login_screen.dart';
-import 'package:massdrive/features/auth/presentation/screens/email_login_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/otp_screen.dart';
 import 'package:massdrive/features/auth/presentation/screens/register_screen.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
@@ -57,7 +56,6 @@ class AppRouter {
   static const Set<String> _publicRoutes = {
     AppRoutes.splashNamedPage,
     AppRoutes.loginNamedPage,
-    AppRoutes.emailLoginNamedPage,
     AppRoutes.registerNamedPage,
     AppRoutes.otpNamedPage,
   };
@@ -119,11 +117,6 @@ class AppRouter {
         path: AppRoutes.loginNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: LoginScreen()),
-      ),
-      GoRoute(
-        path: AppRoutes.emailLoginNamedPage,
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: EmailLoginScreen()),
       ),
       GoRoute(
         path: AppRoutes.registerNamedPage,
