@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 
 part 'wallet_state.freezed.dart';
@@ -21,9 +22,6 @@ sealed class WalletState with _$WalletState {
     @Default(0) int tripsToday,
     @Default(0) int totalTripsToday,
     @Default(0) int tripsWeek,
-    @Default(0.0) double codDebt,
-    @Default(0.0) double currentBalance,
-    @Default(-500.0) double codThreshold,
     // Dual-wallet split from GET /api/driver/payouts/summary (SCRUM-42).
     // Cash = withdrawable earnings; Credit = non-withdrawable COD top-up credit.
     @Default(0.0) double cashBalance,
@@ -35,6 +33,8 @@ sealed class WalletState with _$WalletState {
     BankAccountInfo? bankAccountInfo,
     // Withdrawal rules from GET /api/driver/payouts/summary.
     @Default(PayoutLimits()) PayoutLimits payoutLimits,
+    // Cash-job gate from the same summary (BE dev115); null until loaded.
+    CashJobGate? cashJobGate,
     // MANUAL top-up refused with 400 (company receiving account not set):
     // the credit wallet hides "โอนเงินเข้าบัญชี" and points to PromptPay.
     @Default(false) bool manualTopupUnavailable,

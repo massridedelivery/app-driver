@@ -114,9 +114,8 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
     if (status == 'PAID') {
       _cancelTimers();
       // Payment lands server-side across the whole wallet, not just COD debt:
-      // fetchCodStatus() alone leaves the cash/credit split and the balance
-      // stale, so the driver returns to a wallet that still shows the old
-      // numbers. fetchEarnings() refreshes balance + payout summary + COD.
+      // refresh the balance and the payout summary (cash/credit split and the
+      // cash-job gate) so the driver returns to the new numbers.
       await ref.read(walletControllerProvider.notifier).fetchEarnings();
     } else if (status == 'FAILED' ||
         status == 'EXPIRED' ||
@@ -206,7 +205,9 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
     // beyond any COD debt to push a negative credit back positive and resume
     // taking jobs (SCRUM-18: "หักหนี้ COD ก่อน ส่วนเกินเป็นเครดิตบวก"). Show the
     // credit balance for context instead of capping the amount.
-    final creditBalance = ref.watch(walletControllerProvider).creditBalance;
+    final wallet = ref.watch(walletControllerProvider);
+    final creditBalance = wallet.creditBalance;
+    final cashBlocked = wallet.cashJobGate?.cashBlocked ?? false;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -310,7 +311,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
 
                 const SizedBox(height: 12),
                 Text(
-                  creditBalanceHint(creditBalance),
+                  creditBalanceHint(creditBalance, cashBlocked: cashBlocked),
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),

@@ -1,3 +1,6 @@
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -211,6 +214,8 @@ class IncomingJobController extends _$IncomingJobController {
     } catch (e) {
       if (isJobTakenError(e)) {
         outcome = AcceptOutcome.taken;
+      } else if (isCashJobBlockedError(e)) {
+        outcome = AcceptOutcome.cashBlocked;
       } else {
         // Timeout / network error: GET /api/driver/jobs/active decides.
         final held = await refreshActiveJob();
@@ -228,10 +233,24 @@ class IncomingJobController extends _$IncomingJobController {
       case AcceptOutcome.taken:
         dismissModal();
         _toast(acceptOutcomeMessage(outcome));
+      case AcceptOutcome.cashBlocked:
+        dismissModal();
+        _showCashBlocked();
       case AcceptOutcome.failed:
         _toast(acceptOutcomeMessage(outcome));
     }
     return outcome;
+  }
+
+  /// Cash job refused for the cash-job limit: refresh the gate (home card)
+  /// and explain, with "เติมเครดิต".
+  Future<void> _showCashBlocked() async {
+    final gate = await ref
+        .read(walletControllerProvider.notifier)
+        .fetchPayoutSummary();
+    final ctx = AppRouter.rootContext;
+    if (ctx == null || !ctx.mounted) return;
+    await showCashJobBlockedDialog(ctx, gate);
   }
 
   void _toast(String message) {
@@ -242,11 +261,12 @@ class IncomingJobController extends _$IncomingJobController {
     );
   }
 
-  /// Accept a food delivery job via REST API
-  Future<void> acceptFoodJob() async {
+  /// Accept a food delivery job via REST API. A 403 for the cash-job limit
+  /// closes the offer and explains; any other failure lets the driver retry.
+  Future<AcceptOutcome> acceptFoodJob() async {
     PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
-    if (job == null) return;
+    if (job == null) return AcceptOutcome.failed;
 
     try {
       final apiService = getIt<FoodDeliveryApiService>();
@@ -260,8 +280,16 @@ class IncomingJobController extends _$IncomingJobController {
       
       state = state.copyWith(isModalVisible: false);
       AppRouter.router.go(AppRoutes.foodLiveNamedPage);
+      return AcceptOutcome.accepted;
     } catch (e) {
       if (kDebugMode) debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
+      if (isCashJobBlockedError(e)) {
+        dismissModal();
+        _showCashBlocked();
+        return AcceptOutcome.cashBlocked;
+      }
+      _toast(acceptOutcomeMessage(AcceptOutcome.failed));
+      return AcceptOutcome.failed;
     }
   }
 

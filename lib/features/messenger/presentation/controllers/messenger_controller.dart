@@ -1,6 +1,10 @@
+import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
@@ -123,6 +127,24 @@ class MessengerController extends _$MessengerController {
       await _repo.acceptOrder(offer.id);
     } catch (e) {
       if (kDebugMode) debugPrint('MessengerController: accept failed → $e');
+      // Cash order refused for the cash-job limit (BE dev115): close the
+      // offer, refresh the home card and explain with "เติมเครดิต".
+      if (e is CashJobBlockedException) {
+        state = state.copyWith(
+          isSubmitting: false,
+          isModalVisible: false,
+          currentOffer: null,
+        );
+        AppRouter.router.go('/home');
+        final gate = await ref
+            .read(walletControllerProvider.notifier)
+            .fetchPayoutSummary();
+        final ctx = AppRouter.rootContext;
+        if (ctx != null && ctx.mounted) {
+          await showCashJobBlockedDialog(ctx, gate);
+        }
+        return;
+      }
       // The driver may already have an active order (capacity = 1). Resume that
       // job instead of bouncing home — they must finish it before taking a new
       // one. Only a truly idle driver falls through to the error.
@@ -138,6 +160,13 @@ class MessengerController extends _$MessengerController {
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
       );
       AppRouter.router.go('/home');
+      // The live screen that listens for errorMessage is gone: say it here.
+      final ctx = AppRouter.rootContext;
+      if (ctx != null && ctx.mounted) {
+        ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+          const SnackBar(content: Text('รับงานไม่สำเร็จ กรุณาลองใหม่')),
+        );
+      }
       return;
     }
 
