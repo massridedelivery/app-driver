@@ -53,36 +53,50 @@ void main() {
       expect(find.text('00:07'), findsOneWidget);
     });
 
-    testWidgets('design 5: net in green, debit in red (dark + light)', (
-      t,
-    ) async {
-      Future<void> pumpIn(Brightness b) => t.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(brightness: b),
-          home: Scaffold(
-            body: JobEarningsCard(
-              jobId: 'J',
-              time: DateTime(2026),
-              driverNet: 2,
-              lines: const [
-                JobCardLine(label: 'หักค่าคอมมิชชัน', amount: -0.4),
-              ],
+    testWidgets(
+      'design 3: plain card, net in green, debit in red (dark + light)',
+      (t) async {
+        Future<void> pumpIn(Brightness b) => t.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(brightness: b),
+            home: Scaffold(
+              body: JobEarningsCard(
+                jobId: 'J',
+                time: DateTime(2026),
+                driverNet: 2,
+                lines: const [
+                  JobCardLine(label: 'หักค่าคอมมิชชัน', amount: -0.4),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-      Color colorOf(String text) =>
-          t.widget<Text>(find.text(text)).style!.color!;
+        );
+        Color colorOf(String text) =>
+            t.widget<Text>(find.text(text)).style!.color!;
 
-      await pumpIn(Brightness.dark);
-      expect(colorOf('฿2'), const Color(0xFF4ADE80));
-      expect(colorOf('-฿0.40'), const Color(0xFFFCA5A5));
+        Color cardColor() => t
+            .widget<Material>(
+              find
+                  .descendant(
+                    of: find.byType(JobEarningsCard),
+                    matching: find.byType(Material),
+                  )
+                  .first,
+            )
+            .color!;
 
-      await pumpIn(Brightness.light);
-      await t.pumpAndSettle(); // the theme change animates
-      expect(colorOf('฿2'), const Color(0xFF15803D));
-      expect(colorOf('-฿0.40'), const Color(0xFFB91C1C));
-    });
+        await pumpIn(Brightness.dark);
+        expect(colorOf('฿2'), const Color(0xFF3DDC84));
+        expect(colorOf('-฿0.40'), const Color(0xFFFF8A8A));
+        expect(cardColor(), const Color(0xFF262932)); // no green tint
+
+        await pumpIn(Brightness.light);
+        await t.pumpAndSettle(); // the theme change animates
+        expect(colorOf('฿2'), const Color(0xFF0D995C));
+        expect(colorOf('-฿0.40'), const Color(0xFFDC2626));
+        expect(cardColor(), Colors.white);
+      },
+    );
 
     testWidgets('tapping opens the detail', (t) async {
       var tapped = false;
@@ -204,9 +218,7 @@ void main() {
   });
 
   group('receipt layout (design 4, ประวัติการให้บริการ)', () {
-    testWidgets('time · km · payment, status chip, fare / commission / net', (
-      t,
-    ) async {
+    testWidgets('time · km · payment, fare / commission / net', (t) async {
       await _pump(
         t,
         JobEarningsCard(
@@ -228,7 +240,8 @@ void main() {
       expect(find.text('มอเตอร์ไซค์ · งาน #54a9a4'), findsOneWidget);
       expect(find.text('00:50 · 3.0 กม. · เงินสด'), findsOneWidget);
       expect(find.textContaining('ไม่ต้องแสดง'), findsNothing);
-      expect(find.text('สำเร็จ'), findsOneWidget);
+      // Completed is the green status bar; only a cancelled job gets a chip.
+      expect(find.text('สำเร็จ'), findsNothing);
       expect(find.text('+฿44'), findsOneWidget);
       expect(find.text('-฿7'), findsOneWidget);
       expect(find.text('฿37'), findsOneWidget);
