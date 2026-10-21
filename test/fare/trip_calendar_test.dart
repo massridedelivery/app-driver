@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:massdrive/features/history/domain/models/service_icon.dart';
 import 'package:massdrive/features/history/domain/models/trip_summary.dart';
 import 'package:massdrive/features/profile/domain/trip_calendar_entries.dart';
 import 'package:massdrive/features/wallet/data/models/transaction_model.dart';
@@ -41,6 +42,14 @@ void main() {
     expect(trips.map((t) => t.jobId), ['A', 'B', 'C']); // newest first
     expect(trips.map((t) => t.net), [54, 54, 37]);
     expect(trips.first.vehicleTypeName, 'motorcycle');
+    // Shown as the job cards show it, never the raw "motorcycle".
+    expect(
+      serviceLabel(
+        service: trips.first.service,
+        vehicleTypeName: trips.first.vehicleTypeName,
+      ),
+      'มอเตอร์ไซค์',
+    );
     expect(calendarNet(trips), 145);
   });
 
