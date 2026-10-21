@@ -188,12 +188,17 @@ class QuestCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (quest.description != null)
+                Text(
+                  quest.description!,
+                  style: AppTypography.caption5.copyWith(color: p.textPrimary),
+                ),
               Text(
                 quest.areaName,
                 style: AppTypography.caption5.copyWith(color: p.textSecondary),
               ),
               const SizedBox(height: 8),
-              QuestCountLine(count: quest.currentCount),
+              QuestCountLine(quest: quest),
               const SizedBox(height: 6),
               QuestProgressBar(
                 quest: quest,
@@ -217,11 +222,11 @@ class QuestCard extends StatelessWidget {
   }
 }
 
-/// "ทำรอบขับสำเร็จ **14** รอบ".
+/// "ทำรอบขับสำเร็จ **14** รอบ" (รอบส่งอาหาร / งาน by quest type).
 class QuestCountLine extends StatelessWidget {
-  const QuestCountLine({super.key, required this.count});
+  const QuestCountLine({super.key, required this.quest});
 
-  final int count;
+  final DriverQuest quest;
 
   @override
   Widget build(BuildContext context) {
@@ -230,13 +235,13 @@ class QuestCountLine extends StatelessWidget {
     );
     return Text.rich(
       TextSpan(
-        text: 'ทำรอบขับสำเร็จ ',
+        text: '${quest.countPrefix} ',
         children: [
           TextSpan(
-            text: '$count',
+            text: '${quest.currentCount}',
             style: style.copyWith(fontWeight: FontWeight.w700),
           ),
-          const TextSpan(text: ' รอบ'),
+          TextSpan(text: ' ${quest.countSuffix}'),
         ],
       ),
       style: style,

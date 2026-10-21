@@ -87,6 +87,7 @@ class DriverQuest {
     this.maxReward = 0,
     this.claimable = false,
     this.terms,
+    this.questType = '',
   });
 
   final String id;
@@ -113,6 +114,26 @@ class DriverQuest {
   /// Single-target quest done and waiting for POST .../claim.
   final bool claimable;
   final String? terms;
+
+  /// COMPLETE_N_RIDES | COMPLETE_N_FOOD | COMPLETE_N_JOBS.
+  final String questType;
+
+  /// What one count is: "รอบขับ" (rides), "รอบส่งอาหาร" (food), "งาน" (all).
+  String get unit => switch (questType.toUpperCase()) {
+    'COMPLETE_N_FOOD' => 'รอบส่งอาหาร',
+    'COMPLETE_N_JOBS' => 'งาน',
+    _ => 'รอบขับ',
+  };
+
+  /// "ทำรอบขับสำเร็จ" / "ทำรอบส่งอาหารสำเร็จ" / "ทำงานสำเร็จ" before the count.
+  String get countPrefix => 'ทำ$unitสำเร็จ';
+
+  /// The count's trailing word: "รอบ" for rounds, "งาน" for jobs.
+  String get countSuffix => unit == 'งาน' ? 'งาน' : 'รอบ';
+
+  /// "รอบขับ 10 รอบ" / "10 งาน" for a ladder step.
+  String stepLabel(QuestMilestoneStep s) =>
+      unit == 'งาน' ? '${s.trips} งาน' : '$unit ${s.trips} รอบ';
 
   factory DriverQuest.fromJson(Map<String, dynamic> j) {
     final q = j['quest'] is Map
@@ -151,6 +172,7 @@ class DriverQuest {
       status: (_str(j['status']) ?? '').toUpperCase(),
       claimable: j['claimable'] == true,
       terms: _str(q['terms']),
+      questType: _str(q['quest_type']) ?? '',
     );
   }
 
@@ -186,8 +208,20 @@ class DriverQuest {
   String? get nextLabel {
     final n = nextMilestone;
     if (n == null) return null;
-    return 'อีก ${n.tripsToGo} รอบ รับ ${formatBaht(n.bonus)}';
+    return 'อีก ${n.tripsToGo} $countSuffix รับ ${formatBaht(n.bonus)}';
   }
+
+  /// Detail wording: "อีก 11 รอบ รับเพิ่ม ฿150".
+  String? get nextExtraLabel {
+    final n = nextMilestone;
+    if (n == null) return null;
+    return 'อีก ${n.tripsToGo} $countSuffix รับเพิ่ม ${formatBaht(n.bonus)}';
+  }
+
+  /// "ได้รับแล้วในรอบนี้ ฿100 จากสูงสุด ฿500".
+  String get earnedLabel =>
+      'ได้รับแล้วในรอบนี้ ${formatBaht(earnedAmount)}'
+      ' จากสูงสุด ${formatBaht(maxReward)}';
 
   /// Progress fill 0..1 along the bar.
   double get progress =>

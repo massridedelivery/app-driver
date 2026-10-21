@@ -125,6 +125,29 @@ void main() {
       expect(QuestPayoutStatus.fromApi(null), isNull);
     });
 
+    test('count wording follows quest_type', () {
+      DriverQuest typed(String t) => DriverQuest.fromJson({
+        ..._item(),
+        'quest': {..._item()['quest'] as Map, 'quest_type': t},
+      });
+      final ride = typed('COMPLETE_N_RIDES');
+      expect(ride.countPrefix, 'ทำรอบขับสำเร็จ');
+      expect(ride.stepLabel(ride.milestones.first), 'รอบขับ 10 รอบ');
+      final food = typed('COMPLETE_N_FOOD');
+      expect(food.countPrefix, 'ทำรอบส่งอาหารสำเร็จ');
+      expect(food.stepLabel(food.milestones.first), 'รอบส่งอาหาร 10 รอบ');
+      final jobs = typed('COMPLETE_N_JOBS');
+      expect(jobs.countPrefix, 'ทำงานสำเร็จ');
+      expect(jobs.countSuffix, 'งาน');
+      expect(jobs.stepLabel(jobs.milestones.first), '10 งาน');
+      expect(jobs.nextLabel, 'อีก 11 งาน รับ ฿150');
+    });
+
+    test('detail lines: next step and earned this period', () {
+      expect(q.nextExtraLabel, 'อีก 11 รอบ รับเพิ่ม ฿150');
+      expect(q.earnedLabel, 'ได้รับแล้วในรอบนี้ ฿100 จากสูงสุด ฿500');
+    });
+
     test('tabs map to the API values', () {
       expect(QuestTab.values.map((t) => t.api), ['today', 'upcoming', 'past']);
       expect(QuestTab.values.map((t) => t.label), [
@@ -146,6 +169,10 @@ void main() {
     expect(find.text('19 ต.ค. - 25 ต.ค. · ทั้งวัน'), findsOneWidget);
     expect(find.text('สิ้นสุดใน 4 วัน'), findsOneWidget);
     expect(find.text('ขับครบรับโบนัสรายสัปดาห์'), findsOneWidget);
+    expect(
+      find.text('ทำรอบขับให้ครบตามขั้น รับโบนัสเพิ่มทุกขั้น'),
+      findsOneWidget,
+    );
     expect(
       find.textContaining('ทำรอบขับสำเร็จ', findRichText: true),
       findsOneWidget,
@@ -172,6 +199,12 @@ void main() {
     expect(find.text('ขั้น 10 รอบ · ฿100'), findsOneWidget);
     expect(find.text('รอตรวจสอบ'), findsOneWidget);
     expect(find.text('14 รอบ'), findsOneWidget);
+    expect(find.text('อีก 11 รอบ รับเพิ่ม ฿150'), findsOneWidget);
+    expect(find.text('ได้รับแล้วในรอบนี้ ฿100 จากสูงสุด ฿500'), findsOneWidget);
+    // The payout breakdown folds away.
+    await t.tap(find.text('แจกแจงรายละเอียดการชำระเงิน'));
+    await t.pump();
+    expect(find.text('รอตรวจสอบ'), findsNothing);
     expect(find.textContaining('ไม่นับงานที่ยกเลิก'), findsNothing);
     await t.tap(find.text('ข้อกำหนดและเงื่อนไข'));
     await t.pump();
