@@ -671,6 +671,8 @@ class _TransactionTile extends StatelessWidget {
         return Icons.star_rounded;
       case TransactionType.adjustment:
         return Icons.tune_rounded;
+      case TransactionType.promoDiscount:
+        return Icons.local_offer_rounded;
     }
   }
 
@@ -688,6 +690,8 @@ class _TransactionTile extends StatelessWidget {
         return 'โบนัส';
       case TransactionType.adjustment:
         return 'ปรับยอด';
+      case TransactionType.promoDiscount:
+        return 'ส่วนลด (บริษัทออกให้)';
     }
   }
 }
@@ -753,7 +757,11 @@ class _JobCard extends StatelessWidget {
     pickupAddress: job.pickupAddress,
     driverNet: trip?.driverNet,
     lines: [
-      for (final t in job.transactions)
+      // The promo row is the company's share of the fare, already counted in
+      // the fare and driver_net: listing it as "+฿50" read as extra income.
+      for (final t in job.transactions.where(
+        (t) => t.type != TransactionType.promoDiscount,
+      ))
         JobCardLine(
           label: t.type == TransactionType.commissionDeduction
               ? 'หักค่าคอมมิชชัน'

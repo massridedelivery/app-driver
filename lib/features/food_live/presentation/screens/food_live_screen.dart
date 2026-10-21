@@ -51,7 +51,11 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   final GlobalKey _sheetContentKey = GlobalKey();
   double? _sheetContentHeight;
   double _sheetFitExtent = 0.5;
-  bool _didInitialFit = false;
+  // Set whenever the content height changes (entry, or a step with a longer
+  // address / extra rows): the open sheet is re-fitted once it settles, so
+  // the CTA never ends up below the visible part, under the nav bar.
+  bool _refitPending = true;
+  static const double _sheetMinExtent = 0.15;
 
   @override
   void initState() {
@@ -224,7 +228,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
             ? (_sheetContentHeight! / availableH).clamp(0.2, 0.94)
             : 0.52;
         _sheetFitExtent = fitExtent;
-        const double minExtent = 0.15;
+        const double minExtent = _sheetMinExtent;
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _fitSheetToContent(),
         );
@@ -280,12 +284,19 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
     final h = _sheetContentKey.currentContext?.size?.height;
     if (h == null) return;
     if (_sheetContentHeight == null || (h - _sheetContentHeight!).abs() > 0.5) {
+      // Height not known/stable yet — record it and let the rebuild re-fit.
+      _refitPending = true;
       setState(() => _sheetContentHeight = h);
       return;
     }
-    if (!_didInitialFit && _sheetController.isAttached) {
-      _didInitialFit = true;
-      _sheetController.jumpTo(_sheetFitExtent);
+    if (_refitPending && _sheetController.isAttached) {
+      _refitPending = false;
+      // Leave a sheet the driver collapsed to the peek as it is.
+      final collapsed = _sheetController.size <= _sheetMinExtent + 0.02;
+      if (!collapsed &&
+          (_sheetController.size - _sheetFitExtent).abs() > 0.005) {
+        _sheetController.jumpTo(_sheetFitExtent);
+      }
     }
   }
 

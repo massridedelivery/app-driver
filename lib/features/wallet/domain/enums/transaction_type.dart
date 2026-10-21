@@ -16,7 +16,12 @@ enum TransactionType {
   bonus,
 
   /// Manual correction (e.g., compensation).
-  adjustment;
+  adjustment,
+
+  /// `marketing_expense`: the platform-funded promo on a job. It records the
+  /// part of the fare the company paid instead of the customer — already in
+  /// the fare and the job's driver_net, so it is not extra income.
+  promoDiscount;
 
   /// Parses a raw API string (e.g. "FARE_PAYMENT") into a [TransactionType].
   /// Returns [TransactionType.adjustment] as a safe fallback for unknown values.
@@ -32,6 +37,8 @@ enum TransactionType {
         return TransactionType.withdrawal;
       case 'BONUS':
         return TransactionType.bonus;
+      case 'MARKETING_EXPENSE':
+        return TransactionType.promoDiscount;
       case 'ADJUSTMENT':
       default:
         return TransactionType.adjustment;
@@ -53,6 +60,8 @@ enum TransactionType {
         return 'BONUS';
       case TransactionType.adjustment:
         return 'ADJUSTMENT';
+      case TransactionType.promoDiscount:
+        return 'MARKETING_EXPENSE';
     }
   }
 
@@ -63,6 +72,7 @@ enum TransactionType {
       case TransactionType.topup:
       case TransactionType.bonus:
       case TransactionType.adjustment:
+      case TransactionType.promoDiscount:
         return true;
       case TransactionType.commissionDeduction:
       case TransactionType.withdrawal:
