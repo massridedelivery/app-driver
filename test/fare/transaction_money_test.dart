@@ -86,28 +86,9 @@ void main() {
     });
   });
 
-  group('trip calendar total', () {
-    test('adds fares and subtracts a reversal (signed, not abs)', () {
-      final txns = [
-        _tx({'amount': 120}),
-        _tx({'amount': 80.5}),
-        _tx({'amount': -20}),
-      ];
-      expect(sumEarnings(txns), 180.5);
-    });
-
-    test('failed and rejected rows are left out; pending counts', () {
-      final txns = [
-        _tx({'amount': 100}),
-        _tx({'amount': 50, 'status': 'FAILED'}),
-        _tx({'amount': 70, 'status': 'REJECTED'}),
-        _tx({'amount': 30, 'status': 'PENDING'}),
-      ];
-      expect(sumEarnings(txns), 130);
-    });
-
-    test('no trips is ฿0', () {
-      expect(sumEarnings(const []), 0);
-    });
+  test('marketing_expense is the promo row, not an adjustment', () {
+    final t = _tx({'type': 'marketing_expense', 'amount': 50, 'job_id': 'J'});
+    expect(t.type, TransactionType.promoDiscount);
+    expect(TransactionType.promoDiscount.toApiString(), 'MARKETING_EXPENSE');
   });
 }

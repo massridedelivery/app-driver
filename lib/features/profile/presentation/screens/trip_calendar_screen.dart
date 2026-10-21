@@ -6,16 +6,18 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/dependency_injection.dart';
-import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction_query.dart';
 import 'package:massdrive/features/wallet/domain/usecases/get_transaction_list_usecase.dart';
 import 'package:massdrive/core/utils/baht.dart';
-import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:dio/dio.dart';
+import 'package:massdrive/core/constants/endpoints.dart';
+import 'package:massdrive/features/history/domain/models/trip_summary.dart';
+import 'package:massdrive/features/profile/domain/trip_calendar_entries.dart';
 
-/// Income schedule (Grab-style): pick a day or a week and see the total
-/// earnings, completed-trip count and trip list for that range. Earnings are
-/// the sum of the range's completed-job fares, from the ranged endpoint
-/// GET /api/driver/earnings/transactions (start_date/end_date, FARE_PAYMENT).
+/// Income schedule (Grab-style): pick a day or a week and see the net
+/// earnings, completed-job count and job list for that range. Jobs come from
+/// the ranged GET /api/driver/earnings/transactions (start_date/end_date);
+/// each job's net is its `driver_net` from GET /api/driver/earnings/trips.
 class TripCalendarScreen extends ConsumerStatefulWidget {
   const TripCalendarScreen({super.key});
 
@@ -31,7 +33,24 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
 
   bool _loading = true;
   double _netEarnings = 0;
-  List<Transaction> _trips = const [];
+  List<CalendarTrip> _trips = const [];
+
+  /// job id → driver_net / vehicle type, fetched once.
+  Map<String, TripSummary>? _summaries;
+
+  Future<Map<String, TripSummary>> _tripSummaries() async {
+    final cached = _summaries;
+    if (cached != null) return cached;
+    try {
+      final res = await getIt<Dio>().get(
+        Endpoints.driverEarningsTrips,
+        queryParameters: {'limit': 100},
+      );
+      return _summaries = tripSummariesByJob(res.data);
+    } catch (_) {
+      return const {};
+    }
+  }
 
   @override
   void initState() {
@@ -62,21 +81,22 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
     setState(() => _loading = true);
     final (start, end) = _range;
     try {
+      // Every row in the range (fares and commissions) so a job's net is
+      // there even before driver_net loads.
       final result = await getIt<GetTransactionListUseCase>().execute(
         TransactionQuery(
           startDate: _ymd(start),
           endDate: _ymd(end),
-          type: 'FARE_PAYMENT',
-          limit: 100,
+          limit: 200,
         ),
       );
+      final summaries = await _tripSummaries();
       if (!mounted) return;
+      final trips = calendarTrips(result.transactions, summaries);
       setState(() {
-        // Net earnings for the range = the sum of every completed job's fare.
-        // (The wallet-overview "earnings" nets out COD debt/commission and can
-        // read negative, which isn't what this schedule should show.)
-        _netEarnings = sumEarnings(result.transactions);
-        _trips = result.transactions;
+        // Net, not the fare: a ฿63 fare with ฿9 commission reads ฿54.
+        _netEarnings = calendarNet(trips);
+        _trips = trips;
         _loading = false;
       });
     } catch (_) {
@@ -318,7 +338,8 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
     );
   }
 
-  Widget _tripTile(Transaction t) {
+  Widget _tripTile(CalendarTrip t) {
+    final shortId = t.jobId.length > 6 ? t.jobId.substring(0, 6) : t.jobId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -347,25 +368,34 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ค่าโดยสาร',
+                  '${t.vehicleTypeName ?? 'งาน'} · #$shortId',
                   style: AppTypography.caption4.copyWith(
                     color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  DateFormat('d MMM, HH:mm', 'th').format(t.createdAt.toLocal()),
+                  DateFormat('d MMM, HH:mm', 'th').format(t.time.toLocal()),
                   style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
                 ),
               ],
             ),
           ),
-          Text(
-            formatSignedBaht(t.amount, plus: true),
-            style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticSupportMintBgHigh,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatSignedBaht(t.net, plus: true),
+                style: AppTypography.caption3.copyWith(
+                  color: AppColors.semanticSupportMintBgHigh,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'รายได้สุทธิ',
+                style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
+              ),
+            ],
           ),
         ],
       ),

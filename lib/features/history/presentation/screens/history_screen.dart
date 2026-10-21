@@ -166,7 +166,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         walletCredit: first.trip?.walletCredit,
       ),
       lines: [
-        for (final i in rows)
+        for (final i in jobCardLines(rows))
           JobCardLine(
             label: historyLineLabel(i),
             amount: i.amount ?? 0,

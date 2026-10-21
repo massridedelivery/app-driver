@@ -1,6 +1,5 @@
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
-import 'package:massdrive/features/wallet/domain/enums/transaction_status.dart';
 
 /// Money copy shared by the income / wallet screens, kept out of build() so
 /// every figure the driver reads is unit-tested.
@@ -24,16 +23,6 @@ String? transactionBreakdown(Transaction t) {
   }
   return parts.isEmpty ? null : parts.join(' · ');
 }
-
-/// Fare earnings for a period (trip calendar): the signed sum, so a reversal
-/// lowers it, over rows that didn't fail or get rejected.
-double sumEarnings(Iterable<Transaction> txns) => txns
-    .where(
-      (t) =>
-          t.status != TransactionStatus.failed &&
-          t.status != TransactionStatus.rejected,
-    )
-    .fold<double>(0, (sum, t) => sum + t.amount);
 
 /// A wallet balance that may be negative (credit after commission): `-฿13`.
 String balanceText(double balance) => formatSignedBaht(balance);

@@ -21,8 +21,19 @@ String historyLineLabel(HistoryItemModel i) =>
     switch (i.rawType?.toUpperCase()) {
       'FARE_PAYMENT' => 'ค่าโดยสาร',
       'COMMISSION_DEDUCTION' => 'หักค่าคอมมิชชัน',
+      'MARKETING_EXPENSE' => 'ส่วนลด (บริษัทออกให้)',
       _ => i.title,
     };
+
+/// `marketing_expense`: the platform-funded promo on a job. Part of the fare
+/// the company paid — already in the fare and driver_net, and shown in the
+/// receipt's "ลูกค้าชำระ" block — so it is not a money line of its own.
+bool isPromoDiscountRow(HistoryItemModel i) =>
+    i.rawType?.toUpperCase() == 'MARKETING_EXPENSE';
+
+/// The job's money lines for its card: everything but the promo row.
+List<HistoryItemModel> jobCardLines(Iterable<HistoryItemModel> rows) =>
+    jobCardOrder(rows.where((i) => !isPromoDiscountRow(i)));
 
 /// A job's rows in card order: fare first, then the commission, then the rest.
 List<HistoryItemModel> jobCardOrder(Iterable<HistoryItemModel> rows) {

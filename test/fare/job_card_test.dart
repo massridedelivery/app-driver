@@ -145,6 +145,34 @@ void main() {
       expect(ordered.first.pickupAddress, 'ซอย A');
     });
 
+    test('promo row (marketing_expense) is not a money line', () {
+      // Fare ฿63, commission ฿9, coupon ฿50 paid by the company: the card
+      // lists fare and commission only; the ฿50 sits in "ลูกค้าชำระ".
+      final rows = HistoryListResponseModel.fromJson({
+        'transactions': [
+          {'id': 'f', 'job_id': 'J', 'type': 'FARE_PAYMENT', 'amount': 63},
+          {
+            'id': 'c',
+            'job_id': 'J',
+            'type': 'COMMISSION_DEDUCTION',
+            'amount': -9,
+          },
+          {
+            'id': 'm',
+            'job_id': 'J',
+            'type': 'marketing_expense',
+            'description': 'marketing_expense',
+            'amount': 50,
+          },
+        ],
+      }).data.map((m) => m.toEntity()).toList();
+      final lines = jobCardLines(rows);
+      expect(lines.map(historyLineLabel), ['ค่าโดยสาร', 'หักค่าคอมมิชชัน']);
+      expect(isPromoDiscountRow(rows.last), isTrue);
+      // Never the raw type if it is ever shown on its own.
+      expect(historyLineLabel(rows.last), 'ส่วนลด (บริษัทออกให้)');
+    });
+
     test('other row types keep their own title', () {
       final bonus = HistoryListResponseModel.fromJson({
         'transactions': [
