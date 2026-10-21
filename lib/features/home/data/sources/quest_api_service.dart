@@ -4,7 +4,11 @@ import 'package:massdrive/core/constants/endpoints.dart';
 
 abstract class QuestApiService {
   Future<Response<Map<String, dynamic>>> getTier();
-  Future<Response<List<dynamic>>> getQuests();
+  /// [tab]: today (default) | upcoming | past.
+  Future<Response<List<dynamic>>> getQuests({String? tab});
+
+  /// One quest with payout_status on reached steps; 404 = gone.
+  Future<Response<Map<String, dynamic>>> getQuest(String questId);
   Future<Response<Map<String, dynamic>>> claimQuest(String questId);
 }
 
@@ -20,8 +24,18 @@ class QuestApiServiceImpl implements QuestApiService {
   }
 
   @override
-  Future<Response<List<dynamic>>> getQuests() async {
-    return await _dio.get<List<dynamic>>(Endpoints.driverQuests);
+  Future<Response<List<dynamic>>> getQuests({String? tab}) async {
+    return await _dio.get<List<dynamic>>(
+      Endpoints.driverQuests,
+      queryParameters: {if (tab != null) 'tab': tab},
+    );
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> getQuest(String questId) async {
+    return await _dio.get<Map<String, dynamic>>(
+      '${Endpoints.driverQuests}/$questId',
+    );
   }
 
   @override

@@ -109,6 +109,7 @@ void main() {
 
       final handler = ErrorInterceptorHandler();
       // The 401 goes straight on to the OTP screen, untouched.
+      // ignore: invalid_use_of_protected_member
       final passedOn = handler.future.then(
         (_) => false,
         // next() completes with the error; a refresh + retry would resolve.
