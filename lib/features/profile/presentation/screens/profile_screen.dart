@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
-import 'package:massdrive/features/profile/presentation/controllers/today_trips_provider.dart';
-import 'package:massdrive/features/wallet/domain/entities/transaction.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
+import 'package:massdrive/features/quests/presentation/controllers/quests_provider.dart';
+import 'package:massdrive/features/quests/presentation/widgets/quest_progress_bar.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 
+/// Driver profile (design 5): centred photo, name, rating and tier; this
+/// week's income and completed jobs; the weekly rates; and the quest being
+/// worked on with its reward ladder. Every figure comes from the backend.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,270 +25,238 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with TickerProviderStateMixin {
-  late bool isNavigateToConsent = false;
-
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // The profile controller is keepAlive (last fetched on home load), so
-    // re-opening this screen shows stale counts. Refetch on open so งานสำเร็จ /
-    // เปอร์เซ็นต์รับ-ยกเลิก reflect the latest after finishing/declining a job.
+    // The profile and wallet controllers are keepAlive (last fetched on
+    // home load), so re-opening this screen would show stale counts. Refetch
+    // on open so the week's income / jobs / rates are current.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(profileControllerProvider.notifier).fetchProfile();
+      if (!mounted) return;
+      ref.read(profileControllerProvider.notifier).fetchProfile();
+      ref.read(walletControllerProvider.notifier).fetchAll(silent: true);
     });
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(questsTabProvider(QuestTab.today));
+    ref.invalidate(tierProvider);
+    await Future.wait([
+      ref.read(profileControllerProvider.notifier).fetchProfile(),
+      ref.read(walletControllerProvider.notifier).fetchAll(silent: true),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
-
     return Scaffold(
+      backgroundColor: context.palette.bg,
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
-      body: Container(
-        color: context.palette.bg,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(todayTripsProvider);
-                  await ref
-                      .read(profileControllerProvider.notifier)
-                      .fetchProfile();
-                },
-                child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
-
-                        if (profileState.isLoading)
-                          Center(child: _buildLoading())
-                        else if (profile != null) ...[
-                          _ProfileHeader(
-                            profile: profile,
-                            onTap: () {
-                              context.push(AppRoutes.editProfileNamedPage);
-                            },
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          _WeeklyOverviewCard(profile: profile),
-
-                          const SizedBox(height: 20),
-
-                          const _QuestsEntry(),
-
-                          const SizedBox(height: 20),
-
-                          const _TodayTripsSection(),
-
-                          const SizedBox(height: 32),
-                        ],
-
-                        // "บัญชีของฉัน" quick-actions section hidden for now — the
-                        // tiles (กล่องข้อความ / ตารางรายได้ / เช่ารถ / …) aren't wired
-                        // to anything yet.
-                      ],
-                    ),
-                  ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              if (profile == null && profileState.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: MassLoadingM(size: 64)),
+                )
+              else if (profile != null) ...[
+                _ProfileHeader(
+                  profile: profile,
+                  onTap: () => context.push(AppRoutes.editProfileNamedPage),
                 ),
-                ),
-              );
-            },
+                const SizedBox(height: 16),
+                _WeekCards(profile: profile),
+                const SizedBox(height: 12),
+                _WeeklyRates(profile: profile),
+                const SizedBox(height: 12),
+                const _CurrentQuestCard(),
+              ],
+            ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildLoading() {
-    // Brand loader (the "M") — consistent with the other full-screen loads.
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 48),
-      child: Center(child: MassLoadingM(size: 64)),
-    );
-  }
 }
 
-class _ProfileHeader extends StatelessWidget {
+/// Centred photo, name, then "⭐ 5.0 · BRONZE". Tap → edit profile.
+class _ProfileHeader extends ConsumerWidget {
+  const _ProfileHeader({required this.onTap, required this.profile});
+
   final VoidCallback onTap;
   final DriverProfileEntity profile;
 
-  const _ProfileHeader({required this.onTap, required this.profile});
-
   @override
-  Widget build(BuildContext context) {
-    String? profilePhotoUrl;
+  Widget build(BuildContext context, WidgetRef ref) {
+    String? photo;
     for (final doc in profile.documents) {
       if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
-        profilePhotoUrl = doc.mediaUrl;
+        photo = doc.mediaUrl;
         break;
       }
     }
-    final hasImage = profilePhotoUrl != null && profilePhotoUrl.isNotEmpty;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.grey[800],
-                backgroundImage:
-                    hasImage ? NetworkImage(profilePhotoUrl) : null,
-                child: !hasImage
-                    ? Icon(Icons.person, color: context.palette.textSecondary, size: 28)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.fullName,
-                      style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.star,
-                          color: AppColors.semanticWarningBorderHigh,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          profile.rating.toStringAsFixed(1),
-                          style: AppTypography.caption4.copyWith(
-                            color: context.palette.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+    final hasImage = photo != null && photo.isNotEmpty;
+    final tier =
+        ref.watch(tierProvider).asData?.value?.currentTier ??
+        profile.incentiveTier;
+    final p = context.palette;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 38,
+              backgroundColor: p.surface,
+              backgroundImage: hasImage ? NetworkImage(photo) : null,
+              child: !hasImage
+                  ? Icon(Icons.person, color: p.textSecondary, size: 38)
+                  : null,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              profile.fullName,
+              textAlign: TextAlign.center,
+              style: AppTypography.heading5.copyWith(color: p.textPrimary),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: AppColors.semanticWarningBorderHigh,
+                  size: 18,
                 ),
-              ),
-
-              Icon(Icons.chevron_right, color: context.palette.textSecondary),
-            ],
-          ),
+                const SizedBox(width: 2),
+                Text(
+                  profile.rating.toStringAsFixed(1),
+                  style: AppTypography.caption4.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+                if (tier != null && tier.trim().isNotEmpty) ...[
+                  Text(
+                    '  ·  ',
+                    style: AppTypography.caption4.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+                  Icon(
+                    Icons.military_tech_rounded,
+                    size: 18,
+                    color: _tierColor(tier),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    tier.toUpperCase(),
+                    style: AppTypography.caption4.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _QuestsEntry extends StatelessWidget {
-  const _QuestsEntry();
+Color _tierColor(String tier) => switch (tier.toUpperCase()) {
+  'GOLD' => const Color(0xFFE6B422),
+  'SILVER' => const Color(0xFFB8C0CC),
+  _ => const Color(0xFFCD7F32),
+};
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => context.push(AppRoutes.questsNamedPage),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: context.palette.surface,
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.emoji_events_rounded,
-                  color: AppColors.foundationOrange500, size: 26),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ภารกิจ & รางวัล',
-                      style: AppTypography.label2
-                          .copyWith(color: context.palette.textPrimary),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'ทำภารกิจให้ครบเพื่อรับโบนัส',
-                      style: AppTypography.caption5
-                          .copyWith(color: context.palette.textTertiary),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: context.palette.textSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Two green cards: this week's income (wallet overview, BE) and the
+/// week's completed jobs. Tap → the income schedule.
+class _WeekCards extends ConsumerWidget {
+  const _WeekCards({required this.profile});
 
-class _WeeklyOverviewCard extends StatelessWidget {
   final DriverProfileEntity profile;
 
-  const _WeeklyOverviewCard({required this.profile});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final week = ref.watch(
+      walletControllerProvider.select((s) => s.earningsWeek),
+    );
+    Widget card(String label, String value) => Expanded(
+      child: Material(
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.tripCalendarNamedPage),
+          child: Ink(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0D995C), Color(0xFF0B7A4B)],
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.caption5.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: AppTypography.heading4.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return Row(
+      children: [
+        card('รายได้สัปดาห์นี้', formatBaht(week)),
+        const SizedBox(width: 10),
+        card('งานสำเร็จ', '${profile.weeklyCompletedJobs}'),
+      ],
+    );
+  }
+}
+
+/// "ภาพรวมรายสัปดาห์": งานสำเร็จ / เปอร์เซ็นต์รับ / เปอร์เซ็นต์ยกเลิก.
+class _WeeklyRates extends StatelessWidget {
+  const _WeeklyRates({required this.profile});
+
+  final DriverProfileEntity profile;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () =>
-            context.push(AppRoutes.tripCalendarNamedPage),
-        child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            context.palette.surface,
-            context.palette.surface,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      color: questSurface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: context.palette.border),
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "ภาพรวมรายสัปดาห์",
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: context.palette.textPrimary, size: 16),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          Row(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push(AppRoutes.tripCalendarNamedPage),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // acceptance_rate / cancellation_rate are merged in from
@@ -304,147 +276,111 @@ class _WeeklyOverviewCard extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
         ),
       ),
     );
   }
 }
 
-/// Today's completed trips (from GET /api/driver/earnings/transactions filtered
-/// to today + FARE_PAYMENT) — a count header + a compact list.
-class _TodayTripsSection extends ConsumerWidget {
-  const _TodayTripsSection();
+/// The quest being worked on (first of today's tab): "รับสูงสุด ฿500", the
+/// orange ladder with each step's cumulative reward, and what is done so
+/// far. Without one it is a plain entry to ภารกิจ & รางวัล.
+class _CurrentQuestCard extends ConsumerWidget {
+  const _CurrentQuestCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tripsAsync = ref.watch(todayTripsProvider);
-    final count = tripsAsync.asData?.value.length;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(20),
+    final quests =
+        ref.watch(questsTabProvider(QuestTab.today)).asData?.value ?? const [];
+    final q = quests.isEmpty
+        ? null
+        : quests.firstWhere(
+            (x) => x.status == 'IN_PROGRESS',
+            orElse: () => quests.first,
+          );
+    final p = context.palette;
+    const orange = AppColors.foundationOrange500;
+    return Material(
+      color: questSurface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: q == null ? p.border : orange.withValues(alpha: 0.4),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push(AppRoutes.questsNamedPage),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                "งานที่ทำวันนี้",
-                style: AppTypography.caption3.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              if (count != null)
-                Text(
-                  "$count รายการ",
-                  style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationOrange500,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.emoji_events_rounded,
+                    color: orange,
+                    size: 20,
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Divider(color: context.palette.border, height: 1),
-          const SizedBox(height: 8),
-          tripsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-            error: (_, _) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                "โหลดรายการงานไม่สำเร็จ",
-                style: AppTypography.caption4.copyWith(color: context.palette.textSecondary),
-              ),
-            ),
-            data: (trips) => trips.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: Text(
-                      "ยังไม่มีงานในวันนี้",
-                      style: AppTypography.caption4.copyWith(
-                        color: context.palette.textSecondary,
+                      q == null ? 'ภารกิจ & รางวัล' : 'ภารกิจที่กำลังทำ',
+                      style: AppTypography.caption3.copyWith(
+                        color: p.textPrimary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  )
-                : Column(
-                    children: trips
-                        .map((t) => _TodayTripTile(trip: t))
-                        .toList(),
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TodayTripTile extends StatelessWidget {
-  final Transaction trip;
-
-  const _TodayTripTile({required this.trip});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.semanticSuccessBgHigh.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.directions_car_rounded,
-              color: AppColors.semanticSuccessBgHigh,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                  if (q != null && q.maxReward > 0)
+                    Text(
+                      'รับสูงสุด ${formatBaht(q.maxReward)}',
+                      style: AppTypography.caption4.copyWith(
+                        color: orange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    )
+                  else
+                    Icon(Icons.chevron_right, color: p.textSecondary),
+                ],
+              ),
+              if (q == null) ...[
+                const SizedBox(height: 4),
                 Text(
-                  "ค่าโดยสาร",
-                  style: AppTypography.caption4.copyWith(
-                    color: context.palette.textPrimary,
+                  'ยังไม่มีภารกิจตอนนี้ · ดูภารกิจทั้งหมด',
+                  style: AppTypography.caption5.copyWith(
+                    color: p.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 2),
+              ] else ...[
+                const SizedBox(height: 4),
                 Text(
-                  DateFormat('HH:mm').format(trip.createdAt.toLocal()),
-                  style: AppTypography.caption5.copyWith(color: context.palette.textSecondary),
+                  q.title,
+                  style: AppTypography.caption5.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                QuestProgressBar(
+                  quest: q,
+                  color: orange,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE75615), Color(0xFFEF7F4D)],
+                  ),
+                  labels: QuestBarLabel.cumulative,
+                ),
+                Text(
+                  'ทำแล้ว ${q.currentCount}/${q.targetCount} รอบ'
+                  ' · ได้แล้ว ${formatBaht(q.earnedAmount)}',
+                  style: AppTypography.caption5.copyWith(
+                    color: p.textSecondary,
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
-          Text(
-            formatSignedBaht(trip.amount, plus: true),
-            style: AppTypography.caption3.copyWith(
-              color: AppColors.semanticSupportMintBgHigh,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -462,19 +398,18 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppTypography.caption3.copyWith(
+          style: AppTypography.heading5.copyWith(
             color: context.palette.textPrimary,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: AppTypography.caption4.copyWith(
-            color: context.palette.textPrimary,
+          style: AppTypography.caption5.copyWith(
+            color: context.palette.textSecondary,
           ),
         ),
       ],
     );
   }
 }
-
