@@ -85,33 +85,55 @@ class _QuestDetailScreenState extends ConsumerState<QuestDetailScreen> {
               ),
             ],
           ),
-          data: (q) =>
-              QuestDetailBody(quest: q, claiming: _claiming, onClaim: _claim),
+          data: (q) => QuestDetailBody(quest: q),
         ),
       ),
+      // Single-target quest done: claim at the bottom, guarded while sending.
+      bottomNavigationBar: (async.asData?.value.claimable ?? false)
+          ? SafeArea(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FilledButton(
+                onPressed: _claiming ? null : _claim,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.foundationMint600,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _claiming
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'รับรางวัล',
+                        style: AppTypography.label2.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            )
+          : null,
     );
   }
 }
 
 /// The detail content, split out so it renders from a [DriverQuest] alone.
 class QuestDetailBody extends StatelessWidget {
-  const QuestDetailBody({
-    super.key,
-    required this.quest,
-    this.claiming = false,
-    this.onClaim,
-  });
+  const QuestDetailBody({super.key, required this.quest});
 
   final DriverQuest quest;
-  final bool claiming;
-  final VoidCallback? onClaim;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final q = quest;
     final ends = q.endsLabel;
-    final reached = q.reachedSteps;
     final terms = q.terms;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
@@ -148,10 +170,21 @@ class QuestDetailBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              QuestCountLine(count: q.currentCount),
+              QuestCountLine(quest: q),
               const SizedBox(height: 8),
               QuestProgressBar(quest: q, color: AppColors.foundationMint600),
               for (final m in q.milestones) _stepRow(context, m),
+              if (q.nextExtraLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    q.nextExtraLabel!,
+                    style: AppTypography.caption4.copyWith(
+                      color: AppColors.foundationMint600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -165,7 +198,7 @@ class QuestDetailBody extends StatelessWidget {
                 ),
               ),
               Text(
-                '${q.currentCount} รอบ',
+                '${q.currentCount} ${q.countSuffix}',
                 style: AppTypography.caption3.copyWith(
                   color: p.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -174,74 +207,8 @@ class QuestDetailBody extends StatelessWidget {
             ],
           ),
         ),
-        _Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'แจกแจงรายละเอียดการชำระเงิน',
-                style: AppTypography.caption3.copyWith(
-                  color: p.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (reached.isEmpty)
-                Text(
-                  'ยังไม่มีรายการ',
-                  style: AppTypography.caption4.copyWith(
-                    color: p.textSecondary,
-                  ),
-                )
-              else
-                for (final m in reached)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'ขั้น ${m.trips} รอบ · ${formatBaht(m.bonus)}',
-                            style: AppTypography.caption4.copyWith(
-                              color: p.textPrimary,
-                            ),
-                          ),
-                        ),
-                        if (m.payoutStatus != null)
-                          QuestPayoutChip(status: m.payoutStatus!),
-                      ],
-                    ),
-                  ),
-            ],
-          ),
-        ),
+        _PayoutCard(quest: q),
         if (terms != null) _TermsCard(terms: terms),
-        if (q.claimable) ...[
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: claiming ? null : onClaim,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.foundationMint600,
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: claiming
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'รับรางวัล',
-                    style: AppTypography.label2.copyWith(color: Colors.white),
-                  ),
-          ),
-        ],
       ],
     );
   }
@@ -267,7 +234,7 @@ class QuestDetailBody extends StatelessWidget {
           ],
           Expanded(
             child: Text(
-              'รอบขับ ${m.trips} รอบ',
+              quest.stepLabel(m),
               style: AppTypography.caption4.copyWith(color: color),
             ),
           ),
@@ -310,6 +277,95 @@ class QuestPayoutChip extends StatelessWidget {
           color: color,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+/// "แจกแจงรายละเอียดการชำระเงิน": every reached step with its payout chip,
+/// then "ได้รับแล้วในรอบนี้ ฿… จากสูงสุด ฿…". Collapsible, open by default.
+class _PayoutCard extends StatefulWidget {
+  const _PayoutCard({required this.quest});
+
+  final DriverQuest quest;
+
+  @override
+  State<_PayoutCard> createState() => _PayoutCardState();
+}
+
+class _PayoutCardState extends State<_PayoutCard> {
+  bool _open = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final q = widget.quest;
+    final reached = q.reachedSteps;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _open = !_open),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'แจกแจงรายละเอียดการชำระเงิน',
+                    style: AppTypography.caption3.copyWith(
+                      color: p.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _open
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: p.textSecondary,
+                ),
+              ],
+            ),
+          ),
+          if (_open) ...[
+            const SizedBox(height: 8),
+            if (reached.isEmpty)
+              Text(
+                'ยังไม่มีรายการ',
+                style: AppTypography.caption4.copyWith(color: p.textSecondary),
+              )
+            else
+              for (final m in reached)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'ขั้น ${m.trips} ${q.countSuffix} · ${formatBaht(m.bonus)}',
+                          style: AppTypography.caption4.copyWith(
+                            color: p.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (m.payoutStatus != null)
+                        QuestPayoutChip(status: m.payoutStatus!),
+                    ],
+                  ),
+                ),
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: p.border)),
+              ),
+              child: Text(
+                q.earnedLabel,
+                style: AppTypography.caption4.copyWith(color: p.textSecondary),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
