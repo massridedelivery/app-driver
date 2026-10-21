@@ -10,6 +10,7 @@ class CalendarTrip {
     required this.time,
     required this.net,
     this.vehicleTypeName,
+    this.service,
   });
 
   final String jobId;
@@ -19,6 +20,9 @@ class CalendarTrip {
   /// its fare and commission rows as the ledger booked them.
   final double net;
   final String? vehicleTypeName;
+
+  /// `ride` | `food` | `messenger` from the fare row.
+  final String? service;
 }
 
 /// The range's jobs, newest first, from its ledger rows. A job needs a fare
@@ -54,6 +58,7 @@ List<CalendarTrip> calendarTrips(
             trips[id]?.driverNet?.toDouble() ??
             rows.fold<double>(0, (sum, t) => sum + t.amount),
         vehicleTypeName: trips[id]?.vehicleTypeName,
+        service: fares.first.service,
       ),
     );
   });

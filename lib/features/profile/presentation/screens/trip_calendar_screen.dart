@@ -12,6 +12,7 @@ import 'package:massdrive/core/utils/baht.dart';
 import 'package:dio/dio.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/features/history/domain/models/trip_summary.dart';
+import 'package:massdrive/features/history/domain/models/service_icon.dart';
 import 'package:massdrive/features/profile/domain/trip_calendar_entries.dart';
 
 /// Income schedule (Grab-style): pick a day or a week and see the net
@@ -356,10 +357,14 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
               color: AppColors.semanticSuccessBgHigh.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.directions_car_rounded,
-              color: AppColors.semanticSuccessBgHigh,
-              size: 18,
+            // Same vehicle icon and Thai label as the job cards.
+            child: Image.asset(
+              serviceIconAsset(
+                service: t.service,
+                vehicleTypeName: t.vehicleTypeName,
+              ),
+              width: 28,
+              height: 28,
             ),
           ),
           const SizedBox(width: 12),
@@ -368,7 +373,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${t.vehicleTypeName ?? 'งาน'} · #$shortId',
+                  '${serviceLabel(service: t.service, vehicleTypeName: t.vehicleTypeName)} · #$shortId',
                   style: AppTypography.caption4.copyWith(
                     color: context.palette.textPrimary,
                   ),
