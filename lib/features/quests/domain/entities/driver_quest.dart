@@ -82,6 +82,8 @@ class DriverQuest {
     this.timeStart,
     this.timeEnd,
     this.endsInDays,
+    this.questEndsAt,
+    this.questEndsInDays,
     this.nextMilestone,
     this.earnedAmount = 0,
     this.maxReward = 0,
@@ -100,7 +102,14 @@ class DriverQuest {
   /// Daily window "06:00"–"10:00" (Bangkok); both null = all day.
   final String? timeStart;
   final String? timeEnd;
+
+  /// Days left in this period (today / this week); its count resets after.
   final int? endsInDays;
+
+  /// `quest_ends_at` / `quest_ends_in_days`: when the whole quest ends
+  /// (valid_until). Null on a backend that doesn't send them yet.
+  final DateTime? questEndsAt;
+  final int? questEndsInDays;
   final int currentCount;
   final int targetCount;
   final List<QuestMilestoneStep> milestones;
@@ -163,6 +172,10 @@ class DriverQuest {
       endsInDays: j['ends_in_days'] is num
           ? (j['ends_in_days'] as num).toInt()
           : null,
+      questEndsAt: _date(j['quest_ends_at']),
+      questEndsInDays: j['quest_ends_in_days'] is num
+          ? (j['quest_ends_in_days'] as num).toInt()
+          : null,
       currentCount: _int(j['current_count']),
       targetCount: _int(j['target_count']),
       milestones: ms,
@@ -197,12 +210,28 @@ class DriverQuest {
       ? 'ทั้งวัน'
       : '$timeStart-$timeEnd';
 
-  /// "สิ้นสุดวันนี้" / "สิ้นสุดใน 4 วัน"; null when the backend sent nothing.
-  String? get endsLabel => switch (endsInDays) {
-    null => null,
-    <= 0 => 'สิ้นสุดวันนี้',
-    final n => 'สิ้นสุดใน $n วัน',
-  };
+  /// The quest runs on past this period (a weekly quest mid-way).
+  bool get endsAfterThisRound =>
+      endsInDays != null &&
+      questEndsInDays != null &&
+      questEndsInDays! > endsInDays!;
+
+  /// Badge: "รอบนี้สิ้นสุดใน 4 วัน" while later rounds follow, else
+  /// "สิ้นสุดใน 4 วัน"; 0 reads "…วันนี้". Null when the backend sent nothing.
+  String? get endsLabel {
+    final n = endsInDays;
+    if (n == null) return null;
+    final lead = endsAfterThisRound ? 'รอบนี้สิ้นสุด' : 'สิ้นสุด';
+    return n <= 0 ? '$leadวันนี้' : '$leadใน $n วัน';
+  }
+
+  /// Second line under a round badge: "ภารกิจถึง 30 พ.ย." (Bangkok).
+  String? get questEndsLabel {
+    if (!endsAfterThisRound) return null;
+    final d = _bangkok(questEndsAt ?? validUntil);
+    if (d == null) return null;
+    return 'ภารกิจถึง ${d.day} ${thaiMonthsShort[d.month - 1]}';
+  }
 
   /// "อีก 11 รอบ รับ ฿150", null once every step is reached.
   String? get nextLabel {

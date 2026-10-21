@@ -143,6 +143,34 @@ void main() {
       expect(jobs.nextLabel, 'อีก 11 งาน รับ ฿150');
     });
 
+    test('weekly round vs whole quest end (BE #245)', () {
+      // Week ends in 4 days, quest runs to 30 Nov.
+      final mid = DriverQuest.fromJson({
+        ..._item(),
+        'quest_ends_in_days': 40,
+        'quest_ends_at': '2026-11-30T16:59:59Z',
+      });
+      expect(mid.endsLabel, 'รอบนี้สิ้นสุดใน 4 วัน');
+      expect(mid.questEndsLabel, 'ภารกิจถึง 30 พ.ย.');
+      final midToday = DriverQuest.fromJson({
+        ..._item(endsInDays: 0),
+        'quest_ends_in_days': 9,
+        'quest_ends_at': '2026-10-30T16:59:59Z',
+      });
+      expect(midToday.endsLabel, 'รอบนี้สิ้นสุดวันนี้');
+      // Last round: the round and the quest end together.
+      final last = DriverQuest.fromJson({
+        ..._item(),
+        'quest_ends_in_days': 4,
+        'quest_ends_at': '2026-10-25T16:59:59Z',
+      });
+      expect(last.endsLabel, 'สิ้นสุดใน 4 วัน');
+      expect(last.questEndsLabel, isNull);
+      // Backend without the new fields: unchanged.
+      expect(q.endsLabel, 'สิ้นสุดใน 4 วัน');
+      expect(q.questEndsLabel, isNull);
+    });
+
     test('detail lines: next step and earned this period', () {
       expect(q.nextExtraLabel, 'อีก 11 รอบ รับเพิ่ม ฿150');
       expect(q.earnedLabel, 'ได้รับแล้วในรอบนี้ ฿100 จากสูงสุด ฿500');

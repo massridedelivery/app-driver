@@ -177,7 +177,8 @@ class QuestCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (ends != null) QuestEndsBadge(label: ends),
+                  if (ends != null)
+                    QuestEndsBadge(label: ends, sub: quest.questEndsLabel),
                 ],
               ),
               const SizedBox(height: 6),
@@ -251,12 +252,33 @@ class QuestCountLine extends StatelessWidget {
 
 /// Orange "สิ้นสุดใน 4 วัน" / "สิ้นสุดวันนี้" pill.
 class QuestEndsBadge extends StatelessWidget {
-  const QuestEndsBadge({super.key, required this.label});
+  const QuestEndsBadge({super.key, required this.label, this.sub});
 
   final String label;
 
+  /// "ภารกิจถึง 30 พ.ย." under a round badge.
+  final String? sub;
+
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final badge = _badge();
+    if (sub == null) return badge;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        badge,
+        const SizedBox(height: 2),
+        Text(
+          sub!,
+          style: AppTypography.caption5.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _badge() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
       color: AppColors.foundationOrange500.withValues(alpha: 0.16),
