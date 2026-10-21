@@ -149,7 +149,7 @@ class QuestDetailBody extends StatelessWidget {
             ),
             // Only while it is still running (not for an ended quest).
             if (ends != null && q.status != 'ENDED' && q.status != 'CLAIMED')
-              QuestEndsBadge(label: ends),
+              QuestEndsBadge(label: ends, sub: q.questEndsLabel),
           ],
         ),
         const SizedBox(height: 6),
