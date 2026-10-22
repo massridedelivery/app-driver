@@ -32,30 +32,26 @@ class ProfileController extends _$ProfileController {
       final merged = await _mergeTierRates(profile);
       state = state.copyWith(isLoading: false, profile: merged);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: friendlyErrorMessage(e),
+      );
     }
   }
 
-  /// Best-effort overlay of acceptance/cancellation rate from GET /api/driver/tier.
-  /// Never throws — on any failure the original profile (rates 0) is returned.
-  Future<DriverProfileEntity> _mergeTierRates(DriverProfileEntity profile) async {
+  /// Best-effort overlay of the weekly stats from GET /api/driver/tier.
+  /// Never throws — on any failure the original profile is returned.
+  Future<DriverProfileEntity> _mergeTierRates(
+    DriverProfileEntity profile,
+  ) async {
     try {
       final data = (await getIt<QuestApiService>().getTier()).data;
       if (data == null) return profile;
-      // The API may express a rate as a 0..1 fraction or a 0..100 percentage;
-      // normalise both to a percentage for display.
-      double? pct(dynamic v) {
-        final n = (v as num?)?.toDouble();
-        if (n == null) return null;
-        return n <= 1 ? n * 100 : n;
-      }
-      return profile.copyWith(
-        acceptanceRate: pct(data['acceptance_rate']) ?? profile.acceptanceRate,
-        cancellationRate:
-            pct(data['cancellation_rate']) ?? profile.cancellationRate,
-      );
+      return mergeTierStats(profile, data);
     } catch (e) {
-      if (kDebugMode) debugPrint('ProfileController: tier rates merge failed → $e');
+      if (kDebugMode) {
+        debugPrint('ProfileController: tier stats merge failed → $e');
+      }
       return profile;
     }
   }
@@ -68,7 +64,10 @@ class ProfileController extends _$ProfileController {
       await fetchProfile();
       return true;
     } catch (e) {
-      state = state.copyWith(isUpdating: false, errorMessage: friendlyErrorMessage(e));
+      state = state.copyWith(
+        isUpdating: false,
+        errorMessage: friendlyErrorMessage(e),
+      );
       return false;
     }
   }
@@ -82,8 +81,36 @@ class ProfileController extends _$ProfileController {
       await fetchProfile();
       return true;
     } catch (e) {
-      state = state.copyWith(isUpdating: false, errorMessage: friendlyErrorMessage(e));
+      state = state.copyWith(
+        isUpdating: false,
+        errorMessage: friendlyErrorMessage(e),
+      );
       return false;
     }
   }
+}
+
+/// The weekly figures live on GET /api/driver/tier, not /api/driver/profile:
+/// `weekly_jobs` (jobs finished since Monday 00:00 Bangkok — the same week as
+/// this_week_income), `acceptance_rate` and `cancellation_rate`. A rate may be
+/// a 0..1 fraction or a 0..100 percentage; both read as a percentage.
+DriverProfileEntity mergeTierStats(
+  DriverProfileEntity profile,
+  Map<String, dynamic> tier,
+) {
+  double? pct(dynamic v) {
+    final n = (v as num?)?.toDouble();
+    if (n == null) return null;
+    return n <= 1 ? n * 100 : n;
+  }
+
+  final jobs = tier['weekly_jobs'];
+  return profile.copyWith(
+    acceptanceRate: pct(tier['acceptance_rate']) ?? profile.acceptanceRate,
+    cancellationRate:
+        pct(tier['cancellation_rate']) ?? profile.cancellationRate,
+    weeklyCompletedJobs: jobs is num
+        ? jobs.toInt()
+        : profile.weeklyCompletedJobs,
+  );
 }
