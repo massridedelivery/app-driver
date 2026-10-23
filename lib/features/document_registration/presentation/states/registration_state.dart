@@ -113,6 +113,9 @@ class RegistrationState {
     bool? isBankAccountComplete,
     bool? isConsentGiven,
     KycTier? selectedTier,
+    // copyWith can't null a field through `??`, so clearing the tier (back to
+    // tier selection) needs an explicit flag.
+    bool clearSelectedTier = false,
     RegistrationStateStatus? overallStatus,
     DriverProfileInfo? profileInfo,
     VehicleInfo? vehicleInfo,
@@ -139,7 +142,8 @@ class RegistrationState {
       isBankAccountComplete:
           isBankAccountComplete ?? this.isBankAccountComplete,
       isConsentGiven: isConsentGiven ?? this.isConsentGiven,
-      selectedTier: selectedTier ?? this.selectedTier,
+      selectedTier:
+          clearSelectedTier ? null : (selectedTier ?? this.selectedTier),
       overallStatus: overallStatus ?? this.overallStatus,
       profileInfo: profileInfo ?? this.profileInfo,
       vehicleInfo: vehicleInfo ?? this.vehicleInfo,
