@@ -48,7 +48,7 @@ help:
 	@echo   ---
 	@echo   run           Run against dev
 	@echo   run-preprod   Run against pre-prod
-	@echo   run-prod      Run against prod - config/prod.json is still a placeholder
+	@echo   run-prod      Run against prod - driver-api.nueng-hok-paed.com
 	@echo   run-prod-devapi  Run prod identity/Firebase against the dev API
 	@echo   devices       List attached devices/emulators
 	@echo   ---
