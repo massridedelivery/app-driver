@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -83,8 +84,9 @@ class SocketService with WidgetsBindingObserver {
   bool get isConnected => _isReady;
 
   String _buildWebSocketUrl(String token) {
-    // Hardcoding development URL to match AuthApiServiceImpl and avoid EnvironmentConfig issues
-    const baseUrl = 'wss://driver-api-dev.nutchaphut.dev';
+    // From the build's API_BASE_URL (https -> wss) or WS_BASE_URL, so a prod
+    // build's socket goes to the prod backend, not dev.
+    final baseUrl = EnvironmentConfig.wsUrl;
 
     // Ensure token is clean of whitespace/newlines
     final cleanToken = token.trim();

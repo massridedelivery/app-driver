@@ -1,5 +1,5 @@
 {
     "APP_ENV": "prod",
-    "API_BASE_URL": "https://REPLACE_ME.prod.example/",
+    "API_BASE_URL": "https://driver-api.nueng-hok-paed.com",
     "APP_PACKAGE_NAME_SUFFIX": ""
 }
