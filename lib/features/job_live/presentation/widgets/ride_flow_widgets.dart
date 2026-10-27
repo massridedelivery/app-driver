@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -162,94 +163,161 @@ class RideStop {
   final RideStopState state;
 }
 
-/// Pickup → dropoff with a line between; the stop being driven to stands
-/// out, a passed one is faded with ✓.
+/// Pickup → dropoff like the customer app's RouteStops: a green / red map
+/// pin with a dotted connector running from the green pin down to the red
+/// one. The stop being driven to stands out; a passed stop is faded with ✓.
 class RideStopsTimeline extends StatelessWidget {
-  const RideStopsTimeline({super.key, required this.stops});
+  const RideStopsTimeline({super.key, required this.stops, this.pinSize = 20});
 
   final List<RideStop> stops;
+  final double pinSize;
+
+  static const pinAsset = 'assets/images/icons/ic_location_fill.svg';
+  static const pickupColor = Color(0xFF2EB610);
+  static const dropoffColor = Color(0xFFDB1439);
 
   @override
   Widget build(BuildContext context) {
-    final line = RideCardColors.of(context).line;
-    return Stack(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Positioned(
-          left: 6,
-          top: 16,
-          bottom: 16,
-          child: Container(width: 2, color: line),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [for (final s in stops) _stop(context, s)],
-        ),
+        for (var i = 0; i < stops.length; i++)
+          i < stops.length - 1
+              // Intrinsic height so the dots fill from under this pin to the
+              // next stop's pin — one continuous connector.
+              ? IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: pinSize,
+                        child: Column(
+                          children: [
+                            _pin(stops[i]),
+                            const SizedBox(height: 2),
+                            Expanded(
+                              child: SizedBox(
+                                width: 4,
+                                child: CustomPaint(
+                                  painter: _DottedLinePainter(
+                                    context.palette.textTertiary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _text(context, stops[i]),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _pin(stops[i]),
+                    const SizedBox(width: 12),
+                    Expanded(child: _text(context, stops[i])),
+                  ],
+                ),
       ],
     );
   }
 
-  Widget _stop(BuildContext context, RideStop s) {
+  double _opacity(RideStop s) => switch (s.state) {
+    RideStopState.current => 1.0,
+    RideStopState.upcoming => 0.6,
+    RideStopState.done => 0.45,
+  };
+
+  Widget _pin(RideStop s) => Opacity(
+    opacity: _opacity(s),
+    child: SvgPicture.asset(
+      pinAsset,
+      width: pinSize,
+      height: pinSize,
+      colorFilter: ColorFilter.mode(
+        s.isPickup ? pickupColor : dropoffColor,
+        BlendMode.srcIn,
+      ),
+    ),
+  );
+
+  Widget _text(BuildContext context, RideStop s) {
     final p = context.palette;
-    final color = s.isPickup
-        ? AppColors.foundationMint600
-        : AppColors.semanticSupportRedBgHigh;
-    final opacity = switch (s.state) {
-      RideStopState.current => 1.0,
-      RideStopState.upcoming => 0.6,
-      RideStopState.done => 0.5,
-    };
     return Opacity(
-      opacity: opacity,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 14,
-              height: 14,
-              margin: const EdgeInsets.only(top: 2),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: RideCardColors.of(context).surface,
-                  width: 2,
+      opacity: _opacity(s),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                s.isPickup ? 'จุดรับ' : 'จุดส่ง',
+                style: AppTypography.caption5.copyWith(
+                  color: p.textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              child: s.state == RideStopState.done
-                  ? const Icon(Icons.check, size: 8, color: Colors.white)
-                  : null,
+              if (s.state == RideStopState.done) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.check_circle, size: 12, color: pickupColor),
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            s.address,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption3.copyWith(
+              color: p.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.address,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption3.copyWith(
-                      color: p.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (s.sub.isNotEmpty)
-                    Text(
-                      s.sub,
-                      style: AppTypography.caption5.copyWith(
-                        color: p.textSecondary,
-                      ),
-                    ),
-                ],
-              ),
+          ),
+          if (s.sub.isNotEmpty)
+            Text(
+              s.sub,
+              style: AppTypography.caption5.copyWith(color: p.textSecondary),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
+}
+
+/// Round dots (not dashes), 3 px with an 11 px pitch — the customer app's
+/// route connector.
+class _DottedLinePainter extends CustomPainter {
+  const _DottedLinePainter(this.color);
+
+  final Color color;
+
+  static const double _radius = 1.5;
+  static const double _pitch = 11;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.height <= 2 * _radius) return;
+    final paint = Paint()..color = color;
+    final x = size.width / 2;
+    final count = ((size.height - 2 * _radius) / _pitch).floor() + 1;
+    final span = (count - 1) * _pitch;
+    var y = (size.height - span) / 2;
+    for (var i = 0; i < count; i++) {
+      canvas.drawCircle(Offset(x, y), _radius, paint);
+      y += _pitch;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DottedLinePainter old) => old.color != color;
 }
 
 /// Round grey icon button on the card (แชท / โทรฟรี / ช่วยเหลือ).

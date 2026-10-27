@@ -102,21 +102,31 @@ Object? readDriverCommission(Map json, String key) {
 }
 
 /// Reads the customer name from either a flat `passenger_name` field or the
-/// nested `customer.full_name` (JobCustomerInfo) the backend actually sends.
+/// nested `customer_info.full_name` (JobCustomerInfo) the backend sends.
 Object? readCustomerName(Map json, String key) {
   final flat = json['passenger_name'];
   if (flat != null && flat.toString().isNotEmpty) return flat;
-  final customer = json['customer'];
-  if (customer is Map) return customer['full_name'];
-  return null;
+  // The backend nests it as customer_info {full_name, phone} (JobCustomerInfo);
+  // older payloads used customer.
+  for (final k in const ['customer_info', 'customer']) {
+    final c = json[k];
+    final name = c is Map ? c['full_name']?.toString().trim() : null;
+    if (name != null && name.isNotEmpty) return name;
+  }
+  final flatName = json['customer_name']?.toString().trim();
+  return (flatName == null || flatName.isEmpty) ? null : flatName;
 }
 
-/// Reads the customer phone from either a flat `passenger_phone` field or the
-/// nested `customer.phone` / `customer_phone` the backend actually sends.
+/// Reads the customer phone from a flat `passenger_phone` / `customer_phone`,
+/// or the nested `customer_info.phone` the backend sends (`customer.phone` on
+/// older payloads).
 Object? readCustomerPhone(Map json, String key) {
   final flat = json['passenger_phone'] ?? json['customer_phone'];
   if (flat != null && flat.toString().isNotEmpty) return flat;
-  final customer = json['customer'];
-  if (customer is Map) return customer['phone'];
+  for (final k in const ['customer_info', 'customer']) {
+    final c = json[k];
+    final phone = c is Map ? c['phone']?.toString().trim() : null;
+    if (phone != null && phone.isNotEmpty) return phone;
+  }
   return null;
 }
