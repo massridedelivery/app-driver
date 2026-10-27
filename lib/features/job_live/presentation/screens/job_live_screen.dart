@@ -425,9 +425,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  /// Height of the collapsed card above the bottom padding: grip, one stop
-  /// row, the slide.
-  static const double _compactHeight = 8 + 4 + 10 + 44 + 12 + 56 + 4;
+  /// Height of the collapsed card above the bottom padding: grip, the boxed
+  /// stop row, the slide.
+  static const double _compactHeight = 8 + 4 + 10 + (44 + 16) + 12 + 56 + 4;
 
   /// Collapsed card (design A): the stop being driven to, รายได้สุทธิ and the
   /// slide — the driver can confirm without opening the sheet.
@@ -444,8 +444,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       children: [
         _buildDragIndicator(),
         const SizedBox(height: 10),
-        SizedBox(
-          height: 44,
+        // Same rounded box as the full card's next stop.
+        Container(
+          height: 44 + 16,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: RideCardColors.of(context).chip,
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: Row(
             children: [
               SvgPicture.asset(
