@@ -21,7 +21,19 @@ class DirectionsService {
   Future<List<LatLng>> getRoutePolyline({
     required LatLng origin,
     required LatLng destination,
+  }) async =>
+      (await getRoute(origin: origin, destination: destination)).points;
+
+  /// The route's points plus Google's driving time for it (`legs[0].duration`,
+  /// seconds; null when absent). Empty points on failure.
+  Future<({List<LatLng> points, int? durationSeconds})> getRoute({
+    required LatLng origin,
+    required LatLng destination,
   }) async {
+    const ({List<LatLng> points, int? durationSeconds}) none = (
+      points: <LatLng>[],
+      durationSeconds: null,
+    );
     try {
       final response = await _dio.get(
         _baseUrl,
@@ -38,29 +50,35 @@ class DirectionsService {
 
       if (status != 'OK') {
         debugPrint('DirectionsService: API returned status=$status');
-        return [];
+        return none;
       }
 
       final routes = data['routes'] as List<dynamic>?;
-      if (routes == null || routes.isEmpty) return [];
+      if (routes == null || routes.isEmpty) return none;
 
       final overviewPolyline =
           routes[0]['overview_polyline'] as Map<String, dynamic>?;
       final encodedPoints = overviewPolyline?['points'] as String?;
 
-      if (encodedPoints == null || encodedPoints.isEmpty) return [];
+      if (encodedPoints == null || encodedPoints.isEmpty) return none;
 
       final points = _decodePolyline(encodedPoints);
       debugPrint(
         'DirectionsService: ✅ Decoded ${points.length} polyline points',
       );
-      return points;
+      final legs = routes[0]['legs'] as List<dynamic>?;
+      Object? dur;
+      if (legs != null && legs.isNotEmpty) {
+        final d = (legs[0] as Map)['duration'];
+        if (d is Map) dur = d['value'];
+      }
+      return (points: points, durationSeconds: dur is num ? dur.toInt() : null);
     } on DioException catch (e) {
       debugPrint('DirectionsService: ❌ DioException: ${e.message}');
-      return [];
+      return none;
     } catch (e) {
       debugPrint('DirectionsService: ❌ Unexpected error: $e');
-      return [];
+      return none;
     }
   }
 

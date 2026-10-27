@@ -132,30 +132,51 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Design 2: vehicle + payment · trip km on the left, the driver's
+            // net (driver_net — never what the passenger pays) on the right.
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RideTag(
-                  text: [job.serviceType, if (pay.isNotEmpty) pay].join(' · '),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RideTag(text: job.serviceType),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if (pay.isNotEmpty) pay,
+                          if (tripKm > 0) '${tripKm.toStringAsFixed(1)} กม.',
+                        ].join(' · '),
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
-                _CountdownRing(remaining: _remaining, total: _totalSeconds),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      headline.label,
+                      style: AppTypography.caption5.copyWith(
+                        color: p.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      formatBaht(headline.amount),
+                      style: AppTypography.heading2.copyWith(
+                        color: AppColors.foundationMint600,
+                        fontSize: 32,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            // What the driver earns (driver_net), never what the passenger pays.
-            Text(
-              headline.label,
-              style: AppTypography.caption5.copyWith(color: p.textSecondary),
-            ),
-            Text(
-              formatBaht(headline.amount),
-              style: AppTypography.heading2.copyWith(
-                color: p.textPrimary,
-                fontSize: 34,
-                height: 1.1,
-              ),
-            ),
-            const SizedBox(height: 8),
+            Divider(height: 20, color: card.line),
             RideStopsTimeline(
               stops: [
                 RideStop(
@@ -166,13 +187,13 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ),
                 RideStop(
                   address: job.dropoffAddress,
-                  sub: '${tripKm.toStringAsFixed(1)} กม.',
+                  sub: '${tripKm.toStringAsFixed(1)} กม. ทั้งเที่ยว',
                   isPickup: false,
                   state: RideStopState.current,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               autoAccept
                   ? 'รับงานอัตโนมัติใน $_remaining วินาที'
@@ -181,11 +202,19 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
               style: AppTypography.caption5.copyWith(color: p.textSecondary),
             ),
             const SizedBox(height: 8),
-            SlideToConfirm(
-              label: 'เลื่อนเพื่อรับงาน',
-              color: AppColors.foundationMint600,
-              loading: _accepting,
-              onConfirmed: _accept,
+            Row(
+              children: [
+                Expanded(
+                  child: SlideToConfirm(
+                    label: 'เลื่อนเพื่อรับงาน',
+                    color: AppColors.foundationMint600,
+                    loading: _accepting,
+                    onConfirmed: _accept,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _CountdownRing(remaining: _remaining, total: _totalSeconds),
+              ],
             ),
             TextButton(
               onPressed: _accepting ? null : _decline,
