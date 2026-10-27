@@ -426,8 +426,43 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   /// Height of the collapsed card above the bottom padding: grip, the boxed
-  /// stop row, the slide.
-  static const double _compactHeight = 8 + 4 + 10 + (44 + 16) + 12 + 56 + 4;
+  /// stop, the slide.
+  static const double _compactHeight =
+      8 + 4 + 10 + _compactBoxHeight + 12 + 56 + 4;
+
+  /// Collapsed stop box: the status/pill row and the address row.
+  static const double _compactBoxHeight = 66;
+
+  /// "รายได้สุทธิ ฿63" — the driver's net (driver_net), never what the
+  /// passenger pays.
+  Widget _netPill(double amount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.foundationMint600.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: 'รายได้สุทธิ ',
+              style: AppTypography.caption5.copyWith(
+                color: AppColors.foundationMint600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextSpan(
+              text: formatBaht(amount),
+              style: AppTypography.label2.copyWith(
+                color: AppColors.foundationMint600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// Collapsed card (design A): the stop being driven to, รายได้สุทธิ and the
   /// slide — the driver can confirm without opening the sheet.
@@ -444,34 +479,51 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       children: [
         _buildDragIndicator(),
         const SizedBox(height: 10),
-        // Same rounded box as the full card's next stop.
+        // Design 2: the same rounded box as the full card — status and the
+        // รายได้สุทธิ pill on top, then the address across the full width.
         Container(
-          height: 44 + 16,
+          height: _compactBoxHeight,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: RideCardColors.of(context).chip,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SvgPicture.asset(
-                RideStopsTimeline.pinAsset,
-                width: 20,
-                height: 20,
-                colorFilter: ColorFilter.mode(
-                  toDropoff
-                      ? RideStopsTimeline.dropoffColor
-                      : RideStopsTimeline.pickupColor,
-                  BlendMode.srcIn,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _compactSub(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption5.copyWith(
+                        color: AppColors.foundationMint600,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  _netPill(headline.amount),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+              const Spacer(),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    RideStopsTimeline.pinAsset,
+                    width: 20,
+                    height: 20,
+                    colorFilter: ColorFilter.mode(
+                      toDropoff
+                          ? RideStopsTimeline.dropoffColor
+                          : RideStopsTimeline.pickupColor,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
                       (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ??
                           '',
                       maxLines: 1,
@@ -481,20 +533,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      _compactSub(),
-                      style: AppTypography.caption5.copyWith(
-                        color: p.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                formatBaht(headline.amount),
-                style: AppTypography.heading4.copyWith(
-                  color: AppColors.foundationMint600,
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -664,9 +704,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     return mins <= 1 ? '1 นาที' : '$mins นาที';
   }
 
-  /// Design 5: the stop being driven to, big — pin, "กำลังไป · จุดรับ", its
-  /// address and "600 ม. · 2 นาที" — with รายได้สุทธิ (driver_net, never
-  /// what the passenger pays) on the right.
+  /// Design 5: the stop being driven to, big — "กำลังไป · จุดรับ" with the
+  /// รายได้สุทธิ pill (design 2) on top, then pin, address (full width) and
+  /// "600 ม. · 2 นาที".
   Widget _buildNextStop() {
     final job = ref.watch(incomingJobControllerProvider).currentJob;
     final p = context.palette;
@@ -689,61 +729,60 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         color: RideCardColors.of(context).chip,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SvgPicture.asset(
-            RideStopsTimeline.pinAsset,
-            width: 22,
-            height: 22,
-            colorFilter: ColorFilter.mode(
-              toDropoff
-                  ? RideStopsTimeline.dropoffColor
-                  : RideStopsTimeline.pickupColor,
-              BlendMode.srcIn,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   label,
                   style: AppTypography.caption5.copyWith(
                     color: AppColors.foundationMint600,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label2.copyWith(color: p.textPrimary),
-                ),
-                if (facts.isNotEmpty)
-                  Text(
-                    facts,
-                    style: AppTypography.caption5.copyWith(
-                      color: p.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                'รายได้สุทธิ',
-                style: AppTypography.caption5.copyWith(color: p.textSecondary),
               ),
-              Text(
-                formatBaht(headline.amount),
-                style: AppTypography.heading4.copyWith(
-                  color: AppColors.foundationMint600,
+              _netPill(headline.amount),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset(
+                RideStopsTimeline.pinAsset,
+                width: 22,
+                height: 22,
+                colorFilter: ColorFilter.mode(
+                  toDropoff
+                      ? RideStopsTimeline.dropoffColor
+                      : RideStopsTimeline.pickupColor,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ??
+                          '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.label2.copyWith(
+                        color: p.textPrimary,
+                      ),
+                    ),
+                    if (facts.isNotEmpty)
+                      Text(
+                        facts,
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
