@@ -433,33 +433,18 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// Collapsed stop box: the status/pill row and the address row.
   static const double _compactBoxHeight = 66;
 
-  /// "รายได้สุทธิ ฿63" — the driver's net (driver_net), never what the
-  /// passenger pays.
+  /// The driver's net (driver_net, never what the passenger pays) as a solid
+  /// green pill — the only green in the stop box, so it stands out.
   Widget _netPill(double amount) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
       decoration: BoxDecoration(
-        color: AppColors.foundationMint600.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.foundationMint600,
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: 'รายได้สุทธิ ',
-              style: AppTypography.caption5.copyWith(
-                color: AppColors.foundationMint600,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            TextSpan(
-              text: formatBaht(amount),
-              style: AppTypography.label2.copyWith(
-                color: AppColors.foundationMint600,
-              ),
-            ),
-          ],
-        ),
+      child: Text(
+        formatBaht(amount),
+        style: AppTypography.heading4.copyWith(color: Colors.white),
       ),
     );
   }
@@ -480,7 +465,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         _buildDragIndicator(),
         const SizedBox(height: 10),
         // Design 2: the same rounded box as the full card — status and the
-        // รายได้สุทธิ pill on top, then the address across the full width.
+        // net-income pill on top, then the address across the full width.
         Container(
           height: _compactBoxHeight,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -499,7 +484,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.caption5.copyWith(
-                        color: AppColors.foundationMint600,
+                        color: p.textSecondary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -705,7 +690,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   /// Design 5: the stop being driven to, big — "กำลังไป · จุดรับ" with the
-  /// รายได้สุทธิ pill (design 2) on top, then pin, address (full width) and
+  /// net-income pill on top, then pin, address (full width) and
   /// "600 ม. · 2 นาที".
   Widget _buildNextStop() {
     final job = ref.watch(incomingJobControllerProvider).currentJob;
@@ -738,7 +723,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                 child: Text(
                   label,
                   style: AppTypography.caption5.copyWith(
-                    color: AppColors.foundationMint600,
+                    color: p.textSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
