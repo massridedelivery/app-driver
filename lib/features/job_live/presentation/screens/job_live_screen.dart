@@ -355,14 +355,16 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _fitSheetToContent(),
         );
-        final snaps = <double>{minExtent, fitExtent}.toList()..sort();
+        // No explicit snapSizes: snapping goes to min/max (peek/full) by
+        // default, and a fresh list on every rebuild (GPS ticks, the collapsed
+        // flag flipping mid-drag) made the sheet re-snap and fight the drag —
+        // a collapsed sheet could not be pulled back up.
         return DraggableScrollableSheet(
           controller: _sheetController,
           initialChildSize: fitExtent,
           minChildSize: minExtent,
           maxChildSize: fitExtent,
           snap: true,
-          snapSizes: snaps,
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(

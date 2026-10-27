@@ -60,4 +60,49 @@ void main() {
     await t.pump(const Duration(milliseconds: 300));
     expect(fired2(), 0);
   });
+
+  testWidgets('the label sits in the middle of the track', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 300,
+              child: SlideToConfirm(
+                label: 'รับงาน',
+                color: Colors.green,
+                onConfirmed: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final track = t.getRect(find.byType(SlideToConfirm));
+    final label = t.getRect(find.text('รับงาน'));
+    expect(label.center.dx, moreOrLessEquals(track.center.dx, epsilon: 1));
+    expect(label.left, greaterThan(t.getRect(knob()).right));
+  });
+
+  testWidgets('a long label clears the knob instead of centring', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 220,
+              child: SlideToConfirm(
+                label: 'เลื่อนเมื่อรับผู้โดยสารแล้วและพร้อมออกเดินทาง',
+                color: Colors.green,
+                onConfirmed: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final label = t.getRect(find.byType(Text));
+    expect(label.left, greaterThanOrEqualTo(t.getRect(knob()).right));
+    expect(t.takeException(), isNull);
+  });
 }
