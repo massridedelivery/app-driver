@@ -414,7 +414,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                         height: _compactHeight + bottomPad,
                         child: Container(
                           alignment: Alignment.topCenter,
-                          color: surface,
+                          // Same rounded top as the sheet, so the peek
+                          // doesn't paint square corners over it.
+                          decoration: BoxDecoration(
+                            color: surface,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                          ),
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                           child: _buildCompact(),
                         ),
