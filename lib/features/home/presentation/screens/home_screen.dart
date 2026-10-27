@@ -21,7 +21,7 @@ import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
+import 'package:massdrive/features/income/presentation/widgets/credit_notice_dialog.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
@@ -351,10 +351,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
       if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
       // Refresh the cash-job gate on every home entry (app open, back from a
-      // job or a top-up): the card under the online button reads it.
-      if (mounted) {
-        await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
-      }
+      // job or a top-up) and warn in a dialog when credit is low / blocked.
+      if (mounted) await _maybeShowCreditNotice(context, ref);
       // First home visit on this install: walk through the main controls.
       if (mounted) unawaited(HomeCoachMarks.maybeShow(context));
     } else {
@@ -855,7 +853,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const CashJobGateCard(),
                       KeyedSubtree(
                         key: HomeCoachMarks.statusCard,
                         child: const _StatusCard(),
@@ -995,9 +992,9 @@ class _OnlineButton extends ConsumerWidget {
             // The driver just went online but can't share location if GPS is
             // off or location is permanently denied — nudge them to Settings.
             await _promptLocationIfNeeded(context, ref);
-            // Going online is never refused for credit (BE dev115); refresh
-            // the cash-job card in case the balance moved.
-            await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
+            // Going online is never refused for credit (BE dev115); warn if
+            // the balance is low or cash jobs are blocked.
+            if (context.mounted) await _maybeShowCreditNotice(context, ref);
           }
         } catch (e) {
           if (context.mounted && newValue) {
@@ -1239,6 +1236,14 @@ Future<ServiceAreaResult> _checkServiceArea(double lat, double lng) async {
     blocked = r;
   }
   return blocked;
+}
+
+/// Fetches the cash-job gate and, when it has a notice (cash jobs blocked or
+/// credit running low), shows the credit dialog. Silent on a fetch failure.
+Future<void> _maybeShowCreditNotice(BuildContext context, WidgetRef ref) async {
+  final gate = await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
+  if (gate == null || !gate.hasNotice || !context.mounted) return;
+  await showCreditNoticeDialog(context, gate);
 }
 
 // Reusable static dialog — called from _OnlineButton which is outside the

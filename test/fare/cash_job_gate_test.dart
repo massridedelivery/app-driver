@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
-import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
+import 'package:massdrive/features/income/presentation/widgets/credit_notice_dialog.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 
 /// BE dev115: below the cash-job limit only cash jobs stop; QR / card jobs and
@@ -166,23 +166,56 @@ void main() {
     });
   });
 
-  testWidgets('home notice shows status line and opens top-up', (tester) async {
-    var tapped = false;
-    final gate = CashJobGate.fromSummary(summary(balance: -35, canCash: false));
+  Future<void> openDialog(WidgetTester tester, CashJobGate gate) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: CashJobNotice(gate: gate, onTopUp: () => tapped = true),
+        home: Builder(
+          builder: (c) => Scaffold(
+            body: TextButton(
+              onPressed: () => showCreditNoticeDialog(c, gate),
+              child: const Text('open'),
+            ),
+          ),
         ),
       ),
     );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('home dialog: cash jobs blocked', (tester) async {
+    await openDialog(
+      tester,
+      CashJobGate.fromSummary(summary(balance: -35, canCash: false)),
+    );
+    expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('งานเงินสดถูกระงับ'), findsOneWidget);
     expect(
       find.text('รับได้เฉพาะงาน QR/บัตร · ยอด -฿35 · เกณฑ์ -฿20'),
       findsOneWidget,
     );
-    expect(find.textContaining('รับงานไม่ได้'), findsNothing);
-    await tester.tap(find.text('เติมเครดิต'));
-    expect(tapped, isTrue);
+    expect(find.text('เติมเครดิต'), findsOneWidget);
+    await tester.tap(find.text('รับทราบ'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('home dialog: low-credit warning', (tester) async {
+    await openDialog(
+      tester,
+      CashJobGate.fromSummary(
+        summary(
+          balance: -8,
+          canCash: true,
+          warning: {
+            'title': 'เครดิตใกล้หมด',
+            'message': 'เครดิตของคุณใกล้หมด เติมเงินเครดิตเพื่อไม่ให้งานสะดุด',
+          },
+        ),
+      ),
+    );
+    expect(find.text('เครดิตใกล้หมด'), findsOneWidget);
+    expect(find.text('ยอด -฿8 · เกณฑ์ -฿20'), findsOneWidget);
+    expect(find.textContaining('ไม่ให้งานสะดุด'), findsOneWidget);
   });
 }
