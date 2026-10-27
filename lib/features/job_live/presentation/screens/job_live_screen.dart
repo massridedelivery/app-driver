@@ -18,6 +18,7 @@ import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/core/utils/distance_text.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
@@ -69,9 +70,30 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       jobLiveStageFromStatus(widget.initialStatus);
   Set<Polyline> _polylines = {};
 
+  /// The driver's last GPS fix, for the distance badge (straight line to the
+  /// current destination). Null until the first fix: the badge hides.
+  LatLng? _driverAt;
+  StreamSubscription<Position>? _positionSub;
+
   @override
   void initState() {
     super.initState();
+
+    _positionSub =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+          ),
+        ).listen(
+          (p) {
+            if (mounted) {
+              setState(() => _driverAt = LatLng(p.latitude, p.longitude));
+            }
+          },
+          // No permission / GPS off: the badge simply stays hidden.
+          onError: (_) {},
+        );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
@@ -98,6 +120,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ),
       );
       origin = LatLng(position.latitude, position.longitude);
+      if (mounted) setState(() => _driverAt = origin);
     } catch (_) {
       // Fallback to pickup if location unavailable
       origin = LatLng(currentJob.pickupLat, currentJob.pickupLng);
@@ -191,6 +214,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
 
   @override
   void dispose() {
+    _positionSub?.cancel();
     _sheetController.dispose();
     super.dispose();
   }
@@ -364,18 +388,31 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     }
   }
 
+  /// Straight-line distance from the driver to the current destination
+  /// (pickup until the passenger is on board, then the dropoff). Hidden until
+  /// there is a GPS fix.
   Widget _buildTopDistanceBadge() {
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    final at = _driverAt;
+    if (job == null || at == null) return const SizedBox.shrink();
+    final toDropoff = _currentState == JobLiveState.headingToDropoff;
+    final meters = Geolocator.distanceBetween(
+      at.latitude,
+      at.longitude,
+      toDropoff ? job.dropoffLat : job.pickupLat,
+      toDropoff ? job.dropoffLng : job.pickupLng,
+    );
     return Positioned(
       top: 70,
       left: 16,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.semanticGrayNeutralFgHigh.withOpacity(0.9),
+          color: AppColors.semanticGrayNeutralFgHigh.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
-          "570 ม.",
+          formatDistanceTh(meters),
           style: AppTypography.heading4.copyWith(
             color: AppColors.semanticGrayNeutralFgWhite,
           ),
@@ -383,6 +420,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       ),
     );
   }
+
 
   Widget _buildRightFloatingButtons() {
     return Positioned(
