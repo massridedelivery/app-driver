@@ -1244,7 +1244,8 @@ String? _lastCreditNotice;
 
 /// Fetches the cash-job gate and, when it has a notice (cash jobs blocked or
 /// credit running low), shows the credit dialog — once per session for the
-/// same balance, and never over a job offer.
+/// same balance, only while home is on top (never over a job offer or a job
+/// in progress).
 Future<void> _maybeShowCreditNotice(BuildContext context, WidgetRef ref) async {
   final gate = await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
   if (gate == null || !gate.hasNotice || !context.mounted) return;
@@ -1253,6 +1254,9 @@ Future<void> _maybeShowCreditNotice(BuildContext context, WidgetRef ref) async {
       ref.read(messengerControllerProvider).isModalVisible) {
     return;
   }
+  // An active job restored on open sits on top of home: don't cover the
+  // driver's live screen. Not remembered, so it shows back on home later.
+  if (ModalRoute.of(context)?.isCurrent == false) return;
   final key = '${gate.cashBlocked}|${gate.balance}';
   if (key == _lastCreditNotice) return;
   _lastCreditNotice = key;
