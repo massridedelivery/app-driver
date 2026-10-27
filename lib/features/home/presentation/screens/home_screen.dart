@@ -295,9 +295,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late DraggableScrollableController _sheetController;
 
   final double _minSize = 0.25;
-  // Cap the sheet at its resting size — there's no extra content to reveal, so
-  // dragging it taller only exposed empty panel space.
-  final double _maxSize = 0.40;
+
+  // The sheet rests at the height that shows all its content (status, menu,
+  // and the cash-job card when there is one) — at least 0.40, at most 0.75 —
+  // and can't be dragged taller than that: there's nothing more to reveal.
+  static const double _restMin = 0.40;
+  static const double _restMax = 0.75;
+  double _restSize = _restMin;
+  final GlobalKey _sheetContentKey = GlobalKey();
 
   @override
   void initState() {
@@ -773,14 +778,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ================= BOTTOM SHEET =================
 
+  /// Fits the resting size to the measured content (the cash-job card can
+  /// push the menu below a fixed 0.40 sheet) and moves an open sheet there.
+  void _fitSheet(double availableH) {
+    if (!mounted || availableH <= 0) return;
+    final h = _sheetContentKey.currentContext?.size?.height;
+    if (h == null) return;
+    // +26: the content starts under the overlapping online button.
+    final fit = ((h + 26) / availableH).clamp(_restMin, _restMax);
+    if ((fit - _restSize).abs() < 0.005) return;
+    final wasOpen =
+        !_sheetController.isAttached ||
+        _sheetController.size >= _restSize - 0.02;
+    setState(() => _restSize = fit);
+    if (wasOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _sheetController.isAttached) {
+          _sheetController.jumpTo(_restSize);
+        }
+      });
+    }
+  }
+
   Widget _buildBottomSheet() {
+    return LayoutBuilder(
+      builder: (context, box) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _fitSheet(box.maxHeight),
+        );
+        return _sheet();
+      },
+    );
+  }
+
+  Widget _sheet() {
     return DraggableScrollableSheet(
       controller: _sheetController,
-      initialChildSize: 0.40,
+      initialChildSize: _restSize,
       minChildSize: _minSize,
-      maxChildSize: _maxSize,
+      maxChildSize: _restSize,
       snap: true,
-      snapSizes: const [0.40],
+      snapSizes: [_restSize],
       builder: (context, scrollController) {
         return Stack(
           clipBehavior: Clip.none,
@@ -801,6 +839,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: SingleChildScrollView(
                   controller: scrollController,
                   child: Padding(
+                    key: _sheetContentKey,
                     padding: const EdgeInsets.fromLTRB(14, 22, 14, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
