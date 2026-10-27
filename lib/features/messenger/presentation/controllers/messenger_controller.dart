@@ -1,6 +1,6 @@
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
-import 'package:massdrive/features/income/presentation/widgets/cash_job_gate_card.dart';
+import 'package:massdrive/features/income/presentation/widgets/credit_notice_dialog.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
