@@ -193,6 +193,12 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ),
               ],
             ),
+            // The customer's earlier cancel fee rides on this job (BE PR #15):
+            // collected for the company, not the driver's income.
+            if (job.priorCancelFeeLine case final line?) ...[
+              const SizedBox(height: 8),
+              PriorCancelFeeNote(text: line),
+            ],
             const SizedBox(height: 6),
             Text(
               autoAccept

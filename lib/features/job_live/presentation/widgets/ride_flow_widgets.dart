@@ -357,3 +357,40 @@ class RideIconButton extends StatelessWidget {
     ),
   );
 }
+
+/// "ค่ายกเลิกครั้งก่อนของลูกค้า ฿X (เก็บแทนบริษัท)" on the offer and the
+/// collect screen: money taken for the company on top of this job's fare.
+class PriorCancelFeeNote extends StatelessWidget {
+  const PriorCancelFeeNote({super.key, required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.foundationOrange500.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: AppColors.foundationOrange500,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTypography.caption3.copyWith(
+                color: context.palette.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

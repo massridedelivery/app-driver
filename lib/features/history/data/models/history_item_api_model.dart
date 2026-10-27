@@ -1,3 +1,4 @@
+import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/models/history_item_model.dart';
 
@@ -129,6 +130,8 @@ class HistoryItemApiModel {
         return 'เติมเงิน';
       case 'earning':
         return 'รายได้จากงาน';
+      case 'cancellation_fee_collected':
+        return cancellationFeeCollectedLabel;
       default:
         return type ?? '-';
     }

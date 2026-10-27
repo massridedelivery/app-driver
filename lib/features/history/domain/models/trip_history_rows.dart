@@ -1,3 +1,4 @@
+import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'history_item_model.dart';
 import 'trip_summary.dart';
 
@@ -22,6 +23,7 @@ String historyLineLabel(HistoryItemModel i) =>
       'FARE_PAYMENT' => 'ค่าโดยสาร',
       'COMMISSION_DEDUCTION' => 'หักค่าคอมมิชชัน',
       'MARKETING_EXPENSE' => 'ส่วนลด (บริษัทออกให้)',
+      'CANCELLATION_FEE_COLLECTED' => cancellationFeeCollectedLabel,
       _ => i.title,
     };
 

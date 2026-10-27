@@ -126,11 +126,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool get _customerPaid =>
       (_rideJob?.paymentStatus ?? '').toUpperCase() == 'PAID';
 
-  /// Show the fare / toll / waiting / discount lines (BE #199) when the ride
+  /// Show the fare / toll / waiting / discount / earlier-cancel-fee lines
+  /// (BE #199, PR #15) when the ride
   /// has any part beyond the plain fare.
   bool get _showRideParts {
     final j = _rideJob;
-    return j != null && (j.tollFee > 0 || j.waitingFee > 0 || j.discount > 0);
+    return j != null &&
+        (j.tollFee > 0 ||
+            j.waitingFee > 0 ||
+            j.discount > 0 ||
+            j.priorCancelFee > 0);
   }
 
   double? get _driverCommission =>
@@ -693,6 +698,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             if (_rideJob!.waitingFee > 0) ...[
               const SizedBox(height: 16),
               _buildBreakdownRow("ค่ารอ", _rideJob!.waitingFee),
+            ],
+            // Inside amount_due; the company's money, collected on its behalf.
+            if (_rideJob!.priorCancelFee > 0) ...[
+              const SizedBox(height: 16),
+              _buildBreakdownRow(
+                "ค่ายกเลิกครั้งก่อนของลูกค้า\n(เก็บแทนบริษัท)",
+                _rideJob!.priorCancelFee,
+              ),
             ],
             if (_rideJob!.discount > 0) ...[
               const SizedBox(height: 16),

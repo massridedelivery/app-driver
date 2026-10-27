@@ -673,6 +673,8 @@ class _TransactionTile extends StatelessWidget {
         return Icons.tune_rounded;
       case TransactionType.promoDiscount:
         return Icons.local_offer_rounded;
+      case TransactionType.cancellationFeeCollected:
+        return Icons.event_busy_rounded;
     }
   }
 
@@ -692,6 +694,8 @@ class _TransactionTile extends StatelessWidget {
         return 'ปรับยอด';
       case TransactionType.promoDiscount:
         return 'ส่วนลด (บริษัทออกให้)';
+      case TransactionType.cancellationFeeCollected:
+        return cancellationFeeCollectedLabel;
     }
   }
 }
