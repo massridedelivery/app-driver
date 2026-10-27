@@ -803,21 +803,19 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     return Row(
       children: [
         const SizedBox(width: 4),
-        toDropoff
-            ? const Icon(
-                Icons.check_circle,
-                size: 14,
-                color: RideStopsTimeline.pickupColor,
-              )
-            : SvgPicture.asset(
-                RideStopsTimeline.pinAsset,
-                width: 14,
-                height: 14,
-                colorFilter: const ColorFilter.mode(
-                  RideStopsTimeline.dropoffColor,
-                  BlendMode.srcIn,
-                ),
-              ),
+        // The other stop's pin: green pickup once on board, red dropoff
+        // before.
+        SvgPicture.asset(
+          RideStopsTimeline.pinAsset,
+          width: 14,
+          height: 14,
+          colorFilter: ColorFilter.mode(
+            toDropoff
+                ? RideStopsTimeline.pickupColor
+                : RideStopsTimeline.dropoffColor,
+            BlendMode.srcIn,
+          ),
+        ),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
