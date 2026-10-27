@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -435,14 +436,15 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           height: 44,
           child: Row(
             children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: toDropoff
-                      ? AppColors.semanticSupportRedBgHigh
-                      : AppColors.foundationMint600,
-                  shape: BoxShape.circle,
+              SvgPicture.asset(
+                RideStopsTimeline.pinAsset,
+                width: 20,
+                height: 20,
+                colorFilter: ColorFilter.mode(
+                  toDropoff
+                      ? RideStopsTimeline.dropoffColor
+                      : RideStopsTimeline.pickupColor,
+                  BlendMode.srcIn,
                 ),
               ),
               const SizedBox(width: 10),

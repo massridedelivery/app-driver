@@ -1238,11 +1238,24 @@ Future<ServiceAreaResult> _checkServiceArea(double lat, double lng) async {
   return blocked;
 }
 
+/// What the credit dialog last showed this app session (balance + blocked),
+/// so returning home after every job doesn't re-open the same warning.
+String? _lastCreditNotice;
+
 /// Fetches the cash-job gate and, when it has a notice (cash jobs blocked or
-/// credit running low), shows the credit dialog. Silent on a fetch failure.
+/// credit running low), shows the credit dialog — once per session for the
+/// same balance, and never over a job offer.
 Future<void> _maybeShowCreditNotice(BuildContext context, WidgetRef ref) async {
   final gate = await ref.read(walletControllerProvider.notifier).fetchPayoutSummary();
   if (gate == null || !gate.hasNotice || !context.mounted) return;
+  // A job offer on screen: its countdown matters more than the warning.
+  if (ref.read(incomingJobControllerProvider).isModalVisible ||
+      ref.read(messengerControllerProvider).isModalVisible) {
+    return;
+  }
+  final key = '${gate.cashBlocked}|${gate.balance}';
+  if (key == _lastCreditNotice) return;
+  _lastCreditNotice = key;
   await showCreditNoticeDialog(context, gate);
 }
 
