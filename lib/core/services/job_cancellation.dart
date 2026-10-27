@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:massdrive/core/managers/api/api_exception.dart';
 
 /// A ride / food job the backend says is cancelled (BE #191), from any of:
 /// the `job_status` WS frame, the `job_cancelled` push, or a 409
@@ -51,6 +52,9 @@ JobCancelEvent? jobCancelFromPush(Map<String, dynamic> data) {
 /// PATCH /api/driver/jobs/{id}/status on a job that's already cancelled:
 /// 409 `{"code":"job_cancelled"}`. Retrying can't help.
 bool isJobCancelledError(Object error) {
+  // Through BaseApiService the DioException arrives as an ApiException that
+  // keeps the HTTP status; this endpoint answers 409 only for a cancelled job.
+  if (error is ApiException) return error.code == 409;
   if (error is! DioException) return false;
   final data = error.response?.data;
   return error.response?.statusCode == 409 &&
