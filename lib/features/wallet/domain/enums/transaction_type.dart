@@ -1,3 +1,6 @@
+/// Row label for [TransactionType.cancellationFeeCollected].
+const cancellationFeeCollectedLabel = 'ค่ายกเลิกที่เก็บแทนบริษัท';
+
 /// Represents the nature of the financial movement in the wallet.
 enum TransactionType {
   /// Earnings added after completing a trip or delivery.
@@ -21,7 +24,12 @@ enum TransactionType {
   /// `marketing_expense`: the platform-funded promo on a job. It records the
   /// part of the fare the company paid instead of the customer — already in
   /// the fare and the job's driver_net, so it is not extra income.
-  promoDiscount;
+  promoDiscount,
+
+  /// `CANCELLATION_FEE_COLLECTED` (BE PR #15): a customer's earlier cancel
+  /// fee the driver took in cash on a later job. Negative — cash held for the
+  /// company, owed back like the cash-fare debt. Never on QR jobs.
+  cancellationFeeCollected;
 
   /// Parses a raw API string (e.g. "FARE_PAYMENT") into a [TransactionType].
   /// Returns [TransactionType.adjustment] as a safe fallback for unknown values.
@@ -39,6 +47,8 @@ enum TransactionType {
         return TransactionType.bonus;
       case 'MARKETING_EXPENSE':
         return TransactionType.promoDiscount;
+      case 'CANCELLATION_FEE_COLLECTED':
+        return TransactionType.cancellationFeeCollected;
       case 'ADJUSTMENT':
       default:
         return TransactionType.adjustment;
@@ -62,6 +72,8 @@ enum TransactionType {
         return 'ADJUSTMENT';
       case TransactionType.promoDiscount:
         return 'MARKETING_EXPENSE';
+      case TransactionType.cancellationFeeCollected:
+        return 'CANCELLATION_FEE_COLLECTED';
     }
   }
 
@@ -76,6 +88,7 @@ enum TransactionType {
         return true;
       case TransactionType.commissionDeduction:
       case TransactionType.withdrawal:
+      case TransactionType.cancellationFeeCollected:
         return false;
     }
   }

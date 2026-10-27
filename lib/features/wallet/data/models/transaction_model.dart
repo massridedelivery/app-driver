@@ -94,6 +94,9 @@ class TransactionModel {
         case 'BONUS':
           desc = 'โบนัสพิเศษ';
           break;
+        case 'CANCELLATION_FEE_COLLECTED':
+          desc = cancellationFeeCollectedLabel;
+          break;
         default:
           desc = 'รายการธุรกรรม';
           break;

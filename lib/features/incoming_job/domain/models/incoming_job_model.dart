@@ -46,6 +46,10 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'toll_fee') @Default(0.0) double tollFee,
     @JsonKey(name: 'waiting_fee') @Default(0.0) double waitingFee,
     @JsonKey(name: 'discount') @Default(0.0) double discount,
+    // The customer's unpaid fee from an earlier cancel (BE PR #15), already
+    // inside amount_due. The company's money, not the driver's — collected on
+    // its behalf. Absent → 0.
+    @JsonKey(name: 'prior_cancel_fee') @Default(0.0) double priorCancelFee,
     // "PAID" once the customer paid by QR/card — then nothing is collected.
     @JsonKey(name: 'payment_status') String? paymentStatus,
     @JsonKey(name: 'payment_method') required String paymentMethod,
@@ -76,6 +80,15 @@ sealed class IncomingJobModel with _$IncomingJobModel {
   }) = _IncomingJobModel;
 
   /// Whether this job is a food delivery order
+  /// "ค่ายกเลิกครั้งก่อนของลูกค้า ฿X (เก็บแทนบริษัท)", or null without one.
+  String? get priorCancelFeeLine => priorCancelFee > 0
+      ? 'ค่ายกเลิกครั้งก่อนของลูกค้า ${_baht(priorCancelFee)} (เก็บแทนบริษัท)'
+      : null;
+
+  static String _baht(double v) => v == v.roundToDouble()
+      ? '฿${v.toStringAsFixed(0)}'
+      : '฿${v.toStringAsFixed(2)}';
+
   bool get isFood =>
       serviceType.toLowerCase().contains('food') || orderItems.isNotEmpty;
 
