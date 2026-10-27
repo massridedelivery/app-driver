@@ -2,6 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/core/services/location_service.dart';
+import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/job_live/domain/job_status_update.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,7 +19,6 @@ import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/services/directions_service.dart';
-import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
@@ -963,41 +967,55 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       key: ValueKey(_currentState),
       label: label,
       color: color,
-      loading: _collecting,
+      loading: _collecting || _sending,
       onConfirmed: _advance,
     );
   }
 
-  void _advance() {
-    final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
-    final socket = ref.read(socketServiceProvider);
+  /// A status change in flight: the slide shows a spinner and ignores drags.
+  bool _sending = false;
 
-    setState(() {
-      switch (_currentState) {
-        case JobLiveState.headingToPickup:
-          _currentState = JobLiveState.arrivedAtPickup;
-          if (jobId != null) {
-            socket.updateJobStatus(jobId, 'ARRIVED_AT_PICK_UP');
-            _refreshSoon();
-          }
-          break;
-        case JobLiveState.arrivedAtPickup:
-          _currentState = JobLiveState.headingToDropoff;
-          if (jobId != null) {
-            socket.updateJobStatus(jobId, 'PICKED_UP');
-            _refreshSoon();
-          }
-          break;
-        case JobLiveState.headingToDropoff:
-          // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
-          // the fare and marks COMPLETED only once it's settled. Pass the
-          // amount explicitly (amount_due when real, else fare) so the
-          // collect screen never depends on live controller state.
-          _goCollect();
-          break;
-      }
-    });
-    // Reload route whenever state changes
-    _loadRoute();
+  /// Moves the ride on only once the backend has accepted the status
+  /// (PATCH /api/driver/jobs/:id/status). ARRIVED_AT_PICK_UP carries the
+  /// driver's position — the backend refuses it beyond the arrival radius —
+  /// so the driver's screen and the customer's never disagree.
+  Future<void> _advance() async {
+    if (_currentState == JobLiveState.headingToDropoff) {
+      // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
+      // the fare and marks COMPLETED only once it's settled.
+      _goCollect();
+      return;
+    }
+    final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
+    if (jobId == null || _sending) return;
+    final (status, next) = _currentState == JobLiveState.headingToPickup
+        ? ('ARRIVED_AT_PICK_UP', JobLiveState.arrivedAtPickup)
+        : ('PICKED_UP', JobLiveState.headingToDropoff);
+    setState(() => _sending = true);
+    final location = ref.read(locationServiceProvider);
+    final result = await sendJobStatus(
+      repo: getIt<JobLiveRepository>(),
+      jobId: jobId,
+      status: status,
+      locate: () async {
+        final p = await location.currentPosition();
+        return p == null ? null : (lat: p.latitude, lng: p.longitude);
+      },
+    );
+    if (!mounted) return;
+    setState(() => _sending = false);
+    switch (result.outcome) {
+      case JobStatusOutcome.ok:
+        setState(() => _currentState = next);
+        _refreshSoon();
+        _loadRoute();
+      case JobStatusOutcome.cancelled:
+        JobCancellations.instance.report(JobCancelEvent(jobId));
+      case JobStatusOutcome.noLocation:
+      case JobStatusOutcome.refused:
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result.message)));
+    }
   }
 }
