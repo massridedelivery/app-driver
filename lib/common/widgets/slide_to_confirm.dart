@@ -76,6 +76,16 @@ class _SlideToConfirmState extends State<SlideToConfirm>
           double.infinity,
         );
         final t = maxDx == 0 ? 0.0 : _dx / maxDx;
+        final labelStyle = AppTypography.label2.copyWith(color: Colors.white);
+        final labelWidth = (TextPainter(
+          text: TextSpan(text: widget.label, style: labelStyle),
+          maxLines: 1,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout()).width;
+        final double labelLeft = ((box.maxWidth - labelWidth) / 2)
+            .clamp(knob + pad * 2, double.infinity)
+            .toDouble();
         return Semantics(
           button: true,
           enabled: _active,
@@ -91,22 +101,22 @@ class _SlideToConfirmState extends State<SlideToConfirm>
             child: Stack(
               alignment: Alignment.centerLeft,
               children: [
-                // Label fades as the knob covers it.
-                Positioned.fill(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: knob + pad * 2, right: 16),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Opacity(
-                        opacity: (1 - t * 1.4).clamp(0.0, 1.0),
-                        child: Text(
-                          widget.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.label2.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
+                // Label centred on the whole track, nudged right only as far
+                // as it takes to clear the knob; fades as the knob covers it.
+                Positioned(
+                  left: labelLeft,
+                  right: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Opacity(
+                      opacity: (1 - t * 1.4).clamp(0.0, 1.0),
+                      child: Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: labelStyle,
                       ),
                     ),
                   ),
