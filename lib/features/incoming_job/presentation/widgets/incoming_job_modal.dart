@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
+import 'package:massdrive/common/widgets/slide_to_confirm.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -71,8 +73,9 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
     _timer?.cancel();
     // Disable the buttons until the backend answers (BE #198).
     setState(() => _accepting = true);
-    final outcome =
-        await ref.read(incomingJobControllerProvider.notifier).acceptJob();
+    final outcome = await ref
+        .read(incomingJobControllerProvider.notifier)
+        .acceptJob();
     if (!mounted) return;
     // Failed but not taken: let the driver try again.
     if (outcome == AcceptOutcome.failed) {
@@ -99,249 +102,138 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    final headline = offerHeadline(fare: job.netIncome, driverNet: job.driverNet);
-    final autoAccept = ref.watch(autoAcceptProvider);
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppSpacing.s4),
-          topRight: Radius.circular(AppSpacing.s4),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Padding(
-          // Bottom inset from viewPadding, not SafeArea: SafeArea reads
-          // MediaQuery.padding, which an ancestor can consume to 0 — leaving
-          // the accept button under the system nav/gesture bar.
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Section: Income and Points
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Column(
-                          children: [
-                            Text(
-                              headline.label,
-                              style: AppTypography.body1.copyWith(
-                                color: AppColors.semanticGrayNeutralFgWhite,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.s3),
-                            Row(
-                              children: [
-                                Text(
-                                  formatBahtNumber(headline.amount),
-                                  style: AppTypography.heading2.copyWith(
-                                    color: AppColors.semanticGrayNeutralFgWhite,
-                                    fontSize: 32,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                Text(
-                                  ' ฿',
-                                  style: AppTypography.caption1.copyWith(
-                                    color: AppColors.semanticGrayNeutralFgWhite,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.semanticGrayNeutralFgWhite,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            job.paymentMethod,
-                            style: AppTypography.body2.copyWith(
-                              color: AppColors.semanticGrayNeutralFgHigh,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Service Type
-              Row(
-                children: [
-                  const Icon(
-                    Icons.inventory_2,
-                    color: AppColors.semanticGrayNeutralFgWhite,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    job.serviceType,
-                    style: AppTypography.heading5.copyWith(
-                      color: AppColors.semanticGrayNeutralFgWhite,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Timeline
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Timeline Dots & Line
-                    Column(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: const BoxDecoration(
-                            color: AppColors.semanticSuccessBgHigh,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: List.generate(
-                                3,
-                                (index) => Container(
-                                  width: 3,
-                                  height: 3,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white70,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: const BoxDecoration(
-                            color: AppColors.semanticSupportRedBgHigh,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    // Addresses
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildAddressBlock(
-                            job.pickupAddress,
-                            job.pickupAddressDetail,
-                            '${job.pickupDistanceKm} KM',
-                          ),
-                          const SizedBox(height: 24),
-                          _buildAddressBlock(
-                            job.dropoffAddress,
-                            job.dropoffAddressDetail,
-                            '${(job.distanceKm ?? 0.0) > 0 ? job.distanceKm : job.dropoffDistanceKm} KM',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Shared accept/decline footer: auto-accept caption, progress bar
-              // and the large cancel/accept pills.
-              JobOfferActionBar(
-                remaining: _remaining,
-                totalSeconds: _totalSeconds,
-                autoAccept: autoAccept,
-                onAccept: _accept,
-                onDecline: _decline,
-                isSubmitting: _accepting,
-              ),
-            ],
-          ),
-        ),
-      ),
+    final p = context.palette;
+    final card = RideCardColors.of(context);
+    final headline = offerHeadline(
+      fare: job.netIncome,
+      driverNet: job.driverNet,
     );
-  }
-
-  Widget _buildAddressBlock(String title, String detail, String distance) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final autoAccept = ref.watch(autoAcceptProvider);
+    final pay = paymentMethodLabel(job.paymentMethod);
+    final tripKm = (job.distanceKm ?? 0) > 0
+        ? job.distanceKm!
+        : job.dropoffDistanceKm;
+    return Container(
+      decoration: BoxDecoration(
+        color: card.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Padding(
+        // Bottom inset from viewPadding, not SafeArea: SafeArea reads
+        // MediaQuery.padding, which an ancestor can consume to 0 — leaving
+        // the accept slide under the system nav/gesture bar.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Text(
-                title,
-                style: AppTypography.heading5.copyWith(
-                  color: AppColors.semanticGrayNeutralFgWhite,
+            Row(
+              children: [
+                RideTag(
+                  text: [job.serviceType, if (pay.isNotEmpty) pay].join(' · '),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                const Spacer(),
+                _CountdownRing(remaining: _remaining, total: _totalSeconds),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // What the driver earns (driver_net), never what the passenger pays.
+            Text(
+              headline.label,
+              style: AppTypography.caption5.copyWith(color: p.textSecondary),
+            ),
+            Text(
+              formatBaht(headline.amount),
+              style: AppTypography.heading2.copyWith(
+                color: p.textPrimary,
+                fontSize: 34,
+                height: 1.1,
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(height: 8),
+            RideStopsTimeline(
+              stops: [
+                RideStop(
+                  address: job.pickupAddress,
+                  sub: '${job.pickupDistanceKm.toStringAsFixed(1)} กม. จากคุณ',
+                  isPickup: true,
+                  state: RideStopState.current,
+                ),
+                RideStop(
+                  address: job.dropoffAddress,
+                  sub: '${tripKm.toStringAsFixed(1)} กม.',
+                  isPickup: false,
+                  state: RideStopState.current,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
-              distance,
-              style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationAlphaWhite500,
+              autoAccept
+                  ? 'รับงานอัตโนมัติใน $_remaining วินาที'
+                  : 'ยกเลิกอัตโนมัติใน $_remaining วินาที',
+              textAlign: TextAlign.center,
+              style: AppTypography.caption5.copyWith(color: p.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            SlideToConfirm(
+              label: 'เลื่อนเพื่อรับงาน',
+              color: AppColors.foundationMint600,
+              loading: _accepting,
+              onConfirmed: _accept,
+            ),
+            TextButton(
+              onPressed: _accepting ? null : _decline,
+              child: Text(
+                'ไม่รับงานนี้',
+                style: AppTypography.caption3.copyWith(color: p.textSecondary),
               ),
             ),
           ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Seconds left as a ring that empties; orange for the last 5 s.
+class _CountdownRing extends StatelessWidget {
+  const _CountdownRing({required this.remaining, required this.total});
+
+  final int remaining;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = remaining <= 5
+        ? AppColors.foundationOrange700
+        : AppColors.foundationMint600;
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: total <= 0 ? 0 : remaining / total,
+            strokeWidth: 3,
+            color: color,
+            backgroundColor: RideCardColors.of(context).line,
+          ),
+          Text(
+            '$remaining',
+            style: AppTypography.caption3.copyWith(
+              color: context.palette.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

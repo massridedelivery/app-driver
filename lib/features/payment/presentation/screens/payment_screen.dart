@@ -1,3 +1,4 @@
+import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -804,8 +805,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           // Confirm Button — cash settles on confirm.
           // Nothing to collect: finishing the job is all that's left.
-          _buildConfirmButton(
-            label: _nothingToCollect ? 'จบงาน' : 'รับเงินสดแล้ว',
+          // A slide, not a tap: harder to confirm cash by accident.
+          SlideToConfirm(
+            label: _nothingToCollect
+                ? 'เลื่อนเพื่อจบงาน'
+                : 'เลื่อนเมื่อรับเงินสดแล้ว',
+            color: AppColors.foundationGreen700,
+            enabled: _canConfirm,
+            loading: _submitting,
+            onConfirmed: _onConfirmPayment,
           ),
         ],
       ),

@@ -19,6 +19,10 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/core/utils/distance_text.dart';
+import 'package:massdrive/common/widgets/slide_to_confirm.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 
@@ -64,10 +68,21 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   bool _refitPending = true;
   static const double _sheetMinExtent = 0.12;
 
+  /// The sheet is down at its peek: show the compact card on top.
+  bool _collapsed = false;
+  double _sheetMinNow = _sheetMinExtent;
+
+  void _onSheetMoved() {
+    if (!_sheetController.isAttached) return;
+    final c = _sheetController.size <= _sheetMinNow + 0.03;
+    if (c != _collapsed) setState(() => _collapsed = c);
+  }
+
   final DirectionsService _directionsService = DirectionsService();
 
-  late JobLiveState _currentState =
-      jobLiveStageFromStatus(widget.initialStatus);
+  late JobLiveState _currentState = jobLiveStageFromStatus(
+    widget.initialStatus,
+  );
   Set<Polyline> _polylines = {};
 
   /// The driver's last GPS fix, for the distance badge (straight line to the
@@ -79,6 +94,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   void initState() {
     super.initState();
 
+    _sheetController.addListener(_onSheetMoved);
     _positionSub =
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
@@ -130,10 +146,9 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     final dropoffLatLng = LatLng(currentJob.dropoffLat, currentJob.dropoffLng);
 
     // Determine destination based on current state
-    final LatLng destination =
-        (_currentState == JobLiveState.headingToDropoff)
-            ? dropoffLatLng
-            : pickupLatLng;
+    final LatLng destination = (_currentState == JobLiveState.headingToDropoff)
+        ? dropoffLatLng
+        : pickupLatLng;
 
     final points = await _directionsService.getRoutePolyline(
       origin: origin,
@@ -199,16 +214,18 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       if (canNav) {
         await launchUrl(navUri, mode: LaunchMode.externalApplication);
       } else {
-        final ok =
-            await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+        final ok = await launchUrl(
+          fallbackUri,
+          mode: LaunchMode.externalApplication,
+        );
         debugPrint('NAV: fallback https launch result=$ok');
       }
     } catch (e) {
       debugPrint('NAV: launch error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถเปิดแอปนำทางได้')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถเปิดแอปนำทางได้')));
     }
   }
 
@@ -229,7 +246,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       body: Stack(
         children: [
           _buildMap(),
-          _buildTopDistanceBadge(),
+          _buildNavBanner(),
           _buildRightFloatingButtons(),
           _buildBottomSheet(bottomInset),
         ],
@@ -306,7 +323,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     // MEASURED content (the key sits on the padded box) so the fit height
     // reserves room for it too — the button always lands above the nav bar.
     final bool isAndroid = defaultTargetPlatform == TargetPlatform.android;
-    final double bottomPad = 24 + (isAndroid ? bottomInset : 0.0);
+    final double bottomPad = 16 + (isAndroid ? bottomInset : 0.0);
+    final surface = RideCardColors.of(context).surface;
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableH = constraints.maxHeight;
@@ -317,7 +335,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
             ? (_sheetContentHeight! / availableH).clamp(0.2, 0.94)
             : 0.5;
         _sheetFitExtent = fitExtent;
-        const double minExtent = _sheetMinExtent;
+        // Collapsed (design A): the next stop, รายได้สุทธิ and the slide.
+        final double minExtent = availableH > 0
+            ? ((_compactHeight + bottomPad) / availableH).clamp(0.12, fitExtent)
+            : _sheetMinExtent;
+        _sheetMinNow = minExtent;
         // Measure content + snap the sheet fully open (once) after layout.
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _fitSheetToContent(),
@@ -332,29 +354,55 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           snapSizes: snaps,
           builder: (context, scrollController) {
             return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.semanticGrayNeutralFgMidOnBlack,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 16),
+                ],
               ),
               child: SingleChildScrollView(
                 controller: scrollController,
-                child: Padding(
-                  key: _sheetContentKey,
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildDragIndicator(),
-                      const SizedBox(height: 16),
-                      _buildTripHeader(),
-                      const SizedBox(height: 20),
-                      _buildPassengerInfo(),
-                      const SizedBox(height: 20),
-                      _buildContactRow(),
-                      const SizedBox(height: 24),
-                      _buildArrivedButton(),
-                    ],
-                  ),
+                child: Stack(
+                  children: [
+                    Padding(
+                      key: _sheetContentKey,
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildDragIndicator(),
+                          const SizedBox(height: 10),
+                          _buildTripHeader(),
+                          const SizedBox(height: 8),
+                          _buildStops(),
+                          const SizedBox(height: 8),
+                          _buildPassengerInfo(),
+                          const SizedBox(height: 12),
+                          _buildArrivedButton(),
+                        ],
+                      ),
+                    ),
+                    // Collapsed: the top of the sheet shows the compact card.
+                    if (_collapsed)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        // Covers the whole peek, nav-bar strip included, so
+                        // the full card never shows through underneath.
+                        height: _compactHeight + bottomPad,
+                        child: Container(
+                          alignment: Alignment.topCenter,
+                          color: surface,
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: _buildCompact(),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             );
@@ -362,6 +410,88 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         );
       },
     );
+  }
+
+  /// Height of the collapsed card above the bottom padding: grip, one stop
+  /// row, the slide.
+  static const double _compactHeight = 8 + 4 + 10 + 44 + 12 + 56 + 4;
+
+  /// Collapsed card (design A): the stop being driven to, รายได้สุทธิ and the
+  /// slide — the driver can confirm without opening the sheet.
+  Widget _buildCompact() {
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    final p = context.palette;
+    final toDropoff = _currentState == JobLiveState.headingToDropoff;
+    final headline = offerHeadline(
+      fare: job?.netIncome ?? 0,
+      driverNet: job?.driverNet,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildDragIndicator(),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 44,
+          child: Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: toDropoff
+                      ? AppColors.semanticSupportRedBgHigh
+                      : AppColors.foundationMint600,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ??
+                          '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption3.copyWith(
+                        color: p.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      _compactSub(),
+                      style: AppTypography.caption5.copyWith(
+                        color: p.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                formatBaht(headline.amount),
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.foundationMint600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildArrivedButton(),
+      ],
+    );
+  }
+
+  String _compactSub() {
+    final d = _distanceText();
+    return switch (_currentState) {
+      JobLiveState.headingToPickup => d.isEmpty ? 'ไปรับ' : '$d · ไปรับ',
+      JobLiveState.arrivedAtPickup => 'รอผู้โดยสาร',
+      JobLiveState.headingToDropoff => d.isEmpty ? 'ไปส่ง' : '$d · ไปส่ง',
+    };
   }
 
   /// Measures the sheet content and, once its height is stable, snaps the
@@ -380,7 +510,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     if (_refitPending && _sheetController.isAttached) {
       _refitPending = false;
       // Leave a sheet the driver collapsed to the peek as it is.
-      final collapsed = _sheetController.size <= _sheetMinExtent + 0.02;
+      final collapsed = _sheetController.size <= _sheetMinNow + 0.02;
       if (!collapsed &&
           (_sheetController.size - _sheetFitExtent).abs() > 0.005) {
         _sheetController.jumpTo(_sheetFitExtent);
@@ -388,50 +518,65 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     }
   }
 
-  /// Straight-line distance from the driver to the current destination
-  /// (pickup until the passenger is on board, then the dropoff). Hidden until
+  /// Straight-line distance from the driver to the stop being driven to
+  /// (pickup until the passenger is on board, then the dropoff); empty until
   /// there is a GPS fix.
-  Widget _buildTopDistanceBadge() {
-    final job = ref.watch(incomingJobControllerProvider).currentJob;
+  String _distanceText() {
+    final job = ref.read(incomingJobControllerProvider).currentJob;
     final at = _driverAt;
-    if (job == null || at == null) return const SizedBox.shrink();
+    if (job == null || at == null) return '';
     final toDropoff = _currentState == JobLiveState.headingToDropoff;
-    final meters = Geolocator.distanceBetween(
-      at.latitude,
-      at.longitude,
-      toDropoff ? job.dropoffLat : job.pickupLat,
-      toDropoff ? job.dropoffLng : job.pickupLng,
-    );
-    return Positioned(
-      top: 70,
-      left: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.semanticGrayNeutralFgHigh.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          formatDistanceTh(meters),
-          style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgWhite,
-          ),
-        ),
+    return formatDistanceTh(
+      Geolocator.distanceBetween(
+        at.latitude,
+        at.longitude,
+        toDropoff ? job.dropoffLat : job.pickupLat,
+        toDropoff ? job.dropoffLng : job.pickupLng,
       ),
     );
   }
 
+  /// Green bar on top: the step, the address heading to, the distance (or
+  /// รอผู้โดยสาร at the pickup) and นำทาง.
+  Widget _buildNavBanner() {
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    if (job == null) return const SizedBox.shrink();
+    final (step, address, headline) = switch (_currentState) {
+      JobLiveState.headingToPickup => (
+        '1 · ไปรับผู้โดยสาร',
+        job.pickupAddress,
+        _distanceText(),
+      ),
+      JobLiveState.arrivedAtPickup => (
+        '1 · ถึงจุดรับแล้ว',
+        job.pickupAddress,
+        'รอผู้โดยสาร',
+      ),
+      JobLiveState.headingToDropoff => (
+        '2 · ไปส่งผู้โดยสาร',
+        job.dropoffAddress,
+        _distanceText(),
+      ),
+    };
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 8,
+      left: 12,
+      right: 12,
+      child: RideNavBanner(
+        step: step,
+        address: address,
+        headline: headline,
+        onNavigate: _openGoogleMapsNavigation,
+      ),
+    );
+  }
 
   Widget _buildRightFloatingButtons() {
     return Positioned(
       right: 16,
-      top: 160,
-      // Navigation lives in the bottom sheet action row, not up here.
-      child: Column(
-        children: [
-          _circleButton(Icons.shield_outlined),
-        ],
-      ),
+      top: MediaQuery.paddingOf(context).top + 140,
+      // Navigation lives in the top banner.
+      child: Column(children: [_circleButton(Icons.shield_outlined)]),
     );
   }
 
@@ -456,43 +601,100 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: Colors.white24,
+          color: context.palette.border,
           borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
   }
 
+  /// "มอเตอร์ไซค์ · เงินสด" + job no., then รายได้สุทธิของคุณ — what the
+  /// driver earns (driver_net), never what the passenger pays.
   Widget _buildTripHeader() {
-    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
-    String headerText = "";
-    Color headerColor = AppColors.semanticSuccessBgHigh;
-
-    switch (_currentState) {
-      case JobLiveState.headingToPickup:
-        headerText = "กำลังไปรับผู้โดยสาร";
-        break;
-      case JobLiveState.arrivedAtPickup:
-        headerText = "รอผู้โดยสาร";
-        headerColor = AppColors.foundationOrange600;
-        break;
-      case JobLiveState.headingToDropoff:
-        headerText = "กำลังไปส่งผู้โดยสาร";
-        headerColor = AppColors.semanticSuccessBgHigh;
-        break;
-    }
-
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    final p = context.palette;
+    final headline = offerHeadline(
+      fare: job?.netIncome ?? 0,
+      driverNet: job?.driverNet,
+    );
+    final pay = paymentMethodLabel(job?.paymentMethod);
+    final jobNo = job == null || job.jobId.length < 6
+        ? ''
+        : '#${job.jobId.substring(job.jobId.length - 6).toUpperCase()}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          headerText,
-          style: AppTypography.heading4.copyWith(color: headerColor),
+        Row(
+          children: [
+            RideTag(
+              text: [
+                job?.serviceType ?? 'มอเตอร์ไซค์',
+                if (pay.isNotEmpty) pay,
+              ].join(' · '),
+            ),
+            const Spacer(),
+            Text(
+              jobNo,
+              style: AppTypography.caption5.copyWith(color: p.textTertiary),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
-          currentJob?.serviceType ?? "มอเตอร์ไซค์",
-          style: AppTypography.body2.copyWith(color: Colors.white70),
+          'รายได้สุทธิของคุณ',
+          style: AppTypography.caption5.copyWith(color: p.textSecondary),
+        ),
+        Text(
+          formatBaht(headline.amount),
+          style: AppTypography.heading2.copyWith(
+            color: AppColors.foundationMint600,
+            height: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Pickup → dropoff; the stop being driven to stands out.
+  Widget _buildStops() {
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    final km = job == null
+        ? 0.0
+        : ((job.distanceKm ?? 0) > 0 ? job.distanceKm! : job.dropoffDistanceKm);
+    final d = _distanceText();
+    final (pState, pSub, dState, dSub) = switch (_currentState) {
+      JobLiveState.headingToPickup => (
+        RideStopState.current,
+        d.isEmpty ? 'จุดรับ' : '$d จากคุณ',
+        RideStopState.upcoming,
+        km > 0 ? '${km.toStringAsFixed(1)} กม. ทั้งเที่ยว' : 'จุดส่ง',
+      ),
+      JobLiveState.arrivedAtPickup => (
+        RideStopState.current,
+        'ถึงแล้ว · รอผู้โดยสาร',
+        RideStopState.upcoming,
+        km > 0 ? '${km.toStringAsFixed(1)} กม. ทั้งเที่ยว' : 'จุดส่ง',
+      ),
+      JobLiveState.headingToDropoff => (
+        RideStopState.done,
+        'รับผู้โดยสารแล้ว',
+        RideStopState.current,
+        d.isEmpty ? 'จุดส่ง' : d,
+      ),
+    };
+    return RideStopsTimeline(
+      stops: [
+        RideStop(
+          address: job?.pickupAddress ?? 'จุดรับ',
+          sub: pSub,
+          isPickup: true,
+          state: pState,
+        ),
+        RideStop(
+          address: job?.dropoffAddress ?? 'จุดส่ง',
+          sub: dSub,
+          isPickup: false,
+          state: dState,
         ),
       ],
     );
@@ -515,12 +717,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// in-memory offer can't be used — its amount_due is always 0.
   Future<void> _goCollect() async {
     if (_collecting) return;
-    _collecting = true;
+    setState(() => _collecting = true);
     final fresh = await ref
         .read(incomingJobControllerProvider.notifier)
         .refreshActiveJob();
-    _collecting = false;
     if (!mounted) return;
+    setState(() => _collecting = false);
     // amount_due only — never the fare (BE #199). Without it, don't guess.
     if (fresh == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -530,104 +732,86 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
       );
       return;
     }
-    context.push('/payment', extra: {
-      'gateCompletion': true,
-      'amount': rideAmountToCollect(serverAmountDue: fresh.amountDue ?? 0),
-    });
+    context.push(
+      '/payment',
+      extra: {
+        'gateCompletion': true,
+        'amount': rideAmountToCollect(serverAmountDue: fresh.amountDue ?? 0),
+      },
+    );
   }
 
+  /// Passenger + แชท / โทรฟรี / ช่วยเหลือ.
   Widget _buildPassengerInfo() {
-    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
-    // What the driver earns from this job (driver_net), not what the
-    // passenger pays — the fare only when the backend gave no net.
-    final headline = offerHeadline(
-      fare: currentJob?.netIncome ?? 0,
-      driverNet: currentJob?.driverNet,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          currentJob?.passengerName ?? "ผู้โดยสาร",
-          style: AppTypography.heading4.copyWith(
-            color: AppColors.semanticGrayNeutralFgWhite,
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    final p = context.palette;
+    return Container(
+      padding: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: RideCardColors.of(context).line)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: RideCardColors.of(context).chip,
+            child: Icon(Icons.person, color: p.textSecondary),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _currentState == JobLiveState.headingToPickup ||
-                  _currentState == JobLiveState.arrivedAtPickup
-              ? (currentJob?.pickupAddress ?? "จุดรับ")
-              : (currentJob?.dropoffAddress ?? "จุดส่ง"),
-          style: AppTypography.caption3.copyWith(
-            color: Colors.white70,
-            height: 1.4,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  job?.passengerName ?? 'ผู้โดยสาร',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption3.copyWith(
+                    color: p.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                // The role line only under a real name (the default name
+                // already says ผู้โดยสาร).
+                if (job != null && job.passengerName != 'ผู้โดยสาร')
+                  Text(
+                    'ผู้โดยสาร',
+                    style: AppTypography.caption5.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          headline.label,
-          style: AppTypography.caption4.copyWith(color: Colors.white70),
-        ),
-        Row(
-          children: [
-            Text(
-              formatBaht(headline.amount),
-              style: AppTypography.heading3.copyWith(
-                color: AppColors.semanticGrayNeutralFgWhite,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              currentJob?.paymentMethod ?? "เงินสด",
-              style: AppTypography.heading6.copyWith(
-                color: AppColors.semanticGrayNeutralFgWhite,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildContactRow() {
-    final currentJob = ref.watch(incomingJobControllerProvider).currentJob;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _bottomAction(
-          Icons.chat_bubble_outline,
-          "แชท",
-          onTap: currentJob == null
-              ? null
-              : () {
-                  AppNavigator.push(
+          RideIconButton(
+            icon: Icons.chat_bubble_outline,
+            tooltip: 'แชท',
+            onTap: job == null
+                ? null
+                : () => AppNavigator.push(
                     context,
                     ChatScreen(
-                      jobId: currentJob.jobId,
-                      passengerName: currentJob.passengerName,
+                      jobId: job.jobId,
+                      passengerName: job.passengerName,
                     ),
-                  );
-                },
-        ),
-        _bottomAction(
-          Icons.phone_outlined,
-          "โทรฟรี",
-          onTap: (currentJob == null || currentJob.passengerPhone.isEmpty)
-              ? null
-              : () => _callPassenger(currentJob.passengerPhone),
-        ),
-        _bottomAction(
-          Icons.navigation_outlined,
-          "นำทาง",
-          onTap: _openGoogleMapsNavigation,
-        ),
-        _bottomAction(
-          Icons.help_outline,
-          "ช่วยเหลือ",
-          onTap: () => showHelpSheet(context),
-        ),
-      ],
+                  ),
+          ),
+          const SizedBox(width: 8),
+          RideIconButton(
+            icon: Icons.phone_outlined,
+            tooltip: 'โทรฟรี',
+            onTap: (job == null || job.passengerPhone.isEmpty)
+                ? null
+                : () => _callPassenger(job.passengerPhone),
+          ),
+          const SizedBox(width: 8),
+          RideIconButton(
+            icon: Icons.help_outline,
+            tooltip: 'ช่วยเหลือ',
+            onTap: () => showHelpSheet(context),
+          ),
+        ],
+      ),
     );
   }
 
@@ -636,98 +820,68 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถโทรออกได้')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถโทรออกได้')));
     }
   }
 
-  Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white70),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: AppTypography.caption4.copyWith(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  /// The step's slide: orange "เลื่อนเมื่อถึงจุดรับ", then green
+  /// "เลื่อนเพื่อเริ่มเดินทาง" and "เลื่อนเมื่อส่งถึงแล้ว".
   Widget _buildArrivedButton() {
-    String buttonText = "";
-    Color buttonColor = AppColors.semanticSuccessBgHigh;
-
-    switch (_currentState) {
-      case JobLiveState.headingToPickup:
-        buttonText = "ถึงแล้ว";
-        break;
-      case JobLiveState.arrivedAtPickup:
-        buttonText = "เริ่มเดินทาง";
-        buttonColor = AppColors.semanticSuccessBgHigh;
-        break;
-      case JobLiveState.headingToDropoff:
-        buttonText = "ส่งผู้โดยสาร";
-        buttonColor = AppColors.semanticSuccessBgHigh;
-        break;
-    }
-
-    return GestureDetector(
-      onTap: () {
-        final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
-        final socket = ref.read(socketServiceProvider);
-
-        setState(() {
-          switch (_currentState) {
-            case JobLiveState.headingToPickup:
-              _currentState = JobLiveState.arrivedAtPickup;
-              if (jobId != null) {
-                socket.updateJobStatus(jobId, 'ARRIVED_AT_PICK_UP');
-                _refreshSoon();
-              }
-              break;
-            case JobLiveState.arrivedAtPickup:
-              _currentState = JobLiveState.headingToDropoff;
-              if (jobId != null) {
-                socket.updateJobStatus(jobId, 'PICKED_UP');
-                _refreshSoon();
-              }
-              break;
-            case JobLiveState.headingToDropoff:
-              // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
-              // the fare and marks COMPLETED only once it's settled. Pass the
-              // amount explicitly (amount_due when real, else fare) so the
-              // collect screen never depends on live controller state.
-              _goCollect();
-              break;
-          }
-        });
-        // Reload route whenever state changes
-        _loadRoute();
-      },
-      child: Container(
-        width: double.infinity,
-        height: 56,
-        decoration: BoxDecoration(
-          color: buttonColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          buttonText,
-          style: AppTypography.heading5.copyWith(
-            color: AppColors.semanticGrayNeutralFgWhite,
-          ),
-        ),
+    final (label, color) = switch (_currentState) {
+      JobLiveState.headingToPickup => (
+        'เลื่อนเมื่อถึงจุดรับ',
+        AppColors.foundationOrange700,
       ),
+      JobLiveState.arrivedAtPickup => (
+        'เลื่อนเพื่อเริ่มเดินทาง',
+        AppColors.foundationMint600,
+      ),
+      JobLiveState.headingToDropoff => (
+        'เลื่อนเมื่อส่งถึงแล้ว',
+        AppColors.foundationMint600,
+      ),
+    };
+    return SlideToConfirm(
+      key: ValueKey(_currentState),
+      label: label,
+      color: color,
+      loading: _collecting,
+      onConfirmed: _advance,
     );
+  }
+
+  void _advance() {
+    final jobId = ref.read(incomingJobControllerProvider).currentJob?.jobId;
+    final socket = ref.read(socketServiceProvider);
+
+    setState(() {
+      switch (_currentState) {
+        case JobLiveState.headingToPickup:
+          _currentState = JobLiveState.arrivedAtPickup;
+          if (jobId != null) {
+            socket.updateJobStatus(jobId, 'ARRIVED_AT_PICK_UP');
+            _refreshSoon();
+          }
+          break;
+        case JobLiveState.arrivedAtPickup:
+          _currentState = JobLiveState.headingToDropoff;
+          if (jobId != null) {
+            socket.updateJobStatus(jobId, 'PICKED_UP');
+            _refreshSoon();
+          }
+          break;
+        case JobLiveState.headingToDropoff:
+          // New flow (SCRUM-86): don't complete yet — PaymentScreen collects
+          // the fare and marks COMPLETED only once it's settled. Pass the
+          // amount explicitly (amount_due when real, else fare) so the
+          // collect screen never depends on live controller state.
+          _goCollect();
+          break;
+      }
+    });
+    // Reload route whenever state changes
+    _loadRoute();
   }
 }
