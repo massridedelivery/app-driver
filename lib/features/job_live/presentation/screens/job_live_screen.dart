@@ -22,7 +22,6 @@ import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/core/utils/distance_text.dart';
 import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
-import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
@@ -91,6 +90,11 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   LatLng? _driverAt;
   StreamSubscription<Position>? _positionSub;
 
+  /// Driving time to the current stop from the last route fetch, and where
+  /// the driver was then.
+  int? _routeEtaSeconds;
+  LatLng? _routeEtaFrom;
+
   @override
   void initState() {
     super.initState();
@@ -151,13 +155,19 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ? dropoffLatLng
         : pickupLatLng;
 
-    final points = await _directionsService.getRoutePolyline(
+    final route = await _directionsService.getRoute(
       origin: origin,
       destination: destination,
     );
+    final points = route.points;
 
     if (!mounted) return;
     setState(() {
+      // Google's driving time from here to the stop, with the straight-line
+      // distance it was measured at — the ETA shrinks with it as the
+      // driver closes in.
+      _routeEtaSeconds = route.durationSeconds;
+      _routeEtaFrom = origin;
       _polylines = {
         if (points.isNotEmpty)
           Polyline(
@@ -377,10 +387,10 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                         children: [
                           _buildDragIndicator(),
                           const SizedBox(height: 10),
-                          _buildTripHeader(),
+                          _buildNextStop(),
                           const SizedBox(height: 8),
-                          _buildStops(),
-                          const SizedBox(height: 8),
+                          _buildThenLine(),
+                          const SizedBox(height: 10),
                           _buildPassengerInfo(),
                           const SizedBox(height: 12),
                           _buildArrivedButton(),
@@ -488,11 +498,16 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   }
 
   String _compactSub() {
-    final d = _distanceText();
+    final facts = [
+      _distanceText(),
+      _etaText(),
+    ].where((t) => t.isNotEmpty).join(' · ');
     return switch (_currentState) {
-      JobLiveState.headingToPickup => d.isEmpty ? 'ไปรับ' : '$d · ไปรับ',
+      JobLiveState.headingToPickup =>
+        facts.isEmpty ? 'ไปรับ' : '$facts · ไปรับ',
       JobLiveState.arrivedAtPickup => 'รอผู้โดยสาร',
-      JobLiveState.headingToDropoff => d.isEmpty ? 'ไปส่ง' : '$d · ไปส่ง',
+      JobLiveState.headingToDropoff =>
+        facts.isEmpty ? 'ไปส่ง' : '$facts · ไปส่ง',
     };
   }
 
@@ -610,93 +625,162 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     );
   }
 
-  /// "มอเตอร์ไซค์ · เงินสด" + job no., then รายได้สุทธิของคุณ — what the
-  /// driver earns (driver_net), never what the passenger pays.
-  Widget _buildTripHeader() {
+  /// "2 นาที" to the current stop: the route's driving time scaled by how
+  /// much of the straight-line distance is left. Empty without a route time.
+  String _etaText() {
+    final eta = _routeEtaSeconds;
+    final from = _routeEtaFrom;
+    final at = _driverAt;
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    if (eta == null || job == null) return '';
+    final toDropoff = _currentState == JobLiveState.headingToDropoff;
+    final lat = toDropoff ? job.dropoffLat : job.pickupLat;
+    final lng = toDropoff ? job.dropoffLng : job.pickupLng;
+    var secs = eta.toDouble();
+    if (from != null && at != null) {
+      final d0 = Geolocator.distanceBetween(
+        from.latitude,
+        from.longitude,
+        lat,
+        lng,
+      );
+      final d1 = Geolocator.distanceBetween(
+        at.latitude,
+        at.longitude,
+        lat,
+        lng,
+      );
+      if (d0 > 50) secs = eta * (d1 / d0).clamp(0.0, 1.5);
+    }
+    final mins = (secs / 60).ceil();
+    return mins <= 1 ? '1 นาที' : '$mins นาที';
+  }
+
+  /// Design 5: the stop being driven to, big — pin, "กำลังไป · จุดรับ", its
+  /// address and "600 ม. · 2 นาที" — with รายได้สุทธิ (driver_net, never
+  /// what the passenger pays) on the right.
+  Widget _buildNextStop() {
     final job = ref.watch(incomingJobControllerProvider).currentJob;
     final p = context.palette;
     final headline = offerHeadline(
       fare: job?.netIncome ?? 0,
       driverNet: job?.driverNet,
     );
-    final pay = paymentMethodLabel(job?.paymentMethod);
-    final jobNo = job == null || job.jobId.length < 6
+    final toDropoff = _currentState == JobLiveState.headingToDropoff;
+    final label = switch (_currentState) {
+      JobLiveState.headingToPickup => 'กำลังไป · จุดรับ',
+      JobLiveState.arrivedAtPickup => 'ถึงจุดรับแล้ว · รอผู้โดยสาร',
+      JobLiveState.headingToDropoff => 'กำลังไป · จุดส่ง',
+    };
+    final facts = _currentState == JobLiveState.arrivedAtPickup
         ? ''
-        : '#${job.jobId.substring(job.jobId.length - 6).toUpperCase()}';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            RideTag(
-              text: [
-                job?.serviceType ?? 'มอเตอร์ไซค์',
-                if (pay.isNotEmpty) pay,
-              ].join(' · '),
+        : [_distanceText(), _etaText()].where((t) => t.isNotEmpty).join(' · ');
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RideCardColors.of(context).chip,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SvgPicture.asset(
+            RideStopsTimeline.pinAsset,
+            width: 22,
+            height: 22,
+            colorFilter: ColorFilter.mode(
+              toDropoff
+                  ? RideStopsTimeline.dropoffColor
+                  : RideStopsTimeline.pickupColor,
+              BlendMode.srcIn,
             ),
-            const Spacer(),
-            Text(
-              jobNo,
-              style: AppTypography.caption5.copyWith(color: p.textTertiary),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'รายได้สุทธิของคุณ',
-          style: AppTypography.caption5.copyWith(color: p.textSecondary),
-        ),
-        Text(
-          formatBaht(headline.amount),
-          style: AppTypography.heading2.copyWith(
-            color: AppColors.foundationMint600,
-            height: 1.1,
           ),
-        ),
-      ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.caption5.copyWith(
+                    color: AppColors.foundationMint600,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label2.copyWith(color: p.textPrimary),
+                ),
+                if (facts.isNotEmpty)
+                  Text(
+                    facts,
+                    style: AppTypography.caption5.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'รายได้สุทธิ',
+                style: AppTypography.caption5.copyWith(color: p.textSecondary),
+              ),
+              Text(
+                formatBaht(headline.amount),
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.foundationMint600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  /// Pickup → dropoff; the stop being driven to stands out.
-  Widget _buildStops() {
+  /// One line about the other stop: "จากนั้นส่งที่ …" before pickup,
+  /// "รับผู้โดยสารแล้ว · …" on the way to the dropoff.
+  Widget _buildThenLine() {
     final job = ref.watch(incomingJobControllerProvider).currentJob;
-    final km = job == null
-        ? 0.0
-        : ((job.distanceKm ?? 0) > 0 ? job.distanceKm! : job.dropoffDistanceKm);
-    final d = _distanceText();
-    final (pState, pSub, dState, dSub) = switch (_currentState) {
-      JobLiveState.headingToPickup => (
-        RideStopState.current,
-        d.isEmpty ? 'จุดรับ' : '$d จากคุณ',
-        RideStopState.upcoming,
-        km > 0 ? '${km.toStringAsFixed(1)} กม. ทั้งเที่ยว' : 'จุดส่ง',
-      ),
-      JobLiveState.arrivedAtPickup => (
-        RideStopState.current,
-        'ถึงแล้ว · รอผู้โดยสาร',
-        RideStopState.upcoming,
-        km > 0 ? '${km.toStringAsFixed(1)} กม. ทั้งเที่ยว' : 'จุดส่ง',
-      ),
-      JobLiveState.headingToDropoff => (
-        RideStopState.done,
-        'รับผู้โดยสารแล้ว',
-        RideStopState.current,
-        d.isEmpty ? 'จุดส่ง' : d,
-      ),
-    };
-    return RideStopsTimeline(
-      stops: [
-        RideStop(
-          address: job?.pickupAddress ?? 'จุดรับ',
-          sub: pSub,
-          isPickup: true,
-          state: pState,
-        ),
-        RideStop(
-          address: job?.dropoffAddress ?? 'จุดส่ง',
-          sub: dSub,
-          isPickup: false,
-          state: dState,
+    final toDropoff = _currentState == JobLiveState.headingToDropoff;
+    final text = toDropoff
+        ? 'รับผู้โดยสารแล้ว · ${job?.pickupAddress ?? ''}'
+        : 'จากนั้นส่งที่ ${job?.dropoffAddress ?? ''}';
+    return Row(
+      children: [
+        const SizedBox(width: 4),
+        toDropoff
+            ? const Icon(
+                Icons.check_circle,
+                size: 14,
+                color: RideStopsTimeline.pickupColor,
+              )
+            : SvgPicture.asset(
+                RideStopsTimeline.pinAsset,
+                width: 14,
+                height: 14,
+                colorFilter: const ColorFilter.mode(
+                  RideStopsTimeline.dropoffColor,
+                  BlendMode.srcIn,
+                ),
+              ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption5.copyWith(
+              color: context.palette.textSecondary,
+            ),
+          ),
         ),
       ],
     );
