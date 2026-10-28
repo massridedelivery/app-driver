@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
-import '../../../../core/constants/app_colors.dart';
-import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/registration_status.dart';
 import '../controllers/registration_controller.dart';
+import '../states/registration_state.dart';
+import '../widgets/registration_ui.dart';
 
 class RegistrationChecklistScreen extends ConsumerStatefulWidget {
   const RegistrationChecklistScreen({super.key});
@@ -17,6 +18,15 @@ class RegistrationChecklistScreen extends ConsumerStatefulWidget {
       _RegistrationChecklistScreenState();
 }
 
+/// One checklist row: number, title, backend status and where it leads.
+typedef _StepSpec = ({
+  RegistrationItem item,
+  String title,
+  String? status,
+  String? rejectionReason,
+  VoidCallback onTap,
+});
+
 class _RegistrationChecklistScreenState
     extends ConsumerState<RegistrationChecklistScreen> {
   @override
@@ -25,6 +35,97 @@ class _RegistrationChecklistScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(registrationControllerProvider.notifier).fetchStatus();
     });
+  }
+
+  List<_StepSpec> _steps(BuildContext context, RegistrationState state) {
+    _StepSpec doc(
+      RegistrationItem item,
+      DocumentType type,
+      String title,
+      String routeTitle,
+    ) {
+      return (
+        item: item,
+        title: title,
+        status: state.remoteDocuments[type]?.status,
+        rejectionReason: state.remoteDocuments[type]?.rejectionReason,
+        onTap: () => context.push(
+          '/document-registration/upload-document',
+          extra: {'type': type, 'title': routeTitle},
+        ),
+      );
+    }
+
+    final steps = <RegistrationItem, _StepSpec>{
+      RegistrationItem.profile: (
+        item: RegistrationItem.profile,
+        title: 'ข้อมูลส่วนตัว',
+        status: state.isProfileComplete ? 'approved' : null,
+        rejectionReason: null,
+        onTap: () => context.push('/document-registration/basic-profile'),
+      ),
+      RegistrationItem.profilePhoto: doc(
+        RegistrationItem.profilePhoto,
+        DocumentType.profilePhoto,
+        'รูปถ่ายโปรไฟล์',
+        'รูปถ่ายโปรไฟล์',
+      ),
+      RegistrationItem.idCard: doc(
+        RegistrationItem.idCard,
+        DocumentType.idCard,
+        'บัตรประชาชน',
+        'บัตรประชาชน',
+      ),
+      // Driving License (Core - always shown)
+      RegistrationItem.drivingLicense: doc(
+        RegistrationItem.drivingLicense,
+        DocumentType.drivingLicense,
+        'ใบขับขี่',
+        'ใบขับขี่',
+      ),
+      RegistrationItem.publicDrivingLicense: doc(
+        RegistrationItem.publicDrivingLicense,
+        DocumentType.publicDrivingLicense,
+        'ใบขับขี่สาธารณะ',
+        'ใบขับขี่สาธารณะ',
+      ),
+      RegistrationItem.vehicle: (
+        item: RegistrationItem.vehicle,
+        title: 'ข้อมูลรถ และ สมุดคู่มือ',
+        // Use vehicleRegistration doc status; fall back to 'approved' if
+        // profile data filled but no doc yet.
+        status:
+            state.remoteDocuments[DocumentType.vehicleRegistration]?.status ??
+            (state.isVehicleInfoComplete ? 'approved' : null),
+        rejectionReason: state
+            .remoteDocuments[DocumentType.vehicleRegistration]
+            ?.rejectionReason,
+        onTap: () => context.push('/document-registration/vehicle-info'),
+      ),
+      RegistrationItem.vehiclePhoto: doc(
+        RegistrationItem.vehiclePhoto,
+        DocumentType.vehiclePhoto,
+        'รูปถ่ายตัวรถ',
+        'รูปถ่ายตัวรถ',
+      ),
+      RegistrationItem.insurance: doc(
+        RegistrationItem.insurance,
+        DocumentType.insurance,
+        'พ.ร.บ. รถจักรยานยนต์ / ประกัน',
+        'พ.ร.บ. / ประกัน',
+      ),
+      RegistrationItem.bank: (
+        item: RegistrationItem.bank,
+        title: 'ข้อมูลบัญชีธนาคาร',
+        status: state.remoteDocuments[DocumentType.bankPassbook]?.status,
+        rejectionReason:
+            state.remoteDocuments[DocumentType.bankPassbook]?.rejectionReason,
+        onTap: () => context.push('/document-registration/bank-account'),
+      ),
+    };
+    return [
+      for (final i in registrationItemsFor(state.selectedTier!)) steps[i]!,
+    ];
   }
 
   @override
@@ -42,377 +143,120 @@ class _RegistrationChecklistScreenState
       return const _TierSelectionView();
     }
 
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          'ลงทะเบียนเอกสาร',
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        backgroundColor: context.palette.bg,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: context.palette.textPrimary,
-          ),
-          onPressed: () =>
-              ref.read(registrationControllerProvider.notifier).setTier(null),
-        ),
-      ),
-      body: state.isLoading && !state.isProfileComplete
-          ? const Center(child: MassLoadingM(size: 72))
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'กรุณาเตรียมและอัปโหลดเอกสารต่อไปนี้ให้ครบถ้วน สำหรับประเภท: ${state.selectedTier == KycTier.food
-                          ? "อาหาร"
-                          : state.selectedTier == KycTier.ride
-                          ? "รับส่งคน"
-                          : "ทั้งสองประเภท"}',
-                      style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Expanded(
-                      child: ListView(
-                        children: [
-                          _buildStepItem(
-                            context,
-                            title: '1. ข้อมูลส่วนตัว',
-                            status: state.isProfileComplete ? 'approved' : null,
-                            rejectionReason: null,
-                            onTap: () => context.push(
-                              '/document-registration/basic-profile',
-                            ),
-                          ),
-                          _buildStepItem(
-                            context,
-                            title: '2. รูปถ่ายโปรไฟล์',
-                            status: state.remoteDocuments[DocumentType.profilePhoto]?.status,
-                            rejectionReason: state.remoteDocuments[DocumentType.profilePhoto]?.rejectionReason,
-                            onTap: () => context.push(
-                              '/document-registration/upload-document',
-                              extra: {
-                                'type': DocumentType.profilePhoto,
-                                'title': 'รูปถ่ายโปรไฟล์',
-                              },
-                            ),
-                          ),
-                          _buildStepItem(
-                            context,
-                            title: '3. บัตรประชาชน',
-                            status: state.remoteDocuments[DocumentType.idCard]?.status,
-                            rejectionReason: state.remoteDocuments[DocumentType.idCard]?.rejectionReason,
-                            onTap: () => context.push(
-                              '/document-registration/upload-document',
-                              extra: {
-                                'type': DocumentType.idCard,
-                                'title': 'บัตรประชาชน',
-                              },
-                            ),
-                          ),
+    final steps = _steps(context, state);
+    final completed = steps
+        .where((s) => s.status == 'approved' || s.status == 'pending')
+        .length;
+    final loading = state.isLoading && !state.isProfileComplete;
 
-                          // Driving License (Core - always shown)
-                          _buildStepItem(
-                            context,
-                            title: '4. ใบขับขี่',
-                            status: state.remoteDocuments[DocumentType.drivingLicense]?.status,
-                            rejectionReason: state.remoteDocuments[DocumentType.drivingLicense]?.rejectionReason,
-                            onTap: () => context.push(
-                              '/document-registration/upload-document',
-                              extra: {
-                                'type': DocumentType.drivingLicense,
-                                'title': 'ใบขับขี่',
-                              },
-                            ),
-                          ),
-
-                          if (state.selectedTier == KycTier.ride ||
-                              state.selectedTier == KycTier.both) ...[
-                            _buildStepItem(
-                              context,
-                              title: '5. ใบขับขี่สาธารณะ',
-                              status: state.remoteDocuments[DocumentType.publicDrivingLicense]?.status,
-                              rejectionReason: state.remoteDocuments[DocumentType.publicDrivingLicense]?.rejectionReason,
-                              onTap: () => context.push(
-                                '/document-registration/upload-document',
-                                extra: {
-                                  'type': DocumentType.publicDrivingLicense,
-                                  'title': 'ใบขับขี่สาธารณะ',
-                                },
-                              ),
-                            ),
-                            _buildStepItem(
-                              context,
-                              title: '6. ข้อมูลรถ และ สมุดคู่มือ',
-                              // Use vehicleRegistration doc status; fall back to 'approved' if profile data filled but no doc yet
-                              status: state.remoteDocuments[DocumentType.vehicleRegistration]?.status
-                                  ?? (state.isVehicleInfoComplete ? 'approved' : null),
-                              rejectionReason: state.remoteDocuments[DocumentType.vehicleRegistration]?.rejectionReason,
-                              onTap: () => context.push(
-                                '/document-registration/vehicle-info',
-                              ),
-                            ),
-                            _buildStepItem(
-                              context,
-                              title: '7. รูปถ่ายตัวรถ',
-                              status: state.remoteDocuments[DocumentType.vehiclePhoto]?.status,
-                              rejectionReason: state.remoteDocuments[DocumentType.vehiclePhoto]?.rejectionReason,
-                              onTap: () => context.push(
-                                '/document-registration/upload-document',
-                                extra: {
-                                  'type': DocumentType.vehiclePhoto,
-                                  'title': 'รูปถ่ายตัวรถ',
-                                },
-                              ),
-                            ),
-                            _buildStepItem(
-                              context,
-                              title: '8. พ.ร.บ. รถจักรยานยนต์ / ประกัน',
-                              status: state.remoteDocuments[DocumentType.insurance]?.status,
-                              rejectionReason: state.remoteDocuments[DocumentType.insurance]?.rejectionReason,
-                              onTap: () => context.push(
-                                '/document-registration/upload-document',
-                                extra: {
-                                  'type': DocumentType.insurance,
-                                  'title': 'พ.ร.บ. / ประกัน',
-                                },
-                              ),
-                            ),
-                          ],
-
-                          _buildStepItem(
-                            context,
-                            title: '${state.selectedTier == KycTier.food ? "5" : "9"}. ข้อมูลบัญชีธนาคาร',
-                            status: state.remoteDocuments[DocumentType.bankPassbook]?.status,
-                            rejectionReason: state.remoteDocuments[DocumentType.bankPassbook]?.rejectionReason,
-                            onTap: () => context.push(
-                              '/document-registration/bank-account',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: state.isAllStepsExceptConsentCompleted
-                            ? () =>
-                                  context.push('/document-registration/consent')
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              state.isAllStepsExceptConsentCompleted
-                              ? AppColors.foundationOrange600
-                              : AppColors.semanticDisabledBgLow,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'ดำเนินการต่อ',
-                          style: AppTypography.label1.copyWith(
-                            color: state.isAllStepsExceptConsentCompleted
-                                ? Colors.white
-                                : AppColors.semanticDisabledFgOnWhite,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return RegistrationScaffold(
+      icon: Icons.checklist_rounded,
+      title: 'ลงทะเบียนเอกสาร',
+      subtitle:
+          'กรุณาเตรียมและอัปโหลดเอกสารต่อไปนี้ให้ครบถ้วน สำหรับประเภท: ${state.selectedTier == KycTier.food
+              ? "อาหาร"
+              : state.selectedTier == KycTier.ride
+              ? "รับส่งคน"
+              : "ทั้งสองประเภท"}',
+      step: completed,
+      total: steps.length,
+      onBack: () =>
+          ref.read(registrationControllerProvider.notifier).setTier(null),
+      bottom: loading
+          ? null
+          : RegistrationPrimaryButton(
+              label: 'ดำเนินการต่อ',
+              onPressed: state.isAllStepsExceptConsentCompleted
+                  ? () => context.push('/document-registration/consent')
+                  : null,
+            ),
+      scrollable: !loading,
+      child: loading
+          ? const SizedBox.expand(child: Center(child: MassLoadingM(size: 72)))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < steps.length; i++)
+                  _buildStepItem(context, number: i + 1, spec: steps[i]),
+              ],
             ),
     );
   }
 
   Widget _buildStepItem(
     BuildContext context, {
-    required String title,
-    required String? status,
-    required String? rejectionReason,
-    required VoidCallback onTap,
+    required int number,
+    required _StepSpec spec,
   }) {
-    Color backgroundColor = context.palette.surface;
-    Color borderColor = context.palette.border;
-    Widget trailingIcon = Icon(
-      Icons.chevron_right,
-      color: context.palette.textPrimary,
-    );
-    Widget? subtitleWidget;
+    final status = spec.status;
+    var rowStatus = RegistrationRowStatus.todo;
+    var lines = const ['ยังไม่ได้ทำ'];
+    int? underline;
     bool isInteractive = true;
 
     if (status == 'approved') {
-      backgroundColor = AppColors.foundationGreen100;
-      borderColor = AppColors.foundationGreen400;
-      trailingIcon = const Icon(
-        Icons.check_circle,
-        color: AppColors.foundationGreen500,
-      );
-      subtitleWidget = Padding(
-        padding: const EdgeInsets.only(top: 4.0),
-        child: Text(
-          'ผ่านการอนุมัติแล้ว',
-          style: AppTypography.caption4.copyWith(
-            color: AppColors.foundationGreen600,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
+      rowStatus = RegistrationRowStatus.done;
+      lines = const ['ผ่านการอนุมัติแล้ว'];
       isInteractive = false;
     } else if (status == 'pending') {
-      backgroundColor = AppColors.foundationOrange100.withOpacity(0.5);
-      borderColor = AppColors.foundationOrange400;
-      trailingIcon = const Icon(
-        Icons.access_time_filled,
-        color: AppColors.foundationOrange600,
-      );
-      subtitleWidget = Padding(
-        padding: const EdgeInsets.only(top: 4.0),
-        child: Text(
-          'อยู่ระหว่างการตรวจสอบ',
-          style: AppTypography.caption4.copyWith(
-            color: AppColors.foundationOrange600,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
+      rowStatus = RegistrationRowStatus.review;
+      lines = const ['อยู่ระหว่างการตรวจสอบ'];
       isInteractive = false;
     } else if (status == 'rejected') {
-      backgroundColor = AppColors.foundationRed100;
-      borderColor = AppColors.foundationRed400;
-      trailingIcon = const Icon(
-        Icons.error,
-        color: AppColors.foundationRed500,
-      );
-      subtitleWidget = Padding(
-        padding: const EdgeInsets.only(top: 4.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ถูกปฏิเสธ: ${rejectionReason ?? "กรุณาแก้ไขข้อมูล"}',
-              style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationRed800,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'แตะเพื่ออัปโหลดใหม่',
-              style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationRed800,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ],
-        ),
-      );
+      rowStatus = RegistrationRowStatus.rejected;
+      lines = [
+        'ถูกปฏิเสธ: ${spec.rejectionReason ?? "กรุณาแก้ไขข้อมูล"}',
+        'แตะเพื่ออัปโหลดใหม่',
+      ];
+      underline = 1;
       isInteractive = true;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: borderColor,
-        ),
-      ),
-      child: ListTile(
-        title: Text(
-          title,
-          style: AppTypography.label2.copyWith(
-            // Status cards keep a light pastel background in both themes, so
-            // their title stays dark; the default (not-yet-uploaded) card
-            // flips with the surface.
-            color: status != null
-                ? AppPalette.light.textPrimary
-                : context.palette.textPrimary,
-            fontWeight: isInteractive ? FontWeight.normal : FontWeight.bold,
-          ),
-        ),
-        subtitle: subtitleWidget,
-        trailing: trailingIcon,
-        onTap: isInteractive
-            ? onTap
-            : () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: const Duration(seconds: 2),
-                    content: Text(
-                      status == 'approved'
-                          ? 'เอกสารนี้ผ่านการอนุมัติแล้ว ไม่สามารถแก้ไขได้'
-                          : 'เอกสารอยู่ระหว่างการตรวจสอบ ไม่สามารถแก้ไขได้',
-                      style: AppTypography.label2.copyWith(
-                        color: context.palette.bg,
-                      ),
-                    ),
-                    backgroundColor: context.palette.textPrimary,
+    return RegistrationStatusRow(
+      number: number,
+      title: spec.title,
+      status: rowStatus,
+      statusLines: lines,
+      underlineLine: underline,
+      onTap: isInteractive
+          ? spec.onTap
+          : () {
+              final brand = context.brand;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  duration: const Duration(seconds: 2),
+                  content: Text(
+                    status == 'approved'
+                        ? 'เอกสารนี้ผ่านการอนุมัติแล้ว ไม่สามารถแก้ไขได้'
+                        : 'เอกสารอยู่ระหว่างการตรวจสอบ ไม่สามารถแก้ไขได้',
+                    style: AppTypography.label2.copyWith(color: brand.bg),
                   ),
-                );
-              },
-      ),
+                  backgroundColor: brand.text1,
+                ),
+              );
+            },
     );
   }
 }
 
+// ignore: unused_element
 class _InReviewView extends StatelessWidget {
   const _InReviewView();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: context.palette.textPrimary,
-          ),
-          onPressed: () => context.go('/home'),
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.hourglass_empty,
-                size: 80,
-                color: AppColors.foundationOrange600,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'เอกสารของคุณกำลังอยู่ระหว่างการตรวจสอบ',
-                textAlign: TextAlign.center,
-                style: AppTypography.heading3.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'เราจะแจ้งผลให้คุณทราบเร็วๆนี้',
-                style: AppTypography.caption2.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-            ],
-          ),
+    return RegistrationScaffold(
+      icon: Icons.hourglass_top_rounded,
+      title: 'ลงทะเบียนเอกสาร',
+      onBack: () => context.go('/home'),
+      child: const Padding(
+        padding: EdgeInsets.only(top: 22),
+        child: RegistrationResultContent(
+          icon: Icons.hourglass_top_rounded,
+          waiting: true,
+          title: 'เอกสารของคุณกำลังอยู่ระหว่างการตรวจสอบ',
+          body: 'เราจะแจ้งผลให้คุณทราบเร็วๆนี้',
+          extra: RegistrationTimeline(),
         ),
       ),
     );
@@ -424,65 +268,30 @@ class _ApprovedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                size: 80,
-                color: AppColors.foundationGreen500,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'เอกสารของคุณผ่านการอนุมัติแล้ว',
-                textAlign: TextAlign.center,
-                style: AppTypography.heading3.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'คุณสามารถเริ่มรับงานได้ทันที',
-                style: AppTypography.caption2.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // This screen can be reached as an imperative route (e.g.
-                    // from Edit Profile), which context.go alone won't clear —
-                    // it would leave this screen covering Home. Pop every
-                    // imperative route first, then land on Home.
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).popUntil((route) => route.isFirst);
-                    context.go('/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'ไปหน้ารับงาน',
-                    style: AppTypography.label1.copyWith(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return RegistrationScaffold(
+      icon: Icons.task_alt_rounded,
+      title: 'ลงทะเบียนเอกสาร',
+      showBack: false,
+      bottom: RegistrationPrimaryButton(
+        label: 'ไปหน้ารับงาน',
+        onPressed: () {
+          // This screen can be reached as an imperative route (e.g.
+          // from Edit Profile), which context.go alone won't clear —
+          // it would leave this screen covering Home. Pop every
+          // imperative route first, then land on Home.
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).popUntil((route) => route.isFirst);
+          context.go('/home');
+        },
+      ),
+      child: const Padding(
+        padding: EdgeInsets.only(top: 22),
+        child: RegistrationResultContent(
+          icon: Icons.task_alt_rounded,
+          title: 'เอกสารของคุณผ่านการอนุมัติแล้ว',
+          body: 'คุณสามารถเริ่มรับงานได้ทันที',
         ),
       ),
     );
@@ -494,150 +303,71 @@ class _TierSelectionView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          'เลือกประเภทการขับขี่',
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
+    final selected = ref.watch(
+      registrationControllerProvider.select((s) => s.selectedTier),
+    );
+    return RegistrationScaffold(
+      icon: Icons.route_rounded,
+      title: 'เลือกประเภทการขับขี่',
+      subtitle: 'ข้อมูลเอกสารที่ต้องใช้จะแตกต่างกันตามประเภทที่คุณเลือก',
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTierCard(
+            ref: ref,
+            tier: KycTier.food,
+            selected: selected,
+            title: 'ส่งอาหาร (FOOD)',
+            description:
+                'ใช้เพียงบัตรประชาชน ใบขับขี่ทั่วไป และรูปเซลฟี่\n(ขับรับส่งอาหารเท่านั้น)',
+            icon: Icons.restaurant_rounded,
           ),
-        ),
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: context.palette.textPrimary,
+          _buildTierCard(
+            ref: ref,
+            tier: KycTier.ride,
+            selected: selected,
+            title: 'รับส่งคน (RIDE)',
+            description:
+                'เพิ่มเอกสารรถ พ.ร.บ. ประกัน และใบขับขี่สาธารณะ\n(ขับรับส่งผู้โดยสารเท่านั้น)',
+            icon: Icons.two_wheeler_rounded,
           ),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'ข้อมูลเอกสารที่ต้องใช้จะแตกต่างกันตามประเภทที่คุณเลือก',
-                style: AppTypography.caption2.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildTierCard(
-                      context,
-                      ref: ref,
-                      tier: KycTier.food,
-                      title: 'ส่งอาหาร (FOOD)',
-                      description:
-                          'ใช้เพียงบัตรประชาชน ใบขับขี่ทั่วไป และรูปเซลฟี่\n(ขับรับส่งอาหารเท่านั้น)',
-                      icon: Icons.fastfood,
-                    ),
-                    _buildTierCard(
-                      context,
-                      ref: ref,
-                      tier: KycTier.ride,
-                      title: 'รับส่งคน (RIDE)',
-                      description:
-                          'เพิ่มเอกสารรถ พ.ร.บ. ประกัน และใบขับขี่สาธารณะ\n(ขับรับส่งผู้โดยสารเท่านั้น)',
-                      icon: Icons.directions_car,
-                    ),
-                    _buildTierCard(
-                      context,
-                      ref: ref,
-                      tier: KycTier.both,
-                      title: 'ขับทั้งคู่ (BOTH)',
-                      description: 'เตรียมเอกสารจัดเต็ม รับงานได้ทุกประเภท',
-                      icon: Icons.two_wheeler,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          _buildTierCard(
+            ref: ref,
+            tier: KycTier.both,
+            selected: selected,
+            title: 'ขับทั้งคู่ (BOTH)',
+            description: 'เตรียมเอกสารจัดเต็ม รับงานได้ทุกประเภท',
+            icon: Icons.star_rounded,
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildTierCard(
-    BuildContext context, {
+  Widget _buildTierCard({
     required WidgetRef ref,
     required KycTier tier,
+    required KycTier? selected,
     required String title,
     required String description,
     required IconData icon,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: () {
-          ref.read(registrationControllerProvider.notifier).setTier(tier);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: context.palette.border,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.foundationOrange100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppColors.foundationOrange600,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTypography.heading6.copyWith(
-                        color: context.palette.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: AppTypography.caption4.copyWith(
-                        color: context.palette.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: context.palette.textPrimary,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return RegistrationOptionCard(
+      icon: icon,
+      title: title,
+      subtitle: description,
+      badge: '${registrationTotalSteps(tier)} ขั้นตอน',
+      selected: selected == tier,
+      onTap: () {
+        ref.read(registrationControllerProvider.notifier).setTier(tier);
+      },
     );
   }
 }

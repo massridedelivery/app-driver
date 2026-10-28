@@ -4,14 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_colors.dart';
-import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../domain/models/driver_profile_info.dart';
 import '../../domain/models/profile_update_error.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/registration_ui.dart';
 
 /// Letters only (Thai / English), plus space . - ' — same rule as the backend.
 final _nameAllowed = RegExp(r"^[A-Za-z฀-๿ .'\-]+$");
@@ -150,67 +150,64 @@ class _BasicProfileFormScreenState
     final state = ref.watch(registrationControllerProvider);
     final phone = ref.watch(profileControllerProvider).profile?.phone;
 
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          'ข้อมูลส่วนตัว',
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        iconTheme: IconThemeData(color: context.palette.textPrimary),
+    return RegistrationScaffold(
+      icon: Icons.badge_rounded,
+      title: 'ข้อมูลส่วนตัว',
+      step: registrationStepNumber(
+        state.selectedTier,
+        RegistrationItem.profile,
       ),
-      body: Form(
+      total: state.selectedTier == null
+          ? null
+          : registrationTotalSteps(state.selectedTier!),
+      bottom: RegistrationPrimaryButton(
+        label: 'บันทึก',
+        loading: state.isLoading,
+        onPressed: state.isLoading || !_canSubmit ? null : _submit,
+      ),
+      child: Form(
         key: _formKey,
-        child: ListView(
-          // Clear the Android edge-to-edge system nav so the submit button
-          // isn't hidden behind it.
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            24 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_generalError != null) ...[
-              _buildBanner(_generalError!, locked: _locked),
-              const SizedBox(height: 16),
-            ],
-            _buildPhoneRow(phone),
-            const SizedBox(height: 16),
-            _buildNameField(
-              'ชื่อ *',
-              _firstNameController,
-              ProfileField.firstName,
-              hint: 'เช่น สมชาย',
-            ),
-            const SizedBox(height: 16),
-            _buildNameField(
-              'นามสกุล *',
-              _lastNameController,
-              ProfileField.lastName,
-              hint: 'ตรงกับบัตรประชาชน',
-            ),
-            const SizedBox(height: 16),
-            _buildDobField(),
-            const SizedBox(height: 28),
-            Text(
-              'ข้อมูลเพิ่มเติม (ไม่บังคับ)',
-              style: AppTypography.caption2.copyWith(
-                color: context.palette.textSecondary,
+            if (_generalError != null)
+              RegistrationBanner(
+                message: _generalError!,
+                icon: _locked
+                    ? Icons.lock_outline_rounded
+                    : Icons.error_outline_rounded,
               ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildNameField(
+                    'ชื่อ *',
+                    _firstNameController,
+                    ProfileField.firstName,
+                    hint: 'เช่น สมชาย',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildNameField(
+                    'นามสกุล *',
+                    _lastNameController,
+                    ProfileField.lastName,
+                    hint: 'ตรงกับบัตรประชาชน',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            _buildDobField(),
+            _buildPhoneRow(phone),
+            const RegistrationSectionLabel('ข้อมูลเพิ่มเติม (ไม่บังคับ)'),
             _buildOptionalField(
               'อีเมล (Email)',
               _emailController,
               keyboardType: TextInputType.emailAddress,
               hint: 'เช่น somchai@email.com',
             ),
-            const SizedBox(height: 16),
             _buildOptionalField(
               'เบอร์ติดต่อฉุกเฉิน (Emergency Contact)',
               _emergencyController,
@@ -218,107 +215,37 @@ class _BasicProfileFormScreenState
               hint: 'เช่น 0812345678',
               maxLength: 10,
             ),
-            const SizedBox(height: 40),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: state.isLoading || !_canSubmit ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  // Fixed light face in both themes so the black label always
-                  // reads (textPrimary would be black in light mode).
-                  backgroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.semanticDisabledBgLow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: context.palette.border),
-                  ),
-                ),
-                child: state.isLoading
-                    ? const CircularProgressIndicator(color: Colors.black)
-                    : Text(
-                        'บันทึก',
-                        // Black label: the button face is light (white when
-                        // enabled in dark mode, light grey while disabled), so
-                        // the old grey disabled label was near-invisible.
-                        style: AppTypography.label1.copyWith(
-                          color: Colors.black,
-                        ),
-                      ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBanner(String message, {required bool locked}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.foundationRed100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.foundationRed400),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            locked ? Icons.lock_outline : Icons.error_outline,
-            color: AppColors.foundationRed800,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: AppTypography.caption3.copyWith(
-                color: AppColors.foundationRed800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Phone from OTP — shown locked with a "verified" mark.
   Widget _buildPhoneRow(String? phone) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _label('เบอร์โทรศัพท์'),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: context.palette.surfaceAlt,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.lock_outline,
-                  size: 18, color: context.palette.textSecondary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  _formatPhone(phone),
-                  style: AppTypography.label2.copyWith(
-                    color: context.palette.textSecondary,
-                  ),
-                ),
+    final brand = context.brand;
+    return RegistrationField(
+      label: 'เบอร์โทรศัพท์',
+      child: RegistrationFieldBox(
+        child: Row(
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 18, color: brand.text3),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _formatPhone(phone),
+                style: registrationInputStyle(context),
               ),
-              const Icon(Icons.verified,
-                  size: 18, color: AppColors.foundationGreen500),
-              const SizedBox(width: 4),
-              Text(
-                'ยืนยันแล้ว',
-                style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationGreen600,
-                ),
-              ),
-            ],
-          ),
+            ),
+            Icon(Icons.verified_rounded, size: 16, color: brand.ok),
+            const SizedBox(width: 4),
+            Text(
+              'ยืนยันแล้ว',
+              style: AppTypography.caption5.copyWith(color: brand.ok),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -328,81 +255,66 @@ class _BasicProfileFormScreenState
     ProfileField field, {
     String? hint,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _label(label),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          readOnly: _locked,
-          maxLength: 50,
-          textInputAction: TextInputAction.next,
-          style: AppTypography.label2.copyWith(
-            color: context.palette.textPrimary,
-          ),
-          decoration: _decoration(hint),
-          onChanged: (_) {
-            if (_serverErrors.remove(field) != null) {
-              _formKey.currentState?.validate();
-            }
-          },
-          validator: (v) => _validateName(v, field),
-        ),
-      ],
+    return RegistrationField(
+      label: label,
+      child: TextFormField(
+        controller: controller,
+        readOnly: _locked,
+        maxLength: 50,
+        textInputAction: TextInputAction.next,
+        style: registrationInputStyle(context),
+        decoration: registrationInputDecoration(context, hint: hint),
+        onChanged: (_) {
+          if (_serverErrors.remove(field) != null) {
+            _formKey.currentState?.validate();
+          }
+        },
+        validator: (v) => _validateName(v, field),
+      ),
     );
   }
 
   Widget _buildDobField() {
+    final brand = context.brand;
     final error = _dobError;
     final dob = _dateOfBirth;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _label('วันเดือนปีเกิด *'),
-        const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _locked ? null : _pickDateOfBirth,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              color: context.palette.surfaceAlt,
-              borderRadius: BorderRadius.circular(12),
-              border: error != null
-                  ? Border.all(color: AppColors.foundationRed800)
-                  : null,
-            ),
+    return RegistrationField(
+      label: 'วันเดือนปีเกิด *',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RegistrationFieldBox(
+            error: error != null,
+            onTap: _locked ? null : _pickDateOfBirth,
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     dob != null ? formatThaiDate(dob) : 'เลือกวันเกิด',
-                    style: AppTypography.label2.copyWith(
-                      color: dob != null
-                          ? context.palette.textPrimary
-                          : context.palette.textSecondary,
-                    ),
+                    style: dob != null
+                        ? registrationInputStyle(context)
+                        : AppTypography.caption4.copyWith(color: brand.text3),
                   ),
                 ),
-                Icon(Icons.calendar_today_outlined,
-                    size: 18, color: context.palette.textSecondary),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: brand.text2,
+                ),
               ],
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6, left: 4),
-          child: Text(
-            error ?? 'อายุ 18 ปีขึ้นไป',
-            style: AppTypography.caption4.copyWith(
-              color: error != null
-                  ? AppColors.foundationRed800
-                  : context.palette.textSecondary,
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 2),
+            child: Text(
+              error ?? 'อายุ 18 ปีขึ้นไป',
+              style: AppTypography.caption5.copyWith(
+                color: error != null ? brand.bad : brand.text3,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -413,57 +325,27 @@ class _BasicProfileFormScreenState
     String? hint,
     int? maxLength,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _label(label),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: maxLength != null
-              ? [FilteringTextInputFormatter.digitsOnly]
-              : null,
-          maxLength: maxLength,
-          style: AppTypography.label2.copyWith(
-            color: context.palette.textPrimary,
-          ),
-          decoration: _decoration(hint),
-          validator: (value) {
-            final v = value?.trim() ?? '';
-            if (maxLength != null && v.isNotEmpty && v.length != maxLength) {
-              return 'กรุณากรอกให้ครบ $maxLength หลัก';
-            }
-            return null;
-          },
-        ),
-      ],
+    return RegistrationField(
+      label: label,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: maxLength != null
+            ? [FilteringTextInputFormatter.digitsOnly]
+            : null,
+        maxLength: maxLength,
+        style: registrationInputStyle(context),
+        decoration: registrationInputDecoration(context, hint: hint),
+        validator: (value) {
+          final v = value?.trim() ?? '';
+          if (maxLength != null && v.isNotEmpty && v.length != maxLength) {
+            return 'กรุณากรอกให้ครบ $maxLength หลัก';
+          }
+          return null;
+        },
+      ),
     );
   }
-
-  Widget _label(String text) => Text(
-        text,
-        style: AppTypography.caption2.copyWith(
-          color: context.palette.textPrimary,
-        ),
-      );
-
-  InputDecoration _decoration(String? hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: AppTypography.label2.copyWith(
-          color: context.palette.textSecondary,
-        ),
-        filled: true,
-        fillColor: context.palette.surfaceAlt,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        counterText: '',
-        errorStyle: AppTypography.caption4.copyWith(
-          color: AppColors.foundationRed800,
-        ),
-      );
 
   /// "+66653333333" → "065-333-3333".
   String _formatPhone(String? raw) {
@@ -479,17 +361,15 @@ class _BasicProfileFormScreenState
   /// Day / Thai month / Buddhist-era year wheels, limited to ages 18–80.
   Future<void> _pickDateOfBirth() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    final initial = _dateOfBirth ??
-        DateTime(DateTime.now().year - 30, 1, 1);
+    final initial = _dateOfBirth ?? DateTime(DateTime.now().year - 30, 1, 1);
     var year = initial.year;
     var month = initial.month;
     var day = initial.day;
 
-    final years = [
-      for (var y = _maxDob.year; y >= _minDob.year; y--) y,
-    ];
-    final yearCtrl =
-        FixedExtentScrollController(initialItem: years.indexOf(year).clamp(0, years.length - 1));
+    final years = [for (var y = _maxDob.year; y >= _minDob.year; y--) y];
+    final yearCtrl = FixedExtentScrollController(
+      initialItem: years.indexOf(year).clamp(0, years.length - 1),
+    );
     final monthCtrl = FixedExtentScrollController(initialItem: month - 1);
     final dayCtrl = FixedExtentScrollController(initialItem: day - 1);
 
@@ -497,7 +377,7 @@ class _BasicProfileFormScreenState
 
     final picked = await showModalBottomSheet<DateTime>(
       context: context,
-      backgroundColor: context.palette.bg,
+      backgroundColor: context.brand.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -535,7 +415,7 @@ class _BasicProfileFormScreenState
                         child: Text(
                           label(i),
                           style: AppTypography.label2.copyWith(
-                            color: context.palette.textPrimary,
+                            color: context.brand.text1,
                           ),
                         ),
                       ),
@@ -553,7 +433,7 @@ class _BasicProfileFormScreenState
                     Text(
                       'วันเดือนปีเกิด',
                       style: AppTypography.heading5.copyWith(
-                        color: context.palette.textPrimary,
+                        color: context.brand.text1,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -588,37 +468,18 @@ class _BasicProfileFormScreenState
                       tooYoung
                           ? 'ต้องมีอายุ 18 ปีขึ้นไป'
                           : tooOld
-                              ? 'อายุต้องไม่เกิน 80 ปี'
-                              : formatThaiDate(candidate),
+                          ? 'อายุต้องไม่เกิน 80 ปี'
+                          : formatThaiDate(candidate),
                       style: AppTypography.caption3.copyWith(
-                        color: valid
-                            ? context.palette.textSecondary
-                            : AppColors.foundationRed800,
+                        color: valid ? context.brand.text2 : context.brand.bad,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: valid
-                            ? () => Navigator.pop(ctx, candidate)
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.foundationOrange600,
-                          disabledBackgroundColor:
-                              AppColors.semanticDisabledBgLow,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          'ตกลง',
-                          style: AppTypography.label1.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                    RegistrationPrimaryButton(
+                      label: 'ตกลง',
+                      onPressed: valid
+                          ? () => Navigator.pop(ctx, candidate)
+                          : null,
                     ),
                   ],
                 ),

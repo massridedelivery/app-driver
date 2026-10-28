@@ -6,12 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
-import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/repositories/document_registration_repository.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/registration_ui.dart';
 
 class DocumentUploadScreen extends ConsumerStatefulWidget {
   final DocumentType type;
@@ -48,14 +49,16 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final state = ref.read(registrationControllerProvider);
       final remoteDoc = state.remoteDocuments[widget.type];
-      
+
       if (remoteDoc != null && remoteDoc.imageUrl.isNotEmpty) {
         setState(() {
           _isLoadingRemoteImage = true;
         });
         try {
           final repository = getIt<DocumentRegistrationRepository>();
-          final viewUrl = await repository.getTemporaryViewUrl(remoteDoc.imageUrl);
+          final viewUrl = await repository.getTemporaryViewUrl(
+            remoteDoc.imageUrl,
+          );
           if (mounted) {
             setState(() {
               _remoteImageUrl = viewUrl;
@@ -141,8 +144,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       context.pop();
     } else {
       // Show error from controller state
-      final errorMsg = ref.read(registrationControllerProvider).errorMessage
-          ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+      final errorMsg =
+          ref.read(registrationControllerProvider).errorMessage ??
+          'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
       debugPrint('[Upload] Failed for ${widget.type}: $errorMsg');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -154,169 +158,92 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     }
   }
 
+  IconData get _headerIcon => switch (widget.type) {
+    DocumentType.idCard ||
+    DocumentType.drivingLicense ||
+    DocumentType.publicDrivingLicense => Icons.credit_card_rounded,
+    _ => Icons.photo_camera_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(registrationControllerProvider);
+    final brand = context.brand;
 
-    Widget previewWidget;
+    Widget? previewWidget;
     if (_selectedImage != null) {
-      previewWidget = ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-      );
+      previewWidget = Image.file(_selectedImage!, fit: BoxFit.cover);
     } else if (_isLoadingRemoteImage) {
       previewWidget = const Center(child: MassLoadingM(size: 56));
     } else if (_remoteImageUrl != null && _remoteImageUrl!.isNotEmpty) {
-      previewWidget = ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          _remoteImageUrl!,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return const Center(child: MassLoadingM(size: 56));
-          },
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Remote image load error: $error');
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.broken_image_outlined,
-                  size: 48,
-                  color: context.palette.textSecondary,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'ไม่สามารถโหลดรูปภาพได้',
-                  style: AppTypography.caption4.copyWith(
-                    color: context.palette.textSecondary,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-    } else {
-      previewWidget = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.cloud_upload_outlined,
-            size: 64,
-            color: context.palette.textSecondary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'แตะเพื่ออัปโหลดรูปภาพ',
-            style: AppTypography.caption3.copyWith(
-              color: context.palette.textSecondary,
-            ),
-          ),
-        ],
+      previewWidget = Image.network(
+        _remoteImageUrl!,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: MassLoadingM(size: 56));
+        },
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Remote image load error: $error');
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_outlined, size: 48, color: brand.text3),
+              const SizedBox(height: 8),
+              Text(
+                'ไม่สามารถโหลดรูปภาพได้',
+                style: AppTypography.caption5.copyWith(color: brand.text2),
+              ),
+            ],
+          );
+        },
       );
     }
 
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: context.palette.textPrimary,
-        ),
+    return RegistrationScaffold(
+      icon: _headerIcon,
+      title: widget.title,
+      subtitle:
+          'กรุณาอัปโหลดรูปภาพที่ชัดเจนที่สุดเพื่อไม่ให้การลงทะเบียนล่าช้า',
+      step: registrationStepNumber(
+        state.selectedTier,
+        RegistrationItem.fromDocument(widget.type),
       ),
-      body: Form(
+      total: state.selectedTier == null
+          ? null
+          : registrationTotalSteps(state.selectedTier!),
+      bottom: RegistrationPrimaryButton(
+        label: 'บันทึก',
+        loading: state.isLoading,
+        onPressed: state.isLoading ? null : _submit,
+      ),
+      child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          // Clear the Android edge-to-edge system nav so the submit button
-          // isn't hidden behind it.
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            24 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'กรุณาอัปโหลดรูปภาพที่ชัดเจนที่สุดเพื่อไม่ให้การลงทะเบียนล่าช้า',
-                style: AppTypography.caption2.copyWith(
-                  color: context.palette.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () => _pickImage(ImageSource.gallery),
-                child: Container(
-                  height: 250,
-                  decoration: BoxDecoration(
-                    color: context.palette.surfaceAlt,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: context.palette.border,
-                    ),
-                  ),
-                  child: previewWidget,
-                ),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => _pickImage(ImageSource.camera),
-                icon: Icon(
-                  Icons.camera_alt,
-                  color: context.palette.textPrimary,
-                ),
-                label: Text(
-                  'ถ่ายรูป',
-                  style: AppTypography.label2.copyWith(
-                    color: context.palette.textPrimary,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(
-                    color: context.palette.textPrimary,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-              if (_needsDocNumber) ...[
-                const SizedBox(height: 24),
-                Text(
-                  widget.type == DocumentType.idCard
-                      ? 'หมายเลขบัตรประชาชน (ID Card Number)'
-                      : 'หมายเลขใบขับขี่ (License Number)',
-                  style: AppTypography.label2.copyWith(
-                    color: context.palette.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RegistrationUploadBox(
+              preview: previewWidget,
+              label: 'แตะเพื่ออัปโหลดรูปภาพ',
+              previewHeight: 200,
+              onTap: () => _pickImage(ImageSource.gallery),
+              onCamera: () => _pickImage(ImageSource.camera),
+              onGallery: () => _pickImage(ImageSource.gallery),
+            ),
+            if (_needsDocNumber)
+              RegistrationField(
+                label: widget.type == DocumentType.idCard
+                    ? 'หมายเลขบัตรประชาชน (ID Card Number)'
+                    : 'หมายเลขใบขับขี่ (License Number)',
+                child: TextFormField(
                   controller: _docNumberController,
                   keyboardType: TextInputType.number,
-                  style: AppTypography.caption3,
-                  decoration: InputDecoration(
-                    hintText: widget.type == DocumentType.idCard
+                  style: registrationInputStyle(context),
+                  decoration: registrationInputDecoration(
+                    context,
+                    hint: widget.type == DocumentType.idCard
                         ? 'เลขบัตรประชาชน 13 หลัก'
                         : 'เลขที่ใบอนุญาตขับรถ',
-                    filled: true,
-                    fillColor: context.palette.surfaceAlt,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -329,30 +256,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     return null;
                   },
                 ),
-              ],
-              const SizedBox(height: 40),
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: state.isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.palette.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: state.isLoading
-                      ? CircularProgressIndicator(color: context.palette.bg)
-                      : Text(
-                          'บันทึก',
-                          style: AppTypography.label1.copyWith(
-                            color: context.palette.bg,
-                          ),
-                        ),
-                ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -8,10 +8,10 @@ import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import 'package:massdrive/core/theme/app_palette.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../domain/models/vehicle_info.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/registration_ui.dart';
 
 class VehicleInfoFormScreen extends ConsumerStatefulWidget {
   const VehicleInfoFormScreen({super.key});
@@ -129,120 +129,65 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(registrationControllerProvider);
 
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          'ข้อมูลรถ และ สมุดคู่มือ',
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: context.palette.textPrimary,
-        ),
+    return RegistrationScaffold(
+      icon: Icons.two_wheeler_rounded,
+      title: 'ข้อมูลรถ และ สมุดคู่มือ',
+      step: registrationStepNumber(
+        state.selectedTier,
+        RegistrationItem.vehicle,
       ),
-      body: Form(
+      total: state.selectedTier == null
+          ? null
+          : registrationTotalSteps(state.selectedTier!),
+      bottom: RegistrationPrimaryButton(
+        label: 'บันทึก',
+        loading: state.isLoading,
+        onPressed: state.isLoading ? null : _submit,
+      ),
+      child: Form(
         key: _formKey,
-        child: ListView(
-          // Clear the Android edge-to-edge system nav so the submit button
-          // isn't hidden behind it.
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            24 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField(
-              'ยี่ห้อ (Brand)',
-              _brandController,
-              hint: 'เช่น Honda',
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    'ยี่ห้อ (Brand)',
+                    _brandController,
+                    hint: 'เช่น Honda',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildTextField(
+                    'รุ่น (Model)',
+                    _modelController,
+                    hint: 'เช่น Wave 110i',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              'รุ่น (Model)',
-              _modelController,
-              hint: 'เช่น Wave 110i',
-            ),
-            const SizedBox(height: 16),
             _buildTextField(
               'ปีจดทะเบียน (Year)',
               _yearController,
               isNumber: true,
               hint: 'เช่น 2023',
             ),
-            const SizedBox(height: 16),
             _buildTextField(
               'เลขทะเบียนรถ (License Plate)',
               _plateController,
               hint: 'เช่น 1กข 1234 กทม.',
             ),
-            const SizedBox(height: 24),
-            Text(
-              'รูปถ่ายหน้าสมุดคู่มือจดทะเบียนรถ',
-              style: AppTypography.label2.copyWith(
-                color: context.palette.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
+            const SizedBox(height: 4),
+            RegistrationUploadBox(
+              label: 'รูปถ่ายหน้าสมุดคู่มือจดทะเบียนรถ',
+              preview: _selectedImage != null
+                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                  : null,
+              previewHeight: 150,
               onTap: _chooseAndPickImage,
-              child: Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  color: context.palette.surfaceAlt,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: context.palette.border,
-                  ),
-                ),
-                child: _selectedImage != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.cloud_upload_outlined,
-                            size: 40,
-                            color: context.palette.textSecondary,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'แตะเพื่ออัปโหลดรูปภาพ',
-                            style: AppTypography.caption3.copyWith(
-                              color: context.palette.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: state.isLoading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.textPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: state.isLoading
-                    ? CircularProgressIndicator(color: context.palette.bg)
-                    : Text(
-                        'บันทึก',
-                        style: AppTypography.label1.copyWith(
-                          color: context.palette.bg,
-                        ),
-                      ),
-              ),
             ),
           ],
         ),
@@ -256,40 +201,17 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
     bool isNumber = false,
     String? hint,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.label2.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: AppTypography.caption3,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTypography.caption3.copyWith(
-              color: context.palette.textSecondary,
-            ),
-            filled: true,
-            fillColor: context.palette.surfaceAlt,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            errorStyle: AppTypography.caption4.copyWith(
-              color: AppColors.foundationRed800,
-            ),
-          ),
-          validator: (value) => (value == null || value.trim().isEmpty)
-              ? 'กรุณากรอกข้อมูลให้ครบถ้วน'
-              : null,
-        ),
-      ],
+    return RegistrationField(
+      label: label,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        style: registrationInputStyle(context),
+        decoration: registrationInputDecoration(context, hint: hint),
+        validator: (value) => (value == null || value.trim().isEmpty)
+            ? 'กรุณากรอกข้อมูลให้ครบถ้วน'
+            : null,
+      ),
     );
   }
 }
