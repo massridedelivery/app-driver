@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class ServiceToggleTile extends StatelessWidget {
   final String title;
@@ -81,7 +81,7 @@ class _AnimatedToggle extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: isEnabled
-            ? AppColors.foundationOrange600
+            ? context.brand.red
             : context.palette.textTertiary,
       ),
       child: AnimatedAlign(

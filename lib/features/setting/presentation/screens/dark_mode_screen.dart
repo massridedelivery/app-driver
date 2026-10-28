@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// "โหมดสี" — a day/night chooser for the app theme. Theme-aware (reads the
 /// active ColorScheme) so it renders correctly in both light and dark.
@@ -94,9 +94,9 @@ class _OptionRow extends StatelessWidget {
               selected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              // Green when selected (brand success), neutral when not.
+              // Brand red when selected, neutral when not.
               color: selected
-                  ? AppColors.semanticSuccessBgHigh
+                  ? context.brand.red
                   : context.palette.textTertiary,
             ),
           ],

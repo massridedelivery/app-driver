@@ -10,7 +10,7 @@ class MassLoadingM extends StatefulWidget {
   const MassLoadingM({
     super.key,
     this.size = 96,
-    this.color = const Color(0xFFB4312E),
+    this.color = const Color(0xFFDB1439), // BrandColors.red
     this.emptyColor,
     this.duration = const Duration(milliseconds: 2000),
   });

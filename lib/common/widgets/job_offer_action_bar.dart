@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Shared accept/decline footer for every incoming-job offer sheet (ride, food,
 /// messenger) so all three share one flow: an auto-accept/auto-cancel caption,
@@ -9,7 +10,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 /// remaining seconds shown on whichever action fires when the window closes.
 ///
 /// Purely presentational: the parent owns the countdown timer and the
-/// accept/decline callbacks. Green accept + red cancel match the ride flow.
+/// accept/decline callbacks. Brand-red accept + neutral cancel (one filled red
+/// button per screen); the bar turns amber for the last 5 s.
 class JobOfferActionBar extends StatelessWidget {
   /// Seconds left in the accept window; drives the caption, bar and countdown.
   final int remaining;
@@ -50,7 +52,7 @@ class JobOfferActionBar extends StatelessWidget {
             Icon(
               autoAccept ? Icons.bolt : Icons.timer_outlined,
               color: autoAccept
-                  ? AppColors.semanticSuccessBgHigh
+                  ? BrandColors.dark.red
                   : AppColors.foundationAlphaWhite500,
               size: 16,
             ),
@@ -75,9 +77,7 @@ class JobOfferActionBar extends StatelessWidget {
             minHeight: 4,
             backgroundColor: Colors.white12,
             valueColor: AlwaysStoppedAnimation<Color>(
-              remaining <= 5
-                  ? AppColors.semanticSupportRedBgHigh
-                  : AppColors.semanticSuccessBgHigh,
+              remaining <= 5 ? BrandColors.dark.wait : BrandColors.dark.red,
             ),
           ),
         ),
@@ -93,8 +93,8 @@ class JobOfferActionBar extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: isSubmitting ? null : onDecline,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.semanticSupportRedBgHigh,
-                    disabledBackgroundColor: AppColors.semanticSupportRedBgHigh,
+                    backgroundColor: BrandColors.dark.line,
+                    disabledBackgroundColor: BrandColors.dark.line,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.s5),
                     ),
@@ -124,8 +124,8 @@ class JobOfferActionBar extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: isSubmitting ? null : onAccept,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.semanticSuccessBgHigh,
-                    disabledBackgroundColor: AppColors.semanticSuccessBgHigh,
+                    backgroundColor: BrandColors.dark.red,
+                    disabledBackgroundColor: BrandColors.dark.red,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.s5),
                     ),

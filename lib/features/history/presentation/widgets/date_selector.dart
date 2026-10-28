@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Horizontal date filter for the history list: an "ทั้งหมด" (all) pill plus the
 /// most recent days as single-line pills ("พฤ 8"). Selecting a day filters the
@@ -82,12 +82,12 @@ class _Pill extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.foundationOrange500
+              ? context.brand.red
               : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? AppColors.foundationOrange500
+                ? context.brand.red
                 : context.palette.border,
           ),
         ),

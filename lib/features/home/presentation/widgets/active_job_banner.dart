@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/dependency_injection.dart';
@@ -11,6 +10,7 @@ import 'package:massdrive/features/job_live/domain/models/active_item.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Persistent "you have a job in progress" banner shown on Home (SCRUM-45).
 /// Probes `GET /api/driver/active`; tap to jump back into the live screen.
@@ -126,10 +126,10 @@ class _ActiveJobBannerState extends ConsumerState<ActiveJobBanner> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.semanticGrayNeutralFgHigh.withValues(alpha: 0.95),
+            color: context.brand.banner.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.semanticSuccessBgHigh.withValues(alpha: 0.6),
+              color: context.brand.red.withValues(alpha: 0.6),
             ),
             boxShadow: [
               BoxShadow(
@@ -144,8 +144,8 @@ class _ActiveJobBannerState extends ConsumerState<ActiveJobBanner> {
               Container(
                 width: 42,
                 height: 42,
-                decoration: const BoxDecoration(
-                  color: AppColors.semanticSuccessBgHigh,
+                decoration: BoxDecoration(
+                  color: context.brand.red,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(display.icon, color: Colors.white, size: 22),

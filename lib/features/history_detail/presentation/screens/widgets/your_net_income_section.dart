@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class YourNetIncomeSection extends StatelessWidget {
   final HistoryDetailEntity data;
@@ -102,7 +102,10 @@ class YourNetIncomeSection extends StatelessWidget {
         Text(
           data.settledNet == null ? 'รอสรุปยอด' : _money(data.settledNet!),
           style: AppTypography.heading5.copyWith(
-            color: AppColors.foundationOrange600,
+            // Money is green; "awaiting settlement" is amber.
+            color: data.settledNet == null
+                ? context.brand.wait
+                : context.brand.ok,
           ),
         ),
       ],

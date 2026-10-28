@@ -15,6 +15,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/screens/settle_debt_slip_form_screen.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class SettleDebtFormScreen extends ConsumerStatefulWidget {
   final String paymentMethod; // "PROMPTPAY" or "MANUAL"
@@ -293,7 +294,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                           color: context.palette.surfaceAlt,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: AppColors.foundationOrange700.withValues(
+                            color: context.brand.red.withValues(
                               alpha: 0.5,
                             ),
                           ),
@@ -301,7 +302,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                         child: Text(
                           '฿$amount',
                           style: AppTypography.caption4.copyWith(
-                            color: AppColors.foundationOrange500,
+                            color: context.brand.red,
                           ),
                         ),
                       ),
@@ -325,7 +326,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange600,
+                      backgroundColor: context.brand.red,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -355,14 +356,14 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
       case 'PAID':
         return (label: 'ชำระเงินสำเร็จ', color: AppColors.semanticSuccessBorderHigh);
       case 'FAILED':
-        return (label: 'ชำระเงินไม่สำเร็จ', color: AppColors.semanticErrorBgHigh);
+        return (label: 'ชำระเงินไม่สำเร็จ', color: context.brand.bad);
       case 'EXPIRED':
-        return (label: 'QR หมดอายุแล้ว', color: AppColors.semanticErrorBgHigh);
+        return (label: 'QR หมดอายุแล้ว', color: context.brand.bad);
       case 'REFUNDED':
         return (label: 'คืนเงินแล้ว', color: context.palette.textSecondary);
       case 'AWAITING_PAYMENT':
       default:
-        return (label: 'รอชำระเงิน', color: AppColors.semanticWarningBorderHigh);
+        return (label: 'รอชำระเงิน', color: context.brand.wait);
     }
   }
 
@@ -499,9 +500,9 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                       : const Icon(Icons.download_rounded, size: 18),
                   label: Text('บันทึกรูป QR', style: AppTypography.label2),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.foundationOrange500,
+                    foregroundColor: context.brand.red,
                     side: BorderSide(
-                      color: AppColors.foundationOrange500.withValues(alpha: 0.5),
+                      color: context.brand.red.withValues(alpha: 0.5),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
@@ -545,7 +546,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _regenerate,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange600,
+                      backgroundColor: context.brand.red,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -615,7 +616,7 @@ class _SettleDebtFormScreenState extends ConsumerState<SettleDebtFormScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: context.brand.red,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),

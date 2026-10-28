@@ -12,6 +12,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Bank-transfer (MANUAL) slips the driver sent and their review status
 /// (GET /api/driver/settle-debt/requests). Refreshes on a `topup_*` push.
@@ -160,7 +161,8 @@ class _TopupCard extends StatelessWidget {
         AppColors.foundationRed100,
         AppColors.foundationRed800,
       ),
-      _ => (AppColors.foundationOrange100, AppColors.foundationOrange600),
+      // Pending → amber "in review".
+      _ => (context.brand.waitBg, context.brand.wait),
     };
     final hint = switch (request.status) {
       TopupRequestStatus.pending => 'อยู่ระหว่างการตรวจสอบโดยผู้ดูแลระบบ',

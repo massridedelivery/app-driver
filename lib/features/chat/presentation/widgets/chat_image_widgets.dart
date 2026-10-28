@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/chat/data/chat_image_cache.dart';
 import 'package:massdrive/features/chat/data/chat_image_outbox.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 const _thumbMaxWidth = 220.0;
 const _thumbMaxHeight = 260.0;
@@ -131,13 +131,13 @@ class _ChatServerImageState extends State<ChatServerImage> {
             ),
           );
         }
-        return const _Placeholder(
+        return _Placeholder(
           child: SizedBox(
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColors.foundationOrange600,
+              color: context.brand.red,
             ),
           ),
         );
@@ -201,9 +201,9 @@ class ChatPendingImage extends StatelessWidget {
                                   backgroundColor: Colors.white,
                                 ),
                                 tooltip: 'ส่งใหม่',
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.refresh_rounded,
-                                  color: AppColors.foundationOrange700,
+                                  color: context.brand.red,
                                 ),
                                 onPressed: onRetry,
                               ),

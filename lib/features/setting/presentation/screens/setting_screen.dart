@@ -20,6 +20,7 @@ import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Real app version read from the bundle (moved here from the login footer).
 final appVersionProvider = FutureProvider<String>((ref) async {
@@ -298,7 +299,7 @@ void showServiceAreaNoticeDialog(
         children: [
           Icon(
             Icons.wrong_location_outlined,
-            color: AppColors.foundationOrange500,
+            color: dialogContext.brand.wait,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -327,7 +328,7 @@ void showServiceAreaNoticeDialog(
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.foundationOrange500.withValues(alpha: 0.12),
+                color: dialogContext.brand.waitBg,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -336,13 +337,13 @@ void showServiceAreaNoticeDialog(
                   Icon(
                     Icons.place_outlined,
                     size: 16,
-                    color: AppColors.foundationOrange600,
+                    color: dialogContext.brand.wait,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'ตำแหน่งของคุณ: $areaName',
                     style: AppTypography.caption4.copyWith(
-                      color: AppColors.foundationOrange600,
+                      color: dialogContext.brand.wait,
                     ),
                   ),
                 ],
@@ -362,7 +363,7 @@ void showServiceAreaNoticeDialog(
               onAcknowledge?.call();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.foundationOrange600,
+              backgroundColor: dialogContext.brand.red,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -621,16 +622,16 @@ class _ConnectivityCard extends ConsumerWidget {
       case NetworkQuality.weak:
         return _ConnectivityVisual(
           icon: Icons.network_check,
-          accent: AppColors.foundationOrange500,
-          background: AppColors.foundationOrange500.withValues(alpha: 0.12),
+          accent: context.brand.wait,
+          background: context.brand.waitBg,
           title: 'สัญญาณอ่อน / ไม่เสถียร',
           subtitle: 'การเชื่อมต่อช้า อาจรับงานไม่ทัน$ping',
         );
       case NetworkQuality.offline:
         return _ConnectivityVisual(
           icon: Icons.wifi_off,
-          accent: AppColors.semanticErrorFgHigh,
-          background: AppColors.semanticErrorFgHigh.withValues(alpha: 0.12),
+          accent: context.brand.bad,
+          background: context.brand.badBg,
           title: s.hasCarrier ? 'เชื่อมต่ออินเทอร์เน็ตไม่ได้' : 'ไม่มีสัญญาณ',
           subtitle: 'ตรวจสอบ Wi-Fi หรือเน็ตมือถือของคุณ',
         );
@@ -747,8 +748,9 @@ class _AutoAcceptCard extends ConsumerWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B5E3C),
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.palette.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -756,8 +758,8 @@ class _AutoAcceptCard extends ConsumerWidget {
           _LeadingIconBadge(
             icon: Icons.bolt_rounded,
             size: 36,
-            background: Colors.white.withOpacity(0.15),
-            iconColor: Colors.white,
+            background: context.brand.tint,
+            iconColor: context.brand.red,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -767,22 +769,23 @@ class _AutoAcceptCard extends ConsumerWidget {
                 Text(
                   "รับงานอัตโนมัติ",
                   style: AppTypography.caption3.copyWith(
-                    // Card keeps its dark-green brand fill in both themes, so
-                    // the text stays light rather than following the palette.
-                    color: Colors.white,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "ระบบจะรับงานให้อัตโนมัติเมื่อหมดเวลานับถอยหลัง",
-                  style: AppTypography.caption4.copyWith(color: Colors.white70),
+                  style: AppTypography.caption4.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
           Switch(
             value: isEnabled,
-            activeThumbColor: Colors.green,
+            activeThumbColor: Colors.white,
+            activeTrackColor: context.brand.red,
             onChanged: (value) =>
                 ref.read(autoAcceptProvider.notifier).setEnabled(value),
           ),

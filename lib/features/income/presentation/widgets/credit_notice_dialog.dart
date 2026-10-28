@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/router/app_routes.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Shown when an accept came back 403 for the cash-job limit: the block
 /// copy with "เติมเครดิต". The caller closes the offer.
@@ -22,12 +22,10 @@ Future<void> showCashJobBlockedDialog(BuildContext context, CashJobGate? gate) {
 }
 
 /// The credit dialog on home (app open, back from a job, after going online)
-/// whenever the gate has something to say: red for งานเงินสดถูกระงับ, orange
+/// whenever the gate has something to say: red for งานเงินสดถูกระงับ, amber
 /// for เครดิตเหลือน้อย. "เติมเครดิต" opens the credit wallet.
 Future<void> showCreditNoticeDialog(BuildContext context, CashJobGate shown) {
-  final accent = shown.cashBlocked
-      ? AppColors.semanticErrorFgHigh
-      : AppColors.foundationOrange500;
+  final accent = shown.cashBlocked ? context.brand.bad : context.brand.wait;
   return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -73,7 +71,7 @@ Future<void> showCreditNoticeDialog(BuildContext context, CashJobGate shown) {
                   AppRouter.router.push(AppRoutes.creditWalletNamedPage);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.foundationGreen700,
+                  backgroundColor: dialogContext.brand.red,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

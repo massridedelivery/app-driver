@@ -14,6 +14,7 @@ import 'package:massdrive/features/setting/presentation/controllers/auto_accept_
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class IncomingJobModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -213,7 +214,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 Expanded(
                   child: SlideToConfirm(
                     label: 'เลื่อนเพื่อรับงาน',
-                    color: AppColors.foundationMint600,
+                    color: context.brand.red,
                     loading: _accepting,
                     onConfirmed: _accept,
                   ),
@@ -236,7 +237,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
   }
 }
 
-/// Seconds left as a ring that empties; orange for the last 5 s.
+/// Seconds left as a ring that empties; brand red, amber for the last 5 s.
 class _CountdownRing extends StatelessWidget {
   const _CountdownRing({required this.remaining, required this.total});
 
@@ -245,9 +246,7 @@ class _CountdownRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = remaining <= 5
-        ? AppColors.foundationOrange700
-        : AppColors.foundationMint600;
+    final color = remaining <= 5 ? context.brand.wait : context.brand.red;
     return SizedBox(
       width: 40,
       height: 40,

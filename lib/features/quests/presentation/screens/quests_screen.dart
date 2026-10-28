@@ -10,6 +10,7 @@ import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
 import 'package:massdrive/features/quests/presentation/controllers/quests_provider.dart';
 import 'package:massdrive/features/quests/presentation/screens/quest_detail_screen.dart';
 import 'package:massdrive/features/quests/presentation/widgets/quest_progress_bar.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Quest list (Grab-style, design 2): pill tabs วันนี้ / กำลังจะมาถึง /
 /// ที่ผ่านมา, one card per quest with its milestone bar. Every figure comes
@@ -87,7 +88,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
   Widget _pill(QuestTab t) {
     final on = t == _tab;
     return Material(
-      color: on ? AppColors.foundationMint600 : questSurface(context),
+      color: on ? context.brand.red : questSurface(context),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -203,7 +204,7 @@ class QuestCard extends StatelessWidget {
               const SizedBox(height: 6),
               QuestProgressBar(
                 quest: quest,
-                color: AppColors.foundationMint600,
+                color: context.brand.red,
               ),
               if (next != null) ...[
                 const SizedBox(height: 2),
@@ -261,7 +262,7 @@ class QuestEndsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge = _badge();
+    final badge = _badge(context);
     if (sub == null) return badge;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -278,16 +279,16 @@ class QuestEndsBadge extends StatelessWidget {
     );
   }
 
-  Widget _badge() => Container(
+  Widget _badge(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
-      color: AppColors.foundationOrange500.withValues(alpha: 0.16),
+      color: context.brand.waitBg,
       borderRadius: BorderRadius.circular(10),
     ),
     child: Text(
       label,
       style: AppTypography.caption5.copyWith(
-        color: AppColors.foundationOrange500,
+        color: context.brand.wait,
         fontWeight: FontWeight.w700,
       ),
     ),

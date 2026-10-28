@@ -23,6 +23,7 @@ import 'package:massdrive/features/history_detail/presentation/screens/history_d
 import 'package:massdrive/features/income/presentation/money_text.dart';
 import 'package:massdrive/features/income/presentation/statement_entries.dart';
 import 'package:massdrive/features/wallet/presentation/states/transaction_state.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   final String title;
@@ -717,7 +718,7 @@ class _StatusBadge extends StatelessWidget {
           'สำเร็จ'
         ),
       TransactionStatus.pending => (
-          AppColors.semanticWarningBorderHigh,
+          context.brand.wait,
           'รอดำเนินการ'
         ),
       TransactionStatus.failed => (AppColors.semanticErrorFgHigh, 'ล้มเหลว'),

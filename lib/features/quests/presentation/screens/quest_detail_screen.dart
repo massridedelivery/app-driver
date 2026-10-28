@@ -12,6 +12,7 @@ import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
 import 'package:massdrive/features/quests/presentation/controllers/quests_provider.dart';
 import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 import 'package:massdrive/features/quests/presentation/widgets/quest_progress_bar.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// One quest (Grab-style detail): dates + title, the progress card with each
 /// step's cumulative reward, the running count, the payout breakdown of the
@@ -95,7 +96,7 @@ class _QuestDetailScreenState extends ConsumerState<QuestDetailScreen> {
               child: FilledButton(
                 onPressed: _claiming ? null : _claim,
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.foundationMint600,
+                  backgroundColor: context.brand.red,
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -172,7 +173,7 @@ class QuestDetailBody extends StatelessWidget {
             children: [
               QuestCountLine(quest: q),
               const SizedBox(height: 8),
-              QuestProgressBar(quest: q, color: AppColors.foundationMint600),
+              QuestProgressBar(quest: q, color: context.brand.red),
               for (final m in q.milestones) _stepRow(context, m),
               if (q.nextExtraLabel != null)
                 Padding(

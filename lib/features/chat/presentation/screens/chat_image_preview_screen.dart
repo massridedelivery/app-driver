@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// The photo about to be sent, with an optional caption. Pops the caption
 /// ('' when none) to send, or null when the driver backs out.
@@ -65,7 +65,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen> {
                           color: Colors.white54,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFF2A2D34),
+                        fillColor: BrandColors.dark.fill,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
@@ -80,7 +80,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen> {
                   const SizedBox(width: 10),
                   IconButton.filled(
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange700,
+                      backgroundColor: BrandColors.dark.red,
                     ),
                     tooltip: 'ส่ง',
                     icon: const Icon(Icons.send_rounded, color: Colors.white),

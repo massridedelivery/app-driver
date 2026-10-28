@@ -36,7 +36,7 @@ class _CardColors {
   final Color cancelled;
 
   static const dark = _CardColors(
-    bg: Color(0xFF262932),
+    bg: Color(0xFF1E2026),
     border: Color(0x1AFFFFFF),
     title: Colors.white,
     subtitle: Color(0x99FFFFFF),
@@ -50,13 +50,13 @@ class _CardColors {
 
   static const light = _CardColors(
     bg: Colors.white,
-    border: Color(0xFFE2E8F0),
-    title: Color(0xFF0F172A),
-    subtitle: Color(0xFF64748B),
+    border: Color(0xFFE7E9EE),
+    title: Color(0xFF1B1D22),
+    subtitle: Color(0xFF6B7280),
     label: Color(0xFF334155),
     credit: Color(0xFF0F172A),
     debit: Color(0xFFDC2626),
-    divider: Color(0xFFE2E8F0),
+    divider: Color(0xFFE7E9EE),
     net: Color(0xFF0D995C),
     cancelled: Color(0xFFDC2626),
   );

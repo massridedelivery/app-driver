@@ -12,6 +12,7 @@ import 'package:massdrive/core/services/directions_service.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_food_modal.dart';
 import 'package:massdrive/features/incoming_job/presentation/widgets/incoming_job_modal.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class IncomingJobScreen extends ConsumerStatefulWidget {
   const IncomingJobScreen({super.key});
@@ -136,9 +137,7 @@ class _IncomingJobScreenState extends ConsumerState<IncomingJobScreen> {
                 LatLng(job.pickupLat, job.pickupLng),
                 LatLng(job.dropoffLat, job.dropoffLng),
               ],
-        color: job.isFood
-            ? AppColors.foundationOrange600
-            : AppColors.semanticPrimaryBgHigh,
+        color: context.brand.red,
         width: 5,
         // Dashed only for the straight-line fallback; solid for the real route.
         patterns: hasRoute

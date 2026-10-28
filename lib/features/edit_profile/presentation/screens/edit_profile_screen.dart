@@ -14,6 +14,7 @@ import 'package:massdrive/features/document_registration/domain/models/driver_pr
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class EditProfileScreen extends ConsumerWidget {
   const EditProfileScreen({super.key});
@@ -252,7 +253,7 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationGreen600,
+                    backgroundColor: context.brand.red,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -329,7 +330,7 @@ class EditProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationGreen600,
+                    backgroundColor: context.brand.red,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);

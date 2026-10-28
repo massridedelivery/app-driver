@@ -10,6 +10,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// The driver's withdrawal requests and where each one stands
 /// (GET /api/driver/payouts). Refreshes when a `payout_<status>` push arrives.
@@ -133,7 +134,7 @@ class _PayoutCard extends StatelessWidget {
 
   final PayoutRecord record;
 
-  (Color, Color) _statusColors() => switch (record.status) {
+  (Color, Color) _statusColors(BuildContext context) => switch (record.status) {
     PayoutStatus.completed => (
       AppColors.foundationGreen100,
       AppColors.foundationGreen600,
@@ -142,7 +143,8 @@ class _PayoutCard extends StatelessWidget {
       AppColors.foundationRed100,
       AppColors.foundationRed800,
     ),
-    _ => (AppColors.foundationOrange100, AppColors.foundationOrange600),
+    // Pending / in progress → amber "in review".
+    _ => (context.brand.waitBg, context.brand.wait),
   };
 
   String? _hint() => switch (record.status) {
@@ -156,7 +158,7 @@ class _PayoutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = DateFormat('d MMM yyyy HH:mm', 'th_TH');
-    final (bg, fg) = _statusColors();
+    final (bg, fg) = _statusColors(context);
     final hint = _hint();
     final reason = record.reason;
     final completed = record.status == PayoutStatus.completed;

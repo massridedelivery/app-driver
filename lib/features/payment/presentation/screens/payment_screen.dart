@@ -22,6 +22,7 @@ import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -564,18 +565,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         : PaymentMethod.cash;
 
     return Scaffold(
-      backgroundColor: AppColors.foundationGreen900,
-      // Dark green background from mockup
+      // Neutral page background (red / white / charcoal theme).
+      backgroundColor: context.palette.bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => context.pop(),
         ),
         title: Text(
           "รายการชำระเงินของ ${widget.title ?? job?.passengerName ?? widget.passengerName}",
-          style: AppTypography.heading6.copyWith(color: Colors.white),
+          style: AppTypography.heading6.copyWith(
+            color: context.palette.textPrimary,
+          ),
         ),
         centerTitle: true,
       ),
@@ -594,8 +597,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     children: [
                       Text(
                         formatBahtNumber(_totalFare),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.palette.textPrimary,
                           fontSize: 56,
                           fontWeight: FontWeight.bold,
                         ),
@@ -613,7 +616,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         : _currentMethod == PaymentMethod.cash
                         ? "เก็บเงินสด"
                         : "สแกนจ่าย",
-                    style: AppTypography.heading6.copyWith(color: Colors.white),
+                    style: AppTypography.heading6.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
                   ),
 
                   // Tell the driver who to collect from and at which stage
@@ -624,12 +629,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: context.palette.surfaceAlt,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         _collectContext!,
-                        style: AppTypography.body2.copyWith(color: Colors.white),
+                        style: AppTypography.body2.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -823,7 +830,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             label: _nothingToCollect
                 ? 'เลื่อนเพื่อจบงาน'
                 : 'เลื่อนเมื่อรับเงินสดแล้ว',
-            color: AppColors.foundationGreen700,
+            color: context.brand.red,
             enabled: _canConfirm,
             loading: _submitting,
             onConfirmed: _onConfirmPayment,
@@ -926,7 +933,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               child: Text(
                 "ลองใหม่",
                 style: AppTypography.body1.copyWith(
-                  color: AppColors.foundationOrange500,
+                  color: context.brand.red,
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
                 ),
@@ -945,7 +952,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               child: Text(
                 "ขอ QR ใหม่",
                 style: AppTypography.body1.copyWith(
-                    color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                    color: context.brand.red, fontWeight: FontWeight.bold),
               ),
             ),
           ] else
@@ -991,7 +998,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
                         textAlign: TextAlign.center,
                         style: AppTypography.body2
-                            .copyWith(color: Colors.blueAccent),
+                            .copyWith(color: context.brand.red),
                       ),
                     ),
                   // Clear, tappable fallback when the QR can't be scanned.
@@ -1033,8 +1040,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         height: 56,
         decoration: BoxDecoration(
           color: enabled
-              ? AppColors.foundationGreen700
-              : AppColors.foundationGreen700.withValues(alpha: 0.4),
+              ? context.brand.red
+              : context.brand.red.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(28),
         ),
         alignment: Alignment.center,

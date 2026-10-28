@@ -29,7 +29,7 @@ class ScaffoldWithNavBar extends ConsumerStatefulWidget {
 
 class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
   static const _inactiveIconColor = AppColors.semanticGrayNeutralFgMidOnWhite;
-  static const _activeIconColor = AppColors.foundationOrange600;
+  static const _activeIconColor = AppColors.foundationRed700; // BrandColors.red
 
   static const _iconHome = BadgeIcon(
     iconPath: AppAssets.bottomNavHomeIcon,
@@ -88,7 +88,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                 elevation: 0,
                 showSelectedLabels: true,
                 showUnselectedLabels: true,
-                selectedItemColor: AppColors.semanticPrimaryFgHigh,
+                selectedItemColor: _activeIconColor,
                 unselectedItemColor: AppColors.semanticGrayNeutralFgMidOnWhite,
                 items: [
                   const BottomNavigationBarItem(

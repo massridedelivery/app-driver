@@ -8,12 +8,13 @@ class AuthColors {
   AuthColors._();
 
   static const bg = Colors.white;
-  static const fieldFill = Color(0xFFF7F8FA);
-  static const fieldBorder = Color(0xFFE6E7EB);
-  static const textPrimary = Color(0xFF111111);
-  static const textSecondary = Color(0xFF8A8F98);
+  // Neutrals match BrandColors.light (fill / line / text1–3).
+  static const fieldFill = Color(0xFFF5F6F8);
+  static const fieldBorder = Color(0xFFE7E9EE);
+  static const textPrimary = Color(0xFF1B1D22);
+  static const textSecondary = Color(0xFF6B7280);
   static const hint = Color(0xFF9CA3AF);
-  static const disabledBg = Color(0xFFEBECF0);
+  static const disabledBg = Color(0xFFE7E9EE);
   static const disabledText = Color(0xFF9CA3AF);
   static const accent = AppColors.foundationRed700; // #DB1439
   static const charcoal = Color(0xFF3A3B40);
@@ -222,8 +223,7 @@ class _WavePainter extends CustomPainter {
   bool shouldRepaint(_WavePainter old) => old.color != color;
 }
 
-/// Full-width primary button: charcoal (matching the logo) when enabled, flat
-/// grey when not.
+/// Full-width primary button: brand red when enabled, flat grey when not.
 class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final bool enabled;
@@ -254,19 +254,12 @@ class AuthPrimaryButton extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              gradient: enabled
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF3B3C41), Color(0xFF16171A)],
-                    )
-                  : null,
-              color: enabled ? null : AuthColors.disabledBg,
+              color: enabled ? AuthColors.accent : AuthColors.disabledBg,
               borderRadius: radius,
               boxShadow: enabled
                   ? [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
+                        color: AuthColors.accent.withValues(alpha: 0.25),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),

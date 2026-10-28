@@ -14,6 +14,7 @@ import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/features/history/domain/models/trip_summary.dart';
 import 'package:massdrive/features/history/domain/models/service_icon.dart';
 import 'package:massdrive/features/profile/domain/trip_calendar_entries.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Income schedule (Grab-style): pick a day or a week and see the net
 /// earnings, completed-job count and job list for that range. Jobs come from
@@ -154,7 +155,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
             color: active
-                ? AppColors.semanticSuccessBgHigh.withValues(alpha: 0.2)
+                ? context.brand.tint
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
@@ -162,7 +163,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             label,
             style: AppTypography.caption4.copyWith(
               color: active
-                  ? AppColors.semanticSuccessBgHigh
+                  ? context.brand.red
                   : context.palette.textSecondary,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
@@ -246,7 +247,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.semanticSuccessBgHigh
+              ? context.brand.red
               : context.palette.surface,
           borderRadius: BorderRadius.circular(14),
         ),
@@ -297,7 +298,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
           Text(
             '${_loading ? '—' : _trips.length} งานที่ทำสำเร็จ',
             style: AppTypography.caption4.copyWith(
-              color: AppColors.foundationOrange500,
+              color: context.brand.red,
             ),
           ),
         ],
@@ -354,7 +355,7 @@ class _TripCalendarScreenState extends ConsumerState<TripCalendarScreen> {
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.semanticSuccessBgHigh.withValues(alpha: 0.15),
+              color: context.palette.surfaceAlt,
               borderRadius: BorderRadius.circular(10),
             ),
             // Same vehicle icon and Thai label as the job cards.

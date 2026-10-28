@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 
-/// Theme-aware neutral colours for migrating the dark-hardcoded screens to
-/// light/dark. Only the neutral surfaces/text flip here; brand colours
-/// (orange/green/red/mint…) stay in [AppColors] and read the same in both
-/// modes. Resolve via `context.palette`.
+/// Theme-aware neutral colours (red / white / charcoal brand, "design E").
+/// Only the neutral surfaces/text flip here; brand accents live in
+/// [BrandColors] (`context.brand`). Resolve via `context.palette`.
 ///
-/// The dark values reuse the app's existing tokens, so dark mode looks
-/// identical to before the migration.
+/// Values match the neutrals of [BrandColors] (bg, surface, fill, line,
+/// text1–3), so palette-driven and brand-driven screens read as one surface.
 class AppPalette {
   /// Page/scaffold background.
   final Color bg;
@@ -26,8 +24,8 @@ class AppPalette {
 
   final Color border;
 
-  /// Elevated sheet over the map (home bottom sheets). Dark = the app's
-  /// blue-grey; light = white.
+  /// Elevated sheet over the map (home bottom sheets). Dark = charcoal card;
+  /// light = white.
   final Color sheet;
 
   /// Secondary sheet fill.
@@ -46,27 +44,27 @@ class AppPalette {
   });
 
   static const dark = AppPalette(
-    bg: AppColors.semanticGrayNeutralFgHigh,
-    surface: AppColors.semanticGrayNeutralFgMidOnGray,
-    surfaceAlt: AppColors.foundationAlphaWhite100,
-    textPrimary: AppColors.semanticGrayNeutralBgWhite,
-    textSecondary: AppColors.foundationAlphaWhite400,
-    textTertiary: AppColors.semanticGrayNeutralFgLowOnGray,
-    border: Color(0x1FFFFFFF),
-    sheet: Color(0xFF1E2F38),
-    sheetAlt: Color(0xFF2C3E4A),
+    bg: Color(0xFF121316),
+    surface: Color(0xFF1E2026),
+    surfaceAlt: Color(0xFF23262D),
+    textPrimary: Color(0xFFF3F4F6),
+    textSecondary: Color(0xFFA1A6B0),
+    textTertiary: Color(0xFF6B7180),
+    border: Color(0xFF2C2F37),
+    sheet: Color(0xFF1E2026),
+    sheetAlt: Color(0xFF23262D),
   );
 
   static const light = AppPalette(
-    bg: Color(0xFFF8FAFC),
+    bg: Color(0xFFF7F8FA),
     surface: Colors.white,
-    surfaceAlt: Color(0x0A000000),
-    textPrimary: Color(0xFF0F172A),
-    textSecondary: Color(0xFF64748B),
-    textTertiary: Color(0xFF94A3B8),
-    border: Color(0xFFE2E8F0),
+    surfaceAlt: Color(0xFFF5F6F8),
+    textPrimary: Color(0xFF1B1D22),
+    textSecondary: Color(0xFF6B7280),
+    textTertiary: Color(0xFF9CA3AF),
+    border: Color(0xFFE7E9EE),
     sheet: Colors.white,
-    sheetAlt: Color(0xFFF1F5F9),
+    sheetAlt: Color(0xFFF5F6F8),
   );
 
   static AppPalette of(BuildContext context) =>

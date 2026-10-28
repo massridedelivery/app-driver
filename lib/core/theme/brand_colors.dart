@@ -43,6 +43,10 @@ class BrandColors {
   final Color bad;
   final Color badBg;
 
+  /// Charcoal banner / overlay surface that always carries white text (live
+  /// job navigation banner, "active job" banner).
+  final Color banner;
+
   final Brightness brightness;
 
   const BrandColors({
@@ -62,6 +66,7 @@ class BrandColors {
     required this.waitBg,
     required this.bad,
     required this.badBg,
+    required this.banner,
     required this.brightness,
   });
 
@@ -84,6 +89,7 @@ class BrandColors {
     waitBg: Color(0xFFFFF7E6),
     bad: Color(0xFFDB1439),
     badBg: Color(0xFFFEF1F3),
+    banner: Color(0xFF1B1D22),
     brightness: Brightness.light,
   );
 
@@ -104,6 +110,7 @@ class BrandColors {
     waitBg: Color(0x1FF5A524), // rgba(245,165,36,.12)
     bad: Color(0xFFFF5C7A),
     badBg: Color(0x1FFF5C7A), // rgba(255,92,122,.12)
+    banner: Color(0xFF2C2F37),
     brightness: Brightness.dark,
   );
 

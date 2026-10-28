@@ -10,6 +10,7 @@ import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/account_restricted/presentation/widgets/account_restricted_dialog.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Shown instead of the app when the driver's account was deleted or
 /// suspended. The router keeps the driver here (settings is the only other
@@ -144,7 +145,7 @@ class _AccountRestrictedScreenState extends State<AccountRestrictedScreen> {
                     style: AppTypography.label1.copyWith(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationOrange600,
+                    backgroundColor: context.brand.red,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),

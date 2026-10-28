@@ -13,6 +13,7 @@ import 'package:massdrive/features/setting/presentation/controllers/auto_accept_
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class IncomingFoodModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
@@ -95,7 +96,8 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
     final autoAccept = ref.watch(autoAcceptProvider);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
+        // Dark-only sheet (white text) — charcoal card surface.
+        color: BrandColors.dark.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppSpacing.s6),
           topRight: Radius.circular(AppSpacing.s6),
@@ -171,7 +173,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.foundationOrange600,
+            color: BrandColors.dark.red,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -241,12 +243,12 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.foundationOrange100,
+            color: BrandColors.dark.tint,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.storefront,
-            color: AppColors.foundationOrange600,
+            color: BrandColors.dark.red,
             size: 20,
           ),
         ),
@@ -288,7 +290,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
           Text(
             'รายการอาหาร',
             style: AppTypography.caption5.copyWith(
-              color: AppColors.foundationOrange500,
+              color: BrandColors.dark.red,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -307,7 +309,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: AppColors.foundationOrange600,
+                      color: BrandColors.dark.red,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     alignment: Alignment.center,
@@ -365,8 +367,8 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
               Container(
                 width: 16,
                 height: 16,
-                decoration: const BoxDecoration(
-                  color: AppColors.foundationOrange600,
+                decoration: BoxDecoration(
+                  color: BrandColors.dark.red,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,

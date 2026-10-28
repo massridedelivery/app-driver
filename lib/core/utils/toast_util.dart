@@ -19,7 +19,7 @@ class ToastUtil {
       msg: message,
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
-      backgroundColor: AppColors.foundationOrange600,
+      backgroundColor: AppColors.foundationRed700, // brand red (BrandColors.red)
       textColor: Colors.white,
       fontSize: 16.0,
     );

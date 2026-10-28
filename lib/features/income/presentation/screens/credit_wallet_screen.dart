@@ -222,7 +222,7 @@ class CreditWalletScreen extends ConsumerWidget {
             Text(
               'Mass',
               style: AppTypography.heading3.copyWith(
-                color: AppColors.foundationGreen600,
+                color: AppColors.foundationRed700, // BrandColors.red
                 letterSpacing: -1,
                 fontWeight: FontWeight.w900,
                 fontStyle: FontStyle.italic,
@@ -232,7 +232,7 @@ class CreditWalletScreen extends ConsumerWidget {
               width: 40,
               height: 3,
               decoration: BoxDecoration(
-                color: AppColors.foundationGreen600,
+                color: AppColors.foundationRed700, // BrandColors.red
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

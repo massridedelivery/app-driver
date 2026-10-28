@@ -29,6 +29,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -177,7 +178,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           Polyline(
             polylineId: const PolylineId('route'),
             points: points,
-            color: AppColors.semanticSuccessBgHigh,
+            color: context.brand.red,
             width: 5,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
@@ -953,22 +954,14 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     }
   }
 
-  /// The step's slide: orange "เลื่อนเมื่อถึงจุดรับ", then green
+  /// The step's slide — brand red for every step: "เลื่อนเมื่อถึงจุดรับ",
   /// "เลื่อนเพื่อเริ่มเดินทาง" and "เลื่อนเมื่อส่งถึงแล้ว".
   Widget _buildArrivedButton() {
-    final (label, color) = switch (_currentState) {
-      JobLiveState.headingToPickup => (
-        'เลื่อนเมื่อถึงจุดรับ',
-        AppColors.foundationOrange700,
-      ),
-      JobLiveState.arrivedAtPickup => (
-        'เลื่อนเพื่อเริ่มเดินทาง',
-        AppColors.foundationMint600,
-      ),
-      JobLiveState.headingToDropoff => (
-        'เลื่อนเมื่อส่งถึงแล้ว',
-        AppColors.foundationMint600,
-      ),
+    final color = context.brand.red;
+    final label = switch (_currentState) {
+      JobLiveState.headingToPickup => 'เลื่อนเมื่อถึงจุดรับ',
+      JobLiveState.arrivedAtPickup => 'เลื่อนเพื่อเริ่มเดินทาง',
+      JobLiveState.headingToDropoff => 'เลื่อนเมื่อส่งถึงแล้ว',
     };
     return SlideToConfirm(
       key: ValueKey(_currentState),

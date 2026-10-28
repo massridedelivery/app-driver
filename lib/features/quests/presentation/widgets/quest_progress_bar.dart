@@ -4,10 +4,10 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
 
-/// Card surface shared with the job cards: dark #262932, light white.
+/// Card surface shared with the job cards: dark #1E2026, light white.
 Color questSurface(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
-    ? const Color(0xFF262932)
+    ? const Color(0xFF1E2026)
     : Colors.white;
 
 /// What sits under each step mark.
@@ -29,7 +29,7 @@ class QuestProgressBar extends StatelessWidget {
   final DriverQuest quest;
   final Color color;
 
-  /// Optional fill gradient (the profile card's orange bar).
+  /// Optional fill gradient (the profile card's red bar).
   final Gradient? gradient;
   final QuestBarLabel labels;
   final double height;
@@ -39,8 +39,8 @@ class QuestProgressBar extends StatelessWidget {
     // Light track on both themes; unreached marks cut the bar in the card's
     // own colour.
     final track = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0x24FFFFFF)
-        : const Color(0xFFE2E8F0);
+        ? const Color(0xFF2C2F37)
+        : const Color(0xFFE7E9EE);
     final cut = questSurface(context);
     final idle = context.palette.textSecondary;
     return LayoutBuilder(

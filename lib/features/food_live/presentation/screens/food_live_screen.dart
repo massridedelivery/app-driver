@@ -21,6 +21,7 @@ import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
 ///
@@ -111,7 +112,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           Polyline(
             polylineId: const PolylineId('route'),
             points: points,
-            color: AppColors.foundationOrange600,
+            color: context.brand.red,
             width: 5,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
@@ -242,9 +243,11 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           snapSizes: snaps,
           builder: (context, scrollController) {
             return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.semanticGrayNeutralFgMidOnBlack,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                // Dark-only sheet (white text) — charcoal card surface.
+                color: BrandColors.dark.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SingleChildScrollView(
                 controller: scrollController,
@@ -302,20 +305,18 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
 
   Widget _buildTopStatusBadge() {
     String badgeText;
-    Color badgeColor;
+    // Charcoal banner with white text for every step (matches RideNavBanner).
+    final badgeColor = context.brand.banner;
 
     switch (_currentState) {
       case FoodLiveState.headingToRestaurant:
         badgeText = '1. เดินทางไปร้าน';
-        badgeColor = AppColors.foundationOrange600;
         break;
       case FoodLiveState.atRestaurant:
         badgeText = '2. ถึงร้านแล้ว';
-        badgeColor = AppColors.foundationAmber400;
         break;
       case FoodLiveState.delivering:
         badgeText = '3. กำลังส่ง';
-        badgeColor = AppColors.semanticSuccessBgHigh;
         break;
     }
 
@@ -398,15 +399,15 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
     switch (_currentState) {
       case FoodLiveState.headingToRestaurant:
         headerText = '1. กำลังเดินทางไปร้านอาหาร';
-        headerColor = AppColors.foundationOrange500;
+        headerColor = BrandColors.dark.red;
         break;
       case FoodLiveState.atRestaurant:
         headerText = '2. รอรับอาหารที่ร้าน';
-        headerColor = AppColors.foundationAmber400;
+        headerColor = BrandColors.dark.wait;
         break;
       case FoodLiveState.delivering:
         headerText = '3. กำลังไปส่งอาหาร';
-        headerColor = AppColors.semanticSuccessBgHigh;
+        headerColor = BrandColors.dark.red;
         break;
     }
 
@@ -440,9 +441,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   }
 
   Widget _timelineIcon(IconData icon, bool isActive) {
-    final color = isActive
-        ? AppColors.foundationOrange600
-        : AppColors.foundationGrayscale600;
+    final color = isActive ? BrandColors.dark.red : BrandColors.dark.text3;
 
     return Container(
       width: 24,
@@ -464,15 +463,15 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           borderRadius: BorderRadius.circular(2),
           child: isAnimating
               ? LinearProgressIndicator(
-                  backgroundColor: AppColors.foundationGrayscale800,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.foundationOrange500,
+                  backgroundColor: BrandColors.dark.line,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    BrandColors.dark.red,
                   ),
                 )
               : Container(
                   color: isActive
-                      ? AppColors.foundationOrange500
-                      : AppColors.foundationGrayscale800,
+                      ? BrandColors.dark.red
+                      : BrandColors.dark.line,
                 ),
         ),
       ),
@@ -495,14 +494,14 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.foundationOrange100.withOpacity(0.2),
+                color: BrandColors.dark.tint,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 _currentState == FoodLiveState.delivering
                     ? Icons.person
                     : Icons.storefront,
-                color: AppColors.foundationOrange500,
+                color: BrandColors.dark.red,
                 size: 20,
               ),
             ),
@@ -587,13 +586,13 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.receipt_long, color: AppColors.foundationOrange500, size: 18),
+              Icon(Icons.receipt_long, color: BrandColors.dark.red, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'ออเดอร์: ${currentJob.itemSummary}',
                   style: AppTypography.caption4.copyWith(
-                    color: AppColors.foundationOrange500,
+                    color: BrandColors.dark.red,
                   ),
                 ),
               ),
@@ -615,12 +614,12 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.receipt_long, color: AppColors.foundationOrange500, size: 18),
+              Icon(Icons.receipt_long, color: BrandColors.dark.red, size: 18),
               const SizedBox(width: 8),
               Text(
                 'รายการอาหาร (${items.length} รายการ)',
                 style: AppTypography.caption4.copyWith(
-                  color: AppColors.foundationOrange500,
+                  color: BrandColors.dark.red,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -640,7 +639,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: AppColors.foundationOrange600,
+                      color: BrandColors.dark.red,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     alignment: Alignment.center,
@@ -754,20 +753,18 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   // =========================================================================
   Widget _buildActionButton() {
     String buttonText;
-    Color buttonColor;
+    // Brand red for every step's primary action.
+    final buttonColor = BrandColors.dark.red;
 
     switch (_currentState) {
       case FoodLiveState.headingToRestaurant:
         buttonText = 'ถึงร้านแล้ว';
-        buttonColor = AppColors.foundationOrange600;
         break;
       case FoodLiveState.atRestaurant:
         buttonText = 'รับอาหารแล้ว';
-        buttonColor = AppColors.semanticSuccessBgHigh;
         break;
       case FoodLiveState.delivering:
         buttonText = 'ส่งอาหารสำเร็จ';
-        buttonColor = AppColors.semanticSuccessBgHigh;
         break;
     }
 

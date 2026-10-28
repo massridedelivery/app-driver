@@ -10,6 +10,7 @@ import 'package:massdrive/features/document_registration/presentation/screens/ba
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class PayoutFormScreen extends ConsumerStatefulWidget {
   final double availableBalance;
@@ -300,10 +301,10 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            const CircleAvatar(
+                            CircleAvatar(
                               radius: 18,
-                              backgroundColor: AppColors.foundationOrange600,
-                              child: Icon(Icons.account_balance_rounded, color: Colors.white, size: 20),
+                              backgroundColor: context.brand.red,
+                              child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -438,7 +439,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
                             ? null
                             : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationGreen600,
+                      backgroundColor: context.brand.red,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),

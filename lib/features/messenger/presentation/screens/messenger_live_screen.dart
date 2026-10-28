@@ -14,6 +14,7 @@ import 'package:massdrive/features/messenger/domain/models/messenger_status.dart
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Active messenger delivery — advances arrived → picked-up → delivered via the
 /// per-vertical REST actions (SCRUM-41 §7).
@@ -144,9 +145,10 @@ class _LiveSheet extends ConsumerWidget {
         20,
         28 + MediaQuery.of(context).viewPadding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        // Dark-only sheet (white text) — charcoal card surface.
+        color: BrandColors.dark.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -155,7 +157,7 @@ class _LiveSheet extends ConsumerWidget {
           Text(
             headerText,
             style: AppTypography.heading4
-                .copyWith(color: AppColors.semanticSuccessBgHigh),
+                .copyWith(color: BrandColors.dark.red),
           ),
           const SizedBox(height: 4),
           Text(
@@ -244,7 +246,7 @@ class _LiveSheet extends ConsumerWidget {
             child: ElevatedButton(
               onPressed: (isSubmitting || action == null) ? null : action,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.semanticSuccessBgHigh,
+                backgroundColor: BrandColors.dark.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

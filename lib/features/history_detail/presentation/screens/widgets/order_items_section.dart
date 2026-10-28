@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class OrderItemsSection extends StatelessWidget {
   final HistoryDetailEntity data;
@@ -40,7 +40,7 @@ class OrderItemsSection extends StatelessWidget {
               Icon(
                 Icons.receipt_long,
                 size: 20,
-                color: AppColors.foundationOrange600,
+                color: context.brand.red,
               ),
               const SizedBox(width: 8),
               Text(
@@ -69,14 +69,14 @@ class OrderItemsSection extends StatelessWidget {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: AppColors.foundationOrange100,
+                      color: context.brand.tint,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       '${qty}x',
                       style: AppTypography.label3.copyWith(
-                        color: AppColors.foundationOrange600,
+                        color: context.brand.red,
                       ),
                     ),
                   ),

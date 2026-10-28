@@ -36,6 +36,7 @@ import 'package:massdrive/features/document_registration/presentation/controller
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class OnlineStatusState {
   final bool isOnline;
@@ -605,7 +606,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   height: 56,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange600,
+                      backgroundColor: context.brand.red,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -619,7 +620,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: Text(
                       'ไปที่ลงทะเบียนคนขับ',
                       style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -685,7 +686,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     children: [
                       Icon(
                         Icons.hourglass_top_rounded,
-                  color: AppColors.foundationOrange500,
+                  color: context.brand.wait,
                   size: 56,
                 ),
                 const SizedBox(height: 20),
@@ -711,10 +712,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.foundationOrange500.withValues(alpha: 0.15),
+                    color: context.brand.waitBg,
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: AppColors.foundationOrange500.withValues(
+                      color: context.brand.wait.withValues(
                         alpha: 0.4,
                       ),
                     ),
@@ -722,19 +723,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.foundationOrange500,
+                          color: context.brand.wait,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
                         'อยู่ระหว่างการตรวจสอบ',
                         style: AppTypography.caption3.copyWith(
-                          color: AppColors.foundationOrange500,
+                          color: context.brand.wait,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -927,7 +928,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               shape: BoxShape.circle,
               color: context.palette.surfaceAlt,
             ),
-            child: Icon(icon, color: AppColors.foundationOrange700),
+            child: Icon(icon, color: context.brand.red),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -1039,14 +1040,12 @@ class _OnlineButton extends ConsumerWidget {
           gradient: LinearGradient(
             colors: isOnline
                 ? [
-                    AppColors.semanticSupportMintBgHigh,
-                    AppColors.semanticSupportMintBgMid,
-                    AppColors.semanticSupportMintBgHigh,
+                    context.palette.surfaceAlt,
+                    context.palette.surfaceAlt,
                   ]
                 : [
-                    AppColors.foundationOrange700,
-                    AppColors.foundationOrange500,
-                    AppColors.foundationOrange700,
+                    context.brand.red,
+                    context.brand.red,
                   ],
           ),
           boxShadow: [
@@ -1056,16 +1055,17 @@ class _OnlineButton extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // White on the mint/orange gradient fill (readable in light & dark).
-            const Icon(
+            // White on the red fill (offline → go-online CTA); primary text on
+            // the neutral fill while online.
+            Icon(
               Icons.power_settings_new,
-              color: Colors.white,
+              color: isOnline ? context.palette.textPrimary : Colors.white,
             ),
             const SizedBox(width: 10),
             Text(
               isOnline ? "พร้อมรับงาน" : "ปิดรับงาน",
               style: AppTypography.heading5.copyWith(
-                color: Colors.white,
+                color: isOnline ? context.palette.textPrimary : Colors.white,
               ),
             ),
           ],
@@ -1095,7 +1095,7 @@ class _StatusCard extends ConsumerWidget {
             radius: 6,
             backgroundColor: isOnline
                 ? AppColors.semanticSupportMintBgHigh
-                : AppColors.foundationOrange700,
+                : context.palette.textTertiary,
           ),
           const SizedBox(width: 12),
           Text(
@@ -1182,7 +1182,7 @@ void _showLocationSettingsDialog(
           child: Text(
             'เปิดตั้งค่า',
             style: AppTypography.caption3.copyWith(
-              color: AppColors.foundationOrange600,
+              color: dialogContext.brand.red,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -1288,7 +1288,7 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              color: AppColors.foundationOrange500,
+              color: context.brand.wait,
               size: 64,
             ),
             const SizedBox(height: 16),
@@ -1335,7 +1335,7 @@ void _showUnverifiedDocsDialogStatic(BuildContext context) {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange600,
+                      backgroundColor: context.brand.red,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

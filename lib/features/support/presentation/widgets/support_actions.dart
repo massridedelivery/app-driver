@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/support/presentation/screens/help_center_screen.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Dials the call center. Tells the driver when no number is configured rather
 /// than launching a `tel:` URI that goes nowhere.
@@ -109,7 +109,7 @@ class _HelpTile extends StatelessWidget {
       onTap: onTap,
       leading: CircleAvatar(
         backgroundColor: context.palette.surfaceAlt,
-        child: Icon(icon, color: AppColors.foundationOrange500),
+        child: Icon(icon, color: context.brand.red),
       ),
       title: Text(
         title,

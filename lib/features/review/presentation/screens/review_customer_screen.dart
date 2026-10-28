@@ -7,6 +7,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Driver → customer review, shown after a completed job's payment step.
 /// UI + flow mirror the customer app's "rate the driver" screen: 1–5 stars,
@@ -215,7 +216,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
       height: 52,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.foundationRed100,
+        color: context.brand.tint,
         image: (url != null && url.isNotEmpty)
             ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
             : null,
@@ -258,7 +259,7 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.foundationRed100 : context.palette.surface,
+          color: selected ? context.brand.tint : context.palette.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
@@ -328,8 +329,8 @@ class _ReviewCustomerScreenState extends ConsumerState<ReviewCustomerScreen> {
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.foundationGreen500,
-                  disabledBackgroundColor: AppColors.foundationGreen500,
+                  backgroundColor: context.brand.red,
+                  disabledBackgroundColor: context.brand.red,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

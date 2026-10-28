@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 const _settingsChannel = MethodChannel('massdrive/settings');
 
@@ -76,15 +76,13 @@ class HomeOfflineCard extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.foundationOrange600.withValues(
-                      alpha: 0.15,
-                    ),
+                    color: context.brand.tint,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     offline ? Icons.wifi_off_rounded : Icons.cloud_off_rounded,
                     size: 32,
-                    color: AppColors.foundationOrange600,
+                    color: context.brand.red,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -111,8 +109,8 @@ class HomeOfflineCard extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: retrying ? null : onRetry,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.foundationOrange600,
-                      disabledBackgroundColor: AppColors.foundationOrange600
+                      backgroundColor: context.brand.red,
+                      disabledBackgroundColor: context.brand.red
                           .withValues(alpha: 0.5),
                       elevation: 0,
                       shape: RoundedRectangleBorder(

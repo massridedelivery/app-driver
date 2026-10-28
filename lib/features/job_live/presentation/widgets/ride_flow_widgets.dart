@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
-/// Ride-flow card colours: white in light mode, the job-card dark surface in
-/// dark mode.
+/// Ride-flow card colours: white in light mode, the charcoal card surface in
+/// dark mode (BrandColors surface / fill / line).
 class RideCardColors {
   const RideCardColors._(this.surface, this.chip, this.line);
 
@@ -16,18 +16,18 @@ class RideCardColors {
   static RideCardColors of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
       ? const RideCardColors._(
-          Color(0xFF262932),
-          Color(0x1AFFFFFF),
-          Color(0x1FFFFFFF),
+          Color(0xFF1E2026),
+          Color(0xFF23262D),
+          Color(0xFF2C2F37),
         )
       : const RideCardColors._(
           Colors.white,
-          Color(0xFFF1F5F9),
-          Color(0xFFE5E7EB),
+          Color(0xFFF5F6F8),
+          Color(0xFFE7E9EE),
         );
 }
 
-/// Green navigation bar at the top of the live ride: "1 · ไปรับ", the address
+/// Charcoal navigation bar at the top of the live ride: "1 · ไปรับ", the address
 /// heading to, the distance (or a status such as "รอผู้โดยสาร") and นำทาง.
 class RideNavBanner extends StatelessWidget {
   const RideNavBanner({
@@ -48,7 +48,7 @@ class RideNavBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.foundationMint600,
+      color: context.brand.banner,
       elevation: 6,
       shadowColor: Colors.black45,
       borderRadius: BorderRadius.circular(16),
@@ -95,16 +95,16 @@ class RideNavBanner extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.navigation_rounded,
                             size: 16,
-                            color: AppColors.foundationMint600,
+                            color: context.brand.red,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'นำทาง',
                             style: AppTypography.caption4.copyWith(
-                              color: AppColors.foundationMint600,
+                              color: BrandColors.light.text1,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -370,15 +370,15 @@ class PriorCancelFeeNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.foundationOrange500.withValues(alpha: 0.12),
+        color: context.brand.waitBg,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 16,
-            color: AppColors.foundationOrange500,
+            color: context.brand.wait,
           ),
           const SizedBox(width: 8),
           Expanded(

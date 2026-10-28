@@ -242,7 +242,7 @@ class _CoachCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const muted = Color(0xFF8A8F98);
+    const muted = Color(0xFF9CA3AF); // BrandColors.light.text3
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
       decoration: BoxDecoration(
@@ -264,7 +264,7 @@ class _CoachCard extends StatelessWidget {
             Text(
               title,
               style: AppTypography.label1.copyWith(
-                color: const Color(0xFF111111),
+                color: const Color(0xFF1B1D22), // BrandColors.light.text1
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -272,7 +272,7 @@ class _CoachCard extends StatelessWidget {
             Text(
               body,
               style: AppTypography.caption4.copyWith(
-                color: const Color(0xFF555555),
+                color: const Color(0xFF6B7280), // BrandColors.light.text2
                 height: 1.45,
               ),
             ),
@@ -300,7 +300,7 @@ class _CoachCard extends StatelessWidget {
                 FilledButton(
                   onPressed: onNext,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF111111),
+                    backgroundColor: const Color(0xFF1B1D22),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(0, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 18),

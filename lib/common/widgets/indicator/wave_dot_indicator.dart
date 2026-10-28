@@ -8,7 +8,7 @@ class BaseWaveDotsIndicator extends StatelessWidget {
 
   const BaseWaveDotsIndicator({
     super.key,
-    this.color = AppColors.foundationOrange700,
+    this.color = AppColors.foundationRed700, // BrandColors.red
     this.size = 50,
   });
 

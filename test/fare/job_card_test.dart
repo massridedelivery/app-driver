@@ -88,7 +88,7 @@ void main() {
         await pumpIn(Brightness.dark);
         expect(colorOf('฿2'), const Color(0xFF3DDC84));
         expect(colorOf('-฿0.40'), const Color(0xFFFF8A8A));
-        expect(cardColor(), const Color(0xFF262932)); // no green tint
+        expect(cardColor(), const Color(0xFF1E2026)); // no green tint
 
         await pumpIn(Brightness.light);
         await t.pumpAndSettle(); // the theme change animates

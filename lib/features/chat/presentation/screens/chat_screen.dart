@@ -19,6 +19,7 @@ import 'package:massdrive/features/chat/presentation/controllers/chat_controller
 import 'package:massdrive/features/chat/presentation/screens/chat_image_preview_screen.dart';
 import 'package:massdrive/features/chat/presentation/widgets/chat_image_widgets.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String jobId;
@@ -417,11 +418,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       vertical: 8,
                       horizontal: 16,
                     ),
-                    color: AppColors.semanticErrorBgHigh.withOpacity(0.2),
+                    color: context.brand.badBg,
                     child: Text(
                       'การเชื่อมต่อมีปัญหา: $error',
                       style: AppTypography.caption4.copyWith(
-                        color: AppColors.semanticErrorFgHigh,
+                        color: context.brand.bad,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -457,12 +458,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 color: context.palette.surfaceAlt,
                 child: Row(
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.foundationOrange600,
+                        color: context.brand.red,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -526,7 +527,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Text(
               'เลิกบล็อก',
               style: AppTypography.label2.copyWith(
-                color: AppColors.semanticSuccessBgHigh,
+                color: context.brand.red,
               ),
             ),
           ),
@@ -665,9 +666,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Ghost input: a solid, slightly-elevated fill with a hairline border so the
     // field and "+" button stand off the background (the old white-10% fill was
     // barely visible). Bar itself matches the screen bg (bg + top hairline).
-    final fieldFill = isDark
-        ? const Color(0xFF2A2D34)
-        : context.palette.surfaceAlt;
+    final fieldFill = context.palette.surfaceAlt;
     final fieldBorder = isDark
         ? Colors.white.withOpacity(0.10)
         : context.palette.border;
@@ -742,8 +741,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onTap: _sendMessage,
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
-                color: AppColors.foundationOrange700,
+              decoration: BoxDecoration(
+                color: context.brand.red,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -873,8 +872,12 @@ class _BubbleFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Driver's own bubble: charcoal with white text (lifted in dark mode);
+    // the customer's stays the neutral fill.
     final bubbleColor = isMe
-        ? AppColors.foundationOrange700
+        ? (context.brand.isDark
+              ? const Color(0xFF3A3E48)
+              : const Color(0xFF1B1D22))
         : context.palette.surfaceAlt;
     final timeStr = DateFormat('HH:mm').format(time.toLocal());
 
@@ -892,9 +895,9 @@ class _BubbleFrame extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isMe) ...[
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 14,
-                  backgroundColor: AppColors.foundationOrange700,
+                  backgroundColor: context.brand.red,
                   child: Icon(Icons.person, size: 16, color: Colors.white),
                 ),
                 const SizedBox(width: 8),

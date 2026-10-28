@@ -6,6 +6,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Fallback when `/api/config/support` hasn't loaded.
 const String fallbackSupportPhone = '065-6924555';
@@ -76,7 +77,7 @@ Future<void> showAccountRestrictedDialog(BuildContext context) {
             style: AppTypography.caption3.copyWith(color: Colors.white),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.foundationOrange600,
+            backgroundColor: dialogContext.brand.red,
             elevation: 0,
           ),
         ),

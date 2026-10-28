@@ -14,6 +14,7 @@ import 'package:massdrive/features/quests/presentation/widgets/quest_progress_ba
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Driver profile (design 5): centred photo, name, rating and tier; this
 /// week's income and completed jobs; the weekly rates; and the quest being
@@ -299,7 +300,7 @@ class _CurrentQuestCard extends ConsumerWidget {
             orElse: () => quests.first,
           );
     final p = context.palette;
-    const orange = AppColors.foundationOrange500;
+    final orange = context.brand.red;
     return Material(
       color: questSurface(context),
       shape: RoundedRectangleBorder(
@@ -318,7 +319,7 @@ class _CurrentQuestCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.emoji_events_rounded,
                     color: orange,
                     size: 20,
@@ -365,8 +366,8 @@ class _CurrentQuestCard extends ConsumerWidget {
                 QuestProgressBar(
                   quest: q,
                   color: orange,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE75615), Color(0xFFEF7F4D)],
+                  gradient: LinearGradient(
+                    colors: [context.brand.redPressed, context.brand.red],
                   ),
                   labels: QuestBarLabel.cumulative,
                 ),

@@ -15,6 +15,7 @@ import 'package:massdrive/features/messenger/presentation/controllers/messenger_
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
 /// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
@@ -74,7 +75,7 @@ class MessengerOfferScreen extends ConsumerWidget {
               Polyline(
                 polylineId: const PolylineId('route'),
                 points: hasRoute ? routePts : [pickup, dropoff],
-                color: AppColors.semanticPrimaryBgHigh,
+                color: context.brand.red,
                 width: hasRoute ? 5 : 4,
                 patterns: hasRoute
                     ? const []
@@ -173,9 +174,10 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
     );
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        // Dark-only sheet (white text) — charcoal card surface.
+        color: BrandColors.dark.surface,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppSpacing.s4),
           topRight: Radius.circular(AppSpacing.s4),
         ),
@@ -337,16 +339,16 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                 const SizedBox(height: AppSpacing.s3),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.payments_outlined,
-                      color: AppColors.foundationOrange500,
+                      color: BrandColors.dark.wait,
                       size: 16,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'เก็บเงินปลายทาง ${formatBaht(offer.codAmount)}',
                       style: AppTypography.caption4.copyWith(
-                        color: AppColors.foundationOrange500,
+                        color: BrandColors.dark.wait,
                       ),
                     ),
                   ],

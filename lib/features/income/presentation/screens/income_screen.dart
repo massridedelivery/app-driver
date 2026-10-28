@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/money_text.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 class IncomeScreen extends ConsumerStatefulWidget {
   const IncomeScreen({super.key});
@@ -86,7 +86,7 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                             title: 'ถอนได้',
                             amount: state.cashBalance,
                             icon: Icons.attach_money_rounded,
-                            iconBg: AppColors.foundationOrange600,
+                            iconBg: context.brand.red,
                             iconColor: Colors.white,
                             onTap: () => context.push(AppRoutes.cashWalletNamedPage),
                           ),
@@ -97,8 +97,8 @@ class _IncomeScreenState extends ConsumerState<IncomeScreen> {
                             title: 'เครดิตหักหนี้',
                             amount: state.creditBalance,
                             icon: Icons.work_rounded,
-                            iconBg: AppColors.foundationOrange100,
-                            iconColor: AppColors.foundationOrange700,
+                            iconBg: context.brand.tint,
+                            iconColor: context.brand.red,
                             onTap: () => context.push(AppRoutes.creditWalletNamedPage),
                           ),
                         ),
@@ -205,8 +205,8 @@ class _ErrorState extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared card decoration
 // ─────────────────────────────────────────────────────────────────────────────
-/// Card surface for the income screen. Dark mode keeps the premium dark
-/// gradient; light mode flips to a white surface with a hairline border and a
+/// Card surface for the income screen. Dark mode keeps a subtle charcoal
+/// gradient (fill → surface); light mode flips to a white surface with a hairline border and a
 /// soft shadow so the cards read as raised panels on the light background.
 BoxDecoration _cardDecoration(BuildContext context, {double radius = 20}) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -215,7 +215,7 @@ BoxDecoration _cardDecoration(BuildContext context, {double radius = 20}) {
     color: isDark ? null : context.palette.surface,
     gradient: isDark
         ? const LinearGradient(
-            colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
+            colors: [Color(0xFF23262D), Color(0xFF1E2026)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
@@ -274,18 +274,18 @@ class _TotalBalanceCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E6B3C),
+                    color: context.brand.okBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.verified, color: Colors.greenAccent, size: 12),
+                      Icon(Icons.verified, color: context.brand.ok, size: 12),
                       const SizedBox(width: 4),
                       Text(
                         'ยืนยันแล้ว',
                         style: AppTypography.caption4
-                            .copyWith(color: Colors.greenAccent, fontSize: 11),
+                            .copyWith(color: context.brand.ok, fontSize: 11),
                       ),
                     ],
                   ),
@@ -466,7 +466,7 @@ class _EarningsCarouselState extends State<_EarningsCarousel> {
               height: 6,
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.foundationOrange600
+                    ? context.brand.red
                     : context.palette.border,
                 borderRadius: BorderRadius.circular(3),
               ),

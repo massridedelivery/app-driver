@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/constants/support_constants.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 
 /// Driver help center — reachable from the in-trip help sheet and (once wired)
 /// the drawer's Help Center entry.
@@ -103,7 +103,7 @@ class _CallCenterCard extends StatelessWidget {
               onPressed: onCall,
               icon: const Icon(Icons.call, color: Colors.white),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.semanticSuccessBgHigh,
+                backgroundColor: context.brand.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -144,7 +144,7 @@ class _TopicTile extends StatelessWidget {
         // ExpansionTile draws its own dividers in the light default theme.
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          leading: Icon(icon, color: AppColors.foundationOrange500),
+          leading: Icon(icon, color: context.brand.red),
           iconColor: context.palette.textSecondary,
           collapsedIconColor: context.palette.textSecondary,
           title: Text(
