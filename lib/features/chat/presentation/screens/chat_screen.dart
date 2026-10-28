@@ -10,6 +10,8 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 import 'package:massdrive/features/chat/data/chat_image_outbox.dart';
 import 'package:massdrive/features/chat/domain/chat_image_processing.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
@@ -394,7 +396,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: CommonAppBar(
         titleText: 'แชทกับ ${widget.passengerName}',
         showLeftIcon: true,
-        rightWidgets: [_buildChatMenu()],
+        rightWidgets: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!widget.previewMode)
+                CallCustomerButton(
+                  kind: CallKind.fromChatVertical(widget.vertical),
+                  jobId: widget.jobId,
+                  customerName: widget.passengerName,
+                  builder: (context, onCall) => IconButton(
+                    tooltip: 'โทรฟรี',
+                    onPressed: onCall,
+                    icon: Icon(
+                      Icons.phone_outlined,
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
+                ),
+              _buildChatMenu(),
+            ],
+          ),
+        ],
       ),
       backgroundColor: context.palette.bg,
       body: SafeArea(
@@ -536,9 +559,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     List<ChatMessage> messages, [
     List<OutboxItem> pending = const [],
   ]) {
-    // While blocked, hide the counterpart's messages (keep the driver's own).
+    // While blocked, hide the counterpart's messages (keep the driver's own
+    // and the backend's call notes).
     final shown = _blocked
-        ? messages.where((m) => m.isDriver).toList()
+        ? messages.where((m) => m.isDriver || m.isSystem).toList()
         : messages;
     final local = widget.previewMode ? _previewImages : const <Uint8List>[];
     final count = shown.length + pending.length + local.length;
@@ -554,6 +578,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       itemCount: count,
       itemBuilder: (context, index) {
         if (index < shown.length) {
+          if (shown[index].isSystem) return _SystemLine(message: shown[index]);
           return _MessageBubble(
             message: shown[index],
             onImageExpired: controller?.refreshMediaUrls,
@@ -848,6 +873,29 @@ class _MessageBubble extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A backend line ("📞 โทร 1:24 นาที", "📞 สายที่ไม่ได้รับ"): centred grey
+/// text with its time, not a bubble from either side.
+class _SystemLine extends StatelessWidget {
+  const _SystemLine({required this.message});
+
+  final ChatMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = DateFormat('HH:mm').format(message.createdAt.toLocal());
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+      child: Text(
+        '${message.content}  ·  $time',
+        textAlign: TextAlign.center,
+        style: AppTypography.caption4.copyWith(
+          color: context.palette.textTertiary,
+        ),
       ),
     );
   }

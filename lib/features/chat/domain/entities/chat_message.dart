@@ -5,7 +5,7 @@ class ChatMessage {
   final String senderId;
   final String senderType; // 'driver' or 'customer'
   final String content;
-  final String msgType; // 'text' or 'image'
+  final String msgType; // 'text', 'image' or 'system'
   final String mediaUrl;
 
   /// Storage key of an image message. Stable, unlike [mediaUrl] (a signed
@@ -27,6 +27,10 @@ class ChatMessage {
 
   /// Check if the sender of this message is the driver.
   bool get isDriver => senderType == 'driver';
+
+  /// A line the backend posts into the chat (e.g. "📞 สายที่ไม่ได้รับ" after
+  /// a call) — from neither party.
+  bool get isSystem => msgType == 'system';
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
