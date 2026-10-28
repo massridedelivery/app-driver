@@ -497,12 +497,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildBlockedBar() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        16,
-        14,
-        16,
-        14 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+      // No nav-bar inset here: the body's SafeArea already clears it (adding
+      // viewPadding on top doubled the gap under this bar).
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         color: context.palette.surface,
         border: Border(

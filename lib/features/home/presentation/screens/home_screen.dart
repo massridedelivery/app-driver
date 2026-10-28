@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart' as dio_client;
 import 'package:flutter/foundation.dart';
@@ -810,6 +811,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _sheet() {
+    // The sheet is edge-to-edge (its panel colour runs under the Android nav
+    // bar), so on Android the content's bottom padding is reserved on top of
+    // the nav-bar inset — the menu row clears the 3-button bar. Never less
+    // than the original 40, and iOS keeps exactly 40. The padding is part of
+    // the MEASURED content, so _fitSheet sizes the sheet to include it.
+    final bool isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    final double bottomPad = isAndroid
+        ? math.max(40.0, 16 + MediaQuery.viewPaddingOf(context).bottom)
+        : 40.0;
     return DraggableScrollableSheet(
       controller: _sheetController,
       initialChildSize: _restSize,
@@ -838,7 +848,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   controller: scrollController,
                   child: Padding(
                     key: _sheetContentKey,
-                    padding: const EdgeInsets.fromLTRB(14, 22, 14, 40),
+                    padding: EdgeInsets.fromLTRB(14, 22, 14, bottomPad),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -66,7 +66,13 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
                 data: (list) => list.isEmpty
                     ? _empty(context, _tab.empty)
                     : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        // Clear the Android edge-to-edge system nav.
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          12,
+                          16,
+                          24 + MediaQuery.viewPaddingOf(context).bottom,
+                        ),
                         physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: list.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 12),

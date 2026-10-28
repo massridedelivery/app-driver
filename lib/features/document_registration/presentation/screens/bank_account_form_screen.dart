@@ -357,8 +357,14 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                              // Last bank clears the Android nav bar (0 while
+                              // the keyboard is up — the sheet already sits
+                              // above it then).
+                              padding: EdgeInsets.fromLTRB(
+                                12,
+                                0,
+                                12,
+                                MediaQuery.paddingOf(ctx).bottom,
                               ),
                               itemCount: banks.length,
                               separatorBuilder: (_, _) =>

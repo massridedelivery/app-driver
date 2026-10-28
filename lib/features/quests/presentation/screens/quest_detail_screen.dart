@@ -136,7 +136,14 @@ class QuestDetailBody extends StatelessWidget {
     final ends = q.endsLabel;
     final terms = q.terms;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      // Clear the Android edge-to-edge system nav. Under the claim bar
+      // (bottomNavigationBar) the Scaffold already zeroes this inset.
+      padding: EdgeInsets.fromLTRB(
+        16,
+        4,
+        16,
+        32 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         Row(

@@ -36,7 +36,13 @@ class HeldFaresScreen extends ConsumerWidget {
           data: (items) => items.isEmpty
               ? _empty(context)
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  // Clear the Android edge-to-edge system nav.
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    16 + MediaQuery.viewPaddingOf(context).bottom,
+                  ),
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, i) => _HeldFareCard(item: items[i]),

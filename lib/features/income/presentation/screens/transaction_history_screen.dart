@@ -465,7 +465,9 @@ class _TransactionTile extends StatelessWidget {
             left: 20,
             right: 20,
             top: 12,
-            bottom: 20 + MediaQuery.of(context).viewPadding.bottom,
+            // The SafeArea above already clears the nav bar; adding
+            // viewPadding here doubled the gap.
+            bottom: 20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
