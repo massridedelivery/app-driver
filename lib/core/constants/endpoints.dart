@@ -26,6 +26,10 @@ abstract class Endpoints {
   static const driverStatus = '/api/driver/status';
   static const documentUploadUrl = '/api/media/upload-url';
   static const mediaConfirm = '/api/media/confirm';
+
+  /// The file itself, with the driver's Bearer token — the fallback when a
+  /// chat image's signed `media_url` (5 min) has expired.
+  static String mediaFile(String fileKey) => '/api/media/files/$fileKey';
   static const documentConfirm = '/api/driver/documents';
   static const mediaView = '/api/media/view';
 
@@ -46,7 +50,6 @@ abstract class Endpoints {
   static const phoneChangePassword = '/v1/auth/change-password-phone';
   static const logout = '/v1/auth/logout';
   static const refreshToken = '/auth/refresh';
-
 
   // MARK: Me
   static const me = '/v1/me';
@@ -135,6 +138,7 @@ abstract class Endpoints {
   /// the complete-job call itself, so it has no separate endpoint.
   static const messengerOrderCollectCash =
       '/api/messenger/driver/orders/:id/collect-cash';
+
   /// Held fares awaiting finance review (payment-override claims, dev15).
   static const driverPaymentsHeld = '/api/driver/payments/held';
 
@@ -151,6 +155,7 @@ abstract class Endpoints {
   static const driverPayoutsMethod = '/api/driver/payouts/method';
   static const driverPayoutsSummary = '/api/driver/payouts/summary';
   static const driverSettleDebt = '/api/driver/settle-debt';
+
   /// MANUAL top-up slips and their review status (newest first).
   static const driverSettleDebtRequests = '/api/driver/settle-debt/requests';
   static String driverSettleDebtSlip(String intentId) =>

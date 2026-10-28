@@ -1,7 +1,10 @@
 import 'package:massdrive/features/income/domain/models/topup.dart';
+import 'package:massdrive/features/chat/domain/chat_push_target.dart';
+import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
@@ -28,7 +31,9 @@ Future<String> requestNotificationPermission() async {
     FcmDebugLog.log('Android notification permission (before): $status');
     if (!status.isGranted) {
       final requested = await ph.Permission.notification.request();
-      FcmDebugLog.log('Android notification permission (after request): $requested');
+      FcmDebugLog.log(
+        'Android notification permission (after request): $requested',
+      );
     }
   }
 
@@ -179,7 +184,8 @@ class PushNotificationService {
     String? route,
   }) async {
     final now = DateTime.now();
-    final recent = _lastAlertAt != null &&
+    final recent =
+        _lastAlertAt != null &&
         now.difference(_lastAlertAt!) < const Duration(seconds: 6);
     final sameOrUnkeyed =
         key == null || _lastAlertKey == null || key == _lastAlertKey;
@@ -261,14 +267,20 @@ class PushNotificationService {
       ),
       onDidReceiveNotificationResponse: (response) {
         final route = response.payload;
+        if (ChatPushTarget.fromPayload(route) case final chat?) {
+          _openChat(chat);
+          return;
+        }
         if (route != null) _navigateTo(route);
       },
     );
 
     // Register both channels up front so their importance/sound is honoured
     // (Android 8+). Channel sound is immutable after creation.
-    final android = _localNotifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.createNotificationChannel(_androidChannel);
     await android?.createNotificationChannel(_jobChannel);
   }
@@ -303,7 +315,8 @@ class PushNotificationService {
     if (defaultTargetPlatform != TargetPlatform.android) return;
 
     if (_isJobOffer(message)) {
-      final key = message.data['job_id']?.toString() ??
+      final key =
+          message.data['job_id']?.toString() ??
           message.data['order_id']?.toString() ??
           message.data['id']?.toString() ??
           message.messageId;
@@ -333,7 +346,36 @@ class PushNotificationService {
           priority: Priority.high,
         ),
       ),
-      payload: message.data['route'] as String?,
+      payload:
+          chatTargetFromPush(message.data)?.payload ??
+          message.data['route'] as String?,
+    );
+  }
+
+  /// Opens the chat for [target] over whatever is on screen (the live job
+  /// screen usually), so back returns there.
+  void _openChat(ChatPushTarget target, [int tries = 0]) {
+    final ctx = AppRouter.rootContext;
+    if (ctx == null || !ctx.mounted) {
+      // Cold start: the router isn't up yet.
+      if (tries < 20) {
+        Future.delayed(
+          const Duration(milliseconds: 250),
+          () => _openChat(target, tries + 1),
+        );
+      }
+      return;
+    }
+    Navigator.of(ctx).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChatScreen(
+          jobId: target.id,
+          vertical: target.vertical,
+          passengerName: target.vertical == ChatVertical.ride
+              ? 'ผู้โดยสาร'
+              : 'ลูกค้า',
+        ),
+      ),
     );
   }
 
@@ -342,7 +384,9 @@ class PushNotificationService {
   /// the message data; unknown or missing routes are ignored.
   void _handleTap(RemoteMessage message) {
     debugPrint('FCM(tap): id=${message.messageId} data=${message.data}');
-    FcmDebugLog.log('Notification tapped: id=${message.messageId} route=${message.data['route']}');
+    FcmDebugLog.log(
+      'Notification tapped: id=${message.messageId} route=${message.data['route']}',
+    );
     // Finance decided on a held (override-claimed) fare → open the held list.
     final type = message.data['type']?.toString();
     if (jobCancelFromPush(message.data) case final cancel?) {
@@ -351,6 +395,11 @@ class PushNotificationService {
     }
     if (type == 'held_fare_approved' || type == 'held_fare_rejected') {
       _navigateTo('/held-fares');
+      return;
+    }
+    // "ลูกค้าส่งรูปภาพ" / a chat message → that job's chat (room_id).
+    if (chatTargetFromPush(message.data) case final chat?) {
+      _openChat(chat);
       return;
     }
     // Slip reviewed → open the credit wallet on top of home.
@@ -378,7 +427,9 @@ class PushNotificationService {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
-        FcmDebugLog.log('Refresh: token unavailable (Simulator or no APNs token)');
+        FcmDebugLog.log(
+          'Refresh: token unavailable (Simulator or no APNs token)',
+        );
         return;
       }
       FcmDebugLog.setToken(token);
