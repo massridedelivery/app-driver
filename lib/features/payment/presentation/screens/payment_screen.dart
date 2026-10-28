@@ -22,6 +22,8 @@ import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -221,6 +223,33 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   // collection to do, just confirm the delivery.
   bool get _alreadyPaid => (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
   bool get _isMessenger => widget.service == ReviewService.messenger;
+
+  /// The order to call the customer of from here (at the drop-off, where it's
+  /// most often needed): messenger by its order id, food/ride by the current
+  /// job. Null when neither is known.
+  (CallKind, String)? get _callTarget {
+    if (_isMessenger) {
+      final id = widget.orderId;
+      return id == null || id.isEmpty ? null : (CallKind.messenger, id);
+    }
+    final job = ref.read(incomingJobControllerProvider).currentJob;
+    if (job == null || job.jobId.isEmpty) return null;
+    final isFood = job.isFood || widget.service == ReviewService.food;
+    return (isFood ? CallKind.food : CallKind.ride, job.jobId);
+  }
+
+  /// Status is left to the backend: this screen sits on the PICKED_UP →
+  /// COMPLETED edge, and both are callable.
+  Widget _callButton((CallKind, String) target) => CallCustomerButton(
+    kind: target.$1,
+    jobId: target.$2,
+    customerName: widget.title ?? widget.passengerName,
+    builder: (context, onCall) => IconButton(
+      icon: const Icon(Icons.phone_outlined, color: Colors.white),
+      tooltip: 'โทรหาลูกค้า',
+      onPressed: onCall,
+    ),
+  );
   double get _codAmount => _amounts.cod;
 
   /// Messenger context line: who to collect from + at which stage (dev14).
@@ -584,6 +613,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           style: AppTypography.heading6.copyWith(color: Colors.white),
         ),
         centerTitle: true,
+        actions: [if (_callTarget case final target?) _callButton(target)],
       ),
       body: Column(
         children: [

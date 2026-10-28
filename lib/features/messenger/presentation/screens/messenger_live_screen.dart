@@ -220,7 +220,15 @@ class _LiveSheet extends ConsumerWidget {
               _sheetAction(
                 Icons.help_outline,
                 'ช่วยเหลือ',
-                () => showHelpSheet(context),
+                () => showHelpSheet(
+                  context,
+                  customer: HelpSheetCall(
+                    kind: CallKind.messenger,
+                    jobId: order.id,
+                    status: order.status,
+                    finishedAt: order.deliveredAt,
+                  ),
+                ),
               ),
             ],
           ),

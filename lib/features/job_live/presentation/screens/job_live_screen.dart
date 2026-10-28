@@ -930,11 +930,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
             CallCustomerButton(
               kind: CallKind.ride,
               jobId: job.jobId,
-              status: switch (_currentState) {
-                JobLiveState.headingToPickup => 'ACCEPTED',
-                JobLiveState.arrivedAtPickup => 'ARRIVED_AT_PICK_UP',
-                JobLiveState.headingToDropoff => 'PICKED_UP',
-              },
+              status: _rideCallStatus,
               customerName: job.passengerName,
               builder: (context, onCall) => Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -948,12 +944,29 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           RideIconButton(
             icon: Icons.help_outline,
             tooltip: 'ช่วยเหลือ',
-            onTap: () => showHelpSheet(context),
+            onTap: () => showHelpSheet(
+              context,
+              customer: job == null
+                  ? null
+                  : HelpSheetCall(
+                      kind: CallKind.ride,
+                      jobId: job.jobId,
+                      status: _rideCallStatus,
+                      customerName: job.passengerName,
+                    ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  /// The ride's backend status for the current step (call availability).
+  String get _rideCallStatus => switch (_currentState) {
+    JobLiveState.headingToPickup => 'ACCEPTED',
+    JobLiveState.arrivedAtPickup => 'ARRIVED_AT_PICK_UP',
+    JobLiveState.headingToDropoff => 'PICKED_UP',
+  };
 
   /// The step's slide: orange "เลื่อนเมื่อถึงจุดรับ", then green
   /// "เลื่อนเพื่อเริ่มเดินทาง" and "เลื่อนเมื่อส่งถึงแล้ว".
