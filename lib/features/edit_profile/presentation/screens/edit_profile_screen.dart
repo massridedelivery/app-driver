@@ -45,11 +45,12 @@ class EditProfileScreen extends ConsumerWidget {
       body: Container(
         color: context.palette.bg,
         child: ListView(
-          // Clear the Android edge-to-edge system nav.
+          // Clear the Android edge-to-edge system nav, with breathing room so
+          // the last row (ลบบัญชี) doesn't sit flush on the bar.
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
-            bottom: MediaQuery.viewPaddingOf(context).bottom,
+            bottom: 24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
             const SizedBox(height: 12),
@@ -207,10 +208,13 @@ class EditProfileScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: context.palette.sheet,
-      builder: (_) {
+      builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+            // Keyboard when it's up, otherwise the Android nav bar —
+            // padding.bottom drops to 0 under the keyboard, so they never stack.
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+                MediaQuery.paddingOf(sheetContext).bottom,
             left: 24,
             right: 24,
             top: 24,
@@ -295,10 +299,13 @@ class EditProfileScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: context.palette.sheet,
-      builder: (_) {
+      builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+            // Keyboard when it's up, otherwise the Android nav bar —
+            // padding.bottom drops to 0 under the keyboard, so they never stack.
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+                MediaQuery.paddingOf(sheetContext).bottom,
             left: 24,
             right: 24,
             top: 24,

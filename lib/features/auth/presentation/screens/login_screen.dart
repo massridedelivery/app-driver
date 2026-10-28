@@ -32,6 +32,9 @@ class LoginScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AuthColors.bg,
       body: SingleChildScrollView(
+        // Clear the Android nav bar when the form is taller than the screen
+        // (padding, not viewPadding: it's 0 while the keyboard is up).
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
