@@ -53,10 +53,11 @@ class CallCustomerButton extends ConsumerWidget {
     // Read up front: the button may be gone by the time the request returns.
     final controller = ref.read(callControllerProvider.notifier);
     final availability = ref.read(callAvailabilityProvider.notifier);
-    void snack(String text) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
-    }
+    // The app-level messenger outlives the button, so an error still shows
+    // when the button sat in a sheet that closed on tap (the help sheet).
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    void snack(String text) =>
+        messenger?.showSnackBar(SnackBar(content: Text(text)));
 
     if (!await requestCallAudioPermissions()) {
       snack('กรุณาอนุญาตให้ใช้ไมโครโฟนในการตั้งค่า เพื่อโทรหาลูกค้า');

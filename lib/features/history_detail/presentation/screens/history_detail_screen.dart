@@ -4,6 +4,9 @@ import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
+import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 import 'package:massdrive/features/history_detail/presentation/controllers/history_detail_provider.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/widgets/history_map_section.dart';
 import 'package:massdrive/features/history_detail/presentation/screens/widgets/order_items_section.dart';
@@ -46,6 +49,7 @@ class HistoryDetailScreen extends ConsumerWidget {
                         children: [
                           HistoryMapSection(data: data),
                           ServiceInfoSection(data: data),
+                          _CallCustomerRow(jobId: jobId, data: data),
                           if (data.isFood) OrderItemsSection(data: data),
                           PaymentSection(data: data),
                           YourNetIncomeSection(data: data),
@@ -84,4 +88,48 @@ class HistoryDetailScreen extends ConsumerWidget {
           ),
         ),
       );
+}
+
+/// "โทรหาลูกค้า" under the trip info: the backend keeps calling open for 24h
+/// after the trip, when the driver may still need the customer (a lost item,
+/// a payment question). Gone once that window has passed.
+class _CallCustomerRow extends StatelessWidget {
+  const _CallCustomerRow({required this.jobId, required this.data});
+
+  /// The tapped row's `job_id` — what the call endpoints take.
+  final String jobId;
+  final HistoryDetailEntity data;
+
+  @override
+  Widget build(BuildContext context) {
+    // History has no completion stamp: the trip's time plus its duration.
+    final finishedAt = data.dateTime.add(
+      Duration(minutes: data.durationMinute ?? 0),
+    );
+    return CallCustomerButton(
+      kind: data.isFood ? CallKind.food : CallKind.ride,
+      jobId: jobId,
+      status: data.isFood ? 'DELIVERED' : 'COMPLETED',
+      finishedAt: finishedAt,
+      builder: (context, onCall) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: onCall,
+            icon: const Icon(Icons.phone_outlined, size: 20),
+            label: const Text('โทรหาลูกค้า (ภายใน 24 ชม. หลังจบงาน)'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: context.palette.textPrimary,
+              side: BorderSide(color: context.palette.border),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
