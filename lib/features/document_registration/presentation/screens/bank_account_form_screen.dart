@@ -10,7 +10,7 @@ import 'package:massdrive/common/widgets/bank_logo_avatar.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/thai_banks.dart';
-import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
 import '../../domain/models/bank_account_info.dart';
@@ -18,6 +18,7 @@ import '../../domain/models/registration_status.dart';
 import '../../domain/repositories/document_registration_repository.dart';
 import '../../../income/presentation/controllers/wallet_controller.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/registration_ui.dart';
 
 class BankAccountFormScreen extends ConsumerStatefulWidget {
   const BankAccountFormScreen({super.key});
@@ -49,7 +50,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
       if (!mounted) return;
 
       final state = ref.read(registrationControllerProvider);
-      
+
       // 2. Pre-populate form fields with registered bank details. Resolve the
       // stored bank_name string back to a ThaiBank so the selector pre-selects.
       final bankInfo = state.bankAccountInfo;
@@ -69,7 +70,9 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
         });
         try {
           final repository = getIt<DocumentRegistrationRepository>();
-          final viewUrl = await repository.getTemporaryViewUrl(remoteDoc.imageUrl);
+          final viewUrl = await repository.getTemporaryViewUrl(
+            remoteDoc.imageUrl,
+          );
           if (mounted) {
             setState(() {
               _remoteImageUrl = viewUrl;
@@ -182,117 +185,49 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(registrationControllerProvider);
 
-    return Scaffold(
-      backgroundColor: context.palette.bg,
-      appBar: AppBar(
-        title: Text(
-          'ข้อมูลบัญชีธนาคาร',
-          style: AppTypography.heading4.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        backgroundColor: context.palette.bg,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: context.palette.textPrimary,
-        ),
+    final Widget? preview = _selectedImage != null
+        ? Image.file(_selectedImage!, fit: BoxFit.cover)
+        : _remoteImageUrl != null
+        ? Image.network(_remoteImageUrl!, fit: BoxFit.cover)
+        : _isLoadingRemoteImage
+        ? const Center(child: MassLoadingM(size: 56))
+        : null;
+
+    return RegistrationScaffold(
+      icon: Icons.account_balance_rounded,
+      title: 'ข้อมูลบัญชีธนาคาร',
+      step: registrationStepNumber(state.selectedTier, RegistrationItem.bank),
+      total: state.selectedTier == null
+          ? null
+          : registrationTotalSteps(state.selectedTier!),
+      bottom: RegistrationPrimaryButton(
+        label: 'บันทึก',
+        loading: state.isLoading,
+        onPressed: state.isLoading ? null : _submit,
       ),
-      body: Form(
+      child: Form(
         key: _formKey,
-        child: ListView(
-          // Clear the Android edge-to-edge system nav so the submit button
-          // isn't hidden behind it.
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            24 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildBankSelector(),
-            const SizedBox(height: 16),
             _buildTextField(
               'ชื่อบัญชี (Account Name)',
               _accountNameController,
               hint: 'เช่น นาย สมชาย ใจดี',
             ),
-            const SizedBox(height: 16),
             _buildTextField(
               'หมายเลขบัญชี (Account Number)',
               _accountNumberController,
               isNumber: true,
               hint: 'เช่น 0123456789',
             ),
-            const SizedBox(height: 24),
-            Text(
-              'รูปสมุดบัญชีธนาคารหน้าแรก',
-              style: AppTypography.caption2.copyWith(
-                color: context.palette.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
+            const SizedBox(height: 4),
+            RegistrationUploadBox(
+              label: 'รูปสมุดบัญชีธนาคารหน้าแรก',
+              preview: preview,
+              previewHeight: 150,
               onTap: _chooseAndPickImage,
-              child: Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  color: context.palette.surfaceAlt,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: context.palette.border,
-                  ),
-                ),
-                child: _selectedImage != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      )
-                    : _remoteImageUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(_remoteImageUrl!, fit: BoxFit.cover),
-                          )
-                        : _isLoadingRemoteImage
-                            ? const Center(child: MassLoadingM(size: 56))
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.cloud_upload_outlined,
-                                    size: 40,
-                                    color: context.palette.textSecondary,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'แตะเพื่ออัปโหลดรูปภาพ',
-                                    style: AppTypography.caption3.copyWith(
-                                      color: context.palette.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: state.isLoading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.textPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: state.isLoading
-                    ? CircularProgressIndicator(color: context.palette.bg)
-                    : Text(
-                        'บันทึก',
-                        style: AppTypography.label1.copyWith(
-                          color: context.palette.bg,
-                        ),
-                      ),
-              ),
             ),
           ],
         ),
@@ -302,71 +237,43 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
 
   /// Bank selector: a tappable field that opens a searchable bank picker.
   Widget _buildBankSelector() {
+    final brand = context.brand;
     final bank = _selectedBank;
-    final borderColor = _bankError ? AppColors.foundationRed800 : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'ธนาคาร (Bank)',
-          style: AppTypography.label2.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _openBankPicker,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: context.palette.surfaceAlt,
-              borderRadius: BorderRadius.circular(12),
-              border: borderColor != null
-                  ? Border.all(color: borderColor)
-                  : null,
-            ),
+    return RegistrationField(
+      label: 'ธนาคาร (Bank)',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RegistrationFieldBox(
+            error: _bankError,
+            onTap: _openBankPicker,
             child: Row(
               children: [
                 if (bank != null) ...[
-                  BankLogoAvatar(bank: bank, size: 36),
-                  const SizedBox(width: 12),
+                  BankLogoAvatar(bank: bank, size: 28),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       bank.nameLong,
-                      style: AppTypography.caption3.copyWith(
-                        color: context.palette.textPrimary,
-                      ),
+                      style: registrationInputStyle(context),
                     ),
                   ),
                 ] else
                   Expanded(
                     child: Text(
                       'เลือกธนาคาร',
-                      style: AppTypography.caption3.copyWith(
-                        color: context.palette.textSecondary,
+                      style: AppTypography.caption4.copyWith(
+                        color: brand.text3,
                       ),
                     ),
                   ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: context.palette.textSecondary,
-                ),
+                Icon(Icons.expand_more_rounded, color: brand.text3),
               ],
             ),
           ),
-        ),
-        if (_bankError)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 4),
-            child: Text(
-              'กรุณาเลือกธนาคาร',
-              style: AppTypography.caption4.copyWith(
-                color: AppColors.foundationRed800,
-              ),
-            ),
-          ),
-      ],
+          if (_bankError) const RegistrationErrorText('กรุณาเลือกธนาคาร'),
+        ],
+      ),
     );
   }
 
@@ -375,7 +282,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
     final selected = await showModalBottomSheet<ThaiBank>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.palette.bg,
+      backgroundColor: context.brand.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -387,12 +294,14 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
             final banks = q.isEmpty
                 ? kThaiBanks
                 : kThaiBanks
-                    .where((b) =>
-                        b.name.toLowerCase().contains(q) ||
-                        b.nameLong.toLowerCase().contains(q) ||
-                        b.nameEn.toLowerCase().contains(q) ||
-                        b.code.toLowerCase().contains(q))
-                    .toList();
+                      .where(
+                        (b) =>
+                            b.name.toLowerCase().contains(q) ||
+                            b.nameLong.toLowerCase().contains(q) ||
+                            b.nameEn.toLowerCase().contains(q) ||
+                            b.code.toLowerCase().contains(q),
+                      )
+                      .toList();
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.viewInsetsOf(ctx).bottom,
@@ -406,7 +315,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: context.palette.border,
+                        color: context.brand.line,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -415,7 +324,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                       child: Text(
                         'เลือกธนาคาร',
                         style: AppTypography.heading5.copyWith(
-                          color: context.palette.textPrimary,
+                          color: context.brand.text1,
                         ),
                       ),
                     ),
@@ -424,23 +333,15 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                       child: TextField(
                         autofocus: false,
                         style: AppTypography.caption3.copyWith(
-                          color: context.palette.textPrimary,
+                          color: context.brand.text1,
                         ),
                         onChanged: (v) => setSheetState(() => query = v),
-                        decoration: InputDecoration(
-                          hintText: 'ค้นหาธนาคาร',
-                          hintStyle: AppTypography.caption3.copyWith(
-                            color: context.palette.textSecondary,
-                          ),
+                        decoration: registrationInputDecoration(
+                          context,
+                          hint: 'ค้นหาธนาคาร',
                           prefixIcon: Icon(
-                            Icons.search,
-                            color: context.palette.textSecondary,
-                          ),
-                          filled: true,
-                          fillColor: context.palette.surfaceAlt,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            Icons.search_rounded,
+                            color: context.brand.text3,
                           ),
                         ),
                       ),
@@ -451,7 +352,7 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                               child: Text(
                                 'ไม่พบธนาคาร',
                                 style: AppTypography.caption3.copyWith(
-                                  color: context.palette.textSecondary,
+                                  color: context.brand.text2,
                                 ),
                               ),
                             )
@@ -460,10 +361,8 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                                 horizontal: 12,
                               ),
                               itemCount: banks.length,
-                              separatorBuilder: (_, _) => Divider(
-                                height: 1,
-                                color: context.palette.border,
-                              ),
+                              separatorBuilder: (_, _) =>
+                                  Divider(height: 1, color: context.brand.line),
                               itemBuilder: (_, i) {
                                 final b = banks[i];
                                 final isSel = _selectedBank?.code == b.code;
@@ -472,19 +371,19 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
                                   title: Text(
                                     b.nameLong,
                                     style: AppTypography.caption3.copyWith(
-                                      color: context.palette.textPrimary,
+                                      color: context.brand.text1,
                                     ),
                                   ),
                                   subtitle: Text(
                                     b.nameEn,
                                     style: AppTypography.caption4.copyWith(
-                                      color: context.palette.textSecondary,
+                                      color: context.brand.text2,
                                     ),
                                   ),
                                   trailing: isSel
                                       ? Icon(
-                                          Icons.check_circle,
-                                          color: AppColors.foundationOrange600,
+                                          Icons.check_circle_rounded,
+                                          color: context.brand.red,
                                         )
                                       : null,
                                   onTap: () => Navigator.pop(ctx, b),
@@ -515,40 +414,17 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
     bool isNumber = false,
     String? hint,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.label2.copyWith(
-            color: context.palette.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: AppTypography.caption3,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTypography.caption3.copyWith(
-              color: context.palette.textSecondary,
-            ),
-            filled: true,
-            fillColor: context.palette.surfaceAlt,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            errorStyle: AppTypography.caption4.copyWith(
-              color: AppColors.foundationRed800,
-            ),
-          ),
-          validator: (value) => (value == null || value.trim().isEmpty)
-              ? 'กรุณากรอกข้อมูลให้ครบถ้วน'
-              : null,
-        ),
-      ],
+    return RegistrationField(
+      label: label,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        style: registrationInputStyle(context),
+        decoration: registrationInputDecoration(context, hint: hint),
+        validator: (value) => (value == null || value.trim().isEmpty)
+            ? 'กรุณากรอกข้อมูลให้ครบถ้วน'
+            : null,
+      ),
     );
   }
 }
