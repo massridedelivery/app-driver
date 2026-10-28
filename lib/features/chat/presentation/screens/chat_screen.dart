@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,10 +10,14 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/chat/data/chat_image_outbox.dart';
+import 'package:massdrive/features/chat/domain/chat_image_processing.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_message.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/domain/repositories/chat_repository.dart';
 import 'package:massdrive/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:massdrive/features/chat/presentation/screens/chat_image_preview_screen.dart';
+import 'package:massdrive/features/chat/presentation/widgets/chat_image_widgets.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -69,7 +73,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) setState(() => _blocked = prefs.getBool(_blockKey) ?? false);
-    } catch (_) {/* default: not blocked */}
+    } catch (_) {
+      /* default: not blocked */
+    }
   }
 
   Future<void> _setBlocked(bool value) async {
@@ -88,15 +94,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   ChatMessage _previewMsg(String text, {required bool driver}) => ChatMessage(
-        id: 'preview-${_previewSeq++}',
-        jobId: widget.jobId,
-        senderId: driver ? 'driver' : 'customer',
-        senderType: driver ? 'driver' : 'customer',
-        content: text,
-        msgType: 'text',
-        mediaUrl: '',
-        createdAt: DateTime.now(),
-      );
+    id: 'preview-${_previewSeq++}',
+    jobId: widget.jobId,
+    senderId: driver ? 'driver' : 'customer',
+    senderType: driver ? 'driver' : 'customer',
+    content: text,
+    msgType: 'text',
+    mediaUrl: '',
+    createdAt: DateTime.now(),
+  );
 
   @override
   void initState() {
@@ -120,19 +126,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       itemBuilder: (context) => [
         const PopupMenuItem(
           value: 'report',
-          child: Row(children: [
-            Icon(Icons.flag_outlined, size: 20),
-            SizedBox(width: 12),
-            Text('รายงานผู้ใช้'),
-          ]),
+          child: Row(
+            children: [
+              Icon(Icons.flag_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('รายงานผู้ใช้'),
+            ],
+          ),
         ),
         PopupMenuItem(
           value: _blocked ? 'unblock' : 'block',
-          child: Row(children: [
-            Icon(_blocked ? Icons.lock_open_outlined : Icons.block, size: 20),
-            const SizedBox(width: 12),
-            Text(_blocked ? 'เลิกบล็อกผู้ใช้' : 'บล็อกผู้ใช้'),
-          ]),
+          child: Row(
+            children: [
+              Icon(_blocked ? Icons.lock_open_outlined : Icons.block, size: 20),
+              const SizedBox(width: 12),
+              Text(_blocked ? 'เลิกบล็อกผู้ใช้' : 'บล็อกผู้ใช้'),
+            ],
+          ),
         ),
       ],
     );
@@ -160,15 +170,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text('รายงานผู้ใช้',
-                  style: AppTypography.heading6
-                      .copyWith(color: context.palette.textPrimary)),
+              child: Text(
+                'รายงานผู้ใช้',
+                style: AppTypography.heading6.copyWith(
+                  color: context.palette.textPrimary,
+                ),
+              ),
             ),
             for (final r in reasons)
               ListTile(
-                title: Text(r,
-                    style: AppTypography.body2
-                        .copyWith(color: context.palette.textPrimary)),
+                title: Text(
+                  r,
+                  style: AppTypography.body2.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   _submitReport(r);
@@ -186,11 +202,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // reporting mechanism is available even if the endpoint isn't up yet.
     bool ok = true;
     if (!widget.previewMode) {
-      ok = await getIt<ChatRepository>()
-          .reportChat(widget.jobId, widget.vertical, reason);
+      ok = await getIt<ChatRepository>().reportChat(
+        widget.jobId,
+        widget.vertical,
+        reason,
+      );
     }
     if (!ok) {
-      debugPrint('Chat report not persisted (endpoint pending?) reason=$reason');
+      debugPrint(
+        'Chat report not persisted (endpoint pending?) reason=$reason',
+      );
     }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,21 +228,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.palette.sheet,
-        title: Text('บล็อกผู้ใช้นี้?',
-            style: AppTypography.heading6
-                .copyWith(color: context.palette.textPrimary)),
+        title: Text(
+          'บล็อกผู้ใช้นี้?',
+          style: AppTypography.heading6.copyWith(
+            color: context.palette.textPrimary,
+          ),
+        ),
         content: Text(
           'เมื่อบล็อก คุณจะไม่เห็นข้อความจากผู้ใช้นี้ และส่งข้อความไม่ได้ '
           'จนกว่าจะเลิกบล็อก',
-          style: AppTypography.body2
-              .copyWith(color: context.palette.textSecondary),
+          style: AppTypography.body2.copyWith(
+            color: context.palette.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dctx),
-            child: Text('ยกเลิก',
-                style: AppTypography.label2
-                    .copyWith(color: context.palette.textSecondary)),
+            child: Text(
+              'ยกเลิก',
+              style: AppTypography.label2.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -233,9 +261,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 );
               }
             },
-            child: Text('บล็อก',
-                style: AppTypography.label2
-                    .copyWith(color: AppColors.semanticErrorFgHigh)),
+            child: Text(
+              'บล็อก',
+              style: AppTypography.label2.copyWith(
+                color: AppColors.semanticErrorFgHigh,
+              ),
+            ),
           ),
         ],
       ),
@@ -259,101 +290,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  bool _preparing = false;
+
+  /// Camera (the default — the pickup point, the parcel) or the gallery →
+  /// resize to ≤1600 px and re-encode JPEG without EXIF (GPS) off the UI
+  /// thread → preview with an optional caption → queue it. The photo shows
+  /// as a bubble right away and keeps uploading if the driver leaves.
   Future<void> _pickImage(ImageSource source) async {
+    if (_preparing) return;
+    final XFile? picked;
     try {
-      final pickedFile = await _picker.pickImage(
+      picked = await _picker.pickImage(
         source: source,
-        imageQuality: 70,
-        maxWidth: 1200,
+        // Native downscale first so decoding here stays cheap.
+        maxWidth: chatImageMaxSide.toDouble(),
+        maxHeight: chatImageMaxSide.toDouble(),
+        imageQuality: 95,
+        requestFullMetadata: false,
       );
-      if (pickedFile != null) {
-        final file = File(pickedFile.path);
-        if (mounted) {
-          if (widget.previewMode) {
-            setState(() => _previewMessages.add(ChatMessage(
-                  id: 'preview-${_previewSeq++}',
-                  jobId: widget.jobId,
-                  senderId: 'driver',
-                  senderType: 'driver',
-                  content: '',
-                  msgType: 'image',
-                  mediaUrl: file.path,
-                  createdAt: DateTime.now(),
-                )));
-            _scrollToBottom();
-            return;
-          }
-          await ref
-              .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
-              .sendImage(file);
-          _scrollToBottom();
-        }
-      }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: $e')),
-        );
-      }
+      _snack(
+        source == ImageSource.camera
+            ? 'เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องในการตั้งค่า'
+            : 'เปิดคลังภาพไม่ได้ กรุณาอนุญาตการเข้าถึงรูปภาพในการตั้งค่า',
+      );
+      return;
     }
+    if (picked == null || !mounted) return;
+
+    setState(() => _preparing = true);
+    Uint8List jpeg;
+    try {
+      jpeg = await compute(prepareChatImage, await picked.readAsBytes());
+    } catch (_) {
+      if (mounted) setState(() => _preparing = false);
+      _snack('ไฟล์รูปไม่ถูกต้อง กรุณาเลือกรูปอื่น');
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _preparing = false);
+
+    final caption = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => ChatImagePreviewScreen(jpeg: jpeg)),
+    );
+    if (caption == null || !mounted) return;
+
+    if (widget.previewMode) {
+      setState(() => _previewImages.add(jpeg));
+      _scrollToBottom();
+      return;
+    }
+    ref
+        .read(chatControllerProvider(widget.jobId, widget.vertical).notifier)
+        .sendImage(jpeg, caption: caption);
+    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
 
-  void _showAttachmentBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.palette.sheet,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.palette.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: Icon(
-                  Icons.camera_alt_outlined,
-                  color: context.palette.textPrimary,
-                ),
-                title: Text(
-                  'ถ่ายรูปภาพ',
-                  style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.photo_library_outlined,
-                  color: context.palette.textPrimary,
-                ),
-                title: Text(
-                  'เลือกจากคลังภาพ',
-                  style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
+  /// Photos "sent" in preview mode (no backend): shown as local bubbles.
+  final List<Uint8List> _previewImages = [];
+
+  void _snack(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   void _sendMessage() {
@@ -380,13 +378,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     // Scroll to bottom when new messages arrive (skipped in preview — no backend).
     if (!widget.previewMode) {
-      ref.listen<ChatState>(chatControllerProvider(widget.jobId, widget.vertical), (prev, next) {
-        if (prev != null && prev.messages.length < next.messages.length) {
-          Future.delayed(const Duration(milliseconds: 100), () {
-            _scrollToBottom();
-          });
-        }
-      });
+      ref.listen<ChatState>(
+        chatControllerProvider(widget.jobId, widget.vertical),
+        (prev, next) {
+          if (prev != null && prev.messages.length < next.messages.length) {
+            Future.delayed(const Duration(milliseconds: 100), () {
+              _scrollToBottom();
+            });
+          }
+        },
+      );
     }
 
     return Scaffold(
@@ -401,31 +402,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             // Connection error notice banner (no backend in preview mode)
             if (!widget.previewMode)
-            Consumer(
-              builder: (context, ref, child) {
-                final error = ref.watch(
-                  chatControllerProvider(widget.jobId, widget.vertical).select((s) => s.error),
-                );
-                if (error == null) return const SizedBox.shrink();
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  color: AppColors.semanticErrorBgHigh.withOpacity(0.2),
-                  child: Text(
-                    'การเชื่อมต่อมีปัญหา: $error',
-                    style: AppTypography.caption4.copyWith(
-                      color: AppColors.semanticErrorFgHigh,
+              Consumer(
+                builder: (context, ref, child) {
+                  final error = ref.watch(
+                    chatControllerProvider(
+                      widget.jobId,
+                      widget.vertical,
+                    ).select((s) => s.error),
+                  );
+                  if (error == null) return const SizedBox.shrink();
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 16,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              },
-            ),
+                    color: AppColors.semanticErrorBgHigh.withOpacity(0.2),
+                    child: Text(
+                      'การเชื่อมต่อมีปัญหา: $error',
+                      style: AppTypography.caption4.copyWith(
+                        color: AppColors.semanticErrorFgHigh,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
 
             // Messages List Area
             Expanded(
@@ -433,62 +437,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ? _buildMessageList(_previewMessages)
                   : Consumer(
                       builder: (context, ref, child) {
-                        final isLoading = ref.watch(
-                          chatControllerProvider(
-                            widget.jobId, widget.vertical,
-                          ).select((s) => s.isLoading),
+                        final chat = ref.watch(
+                          chatControllerProvider(widget.jobId, widget.vertical),
                         );
-                        final messages = ref.watch(
-                          chatControllerProvider(
-                            widget.jobId, widget.vertical,
-                          ).select((s) => s.messages),
-                        );
-
-                        return isLoading
+                        return chat.isLoading && chat.pending.isEmpty
                             ? const Center(child: MassLoadingM(size: 72))
-                            : _buildMessageList(messages);
+                            : _buildMessageList(chat.messages, chat.pending);
                       },
                     ),
             ),
 
-            // Image uploading overlay indicator (no backend in preview mode)
-            if (!widget.previewMode)
-            Consumer(
-              builder: (context, ref, child) {
-                final isSending = ref.watch(
-                  chatControllerProvider(
-                    widget.jobId, widget.vertical,
-                  ).select((s) => s.isSending),
-                );
-                if (!isSending) return const SizedBox.shrink();
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  color: context.palette.surfaceAlt,
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.foundationOrange600,
-                        ),
+            // Resizing / stripping the picked photo before its preview.
+            if (_preparing)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
+                color: context.palette.surfaceAlt,
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.foundationOrange600,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'กำลังอัปโหลดรูปภาพ...',
-                        style: AppTypography.caption4.copyWith(
-                          color: context.palette.textSecondary,
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'กำลังเตรียมรูปภาพ...',
+                      style: AppTypography.caption4.copyWith(
+                        color: context.palette.textSecondary,
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              ),
 
             // When blocked, hide the composer entirely and show an unblock bar
             // instead of quick replies + input.
@@ -512,7 +498,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-          16, 14, 16, 14 + MediaQuery.viewPaddingOf(context).bottom),
+        16,
+        14,
+        16,
+        14 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       decoration: BoxDecoration(
         color: context.palette.surface,
         border: Border(
@@ -526,31 +516,86 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: Text(
               'คุณบล็อกผู้ใช้นี้แล้ว',
-              style: AppTypography.caption4
-                  .copyWith(color: context.palette.textSecondary),
+              style: AppTypography.caption4.copyWith(
+                color: context.palette.textSecondary,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => _setBlocked(false),
-            child: Text('เลิกบล็อก',
-                style: AppTypography.label2
-                    .copyWith(color: AppColors.semanticSuccessBgHigh)),
+            child: Text(
+              'เลิกบล็อก',
+              style: AppTypography.label2.copyWith(
+                color: AppColors.semanticSuccessBgHigh,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMessageList(List<ChatMessage> messages) {
+  Widget _buildMessageList(
+    List<ChatMessage> messages, [
+    List<OutboxItem> pending = const [],
+  ]) {
     // While blocked, hide the counterpart's messages (keep the driver's own).
-    final shown =
-        _blocked ? messages.where((m) => m.isDriver).toList() : messages;
-    if (shown.isEmpty) return _buildEmptyState();
+    final shown = _blocked
+        ? messages.where((m) => m.isDriver).toList()
+        : messages;
+    final local = widget.previewMode ? _previewImages : const <Uint8List>[];
+    final count = shown.length + pending.length + local.length;
+    if (count == 0) return _buildEmptyState();
+    final controller = widget.previewMode
+        ? null
+        : ref.read(
+            chatControllerProvider(widget.jobId, widget.vertical).notifier,
+          );
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: shown.length,
-      itemBuilder: (context, index) => _MessageBubble(message: shown[index]),
+      itemCount: count,
+      itemBuilder: (context, index) {
+        if (index < shown.length) {
+          return _MessageBubble(
+            message: shown[index],
+            onImageExpired: controller?.refreshMediaUrls,
+          );
+        }
+        final i = index - shown.length;
+        if (i < pending.length) {
+          final item = pending[i];
+          return _BubbleFrame(
+            isMe: true,
+            time: item.createdAt,
+            padding: const EdgeInsets.all(6),
+            child: ChatPendingImage(
+              item: item,
+              onRetry: () => controller?.retryImage(item.localId),
+              onDiscard: () => controller?.discardImage(item.localId),
+            ),
+          );
+        }
+        final bytes = local[i - pending.length];
+        return _BubbleFrame(
+          isMe: true,
+          time: DateTime.now(),
+          padding: const EdgeInsets.all(6),
+          child: GestureDetector(
+            onTap: () => openChatImageViewer(context, MemoryImage(bytes)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 220,
+                  maxHeight: 260,
+                ),
+                child: Image.memory(bytes, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -567,7 +612,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           const SizedBox(height: 16),
           Text(
             'เริ่มแชทคุยกับลูกค้าเพื่อประสานงานรับส่ง',
-            style: AppTypography.caption3.copyWith(color: context.palette.textTertiary),
+            style: AppTypography.caption3.copyWith(
+              color: context.palette.textTertiary,
+            ),
           ),
         ],
       ),
@@ -578,14 +625,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Ghost pills: outlined, transparent fill — reads cleanly against the dark
     // background instead of the near-invisible white-10% fill.
-    final chipBorder =
-        isDark ? Colors.white.withOpacity(0.24) : context.palette.border;
+    final chipBorder = isDark
+        ? Colors.white.withOpacity(0.24)
+        : context.palette.border;
     return Container(
       height: 48,
       padding: const EdgeInsets.only(top: 8, bottom: 4),
-      decoration: BoxDecoration(
-        color: context.palette.bg,
-      ),
+      decoration: BoxDecoration(color: context.palette.bg),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -597,7 +643,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: ActionChip(
               label: Text(
                 replyText,
-                style: AppTypography.caption4.copyWith(color: context.palette.textPrimary),
+                style: AppTypography.caption4.copyWith(
+                  color: context.palette.textPrimary,
+                ),
               ),
               backgroundColor: Colors.transparent,
               onPressed: () => _sendText(replyText),
@@ -617,10 +665,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Ghost input: a solid, slightly-elevated fill with a hairline border so the
     // field and "+" button stand off the background (the old white-10% fill was
     // barely visible). Bar itself matches the screen bg (bg + top hairline).
-    final fieldFill =
-        isDark ? const Color(0xFF2A2D34) : context.palette.surfaceAlt;
-    final fieldBorder =
-        isDark ? Colors.white.withOpacity(0.10) : context.palette.border;
+    final fieldFill = isDark
+        ? const Color(0xFF2A2D34)
+        : context.palette.surfaceAlt;
+    final fieldBorder = isDark
+        ? Colors.white.withOpacity(0.10)
+        : context.palette.border;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -631,29 +681,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       child: Row(
         children: [
-          // Plus/Attachment button
-          GestureDetector(
-            onTap: _showAttachmentBottomSheet,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: fieldFill,
-                shape: BoxShape.circle,
-                border: Border.all(color: fieldBorder),
-              ),
-              child: Icon(Icons.add, color: context.palette.textPrimary, size: 24),
-            ),
+          // Camera is the default attachment (the pickup point, the parcel);
+          // the gallery sits next to it.
+          _attachButton(
+            icon: Icons.photo_camera_outlined,
+            tooltip: 'ถ่ายรูป',
+            fill: fieldFill,
+            border: fieldBorder,
+            onTap: () => _pickImage(ImageSource.camera),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          _attachButton(
+            icon: Icons.photo_library_outlined,
+            tooltip: 'เลือกจากคลังภาพ',
+            fill: fieldFill,
+            border: fieldBorder,
+            onTap: () => _pickImage(ImageSource.gallery),
+          ),
+          const SizedBox(width: 10),
 
           // Message text field
           Expanded(
             child: TextField(
               controller: _messageController,
-              style: AppTypography.body2.copyWith(color: context.palette.textPrimary),
+              style: AppTypography.body2.copyWith(
+                color: context.palette.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: 'เขียนข้อความ...',
-                hintStyle: AppTypography.body2.copyWith(color: context.palette.textTertiary),
+                hintStyle: AppTypography.body2.copyWith(
+                  color: context.palette.textTertiary,
+                ),
                 filled: true,
                 fillColor: fieldFill,
                 border: OutlineInputBorder(
@@ -701,25 +759,131 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+extension on _ChatScreenState {
+  Widget _attachButton({
+    required IconData icon,
+    required String tooltip,
+    required Color fill,
+    required Color border,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: _preparing ? null : onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: fill,
+            shape: BoxShape.circle,
+            border: Border.all(color: border),
+          ),
+          child: Icon(icon, color: context.palette.textPrimary, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
 
-  const _MessageBubble({required this.message});
+  /// Re-reads the chat for fresh signed media URLs (they last 5 minutes).
+  final Future<void> Function()? onImageExpired;
+
+  const _MessageBubble({required this.message, this.onImageExpired});
 
   @override
   Widget build(BuildContext context) {
     final isMe = message.isDriver;
-    final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final textStyle = AppTypography.body2.copyWith(
+      color: isMe ? Colors.white : context.palette.textPrimary,
+    );
+    if (message.msgType != 'image') {
+      return _BubbleFrame(
+        isMe: isMe,
+        time: message.createdAt,
+        child: Text(message.content, style: textStyle),
+      );
+    }
+    return _BubbleFrame(
+      isMe: isMe,
+      time: message.createdAt,
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (message.mediaUrl.isEmpty && message.fileKey.isEmpty)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: context.palette.textTertiary,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'ไม่มีรูปภาพ',
+                  style: AppTypography.caption4.copyWith(
+                    color: context.palette.textTertiary,
+                  ),
+                ),
+              ],
+            )
+          else
+            ChatServerImage(
+              fileKey: message.fileKey,
+              mediaUrl: message.mediaUrl,
+              onExpired: onImageExpired,
+            ),
+          if (message.content.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(message.content, style: textStyle),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A chat bubble (driver orange on the right, customer on the left with an
+/// avatar) and its time underneath.
+class _BubbleFrame extends StatelessWidget {
+  const _BubbleFrame({
+    required this.isMe,
+    required this.time,
+    required this.child,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  });
+
+  final bool isMe;
+  final DateTime time;
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
     final bubbleColor = isMe
         ? AppColors.foundationOrange700
         : context.palette.surfaceAlt;
-    final textStyle = AppTypography.body2.copyWith(color: isMe ? Colors.white : context.palette.textPrimary);
-    final timeStr = DateFormat('HH:mm').format(message.createdAt.toLocal());
+    final timeStr = DateFormat('HH:mm').format(time.toLocal());
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        crossAxisAlignment: alignment,
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: isMe
@@ -737,10 +901,7 @@ class _MessageBubble extends StatelessWidget {
               ],
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  padding: padding,
                   decoration: BoxDecoration(
                     color: bubbleColor,
                     borderRadius: BorderRadius.only(
@@ -755,15 +916,13 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: message.msgType == 'image'
-                      ? _buildImageBubbleContent(context, message.mediaUrl)
-                      : Text(message.content, style: textStyle),
+                  child: child,
                 ),
               ),
               if (isMe) const SizedBox(width: 8),
@@ -777,97 +936,12 @@ class _MessageBubble extends StatelessWidget {
             ),
             child: Text(
               timeStr,
-              style: AppTypography.caption5.copyWith(color: context.palette.textTertiary),
+              style: AppTypography.caption5.copyWith(
+                color: context.palette.textTertiary,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildImageBubbleContent(BuildContext context, String imageUrl) {
-    if (imageUrl.isEmpty) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, color: context.palette.textTertiary, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            'ไม่มีรูปภาพ',
-            style: AppTypography.caption4.copyWith(color: context.palette.textTertiary),
-          ),
-        ],
-      );
-    }
-
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog.fullscreen(
-            backgroundColor: Colors.black,
-            child: Stack(
-              children: [
-                Center(
-                  child: InteractiveViewer(child: Image.network(imageUrl)),
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 16,
-                  left: 16,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 200, maxHeight: 250),
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: 150,
-                height: 150,
-                color: context.palette.surfaceAlt,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.foundationOrange600,
-                    strokeWidth: 2,
-                  ),
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: 150,
-                height: 150,
-                color: context.palette.surfaceAlt,
-                child: Center(
-                  child: Icon(
-                    Icons.broken_image_outlined,
-                    color: context.palette.textTertiary,
-                    size: 40,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
       ),
     );
   }

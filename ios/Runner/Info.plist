@@ -37,7 +37,7 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และแนบรูปในแชท</string>
+		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และถ่ายรูปจุดรับหรือพัสดุส่งให้ลูกค้าในแชท</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<!-- Required by the `geolocator` SDK, which references the Always API
@@ -47,7 +47,7 @@
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ และสลิปโอนเงินสำหรับการลงทะเบียนและยืนยันการชำระเงิน</string>
+		<string>ใช้คลังรูปภาพเพื่อเลือกรูปเอกสาร รูปโปรไฟล์ สลิปโอนเงิน และรูปที่ส่งให้ลูกค้าในแชท</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>บันทึกรูป QR สำหรับการชำระเงินลงในคลังรูปภาพ เพื่อให้คุณนำไปสแกนจ่ายในแอปธนาคารได้</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>

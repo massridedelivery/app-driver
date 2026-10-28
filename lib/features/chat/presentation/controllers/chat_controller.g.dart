@@ -70,7 +70,7 @@ final class ChatControllerProvider
   }
 }
 
-String _$chatControllerHash() => r'5437a7c3a90a062ebca384b2a16e9541bb73c8e6';
+String _$chatControllerHash() => r'dd929d4be3bf47d20fe444211444ea28b7ba3f8c';
 
 /// Chat over the app's single WS channel (SCRUM-41): receive `chat_message`
 /// events from the main SocketService, send via the per-vertical REST endpoint.

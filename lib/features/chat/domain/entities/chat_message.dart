@@ -7,6 +7,10 @@ class ChatMessage {
   final String content;
   final String msgType; // 'text' or 'image'
   final String mediaUrl;
+
+  /// Storage key of an image message. Stable, unlike [mediaUrl] (a signed
+  /// link that expires in 5 minutes) — the image cache is keyed on it.
+  final String fileKey;
   final DateTime createdAt;
 
   const ChatMessage({
@@ -17,6 +21,7 @@ class ChatMessage {
     required this.content,
     required this.msgType,
     required this.mediaUrl,
+    this.fileKey = '',
     required this.createdAt,
   });
 
@@ -26,15 +31,24 @@ class ChatMessage {
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
       id: json['id']?.toString() ?? '',
-      jobId: json['job_id']?.toString() ?? json['room_id']?.toString()?.replaceAll('job:', '') ?? '',
+      jobId:
+          json['job_id']?.toString() ??
+          json['room_id']?.toString()?.replaceAll('job:', '') ??
+          '',
       senderId: json['sender_id']?.toString() ?? '',
-      senderType: json['sender_type']?.toString() ?? json['sender_role']?.toString() ?? '',
+      senderType:
+          json['sender_type']?.toString() ??
+          json['sender_role']?.toString() ??
+          '',
       content: json['content']?.toString() ?? json['text']?.toString() ?? '',
       msgType: json['msg_type']?.toString() ?? 'text',
       mediaUrl: json['media_url']?.toString() ?? '',
+      fileKey: json['file_key']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'].toString())
-          : (json['sent_at'] != null ? DateTime.parse(json['sent_at'].toString()) : DateTime.now()),
+          : (json['sent_at'] != null
+                ? DateTime.parse(json['sent_at'].toString())
+                : DateTime.now()),
     );
   }
 
@@ -47,6 +61,7 @@ class ChatMessage {
       'content': content,
       'msg_type': msgType,
       'media_url': mediaUrl,
+      'file_key': fileKey,
       'created_at': createdAt.toIso8601String(),
     };
   }

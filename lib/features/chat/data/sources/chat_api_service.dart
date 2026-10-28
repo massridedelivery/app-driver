@@ -33,7 +33,11 @@ abstract class ChatApiService {
     required String uploadUrl,
     required List<int> fileBytes,
     required String contentType,
+    ProgressCallback? onSendProgress,
   });
+
+  /// Downloads a chat image by its file_key (authenticated).
+  Future<Response<List<int>>> getMediaFile(String fileKey);
 
   /// Confirms media upload with the backend after S3 upload succeeds.
   Future<Response<Map<String, dynamic>>> confirmMediaUpload(String fileKey);
@@ -102,10 +106,11 @@ class ChatApiServiceImpl implements ChatApiService {
     required String id,
     required ChatVertical vertical,
   }) async {
+    // room_id is the bare job / order / messenger-order id (no `job:` prefix).
     final queryParams = <String, dynamic>{
       'category': 'chat',
       'content_type': contentType,
-      'room_id': vertical.roomId(id),
+      'room_id': id,
     };
 
     return await _dio.get<Map<String, dynamic>>(
@@ -119,6 +124,7 @@ class ChatApiServiceImpl implements ChatApiService {
     required String uploadUrl,
     required List<int> fileBytes,
     required String contentType,
+    ProgressCallback? onSendProgress,
   }) async {
     final storageDio = Dio(
       BaseOptions(
@@ -128,23 +134,33 @@ class ChatApiServiceImpl implements ChatApiService {
       ),
     );
 
+    // Raw bytes as the body: a List<int> would be JSON-encoded by Dio.
     await storageDio.put(
       uploadUrl,
-      data: fileBytes,
+      data: Stream.fromIterable([fileBytes]),
+      onSendProgress: onSendProgress,
       options: Options(
         contentType: contentType,
-        headers: {
-          'Content-Length': fileBytes.length,
-        },
+        headers: {'Content-Length': fileBytes.length},
       ),
     );
   }
 
   @override
-  Future<Response<Map<String, dynamic>>> confirmMediaUpload(String fileKey) async {
+  Future<Response<Map<String, dynamic>>> confirmMediaUpload(
+    String fileKey,
+  ) async {
     return await _dio.post<Map<String, dynamic>>(
       Endpoints.mediaConfirm,
       data: {'file_key': fileKey},
+    );
+  }
+
+  @override
+  Future<Response<List<int>>> getMediaFile(String fileKey) async {
+    return await _dio.get<List<int>>(
+      Endpoints.mediaFile(fileKey),
+      options: Options(responseType: ResponseType.bytes),
     );
   }
 
