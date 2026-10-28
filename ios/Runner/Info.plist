@@ -38,6 +38,8 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>ใช้กล้องเพื่อถ่ายรูปเอกสารและรูปโปรไฟล์สำหรับการลงทะเบียนคนขับ และถ่ายรูปจุดรับหรือพัสดุส่งให้ลูกค้าในแชท</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>ใช้ไมโครโฟนเพื่อโทรคุยกับลูกค้าในแอป</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>ใช้ตำแหน่งของคุณเพื่อนำทางไปยังจุดรับ-ส่ง และรับงานที่อยู่ใกล้คุณ ขณะที่เปิดใช้งานแอป</string>
 		<!-- Required by the `geolocator` SDK, which references the Always API
@@ -57,6 +59,8 @@
 			<string>remote-notification</string>
 			<string>fetch</string>
 			<string>location</string>
+			<string>voip</string>
+			<string>audio</string>
 		</array>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>

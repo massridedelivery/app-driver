@@ -74,6 +74,10 @@ dependencies:
   firebase_messaging: ^16.3.0
   flutter_local_notifications: ^22.2.0
   gal: ^2.3.3
+  # In-app calls with the customer: WebRTC audio, and CallKit / PushKit (iOS)
+  # + the full-screen incoming call (Android).
+  flutter_webrtc: ^1.6.3
+  flutter_callkit_incoming: ^3.1.6
 
 dev_dependencies:
   flutter_test:
