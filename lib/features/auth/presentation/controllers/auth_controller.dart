@@ -8,6 +8,7 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/features/auth/presentation/states/auth_state.dart';
+import 'package:massdrive/features/call/data/voip_token_registrar.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/features/dependency_injection.dart' as massdrive_di;
 import 'package:massdrive/features/auth/domain/usecase/logout_usecase.dart'
@@ -103,6 +104,9 @@ class AuthController extends _$AuthController {
   /// and email sessions, since both funnel through [SessionNotifier].
   Future<void> logout() async {
     try {
+      // While the token still authenticates: stop VoIP call pushes to this
+      // phone for this driver.
+      await VoipTokenRegistrar.instance.unregister();
       // A suspended/deleted account's POST /auth/logout is refused with 403
       // anyway — skip the call and just clear the device session.
       if (!AccountStatusNotifier.instance.isRestricted) {

@@ -31,6 +31,7 @@ import 'package:massdrive/features/auth/domain/usecase/register_usecase.dart'
     as _i444;
 import 'package:massdrive/features/auth/domain/usecase/verify_otp_usecase.dart'
     as _i244;
+import 'package:massdrive/features/call/data/call_api_service.dart' as _i17;
 import 'package:massdrive/features/chat/data/repositories/chat_repository_impl.dart'
     as _i514;
 import 'package:massdrive/features/chat/data/sources/chat_api_service.dart'
@@ -168,6 +169,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i178.ChatApiService>(
       () => _i178.ChatApiServiceImpl(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i17.CallApiService>(
+      () => _i17.CallApiServiceImpl(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i469.TransactionApiService>(
       () => _i130.TransactionApiServiceImpl(gh<_i361.Dio>()),
