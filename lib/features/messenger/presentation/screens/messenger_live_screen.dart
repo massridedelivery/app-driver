@@ -7,6 +7,8 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
@@ -203,6 +205,16 @@ class _LiveSheet extends ConsumerWidget {
                     vertical: ChatVertical.messenger,
                   ),
                 ),
+              ),
+              // No customer name: the customer is the sender, not the
+              // recipient this sheet shows — the call brings their name.
+              CallCustomerButton(
+                kind: CallKind.messenger,
+                jobId: order.id,
+                status: order.status,
+                finishedAt: order.deliveredAt,
+                builder: (context, onCall) =>
+                    _sheetAction(Icons.phone_outlined, 'โทรฟรี', onCall),
               ),
               _sheetAction(Icons.navigation_outlined, 'นำทาง', onNavigate),
               _sheetAction(

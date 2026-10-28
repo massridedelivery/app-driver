@@ -58,11 +58,6 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     @JsonKey(name: 'passenger_name', readValue: readCustomerName)
     @Default('ผู้โดยสาร')
     String passengerName,
-    // Customer phone for the in-trip "call" button. Backend sends it either flat
-    // (passenger_phone) or nested under customer.phone (JobCustomerInfo).
-    @JsonKey(name: 'passenger_phone', readValue: readCustomerPhone)
-    @Default('')
-    String passengerPhone,
     @JsonKey(name: 'item_summary') @Default('') String itemSummary,
     @JsonKey(name: 'timeout_seconds') @Default(16) int timeoutSeconds,
     @JsonKey(name: 'surge_multiplier') @Default(1.0) double surgeMultiplier,
@@ -128,18 +123,4 @@ Object? readCustomerName(Map json, String key) {
   }
   final flatName = json['customer_name']?.toString().trim();
   return (flatName == null || flatName.isEmpty) ? null : flatName;
-}
-
-/// Reads the customer phone from a flat `passenger_phone` / `customer_phone`,
-/// or the nested `customer_info.phone` the backend sends (`customer.phone` on
-/// older payloads).
-Object? readCustomerPhone(Map json, String key) {
-  final flat = json['passenger_phone'] ?? json['customer_phone'];
-  if (flat != null && flat.toString().isNotEmpty) return flat;
-  for (final k in const ['customer_info', 'customer']) {
-    final c = json[k];
-    final phone = c is Map ? c['phone']?.toString().trim() : null;
-    if (phone != null && phone.isNotEmpty) return phone;
-  }
-  return null;
 }

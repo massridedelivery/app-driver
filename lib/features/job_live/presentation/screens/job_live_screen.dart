@@ -19,6 +19,8 @@ import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/services/directions_service.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
@@ -924,14 +926,25 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                   ),
           ),
           const SizedBox(width: 8),
-          RideIconButton(
-            icon: Icons.phone_outlined,
-            tooltip: 'โทรฟรี',
-            onTap: (job == null || job.passengerPhone.isEmpty)
-                ? null
-                : () => _callPassenger(job.passengerPhone),
-          ),
-          const SizedBox(width: 8),
+          if (job != null)
+            CallCustomerButton(
+              kind: CallKind.ride,
+              jobId: job.jobId,
+              status: switch (_currentState) {
+                JobLiveState.headingToPickup => 'ACCEPTED',
+                JobLiveState.arrivedAtPickup => 'ARRIVED_AT_PICK_UP',
+                JobLiveState.headingToDropoff => 'PICKED_UP',
+              },
+              customerName: job.passengerName,
+              builder: (context, onCall) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: RideIconButton(
+                  icon: Icons.phone_outlined,
+                  tooltip: 'โทรฟรี',
+                  onTap: onCall,
+                ),
+              ),
+            ),
           RideIconButton(
             icon: Icons.help_outline,
             tooltip: 'ช่วยเหลือ',
@@ -940,17 +953,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _callPassenger(String phone) async {
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถโทรออกได้')));
-    }
   }
 
   /// The step's slide: orange "เลื่อนเมื่อถึงจุดรับ", then green
