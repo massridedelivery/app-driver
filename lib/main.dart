@@ -14,6 +14,8 @@ import 'package:massdrive/core/theme/theme_controller.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
 
+import 'package:massdrive/features/call/data/voip_token_registrar.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_listener.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/job_cancel_listener.dart';
 
@@ -93,6 +95,8 @@ Future<void> main() async {
   if (firebaseReady) {
     PushTokenRegistrar.instance.start();
   }
+  // iOS: the PushKit token for in-app calls, kept in step the same way.
+  VoipTokenRegistrar.instance.start();
 
   // On the first launch after a fresh install, clear any secure-storage token
   // that iOS Keychain kept from a previous install so we never cold-start into
@@ -161,10 +165,12 @@ class MyApp extends ConsumerWidget {
       // every screen with an input gets it without per-screen wrappers.
       builder: (context, child) {
         return JobCancelListener(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: child ?? const SizedBox.shrink(),
+          child: CallListener(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         );
       },

@@ -18,6 +18,7 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/call/presentation/call_permissions.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/home_api_service.dart';
 import 'package:massdrive/features/home/presentation/widgets/active_job_banner.dart';
@@ -1005,6 +1006,9 @@ class _OnlineButton extends ConsumerWidget {
             // Going online is never refused for credit (BE dev115); warn if
             // the balance is low or cash jobs are blocked.
             if (context.mounted) await _maybeShowCreditNotice(context, ref);
+            // Once: customers' in-app calls need the microphone (and the
+            // full-screen call permission on Android 14+) granted up front.
+            if (context.mounted) await primeCallPermissions(context, ref);
           }
         } catch (e) {
           if (context.mounted && newValue) {

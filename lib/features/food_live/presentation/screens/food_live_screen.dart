@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
@@ -17,6 +16,8 @@ import 'package:massdrive/features/incoming_job/data/sources/food_delivery_api_s
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/core/utils/baht.dart';
@@ -705,28 +706,22 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
                   );
                 },
         ),
-        _bottomAction(
-          Icons.phone_outlined,
-          'โทรฟรี',
-          onTap: (currentJob == null || currentJob.passengerPhone.isEmpty)
-              ? null
-              : () => _callPassenger(currentJob.passengerPhone),
-        ),
+        // Calls the customer only — never the restaurant.
+        if (currentJob != null)
+          CallCustomerButton(
+            kind: CallKind.food,
+            jobId: currentJob.jobId,
+            status: _currentState == FoodLiveState.delivering
+                ? 'DRIVER_PICKED_UP'
+                : 'DRIVER_ASSIGNED',
+            customerName: currentJob.passengerName,
+            builder: (context, onCall) =>
+                _bottomAction(Icons.phone_outlined, 'โทรฟรี', onTap: onCall),
+          ),
         _bottomAction(Icons.help_outline, 'ช่วยเหลือ'),
         _bottomAction(Icons.more_horiz, 'อื่นๆ'),
       ],
     );
-  }
-
-  Future<void> _callPassenger(String phone) async {
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถโทรออกได้')),
-      );
-    }
   }
 
   Widget _bottomAction(IconData icon, String label, {VoidCallback? onTap}) {

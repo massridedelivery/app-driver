@@ -15,14 +15,13 @@ Map<String, dynamic> _job(Map<String, dynamic> extra) => {
 };
 
 void main() {
-  test('name + phone from customer_info (what the active job sends)', () {
+  test('name from customer_info (what the active job sends)', () {
     final j = IncomingJobModel.fromJson(
       _job({
-        'customer_info': {'full_name': 'สมชาย ใจดี', 'phone': '+66812345678'},
+        'customer_info': {'full_name': 'สมชาย ใจดี', 'phone': ''},
       }),
     );
     expect(j.passengerName, 'สมชาย ใจดี');
-    expect(j.passengerPhone, '+66812345678');
   });
 
   test('older shapes still work: flat passenger_name, nested customer', () {
@@ -33,10 +32,10 @@ void main() {
     expect(
       IncomingJobModel.fromJson(
         _job({
-          'customer': {'full_name': 'ข', 'phone': '0811111111'},
+          'customer': {'full_name': 'ข'},
         }),
-      ).passengerPhone,
-      '0811111111',
+      ).passengerName,
+      'ข',
     );
   });
 
