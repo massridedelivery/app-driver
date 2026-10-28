@@ -223,6 +223,19 @@ abstract class Endpoints {
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';
 
+  // MARK: In-app calling (WebRTC). Only the start differs per order kind;
+  // everything after it is /api/calls/... for all three.
+  static const rideCallStart = '/api/driver/jobs/:id/calls';
+  static const foodCallStart = '/api/food/driver/orders/:id/calls';
+  static const messengerCallStart = '/api/messenger/driver/orders/:id/calls';
+  static const callSettings = '/api/calls/settings';
+  static const call = '/api/calls/:id';
+  static const callAccept = '/api/calls/:id/accept';
+  static const callDecline = '/api/calls/:id/decline';
+  static const callEnd = '/api/calls/:id/end';
+  // iOS PushKit token, separate from the FCM token above.
+  static const callVoipToken = '/api/calls/voip-token';
+
   // MARK: Vehicle Settings
   static const vehicleTypeToggle = '/api/driver/vehicle-types/:id/toggle';
 }

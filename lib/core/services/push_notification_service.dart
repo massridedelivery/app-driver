@@ -1,4 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/features/call/data/call_pushes.dart';
+import 'package:massdrive/features/call/data/callkit_system_ui.dart';
+import 'package:massdrive/features/call/domain/call_kind.dart';
+import 'package:massdrive/features/call/domain/call_models.dart';
+import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/income/domain/models/topup.dart';
+import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/chat/domain/chat_push_target.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
@@ -143,9 +150,25 @@ Future<void> _showJobNotification(
 /// side effects (logging, future data-sync work), never to draw a
 /// notification, or the driver would see the job offer twice. Registered from
 /// [main] via [FirebaseMessaging.onBackgroundMessage].
+///
+/// The exception is in-app calling: Android's call pushes are data-only and
+/// high priority, and this handler rings the full-screen incoming call (or
+/// stops it on `call_ended`) — the app isn't running to do it.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM(bg): id=${message.messageId} data=${message.data}');
+  if (defaultTargetPlatform == TargetPlatform.android &&
+      isCallPush(message.data)) {
+    try {
+      if (message.data['type'] == 'call_incoming') {
+        await ringCallFromPush(message.data);
+      } else {
+        await endCallFromPush(message.data);
+      }
+    } catch (e) {
+      debugPrint('FCM(bg): call push failed: $e');
+    }
+  }
   // This isolate never runs main(), so GetStorage needs its own init before
   // FcmDebugLog (backed by GetStorage) can persist an entry here.
   try {
@@ -294,6 +317,13 @@ class PushNotificationService {
       'Foreground message received: id=${message.messageId} data=${message.data}',
     );
 
+    // In-app call ringing / stopped: the call controller rings it through
+    // the system call UI — no notification of our own.
+    if (isCallPush(message.data)) {
+      CallPushes.instance.report(message.data);
+      return;
+    }
+
     // Payout status changed (payout_approved / _rejected / _completed /
     // _failed): refresh any open payout screen and the balance.
     if (_isPayoutUpdate(message)) PayoutUpdates.instance.notifyChanged();
@@ -379,6 +409,26 @@ class PushNotificationService {
     );
   }
 
+  /// A call's order: nothing to do when it is the job on screen (the live
+  /// job screen stays put under any chat); otherwise its chat — the one
+  /// per-order screen that also works after the order is done.
+  void _openCallOrder(Map<String, dynamic> data) {
+    final call = CallInfo.fromPush(data);
+    final ctx = AppRouter.rootContext;
+    if (call == null) return;
+    if (ctx != null && ctx.mounted) {
+      final container = ProviderScope.containerOf(ctx, listen: false);
+      final onScreen = switch (call.kind) {
+        CallKind.ride || CallKind.food =>
+          container.read(incomingJobControllerProvider).currentJob?.jobId,
+        CallKind.messenger =>
+          container.read(messengerControllerProvider).activeOrder?.id,
+      };
+      if (onScreen == call.jobId) return;
+    }
+    _openChat(ChatPushTarget(call.kind.chatVertical, call.jobId));
+  }
+
   /// Navigate in response to a notification tap. The backend can steer the
   /// driver to a screen by including a `route` path (e.g. `/incoming-job`) in
   /// the message data; unknown or missing routes are ignored.
@@ -395,6 +445,13 @@ class PushNotificationService {
     }
     if (type == 'held_fare_approved' || type == 'held_fare_rejected') {
       _navigateTo('/held-fares');
+      return;
+    }
+    // The "สายเรียกเข้า" alert (no PushKit token): ring it if it still rings,
+    // and open its order.
+    if (isCallPush(message.data)) {
+      CallPushes.instance.report(message.data);
+      _openCallOrder(message.data);
       return;
     }
     // "ลูกค้าส่งรูปภาพ" / a chat message → that job's chat (room_id).
