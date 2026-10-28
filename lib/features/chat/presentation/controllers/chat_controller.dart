@@ -51,6 +51,11 @@ class ChatController extends _$ChatController {
   StreamSubscription? _socketSub;
   StreamSubscription<void>? _outboxSub;
   ChatImageOutbox get _outbox => ChatImageOutbox.instance;
+
+  /// Sent photos whose history refresh has been kicked off. Tracked by id:
+  /// [ChatState.pending] holds the outbox's own (mutable) items, so comparing
+  /// against it can't tell "just became sent" from "was already sent".
+  final Set<String> _refreshedSent = {};
   late final String _jobId;
   late final ChatVertical _vertical;
   late final ChatRepository _chatRepository;
@@ -106,13 +111,12 @@ class ChatController extends _$ChatController {
       _outbox.remove(i.localId);
     }
     final pending = items.where((i) => !_delivered(i, state.messages)).toList();
-    final newlySent = pending.any(
-      (i) =>
-          i.status == OutboxStatus.sent &&
-          !state.pending.any(
-            (p) => p.localId == i.localId && p.status == OutboxStatus.sent,
-          ),
-    );
+    final newlySent = pending
+        .where(
+          (i) => i.status == OutboxStatus.sent && _refreshedSent.add(i.localId),
+        )
+        .toList()
+        .isNotEmpty;
     state = state.copyWith(pending: pending);
     if (newlySent) unawaited(_refreshAfterSend());
   }
