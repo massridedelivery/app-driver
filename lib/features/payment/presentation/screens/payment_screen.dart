@@ -117,6 +117,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// (BE #191 driver_earnings). Never computed here.
   double? get _driverNet =>
       ref.read(incomingJobControllerProvider).currentJob?.driverNet;
+
   /// The ride as last read from the server (fare, toll, waiting, discount,
   /// payment status) — the parts of amount_due. Null for messenger.
   IncomingJobModel? get _rideJob =>
@@ -189,6 +190,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       ),
     ];
   }
+
   double get _totalFare => _amounts.feeTotal;
 
   /// Ride whose amount_due is 0 (full-fare promo) and no COD.
@@ -217,8 +219,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool get _paid => _status == 'PAID';
   // Fee already settled before this screen (sender prepaid by QR, dev14) — no
   // collection to do, just confirm the delivery.
-  bool get _alreadyPaid =>
-      (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
+  bool get _alreadyPaid => (widget.paymentStatus ?? '').toUpperCase() == 'PAID';
   bool get _isMessenger => widget.service == ReviewService.messenger;
   double get _codAmount => _amounts.cod;
 
@@ -238,6 +239,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (who != null && where != null) return 'เก็บจาก$who ที่$where';
     return 'เก็บจาก${who ?? where}';
   }
+
   String get _orderId =>
       widget.orderId ??
       ref.read(incomingJobControllerProvider).currentJob?.jobId ??
@@ -249,8 +251,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     // Resolve the method from the passed label OR the ride/food job (ride and
     // food push /payment without a methodLabel, so fall back to the job's).
     final job = ref.read(incomingJobControllerProvider).currentJob;
-    final label =
-        (widget.methodLabel ?? job?.paymentMethod ?? '').toLowerCase();
+    final label = (widget.methodLabel ?? job?.paymentMethod ?? '')
+        .toLowerCase();
     final isQr = label.contains('qr') || label.contains('promptpay');
     final isFood = job?.isFood ?? (widget.service == ReviewService.food);
     // Fee already prepaid (sender QR, dev14): nothing to collect — reflect PAID
@@ -281,10 +283,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     Map<String, dynamic> intent = {};
     bool ok = false;
     try {
-      final res = await ref.read(paymentApiServiceProvider).createIntent(
-            orderId: _orderId,
-            messenger: _isMessenger,
-          );
+      final res = await ref
+          .read(paymentApiServiceProvider)
+          .createIntent(orderId: _orderId, messenger: _isMessenger);
       // BE returns a non-200 (e.g. 502) with a clear error when the gateway
       // can't mint the QR — we must NOT render a blank/placeholder QR then.
       if (res.isSuccessful && res.data is Map) {
@@ -407,7 +408,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       } else {
         await getIt<JobLiveRepository>().updateJobStatus(_orderId, {
           'status': 'COMPLETED',
-          if (_overrideReason != null) 'payment_override_reason': _overrideReason,
+          if (_overrideReason != null)
+            'payment_override_reason': _overrideReason,
         });
       }
       return true;
@@ -433,9 +435,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: dctx.palette.surface,
-        title: Text('ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
-            style: AppTypography.heading5
-                .copyWith(color: dctx.palette.textPrimary)),
+        title: Text(
+          'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
+          style: AppTypography.heading5.copyWith(
+            color: dctx.palette.textPrimary,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,8 +448,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             Text(
               'ระบุเหตุผล (เช่น ลูกค้าโชว์สลิปแล้ว) — งานจะจบได้ทันที '
               'แต่ค่างานจะยังไม่เข้า จนกว่าฝ่ายการเงินจะตรวจสอบและอนุมัติ',
-              style: AppTypography.caption4
-                  .copyWith(color: dctx.palette.textSecondary),
+              style: AppTypography.caption4.copyWith(
+                color: dctx.palette.textSecondary,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -490,8 +496,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         if (kDebugMode) debugPrint('PaymentScreen.collectCash: $e');
         if (mounted) {
           setState(() => _submitting = false);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('ยืนยันเงินสดไม่สำเร็จ กรุณาลองใหม่')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ยืนยันเงินสดไม่สำเร็จ กรุณาลองใหม่')),
+          );
         }
         return;
       }
@@ -554,8 +561,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget build(BuildContext context) {
     final jobState = ref.watch(incomingJobControllerProvider);
     final job = jobState.currentJob;
-    final paymentMethodStr =
-        widget.methodLabel ?? job?.paymentMethod ?? 'cash';
+    final paymentMethodStr = widget.methodLabel ?? job?.paymentMethod ?? 'cash';
 
     _currentMethod ??=
         (paymentMethodStr.toLowerCase().contains('qr') ||
@@ -622,14 +628,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white24,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         _collectContext!,
-                        style: AppTypography.body2.copyWith(color: Colors.white),
+                        style: AppTypography.body2.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -659,7 +669,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildCashContent() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewPaddingOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -728,7 +743,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
             ],
           ] else
-            _buildBreakdownRow(_isMessenger ? "ค่าส่ง" : "ค่าโดยสาร", _baseFare),
+            _buildBreakdownRow(
+              _isMessenger ? "ค่าส่ง" : "ค่าโดยสาร",
+              _baseFare,
+            ),
           const SizedBox(height: 16),
           if (_tolls > 0) ...[
             _buildBreakdownRow("ค่าทางด่วน", _tolls),
@@ -762,7 +780,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 children: [
                   Text(
                     _isMessenger ? "ทั้งหมด" : "เก็บเงินลูกค้า",
-                    style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
+                    style: AppTypography.heading5.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -785,7 +805,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
               Text(
                 formatBaht(_totalFare),
-                style: AppTypography.heading5.copyWith(color: context.palette.textPrimary),
+                style: AppTypography.heading5.copyWith(
+                  color: context.palette.textPrimary,
+                ),
               ),
             ],
           ),
@@ -835,190 +857,203 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildQRContent() {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    // Scrollable so the bottom affordances (change-to-cash, etc.) are always
-    // reachable on short screens; ConstrainedBox + IntrinsicHeight keep the
-    // confirm button pinned near the bottom when there IS spare room.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: (constraints.maxHeight - 48 - bottomInset)
-                  .clamp(0.0, double.infinity),
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  // Drag handle
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.palette.border,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+    // The QR and the earnings scroll; the confirm button and the cash
+    // fallback stay pinned above the nav bar, so on a short screen they're
+    // never half under it.
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Column(
+              children: [
+                // Drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.palette.border,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 24),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F3B66), // QR Banner Blue
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.qr_code_scanner, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  "ชำระผ่าน QR พร้อมเพย์",
-                  style: AppTypography.heading5.copyWith(color: Colors.white),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-          // Live Omise QR (SCRUM-86) — fetched from the payment intent.
-          Container(
-            width: 200,
-            height: 200,
-            color: Colors.white,
-            alignment: Alignment.center,
-            child: _loadingQr
-                ? const CircularProgressIndicator(strokeWidth: 2)
-                : _intentError
-                    ? const Icon(Icons.error_outline,
-                        size: 72, color: Colors.black38)
-                    : _expired
-                        ? const Icon(Icons.timer_off_outlined,
-                            size: 72, color: Colors.black38)
-                        : QrImage(source: _qrCodeUrl ?? ''),
-          ),
-
-          const SizedBox(height: 20),
-          if (_paid)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle,
-                    color: AppColors.semanticSuccessBorderHigh, size: 20),
-                const SizedBox(width: 6),
-                Text(
-                  "ชำระเงินแล้ว",
-                  style: AppTypography.body1
-                      .copyWith(color: AppColors.semanticSuccessBorderHigh),
-                ),
-              ],
-            )
-          else if (_intentError) ...[
-            Text(
-              "สร้าง QR ไม่สำเร็จ",
-              textAlign: TextAlign.center,
-              style: AppTypography.body1
-                  .copyWith(color: AppColors.semanticErrorBgHigh),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _requestNewQr,
-              child: Text(
-                "ลองใหม่",
-                style: AppTypography.body1.copyWith(
-                  color: AppColors.foundationOrange500,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ]
-          else if (_expired) ...[
-            Text(
-              "QR หมดอายุแล้ว",
-              style: AppTypography.body1
-                  .copyWith(color: AppColors.semanticErrorBgHigh),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _requestNewQr,
-              child: Text(
-                "ขอ QR ใหม่",
-                style: AppTypography.body1.copyWith(
-                    color: Colors.blueAccent, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ] else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "รอลูกค้าสแกนชำระเงิน…",
-                  style: AppTypography.body2
-                      .copyWith(color: context.palette.textSecondary),
-                ),
-              ],
-            ),
-
-                  ..._earningsRows(),
-
-                  const Spacer(),
-
-                  // Gate: only enabled once PAID (or a manual override filed).
-                  _buildConfirmButton(
-                    label: !widget.gateCompletion
-                        ? 'ยืนยันการชำระเงิน'
-                        : (_paid || _overrideReason != null
-                            ? 'ยืนยันจบงาน'
-                            : 'รอชำระเงิน'),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F3B66), // QR Banner Blue
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 12),
-                  // Manual-override entry point — hidden for now (product).
-                  if (_showManualOverride &&
-                      widget.gateCompletion &&
-                      !_paid)
-                    TextButton(
-                      onPressed: _showOverrideDialog,
-                      child: Text(
-                        _overrideReason != null
-                            ? 'บันทึกเหตุผลแล้ว — ค่างานจะรอฝ่ายการเงินตรวจสอบ'
-                            : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.body2
-                            .copyWith(color: Colors.blueAccent),
-                      ),
-                    ),
-                  // Clear, tappable fallback when the QR can't be scanned.
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => setState(
-                          () => _currentMethod = PaymentMethod.cash),
-                      icon: const Icon(Icons.payments_outlined, size: 20),
-                      label: const Text('QR ใช้ไม่ได้? เปลี่ยนไปรับเงินสดแทน'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: context.palette.textPrimary,
-                        side: BorderSide(color: context.palette.border),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_scanner, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        "ชำระผ่าน QR พร้อมเพย์",
+                        style: AppTypography.heading5.copyWith(
+                          color: Colors.white,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Live Omise QR (SCRUM-86) — fetched from the payment intent.
+                Container(
+                  width: 200,
+                  height: 200,
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: _loadingQr
+                      ? const CircularProgressIndicator(strokeWidth: 2)
+                      : _intentError
+                      ? const Icon(
+                          Icons.error_outline,
+                          size: 72,
+                          color: Colors.black38,
+                        )
+                      : _expired
+                      ? const Icon(
+                          Icons.timer_off_outlined,
+                          size: 72,
+                          color: Colors.black38,
+                        )
+                      : QrImage(source: _qrCodeUrl ?? ''),
+                ),
+
+                const SizedBox(height: 20),
+                if (_paid)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: AppColors.semanticSuccessBorderHigh,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        "ชำระเงินแล้ว",
+                        style: AppTypography.body1.copyWith(
+                          color: AppColors.semanticSuccessBorderHigh,
+                        ),
+                      ),
+                    ],
+                  )
+                else if (_intentError) ...[
+                  Text(
+                    "สร้าง QR ไม่สำเร็จ",
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.semanticErrorBgHigh,
                     ),
                   ),
                   const SizedBox(height: 8),
-                ],
-              ),
+                  GestureDetector(
+                    onTap: _requestNewQr,
+                    child: Text(
+                      "ลองใหม่",
+                      style: AppTypography.body1.copyWith(
+                        color: AppColors.foundationOrange500,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ] else if (_expired) ...[
+                  Text(
+                    "QR หมดอายุแล้ว",
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.semanticErrorBgHigh,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _requestNewQr,
+                    child: Text(
+                      "ขอ QR ใหม่",
+                      style: AppTypography.body1.copyWith(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ] else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "รอลูกค้าสแกนชำระเงิน…",
+                        style: AppTypography.body2.copyWith(
+                          color: context.palette.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                ..._earningsRows(),
+              ],
             ),
           ),
-        );
-      },
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(24, 8, 24, 8 + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gate: only enabled once PAID (or a manual override filed).
+              _buildConfirmButton(
+                label: !widget.gateCompletion
+                    ? 'ยืนยันการชำระเงิน'
+                    : (_paid || _overrideReason != null
+                          ? 'ยืนยันจบงาน'
+                          : 'รอชำระเงิน'),
+              ),
+              const SizedBox(height: 12),
+              // Manual-override entry point — hidden for now (product).
+              if (_showManualOverride && widget.gateCompletion && !_paid)
+                TextButton(
+                  onPressed: _showOverrideDialog,
+                  child: Text(
+                    _overrideReason != null
+                        ? 'บันทึกเหตุผลแล้ว — ค่างานจะรอฝ่ายการเงินตรวจสอบ'
+                        : 'ลูกค้าจ่ายแล้วแต่ระบบยังไม่ขึ้น?',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body2.copyWith(
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                ),
+              // Clear, tappable fallback when the QR can't be scanned.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      setState(() => _currentMethod = PaymentMethod.cash),
+                  icon: const Icon(Icons.payments_outlined, size: 20),
+                  label: const Text('QR ใช้ไม่ได้? เปลี่ยนไปรับเงินสดแทน'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.palette.textPrimary,
+                    side: BorderSide(color: context.palette.border),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1043,7 +1078,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : Text(
                 label,
@@ -1064,7 +1101,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(text, style: AppTypography.body2.copyWith(color: context.palette.textPrimary)),
+          Text(
+            text,
+            style: AppTypography.body2.copyWith(
+              color: context.palette.textPrimary,
+            ),
+          ),
           const SizedBox(width: 4),
           Icon(Icons.add, color: context.palette.textPrimary, size: 16),
         ],
@@ -1076,13 +1118,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: AppTypography.body1.copyWith(color: context.palette.textPrimary)),
+        Text(
+          title,
+          style: AppTypography.body1.copyWith(
+            color: context.palette.textPrimary,
+          ),
+        ),
         Text(
           formatBahtNumber(value),
-          style: AppTypography.body1.copyWith(color: context.palette.textPrimary),
+          style: AppTypography.body1.copyWith(
+            color: context.palette.textPrimary,
+          ),
         ),
       ],
     );
   }
-
 }
