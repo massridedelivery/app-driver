@@ -78,6 +78,7 @@ dependencies:
   # + the full-screen incoming call (Android).
   flutter_webrtc: ^1.6.3
   flutter_callkit_incoming: ^3.1.6
+  in_app_update: ^4.2.5
 
 dev_dependencies:
   flutter_test:

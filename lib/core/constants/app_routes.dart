@@ -32,6 +32,7 @@ class AppRoutes {
   static const payoutHistoryNamedPage = '/payout-history';
   static const settingNamedPage = '/setting';
   static const accountRestrictedNamedPage = '/account-restricted';
+  static const forceUpdateNamedPage = '/force-update';
   static const settingDetailsNamedPage = 'details';
   static const incomingJobNamedPage = '/incoming-job';
   static const foodLiveNamedPage = '/food-live';

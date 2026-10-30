@@ -4,6 +4,8 @@ import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/features/account_restricted/presentation/screens/account_restricted_screen.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
+import 'package:massdrive/core/update/force_update_screen.dart';
+import 'package:massdrive/core/update/update_check.dart';
 import 'package:massdrive/features/edit_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/screens/incoming_job_screen.dart';
@@ -68,6 +70,50 @@ class AppRouter {
     AppRoutes.loginNamedPage,
   };
 
+  /// An offer, a live job or the collect screen: a forced update waits until
+  /// the driver navigates off these rather than tearing the job down.
+  static const Set<String> _activeJobRoutes = {
+    AppRoutes.incomingJobNamedPage,
+    '/job-live',
+    AppRoutes.foodLiveNamedPage,
+    '/messenger-offer',
+    '/messenger-live',
+    '/payment',
+  };
+
+  /// Set by UpdateListener: true while the call screen is up. A forced update
+  /// waits for the call to end.
+  static bool Function() isInCall = () => false;
+
+  static String get _currentPath {
+    final config = _router.routerDelegate.currentConfiguration;
+    return config.isEmpty ? '' : config.uri.path;
+  }
+
+  /// Nothing the driver is in the middle of: a fine time for the "update
+  /// available" dialog.
+  static bool get isQuietMoment {
+    final path = _currentPath;
+    return path.isNotEmpty &&
+        path != AppRoutes.splashNamedPage &&
+        path != AppRoutes.forceUpdateNamedPage &&
+        !_activeJobRoutes.contains(path) &&
+        !isInCall();
+  }
+
+  /// Where a forced update sends [location], or null to let it through: off
+  /// to the update screen unless a call is up or the driver is already in a
+  /// job and stays in it.
+  static String? _forceUpdateRedirect(String location) {
+    if (location == AppRoutes.forceUpdateNamedPage) return null;
+    if (isInCall()) return null;
+    final from = _currentPath;
+    final staysInJob =
+        _activeJobRoutes.contains(location) &&
+        (from == location || _activeJobRoutes.contains(from));
+    return staysInJob ? null : AppRoutes.forceUpdateNamedPage;
+  }
+
   static final GoRouter _router = GoRouter(
     initialLocation: AppRoutes.splashNamedPage,
     debugLogDiagnostics: true,
@@ -77,13 +123,25 @@ class AppRouter {
     // protected screen — the core fix for "stale session never returns to
     // login".
     // Also re-run it when the account is flagged deleted/suspended.
+    // And when the backend starts or stops forcing an update.
     refreshListenable: Listenable.merge([
       SessionNotifier.instance,
       AccountStatusNotifier.instance,
+      UpdateCheck.instance,
     ]),
     redirect: (context, state) {
       final loggedIn = SessionNotifier.instance.isAuthenticated;
       final location = state.matchedLocation;
+
+      // This build must update: hold the app on the update screen. It outranks
+      // every other rule, logged in or not, since an old build may not work.
+      if (UpdateCheck.instance.forced != null) {
+        return _forceUpdateRedirect(location);
+      }
+      if (location == AppRoutes.forceUpdateNamedPage) {
+        return AppRoutes.splashNamedPage;
+      }
+
       final atPublicRoute = _publicRoutes.contains(location);
       if (!loggedIn && !atPublicRoute) {
         return AppRoutes.loginNamedPage;
@@ -103,6 +161,11 @@ class AppRouter {
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.forceUpdateNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ForceUpdateScreen()),
+      ),
       GoRoute(
         path: AppRoutes.accountRestrictedNamedPage,
         pageBuilder: (context, state) =>

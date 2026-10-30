@@ -18,6 +18,9 @@ abstract class Endpoints {
   // MARK: App config (runtime)
   static const configSupport = '/api/config/support';
 
+  /// Public, no auth: OK / SUGGEST_UPDATE / FORCE_UPDATE for this build.
+  static const configVersion = '/api/config/version';
+
   // MARK: Driver profile
   static const driverProfile = '/api/driver/profile';
   static const driverOnline = '/api/driver/online';
