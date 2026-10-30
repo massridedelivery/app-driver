@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/features/inbox/data/inbox_api.dart';
+import 'package:massdrive/features/inbox/domain/campaign_push.dart';
 import 'package:massdrive/features/inbox/domain/inbox_message.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_controller.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
+import 'package:massdrive/features/inbox/presentation/marketing_opt_in_controller.dart';
 
 InboxMessage _msg(String id, {bool read = false, Map<String, String>? data}) =>
     InboxMessage(
@@ -70,6 +72,21 @@ class _FakeApi implements InboxApi {
     calls.add('readAll');
     if (failBulk) throw _http(500);
     rows = [for (final m in rows) m.markedRead(DateTime(0))];
+  }
+
+  bool optIn = true;
+  Object? failPrefs;
+
+  @override
+  Future<bool> marketingOptIn() async {
+    if (failPrefs != null) throw failPrefs!;
+    return optIn;
+  }
+
+  @override
+  Future<bool> setMarketingOptIn(bool value) async {
+    if (failPrefs != null) throw failPrefs!;
+    return optIn = value;
   }
 }
 
@@ -190,6 +207,19 @@ void main() {
       expect(state().items.where((m) => m.isRead), hasLength(1));
     });
 
+    test('a tapped push row not on the page is still marked read', () async {
+      await inbox().markReadById('zz');
+      expect(api.calls, ['read zz', 'list 1 0']);
+    });
+
+    test('a campaign push arriving re-reads the badge', () async {
+      inbox(); // build the controller so it listens
+      api.rows = [...api.rows, _msg('new')];
+      InboxUpdates.instance.notifyChanged();
+      await Future<void>.delayed(Duration.zero);
+      expect(state().unreadCount, 3);
+    });
+
     test('logout clears the inbox', () async {
       await inbox().refresh();
       SessionNotifier.instance.setAuthenticated(false);
@@ -199,20 +229,82 @@ void main() {
     });
   });
 
+  group('MarketingOptInController', () {
+    Future<MarketingOptIn> loaded() async {
+      final sub = container.listen(marketingOptInProvider, (_, _) {});
+      addTearDown(sub.close);
+      await container.read(marketingOptInProvider.notifier).load();
+      return container.read(marketingOptInProvider);
+    }
+
+    test('shows the saved value', () async {
+      api.optIn = false;
+      final s = await loaded();
+      expect(s.enabled, isFalse);
+      expect(s.available, isTrue);
+    });
+
+    test('before the deploy (404): on, and locked', () async {
+      api.failPrefs = _http(404);
+      final s = await loaded();
+      expect(s.enabled, isTrue);
+      expect(s.available, isFalse);
+      expect(
+        await container.read(marketingOptInProvider.notifier).set(false),
+        isTrue,
+      );
+      expect(container.read(marketingOptInProvider).enabled, isTrue);
+    });
+
+    test('turning it off saves it', () async {
+      await loaded();
+      final ok = await container
+          .read(marketingOptInProvider.notifier)
+          .set(false);
+      expect(ok, isTrue);
+      expect(api.optIn, isFalse);
+      expect(container.read(marketingOptInProvider).enabled, isFalse);
+    });
+
+    test('a failed save puts the switch back', () async {
+      await loaded();
+      api.failPrefs = _http(500);
+      final ok = await container
+          .read(marketingOptInProvider.notifier)
+          .set(false);
+      expect(ok, isFalse);
+      expect(container.read(marketingOptInProvider).enabled, isTrue);
+    });
+  });
+
   group('InboxApi.delete', () {
-    test('a 404 counts as deleted', () async {
-      final dio = Dio()
-        ..interceptors.add(
-          InterceptorsWrapper(
-            onRequest: (o, h) => h.reject(
-              DioException(
+    Dio answering(int status, Object? body) => Dio()
+      ..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) => h.reject(
+            DioException(
+              requestOptions: o,
+              response: Response(
                 requestOptions: o,
-                response: Response(requestOptions: o, statusCode: 404),
+                statusCode: status,
+                data: body,
               ),
             ),
           ),
-        );
+        ),
+      );
+
+    test('404 {"error": "not found"} counts as deleted', () async {
+      final dio = answering(404, {'error': 'not found'});
       await expectLater(InboxApi(dio).delete('gone'), completes);
+    });
+
+    test('any other 404 (endpoint not deployed) keeps the row', () async {
+      final dio = answering(404, 'Cannot DELETE /api/notifications/x');
+      await expectLater(
+        InboxApi(dio).delete('x'),
+        throwsA(isA<DioException>()),
+      );
     });
 
     test('other errors are thrown', () async {
@@ -287,6 +379,39 @@ void main() {
     });
   });
 
+  group('CampaignPush', () {
+    test('a push with campaign_id is a campaign', () {
+      final c = CampaignPush.fromData({
+        'campaign_id': 'c1',
+        'notification_id': 'n1',
+        'screen': 'incentives',
+        'deeplink': '/incentives',
+      })!;
+      expect(c.campaignId, 'c1');
+      expect(c.notificationId, 'n1');
+    });
+
+    test('an admin test push may have no notification_id', () {
+      final c = CampaignPush.fromData({'campaign_id': 'c1'})!;
+      expect(c.notificationId, isNull);
+      expect(CampaignPush.fromPayload(c.payload)?.notificationId, isNull);
+    });
+
+    test('job offers and other pushes are not campaigns', () {
+      expect(CampaignPush.fromData({'route': '/incoming-job'}), isNull);
+      expect(CampaignPush.fromData({'type': 'payout_approved'}), isNull);
+      expect(CampaignPush.fromPayload('chat|ride|j1'), isNull);
+      expect(CampaignPush.fromPayload('/incoming-job'), isNull);
+    });
+
+    test('the local-notification payload round-trips', () {
+      const c = CampaignPush(campaignId: 'c1', notificationId: 'n1');
+      final back = CampaignPush.fromPayload(c.payload)!;
+      expect(back.campaignId, 'c1');
+      expect(back.notificationId, 'n1');
+    });
+  });
+
   group('InboxStrings', () {
     final now = DateTime(2026, 10, 30, 12);
 
@@ -295,6 +420,24 @@ void main() {
       expect(s.day(DateTime(2026, 10, 30, 0, 5), now), 'วันนี้');
       expect(s.day(DateTime(2026, 10, 29, 23, 59), now), 'เมื่อวาน');
       expect(s.day(DateTime(2026, 10, 28, 9), now), '28 ต.ค. 2569');
+    });
+
+    test('card times are relative within the day', () {
+      const s = InboxStrings.th;
+      expect(
+        s.ago(now.subtract(const Duration(seconds: 20)), now),
+        'เมื่อสักครู่',
+      );
+      expect(
+        s.ago(now.subtract(const Duration(minutes: 5)), now),
+        '5 นาทีที่แล้ว',
+      );
+      expect(s.ago(DateTime(2026, 10, 30, 9, 30), now), '2 ชั่วโมงที่แล้ว');
+      expect(s.ago(DateTime(2026, 10, 29, 23, 15), now), '23:15');
+      expect(
+        InboxStrings.en.ago(now.subtract(const Duration(minutes: 5)), now),
+        '5 min ago',
+      );
     });
 
     test('English dates', () {

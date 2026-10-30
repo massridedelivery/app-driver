@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/features/inbox/data/inbox_api.dart';
+import 'package:massdrive/features/inbox/domain/campaign_push.dart';
 import 'package:massdrive/features/inbox/domain/inbox_message.dart';
 
 @immutable
@@ -67,8 +68,15 @@ class InboxController extends Notifier<InboxState> {
       }
     }
 
+    // A campaign push arrived: re-read the badge.
+    void onNewMessage() => refreshUnread();
+
     SessionNotifier.instance.addListener(onSession);
-    ref.onDispose(() => SessionNotifier.instance.removeListener(onSession));
+    InboxUpdates.instance.addListener(onNewMessage);
+    ref.onDispose(() {
+      SessionNotifier.instance.removeListener(onSession);
+      InboxUpdates.instance.removeListener(onNewMessage);
+    });
     return const InboxState();
   }
 
@@ -135,6 +143,16 @@ class InboxController extends Notifier<InboxState> {
     } catch (e) {
       debugPrint('Inbox: mark read failed: $e');
     }
+  }
+
+  /// A tapped campaign push whose row isn't among the loaded ones.
+  Future<void> markReadById(String id) async {
+    try {
+      await _api.markRead(id);
+    } catch (e) {
+      debugPrint('Inbox: mark read failed: $e');
+    }
+    await refreshUnread();
   }
 
   /// Swipe to delete: the row goes at once and comes back if the backend

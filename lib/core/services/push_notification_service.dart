@@ -7,6 +7,8 @@ import 'package:massdrive/features/incoming_job/presentation/controllers/incomin
 import 'package:massdrive/features/income/domain/models/topup.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/chat/domain/chat_push_target.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/features/inbox/domain/campaign_push.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -294,6 +296,10 @@ class PushNotificationService {
           _openChat(chat);
           return;
         }
+        if (CampaignPush.fromPayload(route) case final campaign?) {
+          _openCampaign(campaign);
+          return;
+        }
         if (route != null) _navigateTo(route);
       },
     );
@@ -323,6 +329,11 @@ class PushNotificationService {
       CallPushes.instance.report(message.data);
       return;
     }
+
+    // A marketing campaign landed in the inbox: the bell re-reads its badge.
+    // It shows like any other notification below (default channel).
+    final campaign = CampaignPush.fromData(message.data);
+    if (campaign != null) InboxUpdates.instance.notifyChanged();
 
     // Payout status changed (payout_approved / _rejected / _completed /
     // _failed): refresh any open payout screen and the balance.
@@ -378,6 +389,7 @@ class PushNotificationService {
       ),
       payload:
           chatTargetFromPush(message.data)?.payload ??
+          campaign?.payload ??
           message.data['route'] as String?,
     );
   }
@@ -406,6 +418,34 @@ class PushNotificationService {
               : 'ลูกค้า',
         ),
       ),
+    );
+  }
+
+  /// Opens the inbox on top of home and, when the push names its row, that
+  /// message (the inbox marks it read). Waits out a cold start: the session
+  /// must be restored and the splash gone, or the router would bounce it.
+  void _openCampaign(CampaignPush campaign, [int tries = 0]) {
+    final path = AppRouter.router.routerDelegate.currentConfiguration.uri.path;
+    final ready =
+        SessionNotifier.instance.isAuthenticated &&
+        path.isNotEmpty &&
+        path != AppRoutes.splashNamedPage;
+    if (!ready) {
+      if (tries < 40) {
+        Future.delayed(
+          const Duration(milliseconds: 250),
+          () => _openCampaign(campaign, tries + 1),
+        );
+      }
+      return;
+    }
+    FcmDebugLog.log(
+      'Campaign tapped: ${campaign.campaignId} row=${campaign.notificationId}',
+    );
+    AppRouter.router.go(AppRoutes.homeNamedPage);
+    AppRouter.router.push(
+      AppRoutes.inboxNamedPage,
+      extra: campaign.notificationId,
     );
   }
 
@@ -452,6 +492,11 @@ class PushNotificationService {
     if (isCallPush(message.data)) {
       CallPushes.instance.report(message.data);
       _openCallOrder(message.data);
+      return;
+    }
+    // A marketing campaign → its message in the inbox (never a job screen).
+    if (CampaignPush.fromData(message.data) case final campaign?) {
+      _openCampaign(campaign);
       return;
     }
     // "ลูกค้าส่งรูปภาพ" / a chat message → that job's chat (room_id).

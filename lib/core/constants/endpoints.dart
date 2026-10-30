@@ -229,6 +229,7 @@ abstract class Endpoints {
   // Inbox (กล่องข้อความ): GET lists, DELETE clears the whole inbox.
   static const notifications = '/api/notifications';
   static const notificationsReadAll = '/api/notifications/read-all';
+  static const notificationPrefs = '/api/notifications/prefs';
   static String notification(String id) => '/api/notifications/$id';
   static String notificationRead(String id) => '/api/notifications/$id/read';
 
