@@ -14,7 +14,10 @@ import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
 /// grouped by day. Swipe a card to delete it; the app bar has "อ่านทั้งหมด"
 /// (only while something is unread) and "ลบทั้งหมด" (always confirmed).
 class InboxScreen extends ConsumerStatefulWidget {
-  const InboxScreen({super.key});
+  const InboxScreen({super.key, this.openMessageId});
+
+  /// Opened from a campaign push: show this row once the list has loaded.
+  final String? openMessageId;
 
   @override
   ConsumerState<InboxScreen> createState() => _InboxScreenState();
@@ -29,7 +32,21 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _inbox.refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    await _inbox.refresh();
+    final id = widget.openMessageId;
+    if (id == null || !mounted) return;
+    final items = ref.read(inboxControllerProvider).items;
+    final row = items.where((m) => m.id == id).firstOrNull;
+    if (row != null) {
+      _open(row);
+    } else {
+      // Not on the first page (or gone): still count it as read.
+      _inbox.markReadById(id);
+    }
   }
 
   @override
@@ -200,7 +217,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           onDismissed: () => _delete(m, s),
           child: _MessageCard(
             message: m,
-            time: s.time(m.createdAt),
+            time: s.ago(m.createdAt, now),
             onTap: () => _open(m),
           ),
         ),

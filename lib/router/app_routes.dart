@@ -224,8 +224,10 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.inboxNamedPage,
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: InboxScreen()),
+        // A campaign push passes its row id to open it once loaded.
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: InboxScreen(openMessageId: state.extra as String?),
+        ),
       ),
       GoRoute(
         path: AppRoutes.inboxDetailNamedPage,

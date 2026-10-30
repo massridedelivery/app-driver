@@ -18,6 +18,8 @@ import 'package:massdrive/features/auth/presentation/controllers/auth_controller
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
+import 'package:massdrive/features/inbox/presentation/marketing_opt_in_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 
@@ -72,6 +74,14 @@ class SettingScreen extends ConsumerWidget {
               ),
 
               const _AutoAcceptCard(),
+              const _Divider(),
+
+              SectionHeader(
+                title: InboxStrings.of(context).notificationsSection,
+                textColor: context.palette.textPrimary,
+              ),
+
+              const _MarketingOptInCard(),
               const _Divider(),
 
               SectionHeader(
@@ -734,6 +744,70 @@ class _AccountTile extends ConsumerWidget {
       onTap: () {
         context.push(AppRoutes.editProfileNamedPage);
       },
+    );
+  }
+}
+
+/// PDPA marketing consent: campaigns (push + inbox) only. Shown on and
+/// locked until the backend serves the setting.
+class _MarketingOptInCard extends ConsumerWidget {
+  const _MarketingOptInCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = InboxStrings.of(context);
+    final optIn = ref.watch(marketingOptInProvider);
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const _LeadingIconBadge(
+                icon: Icons.campaign_outlined,
+                size: 36,
+                background: AppColors.foundationOrange100,
+                iconColor: AppColors.foundationOrange600,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  s.marketingTitle,
+                  style: AppTypography.caption3.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+              ),
+              Switch(
+                value: optIn.enabled,
+                activeThumbColor: Colors.green,
+                onChanged: optIn.available
+                    ? (value) async {
+                        final ok = await ref
+                            .read(marketingOptInProvider.notifier)
+                            .set(value);
+                        if (!ok) ToastUtil.showErrorToast(s.marketingFailed);
+                      }
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            s.marketingBody,
+            style: AppTypography.caption4.copyWith(
+              color: context.palette.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

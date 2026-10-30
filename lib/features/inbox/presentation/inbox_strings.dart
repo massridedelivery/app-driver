@@ -26,6 +26,10 @@ class InboxStrings {
     required this.openLink,
     required this.today,
     required this.yesterday,
+    required this.notificationsSection,
+    required this.marketingTitle,
+    required this.marketingBody,
+    required this.marketingFailed,
   });
 
   static const th = InboxStrings._(
@@ -50,6 +54,11 @@ class InboxStrings {
     openLink: 'เปิดลิงก์',
     today: 'วันนี้',
     yesterday: 'เมื่อวาน',
+    notificationsSection: 'การแจ้งเตือน',
+    marketingTitle: 'ข่าวสารและโปรโมชั่น',
+    marketingBody:
+        'ข้อเสนอ ภารกิจโบนัส และข่าวจากบริษัท ปิดแล้วยังได้รับแจ้งเตือนงาน แชท และบัญชีตามปกติ',
+    marketingFailed: 'บันทึกการตั้งค่าไม่สำเร็จ ลองอีกครั้ง',
   );
 
   static const en = InboxStrings._(
@@ -74,6 +83,11 @@ class InboxStrings {
     openLink: 'Open link',
     today: 'Today',
     yesterday: 'Yesterday',
+    notificationsSection: 'Notifications',
+    marketingTitle: 'News and promotions',
+    marketingBody:
+        'Offers, bonus quests and company news. Turned off, you still get job, chat and account notifications.',
+    marketingFailed: "Couldn't save the setting. Try again.",
   );
 
   static InboxStrings of(BuildContext context) {
@@ -102,6 +116,10 @@ class InboxStrings {
   final String openLink;
   final String today;
   final String yesterday;
+  final String notificationsSection;
+  final String marketingTitle;
+  final String marketingBody;
+  final String marketingFailed;
 
   /// Group header: "วันนี้", "เมื่อวาน", else the date ("28 ต.ค. 2569").
   String day(DateTime at, DateTime now) {
@@ -134,6 +152,24 @@ class InboxStrings {
   String time(DateTime at) =>
       '${at.hour.toString().padLeft(2, '0')}:'
       '${at.minute.toString().padLeft(2, '0')}';
+
+  /// A card's time: relative within the hour/day ("5 นาทีที่แล้ว"), else the
+  /// clock time under its day header.
+  String ago(DateTime at, DateTime now) {
+    final d = now.difference(at);
+    if (d.isNegative || d.inMinutes < 1) {
+      return thai ? 'เมื่อสักครู่' : 'Just now';
+    }
+    if (d.inMinutes < 60) {
+      return thai ? '${d.inMinutes} นาทีที่แล้ว' : '${d.inMinutes} min ago';
+    }
+    final sameDay =
+        at.year == now.year && at.month == now.month && at.day == now.day;
+    if (sameDay) {
+      return thai ? '${d.inHours} ชั่วโมงที่แล้ว' : '${d.inHours} h ago';
+    }
+    return time(at);
+  }
 
   /// "วันนี้ 10:24" on the detail screen.
   String stamp(DateTime at, DateTime now) => '${day(at, now)} ${time(at)}';
