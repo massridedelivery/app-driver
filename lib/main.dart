@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
+import 'package:massdrive/core/services/crash_reporting.dart';
 import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
@@ -61,6 +62,8 @@ Future<void> main() async {
   if (firebaseOptions.appId.isNotEmpty && firebaseOptions.projectId.isNotEmpty) {
     try {
       await Firebase.initializeApp(options: firebaseOptions);
+      // Crash reports first, so a failure anywhere after this is recorded.
+      await CrashReporting.start();
       // Register the background/terminated handler before runApp, then wire up
       // foreground/tap handling. Kept in the same isolated step so a Firebase
       // failure can never block startup.

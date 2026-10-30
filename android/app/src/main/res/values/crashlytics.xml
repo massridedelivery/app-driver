@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Firebase is configured from Dart defines (no google-services.json), so
+         the Crashlytics Gradle plugin that stamps a build id isn't used.
+         Without this the Crashlytics SDK refuses to start on Android. -->
+    <bool name="com.crashlytics.RequireBuildId">false</bool>
+</resources>
