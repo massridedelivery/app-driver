@@ -11,6 +11,7 @@ import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/push_token_registrar.dart';
 import 'package:massdrive/core/services/route_restoration_service.dart';
 import 'package:massdrive/core/theme/theme_controller.dart';
+import 'package:massdrive/core/update/update_listener.dart';
 import 'package:massdrive/firebase_options.dart';
 import 'package:massdrive/router/app_routes.dart';
 
@@ -166,10 +167,12 @@ class MyApp extends ConsumerWidget {
       builder: (context, child) {
         return JobCancelListener(
           child: CallListener(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: child ?? const SizedBox.shrink(),
+            child: UpdateListener(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           ),
         );
