@@ -22,9 +22,10 @@ import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 
 /// Real app version read from the bundle (moved here from the login footer).
+/// Only the marketing version ("1.0.1"): drivers don't need the build number.
 final appVersionProvider = FutureProvider<String>((ref) async {
   final info = await PackageInfo.fromPlatform();
-  return '${info.version} (${info.buildNumber})';
+  return info.version;
 });
 
 class SettingScreen extends ConsumerWidget {
