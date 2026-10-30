@@ -33,6 +33,8 @@ class AppRoutes {
   static const settingNamedPage = '/setting';
   static const accountRestrictedNamedPage = '/account-restricted';
   static const forceUpdateNamedPage = '/force-update';
+  static const inboxNamedPage = '/inbox';
+  static const inboxDetailNamedPage = '/inbox/detail';
   static const settingDetailsNamedPage = 'details';
   static const incomingJobNamedPage = '/incoming-job';
   static const foodLiveNamedPage = '/food-live';
