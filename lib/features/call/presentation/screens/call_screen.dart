@@ -86,37 +86,44 @@ class _CallScreenState extends ConsumerState<CallScreen> {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
-            child: Column(
-              children: [
-                _Avatar(url: call?.peerAvatar ?? ''),
-                const SizedBox(height: 20),
-                Text(
-                  call?.displayName ?? 'ลูกค้า',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.heading3.copyWith(color: p.textPrimary),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _statusLine(s),
-                  textAlign: TextAlign.center,
-                  style: AppTypography.body2.copyWith(
-                    color: s.phase == CallPhase.reconnecting
-                        ? AppColors.foundationOrange600
-                        : p.textSecondary,
+            // Full width, so everything stays centred even when nothing below
+            // the name is as wide as the screen (the "ปิด"-only ended state).
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                children: [
+                  _Avatar(url: call?.peerAvatar ?? ''),
+                  const SizedBox(height: 20),
+                  Text(
+                    call?.displayName ?? 'ลูกค้า',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.heading3.copyWith(
+                      color: p.textPrimary,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                if (s.phase == CallPhase.ended)
-                  _EndedActions(
-                    suggestChat: s.endReason?.suggestsChat ?? false,
-                    onChat: call == null ? null : () => _openChat(call),
-                    onClose: _close,
-                  )
-                else
-                  _Controls(state: s),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    _statusLine(s),
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body2.copyWith(
+                      color: s.phase == CallPhase.reconnecting
+                          ? AppColors.foundationOrange600
+                          : p.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (s.phase == CallPhase.ended)
+                    _EndedActions(
+                      suggestChat: s.endReason?.suggestsChat ?? false,
+                      onChat: call == null ? null : () => _openChat(call),
+                      onClose: _close,
+                    )
+                  else
+                    _Controls(state: s),
+                ],
+              ),
             ),
           ),
         ),
