@@ -13,6 +13,7 @@ import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/connectivity_monitor.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_offline_card.dart';
+import 'package:massdrive/features/inbox/presentation/widgets/inbox_bell_button.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -425,16 +426,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
-            child: _buildSettingsButton(),
+            child: const InboxBellButton(),
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 76,
+            right: 16,
+            child: _buildSettingsButton(),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 136,
             right: 16,
             child: const _RecenterButton(),
           ),
           // Persistent indicator when the driver has a job in progress.
           Positioned(
-            top: MediaQuery.of(context).padding.top + 136,
+            top: MediaQuery.of(context).padding.top + 196,
             left: 16,
             right: 16,
             child: const ActiveJobBanner(),

@@ -50,6 +50,7 @@ class RouteRestorationService {
     '/messenger-offer',
     // Built from navigation `extra` that doesn't survive a restart.
     '/review-customer',
+    AppRoutes.inboxDetailNamedPage,
     AppRoutes.documentRegistrationUploadNamedPage,
   };
 

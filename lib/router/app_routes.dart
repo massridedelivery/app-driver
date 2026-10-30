@@ -38,6 +38,9 @@ import 'package:massdrive/features/document_registration/presentation/screens/ve
 import 'package:massdrive/features/document_registration/presentation/screens/bank_account_form_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/consent_screen.dart';
 import 'package:massdrive/features/fcm_debug/presentation/screens/fcm_debug_screen.dart';
+import 'package:massdrive/features/inbox/domain/inbox_message.dart';
+import 'package:massdrive/features/inbox/presentation/screens/inbox_detail_screen.dart';
+import 'package:massdrive/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
@@ -218,6 +221,21 @@ class AppRouter {
         path: AppRoutes.historyNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: HistoryScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.inboxNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: InboxScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.inboxDetailNamedPage,
+        // The message rides in `extra`; without it (e.g. a restored stack)
+        // fall back to the list.
+        redirect: (context, state) =>
+            state.extra is InboxMessage ? null : AppRoutes.inboxNamedPage,
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: InboxDetailScreen(message: state.extra! as InboxMessage),
+        ),
       ),
       GoRoute(
         path: AppRoutes.questsNamedPage,

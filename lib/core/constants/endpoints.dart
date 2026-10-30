@@ -226,6 +226,12 @@ abstract class Endpoints {
   // MARK: Notifications
   static const registerDevice = '/api/notifications/register-device';
 
+  // Inbox (กล่องข้อความ): GET lists, DELETE clears the whole inbox.
+  static const notifications = '/api/notifications';
+  static const notificationsReadAll = '/api/notifications/read-all';
+  static String notification(String id) => '/api/notifications/$id';
+  static String notificationRead(String id) => '/api/notifications/$id/read';
+
   // MARK: In-app calling (WebRTC). Only the start differs per order kind;
   // everything after it is /api/calls/... for all three.
   static const rideCallStart = '/api/driver/jobs/:id/calls';
