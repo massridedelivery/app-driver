@@ -33,45 +33,29 @@ String normalizeThaiPhone(String input) {
 bool isValidThaiPhone(String normalized) =>
     RegExp(r'^0\d{9}$').hasMatch(normalized);
 
-/// Black rounded tile with the white M and "MASS DRIVE" — the app icon.
-class MassDriveLogoTile extends StatelessWidget {
+/// The white M and "MASS DRIVE" on their own — no tile behind them.
+class MassDriveLogo extends StatelessWidget {
   final double size;
 
-  const MassDriveLogoTile({super.key, this.size = 64});
+  const MassDriveLogo({super.key, this.size = 64});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.25),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF3B3C41), Color(0xFF1A1B1E)],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/images/app_logo_mark.png', width: size * 0.62),
-          SizedBox(height: size * 0.03),
+          Image.asset('assets/images/app_logo_mark.png', width: size * 0.9),
+          SizedBox(height: size * 0.04),
           Text(
             'MASS DRIVE',
             style: TextStyle(
               color: Colors.white,
-              fontSize: size * 0.1,
+              fontSize: size * 0.14,
               fontWeight: FontWeight.w700,
-              letterSpacing: size * 0.01,
+              letterSpacing: size * 0.012,
               height: 1,
             ),
           ),
@@ -81,7 +65,7 @@ class MassDriveLogoTile extends StatelessWidget {
   }
 }
 
-/// Charcoal header with faint service icons, the logo tile, a title and a
+/// Charcoal header with faint service icons, the logo, a title and a
 /// subtitle, ending in a wave into the white body.
 class AuthHeader extends StatelessWidget {
   final String title;
@@ -134,7 +118,7 @@ class AuthHeader extends StatelessWidget {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    const MassDriveLogoTile(),
+                    const MassDriveLogo(),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
