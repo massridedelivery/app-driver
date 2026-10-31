@@ -9,9 +9,10 @@ import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/features/inbox/domain/inbox_message.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_controller.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
+import 'package:massdrive/features/inbox/presentation/screens/inbox_detail_screen.dart';
 
 /// กล่องข้อความ: the driver's campaigns and in-app messages, newest first,
-/// grouped by day. Swipe a card to delete it; the app bar has "อ่านทั้งหมด"
+/// grouped by day, as chat bubbles from Mass Drive. Swipe one to delete it; the app bar has "อ่านทั้งหมด"
 /// (only while something is unread) and "ลบทั้งหมด" (always confirmed).
 class InboxScreen extends ConsumerStatefulWidget {
   const InboxScreen({super.key, this.openMessageId});
@@ -125,6 +126,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     context.push(AppRoutes.inboxDetailNamedPage, extra: m);
   }
 
+  /// The bubble's own link: straight to quests / the web page, as read.
+  void _follow(InboxMessage m, InboxLink link) {
+    _inbox.markRead(m);
+    followInboxLink(context, link);
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = InboxStrings.of(context);
@@ -215,10 +222,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           key: ValueKey(m.id),
           label: s.delete,
           onDismissed: () => _delete(m, s),
-          child: _MessageCard(
+          child: _MessageBubble(
             message: m,
-            time: s.ago(m.createdAt, now),
+            time: s.time(m.createdAt),
             onTap: () => _open(m),
+            onLink: (link) => _follow(m, link),
           ),
         ),
       );
@@ -311,88 +319,150 @@ class _SwipeToDelete extends StatelessWidget {
   );
 }
 
-class _MessageCard extends StatelessWidget {
-  const _MessageCard({
+/// One message as a chat bubble from Mass Drive (LINE OA style): the M
+/// avatar, "Mass Drive · time", then the title and body in a bubble. A
+/// campaign with a link gets "ไปที่ภารกิจ ›" / "เปิดลิงก์ ›" inside the bubble.
+/// Unread: orange avatar, raised bubble and a dot; read: grey and quieter.
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({
     required this.message,
     required this.time,
     required this.onTap,
+    required this.onLink,
   });
 
   final InboxMessage message;
   final String time;
   final VoidCallback onTap;
+  final ValueChanged<InboxLink> onLink;
+
+  static const _sender = 'Mass Drive';
 
   @override
   Widget build(BuildContext context) {
+    final s = InboxStrings.of(context);
     final unread = !message.isRead;
-    return Material(
-      color: context.palette.surface,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: unread
-                        ? AppColors.foundationOrange600
-                        : Colors.transparent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final link = message.link;
+    final palette = context.palette;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: unread
+                  ? AppColors.foundationOrange600
+                  : palette.surfaceAlt,
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(
+              'assets/images/app_logo_mark.png',
+              color: unread ? Colors.white : palette.textTertiary,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      message.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          (unread
-                                  ? AppTypography.label1
-                                  : AppTypography.caption3)
-                              .copyWith(
-                                color: unread
-                                    ? context.palette.textPrimary
-                                    : context.palette.textSecondary,
-                              ),
-                    ),
-                    if (message.body.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        message.body,
-                        maxLines: 2,
+                    Flexible(
+                      child: Text(
+                        '$_sender · $time',
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.body2.copyWith(
+                        style: AppTypography.caption5.copyWith(
                           color: unread
-                              ? context.palette.textSecondary
-                              : context.palette.textTertiary,
-                          height: 1.45,
+                              ? palette.textSecondary
+                              : palette.textTertiary,
+                        ),
+                      ),
+                    ),
+                    if (unread) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: AppColors.foundationOrange600,
+                          shape: BoxShape.circle,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    Text(
-                      time,
-                      style: AppTypography.caption5.copyWith(
-                        color: context.palette.textTertiary,
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                  decoration: BoxDecoration(
+                    color: unread ? palette.surface : palette.surfaceAlt,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            (unread
+                                    ? AppTypography.label1
+                                    : AppTypography.caption3)
+                                .copyWith(
+                                  color: unread
+                                      ? palette.textPrimary
+                                      : palette.textSecondary,
+                                ),
+                      ),
+                      if (message.body.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          message.body,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.body2.copyWith(
+                            color: unread
+                                ? palette.textSecondary
+                                : palette.textTertiary,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                      if (link != null)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onLink(link),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '${link.kind == InboxLinkKind.quests ? s.openQuests : s.openLink} ›',
+                              style: AppTypography.label2.copyWith(
+                                color: AppColors.foundationOrange600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -11,30 +11,31 @@ import 'package:massdrive/features/inbox/presentation/inbox_controller.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Follows a message's link: the quests tab, or the web page in the browser.
+Future<void> followInboxLink(BuildContext context, InboxLink link) async {
+  switch (link.kind) {
+    case InboxLinkKind.quests:
+      context.push(AppRoutes.questsNamedPage);
+    case InboxLinkKind.web:
+      final s = InboxStrings.of(context);
+      try {
+        final opened = await launchUrl(
+          Uri.parse(link.url!),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!opened) ToastUtil.showErrorToast(s.actionFailed);
+      } catch (_) {
+        ToastUtil.showErrorToast(s.actionFailed);
+      }
+  }
+}
+
 /// One message in full: its time, title and body, the campaign's button
 /// (quests or a web page) when it has one, and "ลบข้อความนี้".
 class InboxDetailScreen extends ConsumerWidget {
   const InboxDetailScreen({super.key, required this.message});
 
   final InboxMessage message;
-
-  Future<void> _follow(BuildContext context, InboxLink link) async {
-    switch (link.kind) {
-      case InboxLinkKind.quests:
-        context.push(AppRoutes.questsNamedPage);
-      case InboxLinkKind.web:
-        final s = InboxStrings.of(context);
-        try {
-          final opened = await launchUrl(
-            Uri.parse(link.url!),
-            mode: LaunchMode.externalApplication,
-          );
-          if (!opened) ToastUtil.showErrorToast(s.actionFailed);
-        } catch (_) {
-          ToastUtil.showErrorToast(s.actionFailed);
-        }
-    }
-  }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final s = InboxStrings.of(context);
@@ -113,7 +114,7 @@ class InboxDetailScreen extends ConsumerWidget {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton.icon(
-                      onPressed: () => _follow(context, link),
+                      onPressed: () => followInboxLink(context, link),
                       icon: Icon(
                         link.kind == InboxLinkKind.quests
                             ? Icons.emoji_events_outlined
