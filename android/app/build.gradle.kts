@@ -116,13 +116,39 @@ android {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
-                // No key.properties on this machine — fall back to debug signing
-                // so `flutter run --release` still works. Play uploads must be
-                // built with the upload keystore.
+                // No key.properties — only reachable on CI (checkReleaseSecrets
+                // fails local release builds), which just verifies the build.
+                // Play uploads must be built with the upload keystore.
                 signingConfigs.getByName("debug")
             }
         }
     }
+}
+
+// Stop a release build that would ship without the upload key or the Maps
+// key. Both come from gitignored files (key.properties, local.properties), so
+// a checkout without them — e.g. a fresh git worktree — otherwise builds
+// quietly: debug-signed (won't install over the real app) and with a blank
+// map. CI (CI=true) is exempt: ci.yml only verifies the build with no
+// secrets, and deploy-play.yml writes both files before it builds.
+val missingReleaseSecrets: List<String> = buildList {
+    if (!keystorePropertiesFile.exists()) add("android/key.properties (upload keystore)")
+    if (mapsApiKey.isBlank()) add("MAPS_API_KEY in android/local.properties")
+}
+val checkReleaseSecrets by tasks.registering {
+    val missing = missingReleaseSecrets
+    val onCi = System.getenv("CI") == "true"
+    doLast {
+        if (missing.isNotEmpty() && !onCi) {
+            throw GradleException(
+                "Release build is missing: ${missing.joinToString()}. " +
+                    "Build from the main checkout or copy these files in.",
+            )
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(checkReleaseSecrets)
 }
 
 flutter {
