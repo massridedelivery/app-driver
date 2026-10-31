@@ -49,7 +49,7 @@ void main() {
       tester,
     ) async {
       await pump(tester);
-      expect(find.byType(MassDriveLogoTile), findsOneWidget);
+      expect(find.byType(MassDriveLogo), findsOneWidget);
       expect(find.text('ยินดีต้อนรับคนขับ'), findsOneWidget);
       expect(find.text('+66'), findsOneWidget);
       expect(find.text('ขอรหัส OTP'), findsOneWidget);

@@ -12,7 +12,7 @@ import 'package:massdrive/router/startup_destination.dart';
 import 'package:massdrive/router/app_routes.dart';
 
 /// Splash styled to match the MassCustomer app (blurred brand auras, a gently
-/// breathing gradient logo tile, and a fixed minimum dwell time before routing
+/// breathing logo with no tile, and a fixed minimum dwell time before routing
 /// on). Uses the shared Mass brand red and the official MassDriver "M" mark.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
