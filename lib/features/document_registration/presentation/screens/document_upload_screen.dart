@@ -112,6 +112,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   void _submit() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_needsDocNumber && !(_formKey.currentState?.validate() ?? false)) {
       return;
     }

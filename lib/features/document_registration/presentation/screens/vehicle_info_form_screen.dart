@@ -76,6 +76,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
   }
 
   void _submit() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       if (_selectedImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(

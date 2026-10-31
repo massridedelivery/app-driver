@@ -106,6 +106,7 @@ class _BasicProfileFormScreenState
   }
 
   Future<void> _submit() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _serverErrors.clear();
       _generalError = null;
