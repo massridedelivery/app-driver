@@ -12,6 +12,8 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
+import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
+import 'package:massdrive/features/document_registration/presentation/widgets/vehicle_fields.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
@@ -142,29 +144,42 @@ class EditProfileScreen extends ConsumerWidget {
 
             _SectionHeader(title: "ข้อมูลของยานพาหนะ"),
 
-            if (profile.vehiclePlate != null && profile.vehicleModel != null)
-              _VehicleTile(
-                plate: profile.vehiclePlate!,
-                vehicle: profile.vehicleModel!,
-                isPrimary: true,
-                onTap: () {
-                  _showUpdateVehicleSheet(
-                    context,
-                    ref,
-                    profile.vehiclePlate!,
-                    profile.vehicleModel!,
+            Builder(
+              builder: (context) {
+                final plate = profile.vehiclePlate?.trim() ?? '';
+                if (plate.isEmpty) {
+                  return _VehicleTile(
+                    plate: "ไม่มีข้อมูล",
+                    vehicle: "กรุณาเพิ่มยานพาหนะ",
+                    hasWarning: true,
+                    onTap: () => _showUpdateVehicleSheet(context, ref, null),
                   );
-                },
-              )
-            else
-              _VehicleTile(
-                plate: "ไม่มีข้อมูล",
-                vehicle: "กรุณาเพิ่มยานพาหนะ",
-                hasWarning: true,
-                onTap: () {
-                  _showUpdateVehicleSheet(context, ref, "", "");
-                },
-              ),
+                }
+                final saved = VehicleInfo(
+                  vehicleType: 'motorcycle',
+                  model: profile.vehicleModel ?? '',
+                  year: profile.vehicleYear ?? 0,
+                  licensePlate: plate,
+                  province: profile.vehicleProvince ?? '',
+                  color: profile.vehicleColor ?? '',
+                );
+                final details = [
+                  if (saved.model.trim().isNotEmpty) saved.model.trim(),
+                  if (saved.color.trim().isNotEmpty) 'สี${saved.color.trim()}',
+                ].join(' · ');
+                // Province or colour missing (signed up on an older app):
+                // flag it so the driver fills them in.
+                return _VehicleTile(
+                  plate: plateWithProvince(saved.licensePlate, saved.province),
+                  vehicle: saved.isComplete
+                      ? details
+                      : 'กรุณาระบุจังหวัดและสีรถ',
+                  isPrimary: saved.isComplete,
+                  hasWarning: !saved.isComplete,
+                  onTap: () => _showUpdateVehicleSheet(context, ref, saved),
+                );
+              },
+            ),
 
             const SizedBox(height: 32),
 
@@ -190,96 +205,18 @@ class EditProfileScreen extends ConsumerWidget {
     );
   }
 
+  /// The same five fields as the sign-up vehicle step. Sends only what the
+  /// driver changed, so an untouched field is never blanked.
   void _showUpdateVehicleSheet(
     BuildContext context,
     WidgetRef ref,
-    String currentPlate,
-    String currentModel,
+    VehicleInfo? saved,
   ) {
-    final plateController = TextEditingController(text: currentPlate);
-    final modelController = TextEditingController(text: currentModel);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.palette.sheet,
-      builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            // Keyboard when it's up, otherwise the Android nav bar —
-            // padding.bottom drops to 0 under the keyboard, so they never stack.
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
-                MediaQuery.paddingOf(sheetContext).bottom,
-            left: 24,
-            right: 24,
-            top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "อัปเดตข้อมูลยานพาหนะ",
-                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: plateController,
-                style: TextStyle(color: context.palette.textPrimary),
-                decoration: InputDecoration(
-                  labelText: "ป้ายทะเบียน",
-                  labelStyle: TextStyle(color: context.palette.textSecondary),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: context.palette.border),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: modelController,
-                style: TextStyle(color: context.palette.textPrimary),
-                decoration: InputDecoration(
-                  labelText: "รุ่น/ยี่ห้อ (เช่น HONDA CLICK)",
-                  labelStyle: TextStyle(color: context.palette.textSecondary),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: context.palette.border),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationGreen600,
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final success = await ref
-                        .read(profileControllerProvider.notifier)
-                        .updateProfile({
-                          "vehicle_plate": plateController.text,
-                          "vehicle_model": modelController.text,
-                        });
-                    if (success) {
-                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
-                    } else {
-                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
-                    }
-                  },
-                  child: Text(
-                    "บันทึก",
-                    style: AppTypography.heading5.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
+      builder: (sheetContext) => _VehicleSheet(saved: saved),
     );
   }
 
@@ -635,5 +572,94 @@ class _DeleteAccountTile extends ConsumerWidget {
         'ลบบัญชีไม่สำเร็จ: ${e.toString().replaceFirst('Exception: ', '')}',
       );
     }
+  }
+}
+
+class _VehicleSheet extends ConsumerStatefulWidget {
+  const _VehicleSheet({required this.saved});
+
+  final VehicleInfo? saved;
+
+  @override
+  ConsumerState<_VehicleSheet> createState() => _VehicleSheetState();
+}
+
+class _VehicleSheetState extends ConsumerState<_VehicleSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final _fields = VehicleFieldsController(initial: widget.saved);
+
+  @override
+  void dispose() {
+    _fields.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final changes = _fields.value.changesFrom(widget.saved);
+    Navigator.pop(context);
+    if (changes.isEmpty) return;
+    final success = await ref
+        .read(profileControllerProvider.notifier)
+        .updateProfile(changes);
+    if (success) {
+      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
+    } else {
+      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        // Keyboard when it's up, otherwise the Android nav bar —
+        // padding.bottom drops to 0 under the keyboard, so they never stack.
+        bottom: MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  "อัปเดตข้อมูลยานพาหนะ",
+                  style: AppTypography.heading3.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                VehicleFields(controller: _fields),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    key: const Key('vehicle-save'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.foundationGreen600,
+                    ),
+                    onPressed: _save,
+                    child: Text(
+                      "บันทึก",
+                      style: AppTypography.heading5.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
