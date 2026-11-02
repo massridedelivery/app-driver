@@ -156,9 +156,30 @@ class _CoachMarksOverlayState extends State<CoachMarksOverlay> {
     }
   }
 
+  /// Frames in a row the target couldn't be measured (see [build]).
+  int _unmeasured = 0;
+
   @override
   Widget build(BuildContext context) {
-    final rect = _targetRect();
+    final Rect? rect;
+    try {
+      rect = _targetRect();
+    } catch (_) {
+      // The target's render tree is mid-swap (e.g. the bottom sheet changing
+      // right after approval) and getTransformTo hits a detached parent — a
+      // Crashlytics crash. Try again next frame; give up after a few.
+      if (++_unmeasured <= 5) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).maybePop();
+        });
+      }
+      return const SizedBox.shrink();
+    }
+    _unmeasured = 0;
     if (rect == null) {
       // Target left the screen (sheet dragged, route changed): end the tour.
       WidgetsBinding.instance.addPostFrameCallback((_) {
