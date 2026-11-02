@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -7,7 +9,13 @@ import 'package:massdrive/router/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileErrorInterceptor extends Interceptor {
+  ProfileErrorInterceptor({Future<String?> Function()? currentToken})
+    : _currentToken = currentToken;
+
   final SecureStorageManager _secureStorage = SecureStorageManager();
+
+  /// The stored access token (overridable in tests).
+  final Future<String?> Function()? _currentToken;
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
@@ -22,7 +30,7 @@ class ProfileErrorInterceptor extends Interceptor {
       statusCode: statusCode,
       data: err.response?.data,
     );
-    if (restriction != null) {
+    if (restriction != null && !await _sentWithOldToken(err.requestOptions)) {
       AccountStatusNotifier.instance.markRestricted(restriction);
     }
 
@@ -44,9 +52,34 @@ class ProfileErrorInterceptor extends Interceptor {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       await _secureStorage.deleteAll();
+      SessionNotifier.instance.setAuthenticated(false);
       AppRouter.router.go(AppRoutes.loginNamedPage);
     }
 
     super.onError(err, handler);
   }
+
+  /// True when the request carried a bearer token that is no longer the
+  /// stored one — a late reply from the previous (e.g. deleted) account,
+  /// which must not flag the account the driver just signed into.
+  Future<bool> _sentWithOldToken(RequestOptions options) async {
+    final sent = bearerToken(options.headers);
+    if (sent == null) return false;
+    try {
+      final current = await (_currentToken?.call() ??
+          _secureStorage.read(SecureStorageKey.accessToken));
+      return current != null && current != sent;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+/// The token from an `Authorization: Bearer …` header, or null.
+String? bearerToken(Map<String, dynamic> headers) {
+  final value = (headers['Authorization'] ?? headers['authorization'])
+      ?.toString();
+  if (value == null || !value.startsWith('Bearer ')) return null;
+  final token = value.substring(7).trim();
+  return token.isEmpty ? null : token;
 }

@@ -1,4 +1,3 @@
-import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -105,16 +104,22 @@ class AuthController extends _$AuthController {
   Future<void> logout() async {
     try {
       // While the token still authenticates: stop VoIP call pushes to this
-      // phone for this driver.
+      // phone for this driver. (Refused for a deleted/suspended account; the
+      // local wipe below still runs.)
       await VoipTokenRegistrar.instance.unregister();
-      // A suspended/deleted account's POST /auth/logout is refused with 403
-      // anyway — skip the call and just clear the device session.
-      if (!AccountStatusNotifier.instance.isRestricted) {
-        final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
-        await usecase.execute();
-      }
     } catch (e) {
-      debugPrint('AuthController: logout call failed, forcing local logout: $e');
+      debugPrint('AuthController: VoIP unregister failed: $e');
+    }
+    try {
+      // Always wipe the stored tokens — for a deleted/suspended account too.
+      // Skipping this left the dead account's token on the phone, so the next
+      // launch signed straight back into it and showed "บัญชีนี้ถูกลบแล้ว"
+      // even after the number had registered again elsewhere.
+      final usecase = massdrive_di.getIt<massdrive_logout.LogoutUseCase>();
+      await usecase.execute();
+    } catch (e) {
+      debugPrint('AuthController: logout failed, forcing local logout: $e');
+      await SessionNotifier.instance.notifySessionExpired();
     } finally {
       await RouteRestorationService.instance.clear();
       SessionNotifier.instance.setAuthenticated(false);

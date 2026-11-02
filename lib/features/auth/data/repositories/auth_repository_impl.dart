@@ -1,4 +1,5 @@
 import 'package:injectable/injectable.dart';
+import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/features/auth/data/sources/auth_api_service.dart';
 import 'package:massdrive/features/auth/domain/entities/user_entity.dart';
@@ -40,6 +41,9 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Session is now live — let the router know so any auth redirect clears.
+    // A deleted/suspended flag belonged to the old token; if this account is
+    // restricted too, its next request flags it again.
+    AccountStatusNotifier.instance.clear();
     SessionNotifier.instance.setAuthenticated(true);
 
     return user;
@@ -73,6 +77,9 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Session is now live — let the router know so any auth redirect clears.
+    // A deleted/suspended flag belonged to the old token; if this account is
+    // restricted too, its next request flags it again.
+    AccountStatusNotifier.instance.clear();
     SessionNotifier.instance.setAuthenticated(true);
 
     return user;
@@ -95,6 +102,9 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Session is now live — let the router know so any auth redirect clears.
+    // A deleted/suspended flag belonged to the old token; if this account is
+    // restricted too, its next request flags it again.
+    AccountStatusNotifier.instance.clear();
     SessionNotifier.instance.setAuthenticated(true);
 
     return user;
