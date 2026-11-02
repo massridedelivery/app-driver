@@ -352,12 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (profile.isVerified == true) {
       if (kDebugMode) debugPrint('HomeScreen: Driver is verified. Calling initStatus()');
-      if (mounted) ref.read(onlineStatusProvider.notifier).initStatus(context);
-      // Refresh the cash-job gate on every home entry (app open, back from a
-      // job or a top-up) and warn in a dialog when credit is low / blocked.
-      if (mounted) await _maybeShowCreditNotice(context, ref);
-      // First home visit on this install: walk through the main controls.
-      if (mounted) unawaited(HomeCoachMarks.maybeShow(context));
+      await _startVerified();
     } else {
       if (kDebugMode) debugPrint('HomeScreen: Driver is NOT verified. Skipping initStatus()');
       // Load the registration status (reads /api/driver/documents) so the
@@ -404,6 +399,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final loadFailed = profileState.profile == null &&
         !profileState.isLoading &&
         (profileState.errorMessage != null || offline);
+    // Approved while home is open (pull-to-refresh, the registration status
+    // refetch, consent…): start the verified home now — including the first
+    // coach-mark tour — instead of only on the next cold start. A first load
+    // (prev profile null) is left to _loadHome.
+    ref.listen(profileControllerProvider, (prev, next) {
+      final before = prev?.profile;
+      final after = next.profile;
+      if (before != null && !before.isVerified && (after?.isVerified ?? false)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startVerified());
+      }
+    });
     ref.listen(connectivityMonitorProvider, (prev, next) {
       final recovered = prev?.quality == NetworkQuality.offline &&
           (next.quality == NetworkQuality.good ||
@@ -642,17 +648,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// The verified driver's home: online status, the credit notice and, on
+  /// this install's first visit, the coach-mark tour of the main controls.
+  /// Runs from [_loadHome], and again when an already-open home sees
+  /// is_verified flip to true (see the listener in [build]).
+  Future<void> _startVerified() async {
+    if (!mounted) return;
+    ref.read(onlineStatusProvider.notifier).initStatus(context);
+    // Refresh the cash-job gate on every home entry (app open, back from a
+    // job or a top-up) and warn in a dialog when credit is low / blocked.
+    await _maybeShowCreditNotice(context, ref);
+    if (mounted) unawaited(HomeCoachMarks.maybeShow(context));
+  }
+
   /// Re-check verification from the backend (pull-to-refresh on the under-review
   /// sheet) so a driver whose is_verified just flipped to true doesn't have to
-  /// cold-restart the app to get in.
+  /// cold-restart the app to get in. The flip itself starts the verified home
+  /// (listener in [build]).
   Future<void> _refreshVerification() async {
     await ref.read(profileControllerProvider.notifier).fetchProfile();
     if (!mounted) return;
     final verified =
         ref.read(profileControllerProvider).profile?.isVerified ?? false;
-    if (verified) {
-      ref.read(onlineStatusProvider.notifier).initStatus(context);
-    } else {
+    if (!verified) {
       await ref.read(registrationControllerProvider.notifier).fetchStatus();
     }
   }
