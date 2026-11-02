@@ -123,10 +123,22 @@ class RegistrationController extends _$RegistrationController {
           remoteDocs[DocumentType.vehiclePhoto]?.status == 'approved' ||
           remoteDocs[DocumentType.vehiclePhoto]?.status == 'pending';
 
-      final isVehicleInfoComplete = profile != null &&
-          profile.vehiclePlate != null &&
-          profile.vehiclePlate!.isNotEmpty &&
-          isVehicleRegistrationComplete;
+      final savedVehicle = profile != null && profile.vehiclePlate != null
+          ? VehicleInfo(
+              vehicleType: 'motorcycle',
+              model: profile.vehicleModel ?? '',
+              year: profile.vehicleYear ?? 0,
+              licensePlate: profile.vehiclePlate ?? '',
+              province: profile.vehicleProvince ?? '',
+              color: profile.vehicleColor ?? '',
+            )
+          : null;
+      // Plate, province and colour, plus the registration book. A driver who
+      // saved only a plate (older app) is asked to finish this step again.
+      final isVehicleInfoComplete = isVehicleStepComplete(
+        saved: savedVehicle,
+        registrationBookUploaded: isVehicleRegistrationComplete,
+      );
 
       state = state.copyWith(
         isLoading: false,
@@ -143,15 +155,7 @@ class RegistrationController extends _$RegistrationController {
         isBankAccountComplete: isBankAccountComplete,
         bankAccountInfo: activePayout ?? state.bankAccountInfo,
         profileInfo: profileInfo,
-        vehicleInfo: profile != null && profile.vehiclePlate != null
-            ? VehicleInfo(
-                vehicleType: 'motorcycle',
-                brand: '',
-                model: profile.vehicleModel ?? '',
-                year: profile.vehicleYear ?? 0,
-                licensePlate: profile.vehiclePlate ?? '',
-              )
-            : null,
+        vehicleInfo: savedVehicle,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));

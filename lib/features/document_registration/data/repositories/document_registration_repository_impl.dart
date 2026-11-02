@@ -67,11 +67,7 @@ class DocumentRegistrationRepositoryImpl
 
   @override
   Future<void> submitVehicleDetails(VehicleInfo info) async {
-    await _profileApi.updateProfile({
-      "vehicle_plate": info.licensePlate,
-      "vehicle_model": info.model,
-      "vehicle_year": info.year,
-    });
+    await _profileApi.updateProfile(info.toProfileUpdate());
   }
 
   @override

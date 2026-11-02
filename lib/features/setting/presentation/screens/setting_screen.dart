@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
@@ -712,7 +713,10 @@ class _AccountTile extends ConsumerWidget {
 
     final fullName = profile.fullName;
     final phone = profile.phone ?? '';
-    final plate = profile.vehiclePlate ?? '';
+    final plate = plateWithProvince(
+      profile.vehiclePlate,
+      profile.vehicleProvince,
+    );
 
     final subtitleParts = <String>[];
     if (plate.isNotEmpty) {

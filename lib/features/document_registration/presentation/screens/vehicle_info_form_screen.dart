@@ -5,13 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:massdrive/common/widgets/image_source_sheet.dart';
+import 'package:massdrive/core/theme/brand_colors.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
-import '../../domain/models/vehicle_info.dart';
 import '../controllers/registration_controller.dart';
 import '../widgets/registration_ui.dart';
+import '../widgets/vehicle_fields.dart';
 
 class VehicleInfoFormScreen extends ConsumerStatefulWidget {
   const VehicleInfoFormScreen({super.key});
@@ -23,10 +24,7 @@ class VehicleInfoFormScreen extends ConsumerStatefulWidget {
 
 class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _brandController = TextEditingController();
-  final _modelController = TextEditingController();
-  final _yearController = TextEditingController();
-  final _plateController = TextEditingController();
+  VehicleFieldsController _fields = VehicleFieldsController();
 
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -38,10 +36,9 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
       final state = ref.read(registrationControllerProvider);
       final vehicleInfo = state.vehicleInfo;
       if (vehicleInfo != null) {
-        _brandController.text = vehicleInfo.brand;
-        _modelController.text = vehicleInfo.model;
-        _yearController.text = vehicleInfo.year.toString();
-        _plateController.text = vehicleInfo.licensePlate;
+        final old = _fields;
+        setState(() => _fields = VehicleFieldsController(initial: vehicleInfo));
+        old.dispose();
       }
 
       final savedDocumentPath =
@@ -56,10 +53,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
 
   @override
   void dispose() {
-    _brandController.dispose();
-    _modelController.dispose();
-    _yearController.dispose();
-    _plateController.dispose();
+    _fields.dispose();
     super.dispose();
   }
 
@@ -75,9 +69,16 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
     }
   }
 
+  /// The registration book is already on the backend (e.g. a driver who saved
+  /// only a plate on an older app version and is finishing the step now).
+  bool get _bookOnFile => ref
+      .read(registrationControllerProvider)
+      .remoteDocuments
+      .containsKey(DocumentType.vehicleRegistration);
+
   void _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      if (_selectedImage == null) {
+      if (_selectedImage == null && !_bookOnFile) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.foundationRed800,
@@ -92,13 +93,7 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
         return;
       }
 
-      final info = VehicleInfo(
-        vehicleType: 'motorcycle',
-        brand: _brandController.text.trim(),
-        model: _modelController.text.trim(),
-        year: int.tryParse(_yearController.text.trim()) ?? 0,
-        licensePlate: _plateController.text.trim(),
-      );
+      final info = _fields.value;
 
       final success = await ref
           .read(registrationControllerProvider.notifier)
@@ -149,42 +144,16 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    'ยี่ห้อ (Brand)',
-                    _brandController,
-                    hint: 'เช่น Honda',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTextField(
-                    'รุ่น (Model)',
-                    _modelController,
-                    hint: 'เช่น Wave 110i',
-                  ),
-                ),
-              ],
-            ),
-            _buildTextField(
-              'ปีจดทะเบียน (Year)',
-              _yearController,
-              isNumber: true,
-              hint: 'เช่น 2023',
-            ),
-            _buildTextField(
-              'เลขทะเบียนรถ (License Plate)',
-              _plateController,
-              hint: 'เช่น 1กข 1234 กทม.',
-            ),
+            VehicleFields(controller: _fields),
             const SizedBox(height: 4),
             RegistrationUploadBox(
               label: 'รูปถ่ายหน้าสมุดคู่มือจดทะเบียนรถ',
               preview: _selectedImage != null
                   ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                  : state.remoteDocuments.containsKey(
+                      DocumentType.vehicleRegistration,
+                    )
+                  ? const _BookOnFile()
                   : null,
               previewHeight: 150,
               onTap: _chooseAndPickImage,
@@ -194,23 +163,30 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
       ),
     );
   }
+}
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    bool isNumber = false,
-    String? hint,
-  }) {
-    return RegistrationField(
-      label: label,
-      child: TextFormField(
-        controller: controller,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        style: registrationInputStyle(context),
-        decoration: registrationInputDecoration(context, hint: hint),
-        validator: (value) => (value == null || value.trim().isEmpty)
-            ? 'กรุณากรอกข้อมูลให้ครบถ้วน'
-            : null,
+/// Upload-box preview when the registration book is already uploaded and no
+/// new photo was picked: tap the box to replace it.
+class _BookOnFile extends StatelessWidget {
+  const _BookOnFile();
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return ColoredBox(
+      color: brand.fill,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, color: brand.ok, size: 32),
+            const SizedBox(height: 6),
+            Text(
+              'อัปโหลดแล้ว · แตะเพื่อเปลี่ยนรูป',
+              style: AppTypography.caption4.copyWith(color: brand.text2),
+            ),
+          ],
+        ),
       ),
     );
   }
