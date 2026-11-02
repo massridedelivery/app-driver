@@ -99,5 +99,34 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
     expect(find.text('กดเพื่อเริ่มรับงาน'), findsOneWidget);
+
+    // Close it so the next test doesn't start with a tour still open.
+    await tester.tap(find.text('ข้าม'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('targets that mount late (just approved) still get the tour', (
+    tester,
+  ) async {
+    final ready = ValueNotifier(false);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<bool>(
+          key: const Key('home'),
+          valueListenable: ready,
+          builder: (_, on, _) =>
+              on ? const _FakeHome() : const Scaffold(body: SizedBox()),
+        ),
+      ),
+    );
+
+    HomeCoachMarks.maybeShow(tester.element(find.byKey(const Key('home'))));
+    // First check: the verified sheet isn't there yet.
+    await tester.pump(const Duration(milliseconds: 650));
+    ready.value = true;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 650));
+    await tester.pumpAndSettle();
+    expect(find.text('กดเพื่อเริ่มรับงาน'), findsOneWidget);
   });
 }

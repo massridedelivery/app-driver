@@ -66,7 +66,8 @@ class HomeCoachMarks {
   static bool _showing = false;
 
   /// Shows the tour unless this install has seen it. Waits a moment so the
-  /// bottom sheet has settled; skips quietly when a target isn't on screen.
+  /// bottom sheet has settled; skips quietly when a target still isn't on
+  /// screen after a retry.
   static Future<void> maybeShow(BuildContext context) async {
     if (_showing) return;
     try {
@@ -75,11 +76,16 @@ class HomeCoachMarks {
     } catch (_) {
       return;
     }
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!context.mounted || _showing) return;
-    final visible = steps.where((s) => s.target.currentContext != null);
-    if (visible.length != steps.length) return;
-    await show(context);
+    // The bottom sheet may still be swapping in (e.g. right after approval),
+    // so give the targets a second chance before skipping.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      if (!context.mounted || _showing) return;
+      if (steps.every((s) => s.target.currentContext != null)) {
+        await show(context);
+        return;
+      }
+    }
   }
 
   /// Plays the tour now and records it as seen, however it ends.
