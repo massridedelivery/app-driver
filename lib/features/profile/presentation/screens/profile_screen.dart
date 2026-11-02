@@ -96,13 +96,7 @@ class _ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    String? photo;
-    for (final doc in profile.documents) {
-      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
-        photo = doc.mediaUrl;
-        break;
-      }
-    }
+    final photo = profile.photoUrl;
     final hasImage = photo != null && photo.isNotEmpty;
     final tier =
         ref.watch(tierProvider).asData?.value?.currentTier ??

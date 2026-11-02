@@ -17,6 +17,9 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     @JsonKey(name: 'date_of_birth') String? dateOfBirth,
     String? phone,
     String? email,
+    // Public URL of the profile photo (the backend turns its stored file key
+    // into a full URL). Omitted when the driver has none yet.
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
     @Default(0.0) double rating,
     @JsonKey(name: 'total_trips') @Default(0) int totalTrips,
     @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
@@ -42,6 +45,22 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
 
   factory DriverProfileEntity.fromJson(Map<String, dynamic> json) =>
       _$DriverProfileEntityFromJson(json);
+}
+
+extension DriverProfilePhoto on DriverProfileEntity {
+  /// The profile photo to show: `avatar_url`, else a `profile_photo` document
+  /// (older payloads); null when there's none.
+  String? get photoUrl {
+    final avatar = avatarUrl?.trim();
+    if (avatar != null && avatar.startsWith('http')) return avatar;
+    for (final doc in documents) {
+      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
+        final url = doc.mediaUrl?.trim();
+        if (url != null && url.isNotEmpty) return url;
+      }
+    }
+    return null;
+  }
 }
 
 @freezed
