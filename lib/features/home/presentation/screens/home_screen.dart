@@ -279,6 +279,12 @@ class MapController extends Notifier<GoogleMapController?> {
   void setController(GoogleMapController? controller) {
     state = controller;
   }
+
+  /// Disposes the held controller and forgets it.
+  void release() {
+    state?.dispose();
+    state = null;
+  }
 }
 
 final mapControllerProvider =
@@ -296,6 +302,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   late DraggableScrollableController _sheetController;
+  late final MapController _mapNotifier;
 
   final double _minSize = 0.25;
 
@@ -312,6 +319,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
 
     _sheetController = DraggableScrollableController();
+    _mapNotifier = ref.read(mapControllerProvider.notifier);
     // NOTE: Removed the _sheetSize listener — it was calling setState on every
     // pixel of scroll but _sheetSize was never used in build(), causing
     // unnecessary full widget-tree rebuilds.
@@ -368,10 +376,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _sheetController.dispose();
     // Drop the app-wide GoogleMapController reference so the native map can be
-    // released instead of being held for the app's lifetime.
-    final mapController = ref.read(mapControllerProvider);
-    mapController?.dispose();
-    ref.read(mapControllerProvider.notifier).setController(null);
+    // released instead of being held for the app's lifetime. `ref` is off
+    // limits in dispose (Riverpod throws "Using ref when a widget is about to
+    // or has been unmounted" — a Crashlytics crash), so use the notifier read
+    // in initState, after this frame rather than mid tree teardown.
+    final mapNotifier = _mapNotifier;
+    Future.microtask(mapNotifier.release);
     super.dispose();
   }
 
