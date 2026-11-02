@@ -16,6 +16,7 @@ import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/core/services/connectivity_monitor.dart';
 import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
@@ -110,7 +111,9 @@ class SettingScreen extends ConsumerWidget {
               // Replays the home tour: clear the flag, go home, it plays again.
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                leading: const _LeadingIconBadge(icon: Icons.tips_and_updates_outlined),
+                leading: const _LeadingIconBadge(
+                  icon: Icons.tips_and_updates_outlined,
+                ),
                 title: Text(
                   "ดูคำแนะนำการใช้งานหน้าแรก",
                   style: AppTypography.caption3.copyWith(
@@ -530,6 +533,35 @@ class _LeadingIconBadge extends StatelessWidget {
 /// Live internet-stability indicator + alert. Watches [connectivityMonitorProvider]:
 /// green when stable, amber on a weak/unstable signal, red when offline — and
 /// toasts a warning the moment the connection degrades while this screen is open.
+/// The driver's photo from the profile (`avatar_url`), in a 40px circle;
+/// the plain person badge when there is none or it fails to load.
+@visibleForTesting
+class SettingsProfilePhoto extends StatelessWidget {
+  final String? url;
+
+  const SettingsProfilePhoto({super.key, required this.url});
+
+  static const _fallback = _LeadingIconBadge(
+    icon: Icons.person_outline_rounded,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final url = this.url;
+    if (url == null || url.isEmpty) return _fallback;
+    return ClipOval(
+      key: const Key('settings-profile-photo'),
+      child: Image.network(
+        url,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _fallback,
+      ),
+    );
+  }
+}
+
 class _ConnectivityCard extends ConsumerWidget {
   const _ConnectivityCard();
 
@@ -731,7 +763,7 @@ class _AccountTile extends ConsumerWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: const _LeadingIconBadge(icon: Icons.person_outline_rounded),
+      leading: SettingsProfilePhoto(url: profile.photoUrl),
       title: Text(
         fullName,
         style: AppTypography.caption3.copyWith(
