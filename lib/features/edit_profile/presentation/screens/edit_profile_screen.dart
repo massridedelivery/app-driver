@@ -13,6 +13,7 @@ import 'package:massdrive/features/auth/presentation/controllers/auth_controller
 import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
+import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
 class EditProfileScreen extends ConsumerWidget {
@@ -31,13 +32,7 @@ class EditProfileScreen extends ConsumerWidget {
       );
     }
 
-    String? profilePhotoUrl;
-    for (final doc in profile.documents) {
-      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
-        profilePhotoUrl = doc.mediaUrl;
-        break;
-      }
-    }
+    final profilePhotoUrl = profile.photoUrl;
 
     return Scaffold(
       appBar: CommonAppBar(titleText: 'โปรไฟล์', showLeftIcon: true),
