@@ -6,6 +6,7 @@ import '../../../dependency_injection.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../domain/models/bank_account_info.dart';
 import '../../domain/models/driver_profile_info.dart';
+import '../../domain/models/profile_photo_error.dart';
 import '../../domain/models/profile_update_error.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/models/vehicle_info.dart';
@@ -201,7 +202,12 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: type == DocumentType.profilePhoto
+            ? profilePhotoUploadError(e)
+            : friendlyErrorMessage(e),
+      );
       return false;
     }
   }
