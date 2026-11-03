@@ -226,24 +226,9 @@ class _MessengerOfferSheetState extends ConsumerState<MessengerOfferSheet> {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      headline.label,
-                      style: AppTypography.caption5.copyWith(
-                        color: p.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      formatBaht(headline.amount),
-                      style: AppTypography.heading2.copyWith(
-                        color: AppColors.foundationMint600,
-                        fontSize: 32,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
+                RideOfferMoney(
+                  label: headline.label,
+                  amount: headline.amount,
                 ),
               ],
             ),

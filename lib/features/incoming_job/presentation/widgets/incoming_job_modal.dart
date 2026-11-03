@@ -5,12 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
-import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 
@@ -154,24 +152,9 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      headline.label,
-                      style: AppTypography.caption5.copyWith(
-                        color: p.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      formatBaht(headline.amount),
-                      style: AppTypography.heading2.copyWith(
-                        color: AppColors.foundationMint600,
-                        fontSize: 32,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
+                RideOfferMoney(
+                  label: headline.label,
+                  amount: headline.amount,
                 ),
               ],
             ),
