@@ -633,12 +633,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       ),
       body: Column(
         children: [
-          // Top Price Header
-          Expanded(
-            flex: 2,
+          // Top price header: only as tall as its lines, so the sheet below
+          // (QR, buttons) gets the rest of the screen.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
             child: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -696,7 +697,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
           // Bottom Sheet Content
           Expanded(
-            flex: 6,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -925,7 +925,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 const SizedBox(height: 24),
 
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F3B66), // QR Banner Blue
                     borderRadius: BorderRadius.circular(8),
@@ -933,11 +936,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.qr_code_scanner, color: Colors.white),
+                      const Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         "ชำระผ่าน QR พร้อมเพย์",
-                        style: AppTypography.heading5.copyWith(
+                        style: AppTypography.heading6.copyWith(
                           color: Colors.white,
                         ),
                       ),
