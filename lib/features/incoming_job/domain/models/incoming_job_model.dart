@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
 
 part 'incoming_job_model.freezed.dart';
 part 'incoming_job_model.g.dart';
@@ -41,6 +42,9 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     // This driver's commission on the job (driver_earnings.commission).
     @JsonKey(name: 'commission', readValue: readDriverCommission)
     double? driverCommission,
+    // This driver's rate on the job, a fraction (driver_earnings.commission_rate).
+    @JsonKey(name: 'commission_rate', readValue: readDriverCommissionRate)
+    double? driverCommissionRate,
     // What makes up amount_due (= fare + toll + waiting − discount), shown as
     // the collect screen's breakdown. From the active-job read (BE #198/#199).
     @JsonKey(name: 'toll_fee') @Default(0.0) double tollFee,
@@ -84,6 +88,15 @@ sealed class IncomingJobModel with _$IncomingJobModel {
       ? '฿${v.toStringAsFixed(0)}'
       : '฿${v.toStringAsFixed(2)}';
 
+  /// The offer's driver_earnings, or null when the backend sent none.
+  DriverEarnings? get earnings => driverNet == null
+      ? null
+      : DriverEarnings(
+          driverNet: driverNet!,
+          commission: driverCommission,
+          commissionRate: driverCommissionRate,
+        );
+
   bool get isFood =>
       serviceType.toLowerCase().contains('food') || orderItems.isNotEmpty;
 
@@ -107,6 +120,12 @@ Object? readDriverNet(Map json, String key) {
 Object? readDriverCommission(Map json, String key) {
   final e = json['driver_earnings'];
   return e is Map ? e['commission'] : null;
+}
+
+/// `driver_earnings.commission_rate` from the offer (0.2 = 20 %).
+Object? readDriverCommissionRate(Map json, String key) {
+  final e = json['driver_earnings'];
+  return e is Map ? e['commission_rate'] : null;
 }
 
 /// Reads the customer name from either a flat `passenger_name` field or the

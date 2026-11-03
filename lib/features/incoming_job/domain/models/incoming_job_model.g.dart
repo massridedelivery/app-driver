@@ -6,52 +6,54 @@ part of 'incoming_job_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_IncomingJobModel _$IncomingJobModelFromJson(Map<String, dynamic> json) =>
-    _IncomingJobModel(
-      jobId: json['id'] as String,
-      pickupAddress: json['pickup_address'] as String,
-      dropoffAddress: json['dropoff_address'] as String,
-      pickupAddressDetail: json['pickup_address_detail'] as String? ?? '',
-      dropoffAddressDetail: json['dropoff_address_detail'] as String? ?? '',
-      pickupDistanceKm: (json['pickup_distance_km'] as num?)?.toDouble() ?? 0.0,
-      dropoffDistanceKm:
-          (json['dropoff_distance_km'] as num?)?.toDouble() ?? 0.0,
-      distanceKm: (json['distance_km'] as num?)?.toDouble(),
-      pickupLat: (json['pickup_lat'] as num).toDouble(),
-      pickupLng: (json['pickup_lng'] as num).toDouble(),
-      dropoffLat: (json['dropoff_lat'] as num).toDouble(),
-      dropoffLng: (json['dropoff_lng'] as num).toDouble(),
-      encodedPolyline: readPolyline(json, 'encoded_polyline') as String?,
-      netIncome: (json['fare'] as num).toDouble(),
-      amountDue: (json['amount_due'] as num?)?.toDouble(),
-      driverNet: (readDriverNet(json, 'driver_net') as num?)?.toDouble(),
-      driverCommission: (readDriverCommission(json, 'commission') as num?)
-          ?.toDouble(),
-      tollFee: (json['toll_fee'] as num?)?.toDouble() ?? 0.0,
-      waitingFee: (json['waiting_fee'] as num?)?.toDouble() ?? 0.0,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-      priorCancelFee: (json['prior_cancel_fee'] as num?)?.toDouble() ?? 0.0,
-      paymentStatus: json['payment_status'] as String?,
-      paymentMethod: json['payment_method'] as String,
-      points: (json['points'] as num?)?.toInt() ?? 0,
-      serviceType: json['service_type'] as String? ?? 'มอเตอร์ไซค์',
-      passengerName:
-          readCustomerName(json, 'passenger_name') as String? ?? 'ผู้โดยสาร',
-      itemSummary: json['item_summary'] as String? ?? '',
-      timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 16,
-      surgeMultiplier: (json['surge_multiplier'] as num?)?.toDouble() ?? 1.0,
-      surgeActive: json['surge_active'] as bool? ?? false,
-      isScheduled: json['is_scheduled'] as bool? ?? false,
-      scheduledAt: json['scheduled_at'] as String?,
-      restaurantName: json['restaurant_name'] as String?,
-      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0.0,
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-      orderItems:
-          (json['order_items'] as List<dynamic>?)
-              ?.map((e) => e as Map<String, dynamic>)
-              .toList() ??
-          const [],
-    );
+_IncomingJobModel _$IncomingJobModelFromJson(
+  Map<String, dynamic> json,
+) => _IncomingJobModel(
+  jobId: json['id'] as String,
+  pickupAddress: json['pickup_address'] as String,
+  dropoffAddress: json['dropoff_address'] as String,
+  pickupAddressDetail: json['pickup_address_detail'] as String? ?? '',
+  dropoffAddressDetail: json['dropoff_address_detail'] as String? ?? '',
+  pickupDistanceKm: (json['pickup_distance_km'] as num?)?.toDouble() ?? 0.0,
+  dropoffDistanceKm: (json['dropoff_distance_km'] as num?)?.toDouble() ?? 0.0,
+  distanceKm: (json['distance_km'] as num?)?.toDouble(),
+  pickupLat: (json['pickup_lat'] as num).toDouble(),
+  pickupLng: (json['pickup_lng'] as num).toDouble(),
+  dropoffLat: (json['dropoff_lat'] as num).toDouble(),
+  dropoffLng: (json['dropoff_lng'] as num).toDouble(),
+  encodedPolyline: readPolyline(json, 'encoded_polyline') as String?,
+  netIncome: (json['fare'] as num).toDouble(),
+  amountDue: (json['amount_due'] as num?)?.toDouble(),
+  driverNet: (readDriverNet(json, 'driver_net') as num?)?.toDouble(),
+  driverCommission: (readDriverCommission(json, 'commission') as num?)
+      ?.toDouble(),
+  driverCommissionRate:
+      (readDriverCommissionRate(json, 'commission_rate') as num?)?.toDouble(),
+  tollFee: (json['toll_fee'] as num?)?.toDouble() ?? 0.0,
+  waitingFee: (json['waiting_fee'] as num?)?.toDouble() ?? 0.0,
+  discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
+  priorCancelFee: (json['prior_cancel_fee'] as num?)?.toDouble() ?? 0.0,
+  paymentStatus: json['payment_status'] as String?,
+  paymentMethod: json['payment_method'] as String,
+  points: (json['points'] as num?)?.toInt() ?? 0,
+  serviceType: json['service_type'] as String? ?? 'มอเตอร์ไซค์',
+  passengerName:
+      readCustomerName(json, 'passenger_name') as String? ?? 'ผู้โดยสาร',
+  itemSummary: json['item_summary'] as String? ?? '',
+  timeoutSeconds: (json['timeout_seconds'] as num?)?.toInt() ?? 16,
+  surgeMultiplier: (json['surge_multiplier'] as num?)?.toDouble() ?? 1.0,
+  surgeActive: json['surge_active'] as bool? ?? false,
+  isScheduled: json['is_scheduled'] as bool? ?? false,
+  scheduledAt: json['scheduled_at'] as String?,
+  restaurantName: json['restaurant_name'] as String?,
+  deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0.0,
+  subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+  orderItems:
+      (json['order_items'] as List<dynamic>?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList() ??
+      const [],
+);
 
 Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
     <String, dynamic>{
@@ -72,6 +74,7 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'amount_due': instance.amountDue,
       'driver_net': instance.driverNet,
       'commission': instance.driverCommission,
+      'commission_rate': instance.driverCommissionRate,
       'toll_fee': instance.tollFee,
       'waiting_fee': instance.waitingFee,
       'discount': instance.discount,

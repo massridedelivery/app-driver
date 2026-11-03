@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
 
 class YourNetIncomeSection extends StatelessWidget {
@@ -43,7 +44,7 @@ class YourNetIncomeSection extends StatelessWidget {
             const SizedBox(height: 12),
             _buildInfoRow(
               context,
-              title: "หักค่าคอมมิชชัน",
+              title: commissionLabel(data.commissionRate),
               value: "- ${_money(commission)}",
             ),
           ],

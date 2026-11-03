@@ -361,12 +361,20 @@ class RideIconButton extends StatelessWidget {
 }
 
 /// The money on an offer card, right-aligned: "รายได้สุทธิ" over the big
-/// green figure.
+/// green figure, and the commission under it when the backend sent one.
 class RideOfferMoney extends StatelessWidget {
-  const RideOfferMoney({super.key, required this.label, required this.amount});
+  const RideOfferMoney({
+    super.key,
+    required this.label,
+    required this.amount,
+    this.note,
+  });
 
   final String label;
   final double amount;
+
+  /// "ค่าคอม 20% (฿13)"; null hides the line.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -386,6 +394,11 @@ class RideOfferMoney extends StatelessWidget {
             height: 1.1,
           ),
         ),
+        if (note != null)
+          Text(
+            note!,
+            style: AppTypography.caption5.copyWith(color: p.textSecondary),
+          ),
       ],
     );
   }

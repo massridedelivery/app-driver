@@ -155,6 +155,7 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 RideOfferMoney(
                   label: headline.label,
                   amount: headline.amount,
+                  note: job.earnings?.commissionLine,
                 ),
               ],
             ),

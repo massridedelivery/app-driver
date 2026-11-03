@@ -17,6 +17,9 @@ class HistoryDetailEntity {
   final int? grossFare;
   final int? commission;
   final int? settledNet;
+
+  /// `commission_rate` the trip settled at (0.2 = 20 %); null until then.
+  final double? commissionRate;
   final String serviceType; // 'ride' or 'food'
   final String? restaurantName;
   final List<Map<String, dynamic>>? orderItems;
@@ -41,6 +44,7 @@ class HistoryDetailEntity {
     this.grossFare,
     this.commission,
     this.settledNet,
+    this.commissionRate,
     this.serviceType = 'ride',
     this.restaurantName,
     this.orderItems,

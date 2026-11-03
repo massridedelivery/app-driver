@@ -203,7 +203,8 @@ class MessengerLiveSheet extends ConsumerWidget {
           const SizedBox(height: 10),
           RideNextStopCard(
             label: label,
-            amount: order.fare,
+            // The driver's net when the server sent it, else the fee.
+            amount: order.driverEarnings?.driverNet ?? order.fare,
             address: toDropoff ? dropoff : pickup,
             toDropoff: toDropoff,
             facts: '$size · ${order.packageWeightKg.toStringAsFixed(0)} กก.',
@@ -216,13 +217,15 @@ class MessengerLiveSheet extends ConsumerWidget {
           const SizedBox(height: 10),
           _contactRow(context),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
               RideTag(text: _feeLine(order)),
-              if (order.isCod && order.codAmount > 0) ...[
-                const SizedBox(width: 6),
+              if (order.isCod && order.codAmount > 0)
                 RideTag(text: 'COD ${formatBaht(order.codAmount)}'),
-              ],
+              if (order.driverEarnings?.commissionLine case final line?)
+                RideTag(text: line),
             ],
           ),
           const SizedBox(height: 12),
