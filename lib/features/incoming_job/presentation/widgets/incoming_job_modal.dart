@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
@@ -200,74 +199,16 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
               PriorCancelFeeNote(text: line),
             ],
             const SizedBox(height: 6),
-            Text(
-              autoAccept
-                  ? 'รับงานอัตโนมัติใน $_remaining วินาที'
-                  : 'ยกเลิกอัตโนมัติใน $_remaining วินาที',
-              textAlign: TextAlign.center,
-              style: AppTypography.caption5.copyWith(color: p.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: SlideToConfirm(
-                    label: 'เลื่อนเพื่อรับงาน',
-                    color: AppColors.foundationMint600,
-                    loading: _accepting,
-                    onConfirmed: _accept,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                _CountdownRing(remaining: _remaining, total: _totalSeconds),
-              ],
-            ),
-            TextButton(
-              onPressed: _accepting ? null : _decline,
-              child: Text(
-                'ไม่รับงานนี้',
-                style: AppTypography.caption3.copyWith(color: p.textSecondary),
-              ),
+            RideOfferFooter(
+              remaining: _remaining,
+              total: _totalSeconds,
+              autoAccept: autoAccept,
+              accepting: _accepting,
+              onAccept: _accept,
+              onDecline: _decline,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Seconds left as a ring that empties; orange for the last 5 s.
-class _CountdownRing extends StatelessWidget {
-  const _CountdownRing({required this.remaining, required this.total});
-
-  final int remaining;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = remaining <= 5
-        ? AppColors.foundationOrange700
-        : AppColors.foundationMint600;
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CircularProgressIndicator(
-            value: total <= 0 ? 0 : remaining / total,
-            strokeWidth: 3,
-            color: color,
-            backgroundColor: RideCardColors.of(context).line,
-          ),
-          Text(
-            '$remaining',
-            style: AppTypography.caption3.copyWith(
-              color: context.palette.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }

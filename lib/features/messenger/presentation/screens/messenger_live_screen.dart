@@ -3,15 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
+import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/call/domain/call_kind.dart';
 import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
+import 'package:massdrive/features/messenger/domain/parcel_payment_label.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
@@ -83,13 +87,33 @@ class MessengerLiveScreen extends ConsumerWidget {
             zoomControlsEnabled: false,
             myLocationButtonEnabled: false,
           ),
+          // The ride's green bar on top: the step, where to, นำทาง.
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 8,
+            left: 12,
+            right: 12,
+            child: RideNavBanner(
+              step: switch (order.statusEnum) {
+                MessengerStatus.arrivedAtPickup => '1 · ถึงจุดรับแล้ว',
+                MessengerStatus.pickedUp => '2 · ไปส่งพัสดุ',
+                _ => '1 · ไปรับพัสดุ',
+              },
+              address:
+                  (headingToDropoff
+                      ? order.dropoffAddress
+                      : order.pickupAddress) ??
+                  '-',
+              headline: order.statusEnum == MessengerStatus.arrivedAtPickup
+                  ? 'รอรับพัสดุ'
+                  : '',
+              onNavigate: () => _openNavigation(context, target),
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: _LiveSheet(
+            child: MessengerLiveSheet(
               order: order,
               isSubmitting: state.isSubmitting,
-              // Navigation lives in the sheet's action row, not on the map.
-              onNavigate: () => _openNavigation(context, target),
             ),
           ),
         ],
@@ -120,165 +144,209 @@ class MessengerLiveScreen extends ConsumerWidget {
   }
 }
 
-class _LiveSheet extends ConsumerWidget {
+/// The ride's live card (JobLiveScreen) for a parcel: the stop being driven
+/// to with the fee pill, the other stop, the contact row, how the fee is
+/// paid, and the step's slide.
+class MessengerLiveSheet extends ConsumerWidget {
   final MessengerOrder order;
   final bool isSubmitting;
-  final VoidCallback onNavigate;
 
-  const _LiveSheet({
+  const MessengerLiveSheet({
+    super.key,
     required this.order,
     required this.isSubmitting,
-    required this.onNavigate,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(messengerControllerProvider.notifier);
-    final (headerText, buttonText, action) = _stage(order.statusEnum, controller);
+    final p = context.palette;
+    final card = RideCardColors.of(context);
+    final status = order.statusEnum;
+    final toDropoff = status == MessengerStatus.pickedUp;
+    final (label, slide, color, action) = _stage(status, controller);
+    final pickup = order.pickupAddress ?? '-';
+    final dropoff = order.dropoffAddress ?? '-';
+    final size = order.packageSizeTier.isEmpty
+        ? 'พัสดุ'
+        : 'พัสดุขนาด ${order.packageSizeTier}';
 
     return Container(
       width: double.infinity,
-      // Reserve the system nav-bar inset so the action button clears the
-      // Android 3-button bar (viewPadding.bottom).
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        28 + MediaQuery.of(context).viewPadding.bottom,
+      decoration: BoxDecoration(
+        color: card.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16)],
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      // Reserve the system nav-bar inset so the slide clears the Android
+      // 3-button bar (viewPadding.bottom).
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        16 + MediaQuery.viewPaddingOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            headerText,
-            style: AppTypography.heading4
-                .copyWith(color: AppColors.semanticSuccessBgHigh),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: p.border,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'พัสดุขนาด ${order.packageSizeTier} · ${order.packageWeightKg.toStringAsFixed(0)} กก.',
-            style: AppTypography.body2.copyWith(color: Colors.white70),
+          const SizedBox(height: 10),
+          RideNextStopCard(
+            label: label,
+            amount: order.fare,
+            address: toDropoff ? dropoff : pickup,
+            toDropoff: toDropoff,
+            facts: '$size · ${order.packageWeightKg.toStringAsFixed(0)} กก.',
           ),
-          const SizedBox(height: 16),
-          if ((order.recipientName ?? '').isNotEmpty)
-            Text(order.recipientName!,
-                style: AppTypography.heading5.copyWith(color: Colors.white)),
-          Text(
-            order.statusEnum == MessengerStatus.pickedUp
-                ? (order.dropoffAddress ?? '-')
-                : (order.pickupAddress ?? '-'),
-            style: AppTypography.caption3.copyWith(color: Colors.white70),
+          const SizedBox(height: 8),
+          RideThenLine(
+            text: toDropoff ? 'รับพัสดุแล้ว · $pickup' : 'จากนั้นส่งที่ $dropoff',
+            toDropoff: toDropoff,
+          ),
+          const SizedBox(height: 10),
+          _contactRow(context),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              RideTag(text: _feeLine(order)),
+              if (order.isCod && order.codAmount > 0) ...[
+                const SizedBox(width: 6),
+                RideTag(text: 'COD ${formatBaht(order.codAmount)}'),
+              ],
+            ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(formatBaht(order.fare),
-                  style: AppTypography.heading3.copyWith(color: Colors.white)),
-              const SizedBox(width: 12),
-              Text(
-                  order.isCod
-                      ? 'COD ${formatBaht(order.codAmount)}'
-                      : order.paymentMethod.toUpperCase() == 'PROMPTPAY'
-                          ? (order.isFeePaid ? 'จ่ายแล้ว' : 'QR พร้อมเพย์')
-                          : 'เงินสด',
-                  style: AppTypography.heading6.copyWith(color: Colors.white70)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // Chat is available once ACCEPTED — there is a counterparty.
-              _sheetAction(
-                Icons.chat_bubble_outline,
-                'แชท',
-                () => AppNavigator.push(
-                  context,
-                  ChatScreen(
-                    jobId: order.id,
-                    passengerName: order.recipientName ?? 'ลูกค้า',
-                    vertical: ChatVertical.messenger,
-                  ),
-                ),
-              ),
-              // No customer name: the customer is the sender, not the
-              // recipient this sheet shows — the call brings their name.
-              CallCustomerButton(
-                kind: CallKind.messenger,
-                jobId: order.id,
-                status: order.status,
-                finishedAt: order.deliveredAt,
-                builder: (context, onCall) =>
-                    _sheetAction(Icons.phone_outlined, 'โทรฟรี', onCall),
-              ),
-              _sheetAction(Icons.navigation_outlined, 'นำทาง', onNavigate),
-              _sheetAction(
-                Icons.help_outline,
-                'ช่วยเหลือ',
-                () => showHelpSheet(
-                  context,
-                  customer: HelpSheetCall(
-                    kind: CallKind.messenger,
-                    jobId: order.id,
-                    status: order.status,
-                    finishedAt: order.deliveredAt,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           // "แสดง QR รับเงิน" — rider presents the PromptPay QR to the sender (at
           // pickup) or recipient (at drop-off) when the fee is QR and unpaid.
           if (_showQrButton(order)) ...[
             SizedBox(
-              width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
-                onPressed: isSubmitting
-                    ? null
-                    : () => controller.collectFeeQr(),
-                icon: const Icon(Icons.qr_code_2, color: Colors.white),
+                onPressed: isSubmitting ? null : () => controller.collectFeeQr(),
+                icon: Icon(Icons.qr_code_2, color: p.textPrimary),
                 label: Text(
                   'แสดง QR รับเงิน (${formatBaht(order.feeDue)})',
-                  style: AppTypography.heading6.copyWith(color: Colors.white),
+                  style: AppTypography.caption3.copyWith(
+                    color: p.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white54),
+                  side: BorderSide(color: card.line),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(28),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
           ],
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: (isSubmitting || action == null) ? null : action,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.semanticSuccessBgHigh,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          SlideToConfirm(
+            key: ValueKey(status),
+            label: slide,
+            color: color,
+            enabled: action != null,
+            loading: isSubmitting,
+            onConfirmed: action ?? () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The person on this order + แชท / โทรฟรี / ช่วยเหลือ (นำทาง is in the
+  /// top bar, as on a ride).
+  Widget _contactRow(BuildContext context) {
+    final p = context.palette;
+    final name = (order.recipientName ?? '').isEmpty
+        ? 'ผู้รับพัสดุ'
+        : order.recipientName!;
+    return Container(
+      padding: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: RideCardColors.of(context).line)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: RideCardColors.of(context).chip,
+            child: Icon(Icons.person, color: p.textSecondary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption3.copyWith(
+                    color: p.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                Text(
+                  'ผู้รับพัสดุ',
+                  style: AppTypography.caption5.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Chat is available once ACCEPTED — there is a counterparty.
+          RideIconButton(
+            icon: Icons.chat_bubble_outline,
+            tooltip: 'แชท',
+            onTap: () => AppNavigator.push(
+              context,
+              ChatScreen(
+                jobId: order.id,
+                passengerName: order.recipientName ?? 'ลูกค้า',
+                vertical: ChatVertical.messenger,
               ),
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(buttonText,
-                      style:
-                          AppTypography.heading5.copyWith(color: Colors.white)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // No customer name: the customer is the sender, not the recipient
+          // this card shows — the call brings their name.
+          CallCustomerButton(
+            kind: CallKind.messenger,
+            jobId: order.id,
+            status: order.status,
+            finishedAt: order.deliveredAt,
+            builder: (context, onCall) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: RideIconButton(
+                icon: Icons.phone_outlined,
+                tooltip: 'โทรฟรี',
+                onTap: onCall,
+              ),
+            ),
+          ),
+          RideIconButton(
+            icon: Icons.help_outline,
+            tooltip: 'ช่วยเหลือ',
+            onTap: () => showHelpSheet(
+              context,
+              customer: HelpSheetCall(
+                kind: CallKind.messenger,
+                jobId: order.id,
+                status: order.status,
+                finishedAt: order.deliveredAt,
+              ),
             ),
           ),
         ],
@@ -286,40 +354,46 @@ class _LiveSheet extends ConsumerWidget {
     );
   }
 
-  Widget _sheetAction(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white70),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: AppTypography.caption4.copyWith(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  /// "QR พร้อมเพย์ · ผู้รับจ่าย", or "ค่าส่งจ่ายแล้ว" once it's settled.
+  static String _feeLine(MessengerOrder order) => order.isFeePaid
+      ? 'ค่าส่งจ่ายแล้ว'
+      : 'ค่าส่ง ${parcelPaymentLabel(order.paymentMethod, recipientPays: order.isRecipientPays)}';
 
-  /// (header, button label, action) for the current status.
-  (String, String, VoidCallback?) _stage(
+  /// (card label, slide label, slide colour, action) for the current status —
+  /// the ride's steps: orange to the pickup, green after.
+  (String, String, Color, VoidCallback?) _stage(
     MessengerStatus status,
     MessengerController controller,
   ) {
     switch (status) {
       case MessengerStatus.accepted:
-        return ('กำลังไปรับพัสดุ', 'ถึงจุดรับแล้ว', controller.arrived);
+        return (
+          'กำลังไป · จุดรับพัสดุ',
+          'เลื่อนเมื่อถึงจุดรับ',
+          AppColors.foundationOrange700,
+          controller.arrived,
+        );
       case MessengerStatus.arrivedAtPickup:
-        return ('ถึงจุดรับแล้ว', 'รับพัสดุแล้ว', controller.pickedUp);
+        return (
+          'ถึงจุดรับแล้ว · รอรับพัสดุ',
+          'เลื่อนเมื่อรับพัสดุแล้ว',
+          AppColors.foundationMint600,
+          controller.pickedUp,
+        );
       case MessengerStatus.pickedUp:
-        return ('กำลังไปส่งพัสดุ', 'ส่งสำเร็จ', controller.delivered);
+        return (
+          'กำลังไป · จุดส่งพัสดุ',
+          'เลื่อนเมื่อส่งพัสดุแล้ว',
+          AppColors.foundationMint600,
+          controller.delivered,
+        );
       default:
-        return ('กำลังดำเนินการ', 'รอสักครู่', null);
+        return (
+          'กำลังดำเนินการ',
+          'รอสักครู่',
+          AppColors.foundationMint600,
+          null,
+        );
     }
   }
 

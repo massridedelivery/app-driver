@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
+import 'package:massdrive/core/utils/baht.dart';
 
 /// Ride-flow card colours: white in light mode, the job-card dark surface in
 /// dark mode.
@@ -391,6 +393,261 @@ class PriorCancelFeeNote extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The driver's money on the live card as a solid green pill — the only
+/// green in the stop box, so it stands out.
+class RideNetPill extends StatelessWidget {
+  const RideNetPill({super.key, required this.amount});
+
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+    decoration: BoxDecoration(
+      color: AppColors.foundationMint600,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      formatBaht(amount),
+      style: AppTypography.heading4.copyWith(color: Colors.white),
+    ),
+  );
+}
+
+/// The stop being driven to, big: "กำลังไป · จุดรับ" with the money pill on
+/// top, then the pin, the address (full width) and a facts line.
+class RideNextStopCard extends StatelessWidget {
+  const RideNextStopCard({
+    super.key,
+    required this.label,
+    required this.amount,
+    required this.address,
+    required this.toDropoff,
+    this.facts = '',
+  });
+
+  final String label;
+  final double amount;
+  final String address;
+  final bool toDropoff;
+
+  /// "600 ม. · 2 นาที" / "พัสดุ S · 1 กก."; empty hides the line.
+  final String facts;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RideCardColors.of(context).chip,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTypography.caption5.copyWith(
+                    color: p.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              RideNetPill(amount: amount),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset(
+                RideStopsTimeline.pinAsset,
+                width: 22,
+                height: 22,
+                colorFilter: ColorFilter.mode(
+                  toDropoff
+                      ? RideStopsTimeline.dropoffColor
+                      : RideStopsTimeline.pickupColor,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      address,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.label2.copyWith(
+                        color: p.textPrimary,
+                      ),
+                    ),
+                    if (facts.isNotEmpty)
+                      Text(
+                        facts,
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One line about the other stop under [RideNextStopCard]: "จากนั้นส่งที่ …"
+/// before pickup, "รับแล้ว · …" on the way to the dropoff.
+class RideThenLine extends StatelessWidget {
+  const RideThenLine({super.key, required this.text, required this.toDropoff});
+
+  final String text;
+
+  /// Heading to the dropoff: the other stop is the (green) pickup.
+  final bool toDropoff;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const SizedBox(width: 4),
+      SvgPicture.asset(
+        RideStopsTimeline.pinAsset,
+        width: 14,
+        height: 14,
+        colorFilter: ColorFilter.mode(
+          toDropoff
+              ? RideStopsTimeline.pickupColor
+              : RideStopsTimeline.dropoffColor,
+          BlendMode.srcIn,
+        ),
+      ),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.caption5.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Seconds left on an offer as a ring that empties; orange for the last 5 s.
+class RideCountdownRing extends StatelessWidget {
+  const RideCountdownRing({
+    super.key,
+    required this.remaining,
+    required this.total,
+  });
+
+  final int remaining;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = remaining <= 5
+        ? AppColors.foundationOrange700
+        : AppColors.foundationMint600;
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: total <= 0 ? 0 : remaining / total,
+            strokeWidth: 3,
+            color: color,
+            backgroundColor: RideCardColors.of(context).line,
+          ),
+          Text(
+            '$remaining',
+            style: AppTypography.caption3.copyWith(
+              color: context.palette.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The bottom of an offer card: "ยกเลิก/รับงานอัตโนมัติใน N วินาที", the
+/// accept slide with its countdown ring, and "ไม่รับงานนี้".
+class RideOfferFooter extends StatelessWidget {
+  const RideOfferFooter({
+    super.key,
+    required this.remaining,
+    required this.total,
+    required this.autoAccept,
+    required this.accepting,
+    required this.onAccept,
+    required this.onDecline,
+  });
+
+  final int remaining;
+  final int total;
+  final bool autoAccept;
+  final bool accepting;
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          autoAccept
+              ? 'รับงานอัตโนมัติใน $remaining วินาที'
+              : 'ยกเลิกอัตโนมัติใน $remaining วินาที',
+          textAlign: TextAlign.center,
+          style: AppTypography.caption5.copyWith(color: p.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: SlideToConfirm(
+                label: 'เลื่อนเพื่อรับงาน',
+                color: AppColors.foundationMint600,
+                loading: accepting,
+                onConfirmed: onAccept,
+              ),
+            ),
+            const SizedBox(width: 10),
+            RideCountdownRing(remaining: remaining, total: total),
+          ],
+        ),
+        TextButton(
+          onPressed: accepting ? null : onDecline,
+          child: Text(
+            'ไม่รับงานนี้',
+            style: AppTypography.caption3.copyWith(color: p.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 }

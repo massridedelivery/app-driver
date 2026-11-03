@@ -24,7 +24,6 @@ import 'package:massdrive/features/call/presentation/widgets/call_customer_butto
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/support/presentation/widgets/support_actions.dart';
-import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/core/utils/distance_text.dart';
 import 'package:massdrive/common/widgets/slide_to_confirm.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
@@ -446,22 +445,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// Collapsed stop box: the status/pill row and the address row.
   static const double _compactBoxHeight = 66;
 
-  /// The driver's net (driver_net, never what the passenger pays) as a solid
-  /// green pill — the only green in the stop box, so it stands out.
-  Widget _netPill(double amount) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
-      decoration: BoxDecoration(
-        color: AppColors.foundationMint600,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        formatBaht(amount),
-        style: AppTypography.heading4.copyWith(color: Colors.white),
-      ),
-    );
-  }
-
   /// Collapsed card (design A): the stop being driven to, รายได้สุทธิ and the
   /// slide — the driver can confirm without opening the sheet.
   Widget _buildCompact() {
@@ -502,7 +485,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
                       ),
                     ),
                   ),
-                  _netPill(headline.amount),
+                  RideNetPill(amount: headline.amount),
                 ],
               ),
               const Spacer(),
@@ -707,7 +690,6 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
   /// "600 ม. · 2 นาที".
   Widget _buildNextStop() {
     final job = ref.watch(incomingJobControllerProvider).currentJob;
-    final p = context.palette;
     final headline = offerHeadline(
       fare: job?.netIncome ?? 0,
       driverNet: job?.driverNet,
@@ -721,72 +703,12 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     final facts = _currentState == JobLiveState.arrivedAtPickup
         ? ''
         : [_distanceText(), _etaText()].where((t) => t.isNotEmpty).join(' · ');
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: RideCardColors.of(context).chip,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppTypography.caption5.copyWith(
-                    color: p.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              _netPill(headline.amount),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SvgPicture.asset(
-                RideStopsTimeline.pinAsset,
-                width: 22,
-                height: 22,
-                colorFilter: ColorFilter.mode(
-                  toDropoff
-                      ? RideStopsTimeline.dropoffColor
-                      : RideStopsTimeline.pickupColor,
-                  BlendMode.srcIn,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ??
-                          '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.label2.copyWith(
-                        color: p.textPrimary,
-                      ),
-                    ),
-                    if (facts.isNotEmpty)
-                      Text(
-                        facts,
-                        style: AppTypography.caption5.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return RideNextStopCard(
+      label: label,
+      amount: headline.amount,
+      address: (toDropoff ? job?.dropoffAddress : job?.pickupAddress) ?? '',
+      toDropoff: toDropoff,
+      facts: facts,
     );
   }
 
@@ -798,35 +720,7 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
     final text = toDropoff
         ? 'รับผู้โดยสารแล้ว · ${job?.pickupAddress ?? ''}'
         : 'จากนั้นส่งที่ ${job?.dropoffAddress ?? ''}';
-    return Row(
-      children: [
-        const SizedBox(width: 4),
-        // The other stop's pin: green pickup once on board, red dropoff
-        // before.
-        SvgPicture.asset(
-          RideStopsTimeline.pinAsset,
-          width: 14,
-          height: 14,
-          colorFilter: ColorFilter.mode(
-            toDropoff
-                ? RideStopsTimeline.pickupColor
-                : RideStopsTimeline.dropoffColor,
-            BlendMode.srcIn,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.caption5.copyWith(
-              color: context.palette.textSecondary,
-            ),
-          ),
-        ),
-      ],
-    );
+    return RideThenLine(text: text, toDropoff: toDropoff);
   }
 
   bool _collecting = false;

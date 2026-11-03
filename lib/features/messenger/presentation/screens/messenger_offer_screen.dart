@@ -4,17 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
-import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/services/directions_service.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/map_marker_providers.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
+import 'package:massdrive/features/messenger/domain/parcel_payment_label.dart';
 
 /// Incoming messenger offer — map with pickup/dropoff + an accept/reject sheet
 /// on a 16s window (SCRUM-41 §6). Shares the ride offer's look and flow
@@ -87,7 +88,7 @@ class MessengerOfferScreen extends ConsumerWidget {
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: _OfferSheet(offer: offer),
+            child: MessengerOfferSheet(offer: offer),
           ),
         ],
       ),
@@ -98,16 +99,17 @@ class MessengerOfferScreen extends ConsumerWidget {
 /// Bottom sheet mirroring the ride offer modal: it owns the accept-window
 /// countdown and, when the window closes, auto-accepts or auto-cancels per the
 /// driver's preference — the same flow as [IncomingJobModal].
-class _OfferSheet extends ConsumerStatefulWidget {
+class MessengerOfferSheet extends ConsumerStatefulWidget {
   final MessengerOffer offer;
 
-  const _OfferSheet({required this.offer});
+  const MessengerOfferSheet({required this.offer});
 
   @override
-  ConsumerState<_OfferSheet> createState() => _OfferSheetState();
+  ConsumerState<MessengerOfferSheet> createState() =>
+      _MessengerOfferSheetState();
 }
 
-class _OfferSheetState extends ConsumerState<_OfferSheet> {
+class _MessengerOfferSheetState extends ConsumerState<MessengerOfferSheet> {
   /// Messenger accept window — 16s, matching ride/food.
   static const int _totalSeconds = 16;
 
@@ -164,6 +166,8 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
   @override
   Widget build(BuildContext context) {
     final offer = widget.offer;
+    final p = context.palette;
+    final card = RideCardColors.of(context);
     // Messenger offers carry no driver_earnings yet — the fee isn't the
     // driver's net, so it's labelled as the delivery fee (BE #191).
     final headline = offerHeadline(fare: offer.fare, delivery: true);
@@ -171,245 +175,114 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
     final isSubmitting = ref.watch(
       messengerControllerProvider.select((s) => s.isSubmitting),
     );
+    final km = '${offer.distanceKm.toStringAsFixed(1)} กม.';
 
+    // The ride offer's card (IncomingJobModal): tag + payment · km on the
+    // left, the money on the right, the pickup → dropoff timeline, the slide.
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppSpacing.s4),
-          topRight: Radius.circular(AppSpacing.s4),
-        ),
+      decoration: BoxDecoration(
+        color: card.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Padding(
-          // Bottom inset from viewPadding, not SafeArea: SafeArea reads
-          // MediaQuery.padding, which an ancestor can consume to 0 — leaving
-          // the accept button under the system nav/gesture bar.
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Net income + payment method (mirrors the ride modal header).
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
+      child: Padding(
+        // Bottom inset from viewPadding, not SafeArea: SafeArea reads
+        // MediaQuery.padding, which an ancestor can consume to 0 — leaving
+        // the accept slide under the system nav/gesture bar.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        headline.label,
-                        style: AppTypography.body1.copyWith(
-                          color: AppColors.semanticGrayNeutralFgWhite,
-                        ),
+                      RideTag(
+                        text: offer.packageSizeTier.isEmpty
+                            ? 'ส่งพัสดุ'
+                            : 'ส่งพัสดุ · ขนาด ${offer.packageSizeTier}',
                       ),
-                      const SizedBox(height: AppSpacing.s3),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            formatBahtNumber(headline.amount),
-                            style: AppTypography.heading2.copyWith(
-                              color: AppColors.semanticGrayNeutralFgWhite,
-                              fontSize: 32,
-                              height: 1.1,
-                            ),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          parcelPaymentLabel(
+                            offer.paymentMethod,
+                            recipientPays: offer.isRecipientPays,
                           ),
-                          Text(
-                            ' ฿',
-                            style: AppTypography.caption1.copyWith(
-                              color: AppColors.semanticGrayNeutralFgWhite,
-                            ),
-                          ),
-                        ],
+                          km,
+                        ].where((t) => t.isNotEmpty).join(' · '),
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.semanticGrayNeutralFgWhite,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      offer.isCod ? 'COD' : 'เงินสด',
-                      style: AppTypography.body2.copyWith(
-                        color: AppColors.semanticGrayNeutralFgHigh,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Service type row (mirrors the ride modal).
-              Row(
-                children: [
-                  const Icon(
-                    Icons.inventory_2,
-                    color: AppColors.semanticGrayNeutralFgWhite,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'ส่งพัสดุ',
-                    style: AppTypography.heading5.copyWith(
-                      color: AppColors.semanticGrayNeutralFgWhite,
-                    ),
-                  ),
-                  if (offer.packageSizeTier.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      '· ขนาด ${offer.packageSizeTier}',
-                      style: AppTypography.caption4.copyWith(
-                        color: AppColors.foundationAlphaWhite500,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Pickup → dropoff timeline (mirrors the ride modal).
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Column(
-                      children: [
-                        _dot(AppColors.semanticSuccessBgHigh),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: List.generate(
-                                3,
-                                (index) => Container(
-                                  width: 3,
-                                  height: 3,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white70,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        _dot(AppColors.semanticSupportRedBgHigh),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _addressBlock(offer.pickupAddress ?? 'จุดรับพัสดุ', null),
-                          const SizedBox(height: 24),
-                          _addressBlock(
-                            offer.dropoffAddress ?? 'จุดส่งพัสดุ',
-                            '${offer.distanceKm.toStringAsFixed(1)} กม.',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-
-              if (offer.isCod && offer.codAmount > 0) ...[
-                const SizedBox(height: AppSpacing.s3),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Icon(
-                      Icons.payments_outlined,
-                      color: AppColors.foundationOrange500,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
                     Text(
-                      'เก็บเงินปลายทาง ${formatBaht(offer.codAmount)}',
-                      style: AppTypography.caption4.copyWith(
-                        color: AppColors.foundationOrange500,
+                      headline.label,
+                      style: AppTypography.caption5.copyWith(
+                        color: p.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      formatBaht(headline.amount),
+                      style: AppTypography.heading2.copyWith(
+                        color: AppColors.foundationMint600,
+                        fontSize: 32,
+                        height: 1.1,
                       ),
                     ),
                   ],
                 ),
               ],
-
-              const SizedBox(height: AppSpacing.s4),
-
-              // Shared accept/decline footer: same flow as the ride offer.
-              JobOfferActionBar(
-                remaining: _remaining,
-                totalSeconds: _totalSeconds,
-                autoAccept: autoAccept,
-                isSubmitting: isSubmitting,
-                onAccept: _accept,
-                onDecline: _decline,
+            ),
+            Divider(height: 20, color: card.line),
+            RideStopsTimeline(
+              stops: [
+                RideStop(
+                  address: offer.pickupAddress ?? 'จุดรับพัสดุ',
+                  sub: 'รับพัสดุ',
+                  isPickup: true,
+                  state: RideStopState.current,
+                ),
+                RideStop(
+                  address: offer.dropoffAddress ?? 'จุดส่งพัสดุ',
+                  sub: 'ส่งพัสดุ · $km',
+                  isPickup: false,
+                  state: RideStopState.current,
+                ),
+              ],
+            ),
+            // Goods value taken at the door, on top of the fee.
+            if (offer.isCod && offer.codAmount > 0) ...[
+              const SizedBox(height: 8),
+              PriorCancelFeeNote(
+                text: 'เก็บเงินค่าสินค้าปลายทาง ${formatBaht(offer.codAmount)}',
               ),
             ],
-          ),
+            const SizedBox(height: 6),
+            RideOfferFooter(
+              remaining: _remaining,
+              total: _totalSeconds,
+              autoAccept: autoAccept,
+              accepting: isSubmitting,
+              onAccept: _accept,
+              onDecline: _decline,
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _dot(Color color) => Container(
-        width: 18,
-        height: 18,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: Container(
-          width: 6,
-          height: 6,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-        ),
-      );
-
-  Widget _addressBlock(String title, String? distance) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: AppTypography.heading5.copyWith(
-              color: AppColors.semanticGrayNeutralFgWhite,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (distance != null) ...[
-          const SizedBox(width: 8),
-          Text(
-            distance,
-            style: AppTypography.caption4.copyWith(
-              color: AppColors.foundationAlphaWhite500,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }
