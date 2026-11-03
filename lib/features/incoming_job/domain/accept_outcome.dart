@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:massdrive/core/data/sources/api_error.dart';
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 
 /// How a ride accept ended (BE #198).
@@ -25,6 +26,12 @@ bool isJobTakenError(Object error) {
       data is Map &&
       data['code']?.toString() == 'job_taken';
 }
+
+/// What to tell the driver when an accept didn't land: the backend's own
+/// message (in the phone's language) when it sent one, else ours.
+String acceptFailureMessage(AcceptOutcome o, Object? error) =>
+    (error is DioException ? ApiError.serverMessage(error) : null) ??
+    acceptOutcomeMessage(o);
 
 /// Message for an accept that didn't land.
 String acceptOutcomeMessage(AcceptOutcome o) => switch (o) {

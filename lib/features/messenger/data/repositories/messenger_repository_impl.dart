@@ -4,6 +4,7 @@ import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/messenger/data/sources/messenger_api_service.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
+import 'package:massdrive/core/data/sources/api_error.dart';
 
 @LazySingleton(as: MessengerRepository)
 class MessengerRepositoryImpl implements MessengerRepository {
@@ -12,14 +13,9 @@ class MessengerRepositoryImpl implements MessengerRepository {
   MessengerRepositoryImpl(this._api);
 
   /// Backend error bodies are `{ "message": … }` or `{ "error": … }`.
-  String _message(DioException e, String fallback) {
-    final data = e.response?.data;
-    if (data is Map) {
-      final m = data['message'] ?? data['error'];
-      if (m != null) return m.toString();
-    }
-    return fallback;
-  }
+  /// The backend's message (in the phone's language), else [fallback].
+  String _message(DioException e, String fallback) =>
+      ApiError.serverMessage(e) ?? fallback;
 
   MessengerOrder? _parse(dynamic data) {
     if (data is Map<String, dynamic>) {
@@ -74,7 +70,7 @@ class MessengerRepositoryImpl implements MessengerRepository {
       if (isCashJobBlockedError(e)) {
         throw CashJobBlockedException(_message(e, ''));
       }
-      throw Exception(_message(e, 'Failed to accept order'));
+      throw Exception(_message(e, 'รับงานไม่สำเร็จ กรุณาลองใหม่'));
     }
   }
 

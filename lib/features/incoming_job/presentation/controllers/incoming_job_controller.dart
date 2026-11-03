@@ -208,10 +208,12 @@ class IncomingJobController extends _$IncomingJobController {
 
     final repo = getIt<JobLiveRepository>();
     var outcome = AcceptOutcome.failed;
+    Object? error;
     try {
       await repo.acceptJob(job.jobId);
       outcome = AcceptOutcome.accepted;
     } catch (e) {
+      error = e;
       if (isJobTakenError(e)) {
         outcome = AcceptOutcome.taken;
       } else if (isCashJobBlockedError(e)) {
@@ -232,12 +234,12 @@ class IncomingJobController extends _$IncomingJobController {
         AppRouter.router.go(isFood ? AppRoutes.foodLiveNamedPage : '/job-live');
       case AcceptOutcome.taken:
         dismissModal();
-        _toast(acceptOutcomeMessage(outcome));
+        _toast(acceptFailureMessage(outcome, error));
       case AcceptOutcome.cashBlocked:
         dismissModal();
         _showCashBlocked();
       case AcceptOutcome.failed:
-        _toast(acceptOutcomeMessage(outcome));
+        _toast(acceptFailureMessage(outcome, error));
     }
     return outcome;
   }
@@ -288,7 +290,7 @@ class IncomingJobController extends _$IncomingJobController {
         _showCashBlocked();
         return AcceptOutcome.cashBlocked;
       }
-      _toast(acceptOutcomeMessage(AcceptOutcome.failed));
+      _toast(acceptFailureMessage(AcceptOutcome.failed, e));
       return AcceptOutcome.failed;
     }
   }

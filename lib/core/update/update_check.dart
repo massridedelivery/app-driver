@@ -9,6 +9,7 @@ import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:massdrive/core/utils/device_language.dart';
 
 /// What `GET /api/config/version` says about the installed version.
 enum UpdateStatus { ok, suggest, force }
@@ -220,6 +221,7 @@ class LiveUpdateSources implements UpdateSources {
       baseUrl: baseUrl ?? '',
       connectTimeout: const Duration(seconds: 6),
       receiveTimeout: const Duration(seconds: 6),
+      headers: {'Accept-Language': deviceLanguageTag()},
     ),
   );
 

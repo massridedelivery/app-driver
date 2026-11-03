@@ -22,6 +22,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/core/utils/device_language.dart';
 
 part 'api_manager.g.dart';
 
@@ -109,6 +110,7 @@ class ApiManager {
     if (languageCode != null) {
       dio.options.headers['content-language'] = languageCode;
     }
+    dio.options.headers['Accept-Language'] = deviceLanguageTag();
 
     try {
       dio.options.headers['app-version'] = await Device.getAppVersion();
@@ -244,6 +246,7 @@ class ApiManager {
     if (languageCode != null) {
       dio.options.headers['content-language'] = languageCode;
     }
+    dio.options.headers['Accept-Language'] = deviceLanguageTag();
 
     final accessToken = await _secureStorage.read(SecureStorageKey.accessToken);
     if (accessToken != null) {
