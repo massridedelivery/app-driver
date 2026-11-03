@@ -160,18 +160,23 @@ class MessengerController extends _$MessengerController {
         _goLive(existing);
         return;
       }
+      // The backend's reason as received (in the phone's language), e.g.
+      // the order was taken by someone else.
+      final message = e is Exception
+          ? e.toString().replaceFirst('Exception: ', '')
+          : 'รับงานไม่สำเร็จ กรุณาลองใหม่';
       state = state.copyWith(
         isSubmitting: false,
         isModalVisible: false,
         currentOffer: null,
-        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+        errorMessage: message,
       );
       AppRouter.router.go('/home');
       // The live screen that listens for errorMessage is gone: say it here.
       final ctx = AppRouter.rootContext;
       if (ctx != null && ctx.mounted) {
         ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
-          const SnackBar(content: Text('รับงานไม่สำเร็จ กรุณาลองใหม่')),
+          SnackBar(content: Text(message)),
         );
       }
       return;

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:massdrive/core/data/sources/api_error.dart';
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 
 /// Converts any thrown error into a short, user-facing Thai message.
@@ -30,18 +31,14 @@ String friendlyErrorMessage(Object error) {
         if (code >= 500) {
           return 'เซิร์ฟเวอร์ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งในภายหลัง';
         }
-        if (code == 401 || code == 403) {
-          return 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
-        }
+        if (code == 401) return 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
+        // 4xx: the backend's own reason, written in the phone's language
+        // (Accept-Language) — shown as received. The fallbacks are for a
+        // body with none.
+        if (ApiError.serverMessage(error) case final msg?) return msg;
+        if (code == 403) return 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
         if (code == 413) {
           return 'ไฟล์มีขนาดใหญ่เกินไป กรุณาเลือกไฟล์ที่เล็กลง';
-        }
-        // 4xx: the backend's own reason is usually meaningful — surface it if
-        // present, otherwise fall back to a generic validation message.
-        final data = error.response?.data;
-        if (data is Map) {
-          final msg = (data['message'] ?? data['error'])?.toString();
-          if (msg != null && msg.trim().isNotEmpty) return msg;
         }
         return 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่';
     }

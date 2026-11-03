@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/constants/app_constants.dart';
+import 'package:massdrive/core/utils/device_language.dart';
 import 'package:massdrive/core/utils/devices_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,6 +20,8 @@ class HeaderInterceptor extends Interceptor {
     if (languageCode != null) {
       options.headers['content-language'] = languageCode;
     }
+    // The backend writes its error / message text in this language.
+    options.headers['Accept-Language'] = deviceLanguageTag();
 
     // Set each device header independently so one failing lookup doesn't drop
     // the others. device_info_plus can throw a null-cast TypeError on some
