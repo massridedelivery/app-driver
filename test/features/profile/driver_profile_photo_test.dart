@@ -18,25 +18,27 @@ void main() {
       expect(p.photoUrl, 'https://cdn.example.com/avatar/u1/a.jpg');
     });
 
-    test('falls back to a profile_photo document', () {
+    // The sign-up selfie is a verification document, not the profile photo:
+    // without an avatar_url the app shows the placeholder.
+    test('never shows a selfie / profile_photo document instead', () {
       final p = _profile({
         'documents': [
-          {
-            'type': 'id_card',
-            'status': 'approved',
-            'media_url': 'https://x/id.jpg',
-          },
           {
             'type': 'profile_photo',
             'status': 'approved',
             'media_url': 'https://x/me.jpg',
           },
+          {
+            'type': 'selfie',
+            'status': 'pending',
+            'media_url': 'https://x/selfie.jpg',
+          },
         ],
       });
-      expect(p.photoUrl, 'https://x/me.jpg');
+      expect(p.photoUrl, isNull);
     });
 
-    test('prefers avatar_url over the document', () {
+    test('uses avatar_url even when there are documents', () {
       final p = _profile({
         'avatar_url': 'https://x/new.jpg',
         'documents': [

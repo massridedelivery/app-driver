@@ -48,17 +48,13 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
 }
 
 extension DriverProfilePhoto on DriverProfileEntity {
-  /// The profile photo to show: `avatar_url`, else a `profile_photo` document
-  /// (older payloads); null when there's none.
+  /// The profile photo to show: `avatar_url` (a full URL), the photo
+  /// customers see; null (→ placeholder) when there's none. Never a selfie or
+  /// other document: the sign-up selfie is a verification record, not the
+  /// profile photo (backend v1.6.15).
   String? get photoUrl {
     final avatar = avatarUrl?.trim();
     if (avatar != null && avatar.startsWith('http')) return avatar;
-    for (final doc in documents) {
-      if (doc.type == 'profile_photo' || doc.type == 'profilePhoto') {
-        final url = doc.mediaUrl?.trim();
-        if (url != null && url.isNotEmpty) return url;
-      }
-    }
     return null;
   }
 }
