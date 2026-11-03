@@ -103,7 +103,16 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
+    // The profile photo becomes the avatar the apps show: re-encoding it
+    // (quality / size set) turns an iPhone HEIC into a JPEG the backend
+    // accepts, and keeps it small. Documents stay untouched for legibility.
+    final isPhoto = widget.type == DocumentType.profilePhoto;
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      maxWidth: isPhoto ? 1600 : null,
+      maxHeight: isPhoto ? 1600 : null,
+      imageQuality: isPhoto ? 85 : null,
+    );
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
