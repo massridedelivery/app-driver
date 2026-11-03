@@ -40,7 +40,6 @@ class DocumentRegistrationRepositoryImpl
     DocumentType type, {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
-    bool isUpdate = false,
     String? docTypeOverride,
   }) async {
     final response = await _api.uploadDocument(
@@ -48,7 +47,6 @@ class DocumentRegistrationRepositoryImpl
       type,
       category: category,
       docNumber: docNumber,
-      isUpdate: isUpdate,
       docTypeOverride: docTypeOverride,
     );
     return response['image_url'] as String? ?? response['media_url'] as String? ?? '';

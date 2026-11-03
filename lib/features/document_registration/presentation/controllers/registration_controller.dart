@@ -182,14 +182,11 @@ class RegistrationController extends _$RegistrationController {
       // category's 2 MB instead of the 5 MB documents are allowed.
       const category = MediaCategory.driverDoc;
 
-      final isUpdate = state.remoteDocuments.containsKey(type);
-
       await _repository.uploadDocument(
         file,
         type,
         category: category,
         docNumber: docNumber,
-        isUpdate: isUpdate,
       );
 
       final updatedDocs = Map<DocumentType, String>.from(
@@ -216,13 +213,11 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (greenBookFile != null) {
-        final isUpdate = state.remoteDocuments.containsKey(DocumentType.vehicleRegistration);
         await _repository.uploadDocument(
           greenBookFile,
           DocumentType.vehicleRegistration,
           category: MediaCategory.driverDoc,
           docNumber: info.licensePlate,
-          isUpdate: isUpdate,
         );
       }
       await _repository.submitVehicleDetails(info);
