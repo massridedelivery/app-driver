@@ -10,6 +10,7 @@ import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interce
 import 'package:massdrive/core/managers/api/header_interceptor.dart';
 import 'package:massdrive/core/managers/api/profile_error_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
+import 'package:massdrive/features/profile/data/sources/profile_photo_uploader.dart';
 
 import 'dependency_injection.config.dart';
 
@@ -50,6 +51,10 @@ abstract class NetworkModule {
 }
 
 @InjectableInit()
-void configureDependencies(String env) => getIt.init(environment: env);
+void configureDependencies(String env) {
+  getIt.init(environment: env);
+  // Registered by hand (no @injectable): it only needs the app Dio.
+  getIt.registerLazySingleton(() => ProfilePhotoUploader(getIt<Dio>()));
+}
 
 final dioProvider = Provider<Dio>((ref) => GetIt.I<Dio>());

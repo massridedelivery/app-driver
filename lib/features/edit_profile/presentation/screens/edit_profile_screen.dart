@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/common/widgets/appbar/base_appbar.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -11,10 +16,11 @@ import 'package:massdrive/core/utils/toast_util.dart';
 import 'package:massdrive/core/navigation/app_navigator.dart';
 import 'package:massdrive/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:massdrive/features/document_registration/domain/models/driver_profile_info.dart';
-import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
 import 'package:massdrive/features/document_registration/presentation/widgets/vehicle_fields.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
+import 'package:massdrive/features/chat/domain/chat_image_processing.dart';
+import 'package:massdrive/features/document_registration/domain/models/profile_photo_error.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
@@ -35,6 +41,58 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (!mounted) return;
       ref.read(profileControllerProvider.notifier).fetchProfile(silent: true);
     });
+  }
+
+  final _picker = ImagePicker();
+  bool _changingPhoto = false;
+
+  /// "เปลี่ยนรูปโปรไฟล์": the photo goes up as an avatar and becomes
+  /// avatar_url at once, with no review. Never as the `selfie` document —
+  /// that's the sign-up verification photo, kept on record.
+  Future<void> _changePhoto() async {
+    final source = await showImageSourceSheet(context);
+    if (source == null || !mounted) return;
+    XFile? picked;
+    try {
+      picked = await _picker.pickImage(
+        source: source,
+        // Native downscale first so decoding here stays cheap.
+        maxWidth: chatImageMaxSide.toDouble(),
+        maxHeight: chatImageMaxSide.toDouble(),
+        imageQuality: 95,
+        requestFullMetadata: false,
+      );
+    } catch (_) {
+      ToastUtil.showErrorToast(
+        source == ImageSource.camera
+            ? 'เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องในการตั้งค่า'
+            : 'เปิดคลังภาพไม่ได้ กรุณาอนุญาตการเข้าถึงรูปภาพในการตั้งค่า',
+      );
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    setState(() => _changingPhoto = true);
+    try {
+      final Uint8List jpeg;
+      try {
+        // JPEG, ≤ 2 MB (the avatar limit), EXIF (GPS) stripped.
+        jpeg = await compute(prepareChatImage, await picked.readAsBytes());
+      } catch (_) {
+        ToastUtil.showErrorToast(notAnImageMessage);
+        return;
+      }
+      final error = await ref
+          .read(profileControllerProvider.notifier)
+          .changePhoto(jpeg);
+      if (error == null) {
+        ToastUtil.showSuccessToast('เปลี่ยนรูปโปรไฟล์แล้ว');
+      } else {
+        ToastUtil.showErrorToast(error);
+      }
+    } finally {
+      if (mounted) setState(() => _changingPhoto = false);
+    }
   }
 
   @override
@@ -72,27 +130,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
             _ProfileImageTile(
               imageUrl: profilePhotoUrl,
-              onTap: () async {
-                final notifier =
-                    ref.read(profileControllerProvider.notifier);
-                final oldUrl = profilePhotoUrl;
-                // Re-use the existing document-upload flow/API to change the
-                // driver's profile photo.
-                await context.push(
-                  AppRoutes.documentRegistrationUploadNamedPage,
-                  extra: {
-                    'type': DocumentType.profilePhoto,
-                    'title': 'รูปถ่ายโปรไฟล์',
-                  },
-                );
-                // A re-upload often reuses the same URL; NetworkImage caches by
-                // URL, so evict it (app-wide cache) before refetching. The
-                // refetch then rebuilds every avatar screen with fresh bytes.
-                if (oldUrl != null && oldUrl.isNotEmpty) {
-                  await NetworkImage(oldUrl).evict();
-                }
-                await notifier.fetchProfile();
-              },
+              changing: _changingPhoto,
+              onTap: _changingPhoto ? null : _changePhoto,
             ),
 
             // Name and date of birth come from registration Step 1 and are
@@ -338,7 +377,8 @@ class _SectionHeader extends StatelessWidget {
 class _ProfileImageTile extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback? onTap;
-  const _ProfileImageTile({this.imageUrl, this.onTap});
+  final bool changing;
+  const _ProfileImageTile({this.imageUrl, this.onTap, this.changing = false});
 
   @override
   Widget build(BuildContext context) {
@@ -354,9 +394,9 @@ class _ProfileImageTile extends StatelessWidget {
               color: context.palette.textPrimary,
             ),
           ),
-          subtitle: onTap != null
+          subtitle: onTap != null || changing
               ? Text(
-                  "แตะเพื่อเปลี่ยนรูปโปรไฟล์",
+                  changing ? "กำลังอัปโหลดรูป…" : "แตะเพื่อเปลี่ยนรูปโปรไฟล์",
                   style: AppTypography.caption4.copyWith(
                     color: context.palette.textSecondary,
                   ),
@@ -369,7 +409,13 @@ class _ProfileImageTile extends StatelessWidget {
                 radius: 24,
                 backgroundColor: Colors.grey[800],
                 backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
-                child: !hasImage
+                child: changing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : !hasImage
                     ? Icon(Icons.person, color: context.palette.textSecondary, size: 24)
                     : null,
               ),

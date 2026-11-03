@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/quest_api_service.dart';
+import 'package:massdrive/features/profile/data/sources/profile_photo_uploader.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/domain/profile_updates.dart';
 import 'package:massdrive/features/profile/domain/repositories/profile_repository.dart';
@@ -86,6 +89,25 @@ class ProfileController extends _$ProfileController {
         errorMessage: friendlyErrorMessage(e),
       );
       return false;
+    }
+  }
+
+  /// Make [jpeg] (prepared: JPEG, ≤ 2 MB, no EXIF) the profile photo: upload
+  /// it as an avatar, point avatar_url at it, re-read the profile. Returns
+  /// null on success, or the message to show. Never the selfie document —
+  /// that is the sign-up verification photo, kept on record.
+  Future<String?> changePhoto(Uint8List jpeg) async {
+    state = state.copyWith(isUpdating: true, errorMessage: null);
+    try {
+      final fileKey = await getIt<ProfilePhotoUploader>().upload(jpeg);
+      await _repository.updateProfile({'avatar_url': fileKey});
+      await fetchProfile(silent: true);
+      state = state.copyWith(isUpdating: false);
+      return null;
+    } catch (e) {
+      final message = friendlyErrorMessage(e);
+      state = state.copyWith(isUpdating: false, errorMessage: message);
+      return message;
     }
   }
 
