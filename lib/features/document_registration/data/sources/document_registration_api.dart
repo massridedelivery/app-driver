@@ -13,6 +13,17 @@ class DocumentRegistrationApi {
 
   DocumentRegistrationApi(this.dio);
 
+  /// The client for the presigned storage PUT (no auth, no base URL). Tests
+  /// swap it to keep the upload off the network.
+  @visibleForTesting
+  Dio Function() newStorageDio = () => Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 120),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+
   Future<List<dynamic>> fetchDocuments() async {
     final response = await dio.get(Endpoints.documentConfirm);
     try {
@@ -53,7 +64,6 @@ class DocumentRegistrationApi {
     DocumentType type, {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
-    bool isUpdate = false,
     String? docTypeOverride,
   }) async {
     // Determine content type based on file extension
@@ -131,13 +141,7 @@ class DocumentRegistrationApi {
     // Step 2: Direct Binary Upload to presigned URL
     // Must use raw binary body — NO FormData, NO Stream (MinIO rejects chunked encoding).
     // Content-Type header must exactly match what was sent in Step 1.
-    final storageDio = Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 120),
-        receiveTimeout: const Duration(seconds: 30),
-      ),
-    );
+    final storageDio = newStorageDio();
     final fileBytes = await file.readAsBytes();
 
     debugPrint('[Upload] Step2: PUT to MinIO | bytes=${fileBytes.length} content_type=$contentType');
@@ -167,28 +171,19 @@ class DocumentRegistrationApi {
       throw Exception('Media confirmation failed for file_key: $fileKey');
     }
 
-    debugPrint('[Upload] Step4: Register doc | type=$documentTypeStr isUpdate=$isUpdate');
-    Response confirmResponse;
-    if (isUpdate) {
-      // Correction / Update (Upsert)
-      confirmResponse = await dio.put(
-        '${Endpoints.documentConfirm}/$documentTypeStr',
-        data: {
-          "file_key": fileKey,
-          "doc_number": docNumber ?? "",
-        },
-      );
-    } else {
-      // Initial Submission
-      confirmResponse = await dio.post(
-        Endpoints.documentConfirm,
-        data: {
-          "type": documentTypeStr,
-          "file_key": fileKey,
-          "doc_number": docNumber ?? "",
-        },
-      );
-    }
+    // Step 4: Register the document — POST /api/driver/documents, for a first
+    // upload and a re-upload alike. The backend replaces the driver's document
+    // of that type (ReplaceDocument); there is no PUT /documents/:type, and
+    // calling one failed every re-upload with "Cannot PUT …" (404).
+    debugPrint('[Upload] Step4: POST documents | type=$documentTypeStr');
+    final confirmResponse = await dio.post(
+      Endpoints.documentConfirm,
+      data: {
+        "type": documentTypeStr,
+        "file_key": fileKey,
+        "doc_number": docNumber ?? "",
+      },
+    );
 
     return confirmResponse.data as Map<String, dynamic>;
   }

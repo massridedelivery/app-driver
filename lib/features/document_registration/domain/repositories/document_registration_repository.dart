@@ -13,7 +13,6 @@ abstract class DocumentRegistrationRepository {
     DocumentType type, {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
-    bool isUpdate = false,
     String? docTypeOverride,
   });
   Future<void> submitVehicleDetails(VehicleInfo info);
