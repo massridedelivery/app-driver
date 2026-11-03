@@ -30,6 +30,8 @@ _IncomingJobModel _$IncomingJobModelFromJson(
   driverCommissionRate:
       (readDriverCommissionRate(json, 'commission_rate') as num?)?.toDouble(),
   tollFee: (json['toll_fee'] as num?)?.toDouble() ?? 0.0,
+  otherFee: (json['other_fee'] as num?)?.toDouble() ?? 0.0,
+  otherFeeNote: json['other_fee_note'] as String?,
   waitingFee: (json['waiting_fee'] as num?)?.toDouble() ?? 0.0,
   discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
   priorCancelFee: (json['prior_cancel_fee'] as num?)?.toDouble() ?? 0.0,
@@ -76,6 +78,8 @@ Map<String, dynamic> _$IncomingJobModelToJson(_IncomingJobModel instance) =>
       'commission': instance.driverCommission,
       'commission_rate': instance.driverCommissionRate,
       'toll_fee': instance.tollFee,
+      'other_fee': instance.otherFee,
+      'other_fee_note': instance.otherFeeNote,
       'waiting_fee': instance.waitingFee,
       'discount': instance.discount,
       'prior_cancel_fee': instance.priorCancelFee,

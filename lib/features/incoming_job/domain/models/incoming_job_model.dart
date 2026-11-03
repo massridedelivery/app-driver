@@ -48,6 +48,10 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     // What makes up amount_due (= fare + toll + waiting − discount), shown as
     // the collect screen's breakdown. From the active-job read (BE #198/#199).
     @JsonKey(name: 'toll_fee') @Default(0.0) double tollFee,
+    // Another cost the driver paid for the passenger (parking, a gate) and
+    // what it was — inside amount_due, paid to the driver in full (BE #66).
+    @JsonKey(name: 'other_fee') @Default(0.0) double otherFee,
+    @JsonKey(name: 'other_fee_note') String? otherFeeNote,
     @JsonKey(name: 'waiting_fee') @Default(0.0) double waitingFee,
     @JsonKey(name: 'discount') @Default(0.0) double discount,
     // The customer's unpaid fee from an earlier cancel (BE PR #15), already
