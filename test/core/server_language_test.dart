@@ -36,11 +36,19 @@ void main() {
       expect(deviceLanguageTag(const Locale('und')), 'th');
     });
 
+    test('X-Lang is th or en', () {
+      expect(deviceLangCode(const Locale('th', 'TH')), 'th');
+      expect(deviceLangCode(const Locale('en', 'GB')), 'en');
+      // The backend knows only th and en; anything else reads as Thai.
+      expect(deviceLangCode(const Locale('ja')), 'th');
+    });
+
     test('goes on every request through the app Dio', () async {
       SharedPreferences.setMockInitialValues({});
       final handler = _Capture();
       await HeaderInterceptor().onRequest(RequestOptions(path: '/x'), handler);
       expect(handler.options?.headers['Accept-Language'], deviceLanguageTag());
+      expect(handler.options?.headers['X-Lang'], deviceLangCode());
     });
   });
 

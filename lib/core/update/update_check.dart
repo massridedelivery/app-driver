@@ -221,7 +221,10 @@ class LiveUpdateSources implements UpdateSources {
       baseUrl: baseUrl ?? '',
       connectTimeout: const Duration(seconds: 6),
       receiveTimeout: const Duration(seconds: 6),
-      headers: {'Accept-Language': deviceLanguageTag()},
+      headers: {
+        'Accept-Language': deviceLanguageTag(),
+        'X-Lang': deviceLangCode(),
+      },
     ),
   );
 

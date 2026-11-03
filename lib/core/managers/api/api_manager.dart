@@ -111,6 +111,7 @@ class ApiManager {
       dio.options.headers['content-language'] = languageCode;
     }
     dio.options.headers['Accept-Language'] = deviceLanguageTag();
+    dio.options.headers['X-Lang'] = deviceLangCode();
 
     try {
       dio.options.headers['app-version'] = await Device.getAppVersion();
@@ -247,6 +248,7 @@ class ApiManager {
       dio.options.headers['content-language'] = languageCode;
     }
     dio.options.headers['Accept-Language'] = deviceLanguageTag();
+    dio.options.headers['X-Lang'] = deviceLangCode();
 
     final accessToken = await _secureStorage.read(SecureStorageKey.accessToken);
     if (accessToken != null) {
