@@ -126,6 +126,7 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final when = order.deliveredAt ?? order.createdAt;
+    final earnings = order.driverEarnings;
     final dateText =
         when != null ? DateFormat('d MMM yyyy, HH:mm').format(when.toLocal()) : '';
 
@@ -168,12 +169,27 @@ class _HistoryTile extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            formatBaht(order.fare),
-            style: AppTypography.caption3.copyWith(
-              color: context.palette.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+          // What was really settled to the driver (driver_earnings), with
+          // the commission under it; the fee on orders that predate it.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatBaht(earnings?.driverNet ?? order.fare),
+                style: AppTypography.caption3.copyWith(
+                  color: earnings == null
+                      ? context.palette.textPrimary
+                      : AppColors.foundationMint600,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (earnings?.commissionLine case final line?)
+                Text(
+                  line,
+                  style: AppTypography.caption5
+                      .copyWith(color: context.palette.textSecondary),
+                ),
+            ],
           ),
         ],
       ),

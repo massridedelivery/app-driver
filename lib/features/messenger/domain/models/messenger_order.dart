@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_status.dart';
 
@@ -67,6 +68,10 @@ class MessengerOrder {
   @JsonKey(defaultValue: 0.0)
   final double platformCommission;
   final String? promoId;
+  // The driver's net and commission (BE v1.6.16); on a delivered order, what
+  // was really settled. Null when absent — never derived from the fare.
+  @JsonKey(fromJson: DriverEarnings.fromJson)
+  final DriverEarnings? driverEarnings;
 
   final DateTime? createdAt;
   final DateTime? acceptedAt;
@@ -108,6 +113,7 @@ class MessengerOrder {
     this.discount = 0.0,
     this.platformCommission = 0.0,
     this.promoId,
+    this.driverEarnings,
     this.createdAt,
     this.acceptedAt,
     this.arrivedAtPickupAt,
@@ -142,6 +148,7 @@ class MessengerOrder {
         payer: o.payer,
         collectAt: o.collectAt,
         amountDue: o.amountDue,
+        driverEarnings: o.driverEarnings,
       );
 
   MessengerStatus get statusEnum => MessengerStatus.fromApi(status);

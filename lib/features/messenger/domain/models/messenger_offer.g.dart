@@ -24,4 +24,5 @@ MessengerOffer _$MessengerOfferFromJson(Map<String, dynamic> json) =>
       collectAt: json['collect_at'] as String?,
       amountDue: (json['amount_due'] as num?)?.toDouble(),
       encodedPolyline: json['encoded_polyline'] as String?,
+      driverEarnings: DriverEarnings.fromJson(json['driver_earnings']),
     );

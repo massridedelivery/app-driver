@@ -39,6 +39,7 @@ MessengerOrder _$MessengerOrderFromJson(Map<String, dynamic> json) =>
       platformCommission:
           (json['platform_commission'] as num?)?.toDouble() ?? 0.0,
       promoId: json['promo_id'] as String?,
+      driverEarnings: DriverEarnings.fromJson(json['driver_earnings']),
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),

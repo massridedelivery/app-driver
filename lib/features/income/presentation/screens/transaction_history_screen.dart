@@ -770,7 +770,7 @@ class _JobCard extends StatelessWidget {
       ))
         JobCardLine(
           label: t.type == TransactionType.commissionDeduction
-              ? 'หักค่าคอมมิชชัน'
+              ? commissionLabel(trip?.commissionRate)
               : _TransactionTile._typeLabel(t.type),
           amount: t.amount,
           badge: t.status == TransactionStatus.completed

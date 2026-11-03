@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
 
 part 'messenger_offer.g.dart';
 
@@ -38,6 +39,10 @@ class MessengerOffer {
   // Encoded route polyline (dev15) — draw the real road route on the offer map
   // instead of a straight pickup→drop-off line.
   final String? encodedPolyline;
+  // What this driver keeps and the commission at their rate (BE v1.6.16).
+  // Null on older payloads: the card then shows the fee, not an income.
+  @JsonKey(fromJson: DriverEarnings.fromJson)
+  final DriverEarnings? driverEarnings;
 
   const MessengerOffer({
     this.id = '',
@@ -56,6 +61,7 @@ class MessengerOffer {
     this.collectAt,
     this.amountDue,
     this.encodedPolyline,
+    this.driverEarnings,
   });
 
   factory MessengerOffer.fromJson(Map<String, dynamic> json) =>

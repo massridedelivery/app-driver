@@ -168,9 +168,14 @@ class _MessengerOfferSheetState extends ConsumerState<MessengerOfferSheet> {
     final offer = widget.offer;
     final p = context.palette;
     final card = RideCardColors.of(context);
-    // Messenger offers carry no driver_earnings yet — the fee isn't the
-    // driver's net, so it's labelled as the delivery fee (BE #191).
-    final headline = offerHeadline(fare: offer.fare, delivery: true);
+    // รายได้สุทธิ from driver_earnings (BE v1.6.16); without it the fee is
+    // labelled as the delivery fee, never as the driver's income (BE #191).
+    final earnings = offer.driverEarnings;
+    final headline = offerHeadline(
+      fare: offer.fare,
+      driverNet: earnings?.driverNet,
+      delivery: true,
+    );
     final autoAccept = ref.watch(autoAcceptProvider);
     final isSubmitting = ref.watch(
       messengerControllerProvider.select((s) => s.isSubmitting),
@@ -229,6 +234,7 @@ class _MessengerOfferSheetState extends ConsumerState<MessengerOfferSheet> {
                 RideOfferMoney(
                   label: headline.label,
                   amount: headline.amount,
+                  note: earnings?.commissionLine,
                 ),
               ],
             ),

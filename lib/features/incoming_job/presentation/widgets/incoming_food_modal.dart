@@ -166,6 +166,7 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
                 RideOfferMoney(
                   label: headline.label,
                   amount: headline.amount,
+                  note: job.earnings?.commissionLine,
                 ),
               ],
             ),

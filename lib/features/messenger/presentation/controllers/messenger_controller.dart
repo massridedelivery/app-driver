@@ -74,7 +74,14 @@ class MessengerController extends _$MessengerController {
         final current = state.activeOrder;
         if (orderJson is Map<String, dynamic> && current != null) {
           try {
-            final updated = MessengerOrder.fromJson(orderJson);
+            // An update without driver_earnings keeps the ones the server
+            // sent before, so the live card doesn't drop the income line.
+            final updated = MessengerOrder.fromJson({
+              ...orderJson,
+              if (orderJson['driver_earnings'] == null &&
+                  current.driverEarnings != null)
+                'driver_earnings': current.driverEarnings!.toJson(),
+            });
             if (updated.id == current.id) {
               state = state.copyWith(activeOrder: updated);
             }

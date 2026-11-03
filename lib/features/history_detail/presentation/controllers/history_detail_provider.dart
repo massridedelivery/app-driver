@@ -72,6 +72,9 @@ HistoryDetailEntity historyDetailFromTrip(Map<String, dynamic> trip) {
     grossFare: _int(trip['gross_fare']),
     commission: _int(trip['commission']),
     settledNet: _int(trip['driver_net']),
+    commissionRate: trip['commission_rate'] is num
+        ? (trip['commission_rate'] as num).toDouble()
+        : null,
     serviceType: 'ride',
     pickupLat: trip['pickup_lat'] == null ? null : _d(trip['pickup_lat']),
     pickupLng: trip['pickup_lng'] == null ? null : _d(trip['pickup_lng']),

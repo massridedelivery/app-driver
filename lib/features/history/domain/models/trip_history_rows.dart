@@ -1,3 +1,4 @@
+import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
 import 'package:massdrive/features/wallet/domain/enums/transaction_type.dart';
 import 'history_item_model.dart';
 import 'trip_summary.dart';
@@ -16,12 +17,19 @@ List<HistoryItemModel> tripRows(
   return i.withTrip(t);
 }).toList();
 
+/// "หักค่าคอมมิชชัน 20%" with the trip's settled rate, without it when the
+/// backend sent none.
+String commissionLabel(double? rate) => switch (commissionPercent(rate)) {
+  final pct? => 'หักค่าคอมมิชชัน $pct',
+  null => 'หักค่าคอมมิชชัน',
+};
+
 /// Card line label for a history row: the fare / commission by type, the
 /// row's own (already Thai) title otherwise.
 String historyLineLabel(HistoryItemModel i) =>
     switch (i.rawType?.toUpperCase()) {
       'FARE_PAYMENT' => 'ค่าโดยสาร',
-      'COMMISSION_DEDUCTION' => 'หักค่าคอมมิชชัน',
+      'COMMISSION_DEDUCTION' => commissionLabel(i.trip?.commissionRate),
       'MARKETING_EXPENSE' => 'ส่วนลด (บริษัทออกให้)',
       'CANCELLATION_FEE_COLLECTED' => cancellationFeeCollectedLabel,
       _ => i.title,

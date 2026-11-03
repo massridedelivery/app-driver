@@ -10,6 +10,7 @@ class TripSummary {
     this.customerPaid,
     this.cashCollected,
     this.walletCredit,
+    this.commissionRate,
   });
 
   /// `driver_info.vehicle_type_name` (or a top-level `vehicle_type_name`).
@@ -32,6 +33,10 @@ class TripSummary {
   final double? customerPaid;
   final double? cashCollected;
   final double? walletCredit;
+
+  /// `commission_rate` the trip was settled at (0.2 = 20 %); null until it
+  /// settles.
+  final double? commissionRate;
 }
 
 /// job id → [TripSummary] from the trip list response.
@@ -59,6 +64,7 @@ Map<String, TripSummary> tripSummariesByJob(Object? response) {
       customerPaid: n('customer_paid'),
       cashCollected: n('cash_collected'),
       walletCredit: n('wallet_credit'),
+      commissionRate: n('commission_rate'),
     );
   }
   return out;

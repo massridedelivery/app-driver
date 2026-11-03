@@ -22,6 +22,8 @@ import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
+import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
+import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/call/domain/call_kind.dart';
 import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
 
@@ -115,10 +117,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _baseFare => _amounts.fee;
 
-  /// The driver's own net and commission for this ride, from the offer
-  /// (BE #191 driver_earnings). Never computed here.
-  double? get _driverNet =>
-      ref.read(incomingJobControllerProvider).currentJob?.driverNet;
+  /// The driver's own net and commission for this ride or parcel, from the
+  /// server's driver_earnings (BE #191, v1.6.16). Never computed here.
+  DriverEarnings? get _earnings => _isMessenger
+      ? ref.read(messengerControllerProvider).activeOrder?.driverEarnings
+      : ref.read(incomingJobControllerProvider).currentJob?.earnings;
 
   /// The ride as last read from the server (fare, toll, waiting, discount,
   /// payment status) — the parts of amount_due. Null for messenger.
@@ -141,15 +144,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             j.priorCancelFee > 0);
   }
 
-  double? get _driverCommission =>
-      ref.read(incomingJobControllerProvider).currentJob?.driverCommission;
-
   /// Under the amount to collect: what the platform keeps and what the
-  /// driver really earns — "เก็บ ฿44 · หักค่าคอม −฿7 · รายได้สุทธิ ฿37".
+  /// driver really earns — "เก็บ ฿44 · หักค่าคอม 20% −฿7 · รายได้สุทธิ ฿37".
+  /// The amount to collect above stays amount_due: nothing is taken off it.
   List<Widget> _earningsRows() {
-    final net = _driverNet;
-    if (_isMessenger || net == null) return const [];
-    final commission = _driverCommission;
+    final earnings = _earnings;
+    if (earnings == null) return const [];
+    final net = earnings.driverNet;
+    final commission = earnings.commission;
+    final pct = commissionPercent(earnings.commissionRate);
     return [
       const SizedBox(height: 12),
       if (commission != null && commission > 0) ...[
@@ -157,7 +160,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'หักค่าคอมมิชชัน',
+              pct == null ? 'หักค่าคอมมิชชัน' : 'หักค่าคอมมิชชัน $pct',
               style: AppTypography.body2.copyWith(
                 color: context.palette.textSecondary,
               ),
