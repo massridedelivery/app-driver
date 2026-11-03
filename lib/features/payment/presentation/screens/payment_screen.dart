@@ -101,7 +101,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final job = ref.read(incomingJobControllerProvider).currentJob;
     return CollectionAmounts.resolve(
       messenger: _isMessenger,
-      prepaid: _alreadyPaid,
+      prepaid: _alreadyPaid || _customerPaid,
       intentAmount: _intentAmount,
       routeAmount: widget.amount,
       jobAmountDue: job?.amountDue,
@@ -195,9 +195,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _totalFare => _amounts.feeTotal;
 
-  /// Ride whose amount_due is 0 (full-fare promo) and no COD.
+  /// A ride or parcel whose amount_due is 0 (a promo covered it all) and no
+  /// COD. Food pushes no amount; a prepaid food order is [_customerPaid].
   bool get _nothingToCollect =>
-      !_isMessenger && widget.amount == 0 && (widget.codAmount ?? 0) <= 0;
+      widget.amount == 0 && (widget.codAmount ?? 0) <= 0;
+
+  /// No fee left to collect (amount_due 0) — only COD, if any, in cash. A ฿0
+  /// QR can't be minted (payment/intent refuses it).
+  bool get _noFeeDue => widget.amount != null && widget.amount! <= 0;
 
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
   static const _pollInterval = Duration(seconds: 3);
@@ -286,8 +291,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final isFood = job?.isFood ?? (widget.service == ReviewService.food);
     // Fee already prepaid (sender QR, dev14): nothing to collect — reflect PAID
     // so completion is ungated and skip the intent/poll entirely.
-    if (_alreadyPaid) {
+    // Same for a ride or food order the server says is paid (QR/card, or a
+    // promo that made it ฿0 — paid as placed, BE v1.6.13).
+    if (_alreadyPaid || _customerPaid) {
       _status = 'PAID';
+      // The cash view says "ลูกค้าชำระแล้ว · ไม่ต้องเก็บเงินสด" (a parcel's
+      // prepaid view is unchanged).
+      if (_customerPaid) _currentMethod = PaymentMethod.cash;
       return;
     }
     // A ride a promo covered in full (amount_due 0, BE #198): nothing to
@@ -298,8 +308,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
     // Food's payment-intent endpoint isn't defined yet (BE) — keep the static
     // QR for food; only ride/messenger fetch a live intent + poll.
-    if (isQr && !isFood) {
+    if (isQr && !isFood && !_noFeeDue) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _startQrFlow());
+    } else if (_noFeeDue) {
+      // Fee ฿0 but COD to take at the door: cash, never a QR or an override.
+      _currentMethod = PaymentMethod.cash;
     }
   }
 
@@ -872,7 +885,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           // Nothing to collect: finishing the job is all that's left.
           // A slide, not a tap: harder to confirm cash by accident.
           SlideToConfirm(
-            label: _nothingToCollect
+            label: _amounts.cashTotal <= 0
                 ? 'เลื่อนเพื่อจบงาน'
                 : 'เลื่อนเมื่อรับเงินสดแล้ว',
             color: AppColors.foundationGreen700,
