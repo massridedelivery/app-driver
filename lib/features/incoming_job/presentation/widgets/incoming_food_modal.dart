@@ -2,18 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:massdrive/common/widgets/job_offer_action_bar.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
-import 'package:massdrive/core/constants/app_spacing.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
-import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
-import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
-import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
-import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
+import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/baht.dart';
+import 'package:massdrive/features/history/domain/models/trip_history_rows.dart';
+import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 import 'package:massdrive/features/incoming_job/domain/models/food_order_lines.dart';
+import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
+import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 
+/// Incoming food offer in the ride offer's card ([IncomingJobModal]): tag +
+/// payment · km and the money on top, restaurant → customer timeline, the
+/// order, and the same accept slide / countdown / decline.
 class IncomingFoodModal extends ConsumerStatefulWidget {
   final IncomingJobModel job;
 
@@ -24,16 +27,22 @@ class IncomingFoodModal extends ConsumerStatefulWidget {
 }
 
 class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
+  /// Food lines listed on the card before the rest fold into "อีก N รายการ",
+  /// so a big order can't push the accept slide off the screen.
+  static const int _maxLines = 4;
+
   Timer? _timer;
 
   /// Total window (seconds) the driver has to accept, from the offer.
   late final int _totalSeconds;
 
-  /// Seconds left on the accept window; drives the button label + progress bar.
+  /// Seconds left on the accept window; drives the caption + countdown ring.
   late int _remaining;
 
   /// Guards against firing accept/decline twice (e.g. tap racing the timeout).
   bool _resolved = false;
+
+  bool _accepting = false;
 
   @override
   void initState() {
@@ -68,10 +77,19 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
     if (_resolved) return;
     _resolved = true;
     _timer?.cancel();
-    final outcome =
-        await ref.read(incomingJobControllerProvider.notifier).acceptFoodJob();
+    // Disable the slide until the backend answers, as on the ride offer.
+    setState(() => _accepting = true);
+    final outcome = await ref
+        .read(incomingJobControllerProvider.notifier)
+        .acceptFoodJob();
+    if (!mounted) return;
     // Failed but still on offer: let the driver try again.
-    if (mounted && outcome == AcceptOutcome.failed) _resolved = false;
+    if (outcome == AcceptOutcome.failed) {
+      setState(() {
+        _accepting = false;
+        _resolved = false;
+      });
+    }
   }
 
   void _decline() {
@@ -92,384 +110,222 @@ class _IncomingFoodModalState extends ConsumerState<IncomingFoodModal> {
 
   @override
   Widget build(BuildContext context) {
-    final autoAccept = ref.watch(autoAcceptProvider);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.semanticGrayNeutralFgMidOnBlack,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppSpacing.s6),
-          topRight: Radius.circular(AppSpacing.s6),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Padding(
-          // Bottom inset from viewPadding, not SafeArea: SafeArea reads
-          // MediaQuery.padding, which an ancestor can consume to 0 — leaving
-          // the accept button under the system nav/gesture bar.
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4,
-            AppSpacing.s4 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header: MassFood badge + income
-              _buildHeader(),
-              const SizedBox(height: AppSpacing.s3),
-              const Divider(color: Colors.white24, thickness: 1),
-              const SizedBox(height: AppSpacing.s3),
-
-              // Restaurant name
-              _buildRestaurantInfo(),
-              const SizedBox(height: AppSpacing.s3),
-
-              // Order items
-              if (job.orderItems.isNotEmpty) ...[
-                _buildOrderItems(),
-                const SizedBox(height: AppSpacing.s3),
-              ],
-
-              // Delivery route
-              _buildDeliveryRoute(),
-              const SizedBox(height: AppSpacing.s3),
-
-              // Order summary
-              _buildOrderSummary(),
-              const SizedBox(height: AppSpacing.s4),
-
-              // Shared accept/decline footer: auto-accept caption, progress bar
-              // and the large cancel/accept pills — same flow as the ride offer.
-              JobOfferActionBar(
-                remaining: _remaining,
-                totalSeconds: _totalSeconds,
-                autoAccept: autoAccept,
-                onAccept: _accept,
-                onDecline: _decline,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
+    final p = context.palette;
+    final card = RideCardColors.of(context);
     final headline = offerHeadline(
       fare: job.netIncome,
       driverNet: job.driverNet,
       delivery: true,
     );
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Food icon badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.foundationOrange600,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.fastfood, color: Colors.white, size: 16),
-              const SizedBox(width: 4),
-              Text(
-                'MassFood',
-                style: AppTypography.label3.copyWith(color: Colors.white),
-              ),
-            ],
-          ),
+    final autoAccept = ref.watch(autoAcceptProvider);
+    final pay = paymentMethodLabel(job.paymentMethod);
+    final tripKm = (job.distanceKm ?? 0) > 0
+        ? job.distanceKm!
+        : job.dropoffDistanceKm;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: card.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Padding(
+        // Bottom inset from viewPadding, not SafeArea: SafeArea reads
+        // MediaQuery.padding, which an ancestor can consume to 0 — leaving
+        // the accept slide under the system nav/gesture bar.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
         ),
-        const Spacer(),
-        // Net income
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              headline.label,
-              style: AppTypography.caption5.copyWith(color: Colors.white70),
-            ),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  formatBahtNumber(headline.amount),
-                  style: AppTypography.heading2.copyWith(
-                    color: AppColors.semanticGrayNeutralFgWhite,
-                    fontSize: 28,
-                    height: 1.1,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const RideTag(text: 'ส่งอาหาร'),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if (pay.isNotEmpty) pay,
+                          if (tripKm > 0) '${tripKm.toStringAsFixed(1)} กม.',
+                        ].join(' · '),
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  ' ฿',
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.semanticGrayNeutralFgWhite,
-                  ),
+                RideOfferMoney(
+                  label: headline.label,
+                  amount: headline.amount,
                 ),
               ],
             ),
+            Divider(height: 20, color: card.line),
+            RideStopsTimeline(
+              stops: [
+                RideStop(
+                  address: job.restaurantName ?? job.pickupAddress,
+                  sub: [
+                    'รับอาหาร',
+                    if (job.pickupDistanceKm > 0)
+                      '${job.pickupDistanceKm.toStringAsFixed(1)} กม. จากคุณ',
+                  ].join(' · '),
+                  isPickup: true,
+                  state: RideStopState.current,
+                ),
+                RideStop(
+                  address: job.dropoffAddress,
+                  sub: [
+                    'ส่งอาหาร',
+                    if (tripKm > 0) '${tripKm.toStringAsFixed(1)} กม.',
+                  ].join(' · '),
+                  isPickup: false,
+                  state: RideStopState.current,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _orderBox(context),
+            const SizedBox(height: 6),
+            RideOfferFooter(
+              remaining: _remaining,
+              total: _totalSeconds,
+              autoAccept: autoAccept,
+              accepting: _accepting,
+              onAccept: _accept,
+              onDecline: _decline,
+            ),
           ],
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.semanticGrayNeutralFgWhite,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            job.paymentMethod,
-            style: AppTypography.body3.copyWith(
-              color: AppColors.semanticGrayNeutralFgHigh,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildRestaurantInfo() {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.foundationOrange100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Icons.storefront,
-            color: AppColors.foundationOrange600,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                job.restaurantName ?? 'ร้านอาหาร',
-                style: AppTypography.heading6.copyWith(
-                  color: AppColors.semanticGrayNeutralFgWhite,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                job.pickupAddress,
-                style: AppTypography.caption5.copyWith(color: Colors.white54),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
+  /// The order in a soft box: up to [_maxLines] items, then food / delivery
+  /// / total.
+  Widget _orderBox(BuildContext context) {
+    final p = context.palette;
+    final lines = FoodOrderLine.listFrom(job.orderItems);
+    final totals = FoodOrderTotals.from(
+      lines: lines,
+      subtotal: job.subtotal,
+      deliveryFee: job.deliveryFee,
     );
-  }
+    final shown = lines.take(_maxLines).toList();
+    final hidden = lines.length - shown.length;
 
-  Widget _buildOrderItems() {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
+        color: RideCardColors.of(context).chip,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'รายการอาหาร',
-            style: AppTypography.caption5.copyWith(
-              color: AppColors.foundationOrange500,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...FoodOrderLine.listFrom(job.orderItems).map((line) {
-            final name = line.name;
-            final qty = line.qty;
-            final note = line.note;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: AppColors.foundationOrange600,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${qty}x',
-                      style: AppTypography.support1.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: AppTypography.caption4.copyWith(
-                            color: AppColors.semanticGrayNeutralFgWhite,
-                          ),
-                        ),
-                        if (note != null && note.isNotEmpty)
-                          Text(
-                            note,
-                            style: AppTypography.caption5.copyWith(
-                              color: Colors.white38,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    formatBaht(line.lineTotal),
-                    style: AppTypography.caption4.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
+          if (shown.isNotEmpty) ...[
+            Text(
+              'รายการอาหาร (${lines.length})',
+              style: AppTypography.caption5.copyWith(
+                color: p.textSecondary,
+                fontWeight: FontWeight.w700,
               ),
-            );
-          }),
+            ),
+            const SizedBox(height: 6),
+            for (final line in shown) _itemRow(context, line),
+            if (hidden > 0)
+              Text(
+                'และอีก $hidden รายการ',
+                style: AppTypography.caption5.copyWith(color: p.textSecondary),
+              ),
+            Divider(height: 16, color: RideCardColors.of(context).line),
+          ],
+          _summaryRow(context, 'ค่าอาหาร', formatBaht(totals.itemsSubtotal)),
+          const SizedBox(height: 2),
+          _summaryRow(context, 'ค่าส่ง', formatBaht(totals.deliveryFee)),
+          const SizedBox(height: 2),
+          _summaryRow(
+            context,
+            'รวมที่ลูกค้าจ่าย',
+            formatBaht(totals.total),
+            bold: true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDeliveryRoute() {
-    return IntrinsicHeight(
+  Widget _itemRow(BuildContext context, FoodOrderLine line) {
+    final p = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline dots
-          Column(
-            children: [
-              Container(
-                width: 16,
-                height: 16,
-                decoration: const BoxDecoration(
-                  color: AppColors.foundationOrange600,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.storefront, size: 10, color: Colors.white),
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${line.qty}x',
+              style: AppTypography.caption4.copyWith(
+                color: p.textPrimary,
+                fontWeight: FontWeight.w700,
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(
-                      3,
-                      (index) => Container(
-                        width: 3,
-                        height: 3,
-                        decoration: const BoxDecoration(
-                          color: Colors.white70,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                width: 16,
-                height: 16,
-                decoration: const BoxDecoration(
-                  color: AppColors.semanticSuccessBgHigh,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.location_on, size: 10, color: Colors.white),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(width: 12),
-          // Addresses
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  job.pickupAddress,
-                  style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralFgWhite,
-                  ),
+                  line.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption4.copyWith(color: p.textPrimary),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  job.dropoffAddress,
-                  style: AppTypography.caption4.copyWith(
-                    color: AppColors.semanticGrayNeutralFgWhite,
+                if (line.note != null)
+                  Text(
+                    line.note!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption5.copyWith(
+                      color: p.textSecondary,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderSummary() {
-    final totals = FoodOrderTotals.from(
-      lines: FoodOrderLine.listFrom(job.orderItems),
-      subtotal: job.subtotal,
-      deliveryFee: job.deliveryFee,
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          _summaryRow('ค่าอาหาร', formatBaht(totals.itemsSubtotal)),
-          const SizedBox(height: 4),
-          _summaryRow('ค่าส่ง', formatBaht(totals.deliveryFee)),
-          const Divider(color: Colors.white12, height: 16),
-          _summaryRow(
-            'รวม',
-            formatBaht(totals.total),
-            isBold: true,
+          const SizedBox(width: 8),
+          Text(
+            formatBaht(line.lineTotal),
+            style: AppTypography.caption4.copyWith(color: p.textSecondary),
           ),
         ],
       ),
     );
   }
 
-  Widget _summaryRow(String label, String value, {bool isBold = false}) {
-    final style = isBold
-        ? AppTypography.heading6.copyWith(
-            color: AppColors.semanticGrayNeutralFgWhite,
+  Widget _summaryRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool bold = false,
+  }) {
+    final p = context.palette;
+    final style = bold
+        ? AppTypography.caption3.copyWith(
+            color: p.textPrimary,
+            fontWeight: FontWeight.w700,
           )
-        : AppTypography.caption5.copyWith(color: Colors.white54);
-
+        : AppTypography.caption5.copyWith(color: p.textSecondary);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

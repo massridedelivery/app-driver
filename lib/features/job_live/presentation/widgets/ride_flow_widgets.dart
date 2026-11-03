@@ -360,6 +360,37 @@ class RideIconButton extends StatelessWidget {
   );
 }
 
+/// The money on an offer card, right-aligned: "รายได้สุทธิ" over the big
+/// green figure.
+class RideOfferMoney extends StatelessWidget {
+  const RideOfferMoney({super.key, required this.label, required this.amount});
+
+  final String label;
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: AppTypography.caption5.copyWith(color: p.textSecondary),
+        ),
+        Text(
+          formatBaht(amount),
+          style: AppTypography.heading2.copyWith(
+            color: AppColors.foundationMint600,
+            fontSize: 32,
+            height: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// "ค่ายกเลิกครั้งก่อนของลูกค้า ฿X (เก็บแทนบริษัท)" on the offer and the
 /// collect screen: money taken for the company on top of this job's fare.
 class PriorCancelFeeNote extends StatelessWidget {
