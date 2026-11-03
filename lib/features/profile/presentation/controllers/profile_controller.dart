@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/data/sources/quest_api_service.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
+import 'package:massdrive/features/profile/domain/profile_updates.dart';
 import 'package:massdrive/features/profile/domain/repositories/profile_repository.dart';
 import 'package:massdrive/features/profile/domain/repositories/vehicle_repository.dart';
 import 'package:massdrive/features/profile/presentation/states/profile_state.dart';
@@ -19,11 +21,26 @@ class ProfileController extends _$ProfileController {
   ProfileState build() {
     _repository = getIt<ProfileRepository>();
     _vehicleRepository = getIt<VehicleRepository>();
+    // The photo changes server-side (an admin approves a selfie → a new
+    // avatar_url), so re-read on that push and whenever the app comes back to
+    // the foreground. Quietly: Home shows its skeleton while isLoading.
+    void refreshLoaded() {
+      if (state.profile != null) fetchProfile(silent: true);
+    }
+
+    ProfileUpdates.instance.addListener(refreshLoaded);
+    final lifecycle = AppLifecycleListener(onResume: refreshLoaded);
+    ref.onDispose(() {
+      ProfileUpdates.instance.removeListener(refreshLoaded);
+      lifecycle.dispose();
+    });
     return const ProfileState();
   }
 
-  Future<void> fetchProfile() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+  /// [silent] refreshes in place (no isLoading) when a profile is already on
+  /// screen.
+  Future<void> fetchProfile({bool silent = false}) async {
+    state = state.copyWith(isLoading: !silent, errorMessage: null);
     try {
       final profile = await _repository.getProfile();
       // acceptance_rate / cancellation_rate are NOT on /api/driver/profile —

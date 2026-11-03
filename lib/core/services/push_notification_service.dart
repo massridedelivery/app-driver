@@ -22,6 +22,7 @@ import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/profile/domain/profile_updates.dart';
 
 /// Requests notification permission and returns the resulting iOS/Firebase
 /// [AuthorizationStatus] name for display. Shared by app startup and the FCM
@@ -341,6 +342,11 @@ class PushNotificationService {
     // Slip approved/rejected (topup_approved / topup_rejected): wallet and
     // COD status changed — refresh them and the slip list.
     if (_isTopupUpdate(message)) TopupUpdates.instance.notifyChanged();
+    // A document was reviewed (document_status): an approved selfie is now the
+    // avatar, and verification may have changed — re-read the profile.
+    if (isDocumentStatusPush(message.data)) {
+      ProfileUpdates.instance.notifyChanged();
+    }
     // The job was cancelled (customer / admin / system): the app-root
     // listener closes the job screen and shows its own dialog.
     if (jobCancelFromPush(message.data) case final cancel?) {
@@ -477,6 +483,11 @@ class PushNotificationService {
     FcmDebugLog.log(
       'Notification tapped: id=${message.messageId} route=${message.data['route']}',
     );
+    // Opened from a document review: the app may have been in the background
+    // when the photo changed, so re-read the profile before the route opens.
+    if (isDocumentStatusPush(message.data)) {
+      ProfileUpdates.instance.notifyChanged();
+    }
     // Finance decided on a held (override-claimed) fare → open the held list.
     final type = message.data['type']?.toString();
     if (jobCancelFromPush(message.data) case final cancel?) {

@@ -18,11 +18,27 @@ import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 
-class EditProfileScreen extends ConsumerWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // The profile controller is keepAlive: re-read on open so a photo an
+    // admin just approved (a new avatar_url) shows here.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(profileControllerProvider.notifier).fetchProfile(silent: true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
 
