@@ -139,6 +139,13 @@ abstract class Endpoints {
   // Poll uses the existing `paymentIntent(intentId)` helper below.
   /// Confirm cash received (messenger only) → settlement. Ride cash settles via
   /// the complete-job call itself, so it has no separate endpoint.
+  /// Costs the driver paid for the customer, as the job's total (BE #66):
+  /// ride toll {toll_fee}, ride / parcel other cost {other_fee, note}.
+  static const driverJobToll = '/api/driver/jobs/:id/toll';
+  static const driverJobOtherFee = '/api/driver/jobs/:id/other-fee';
+  static const messengerOrderOtherFee =
+      '/api/messenger/driver/orders/:id/other-fee';
+
   static const messengerOrderCollectCash =
       '/api/messenger/driver/orders/:id/collect-cash';
 

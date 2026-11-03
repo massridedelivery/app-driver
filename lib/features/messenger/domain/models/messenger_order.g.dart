@@ -33,6 +33,8 @@ MessengerOrder _$MessengerOrderFromJson(Map<String, dynamic> json) =>
       collectAt: json['collect_at'] as String?,
       amountDue: (json['amount_due'] as num?)?.toDouble(),
       paymentStatus: json['payment_status'] as String? ?? '',
+      otherFee: (json['other_fee'] as num?)?.toDouble() ?? 0.0,
+      otherFeeNote: json['other_fee_note'] as String?,
       distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0.0,
       fare: (json['fare'] as num?)?.toDouble() ?? 0.0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,

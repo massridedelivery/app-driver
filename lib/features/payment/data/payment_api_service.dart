@@ -46,6 +46,40 @@ class PaymentApiService {
     return _wrap(res);
   }
 
+  /// A ride's toll as its total (BE: 1–500). Throws on a refusal, e.g. 409
+  /// once the passenger has paid; the body's message says why.
+  Future<void> setRideToll({required String jobId, required double toll}) =>
+      _dio.put(
+        Endpoints.driverJobToll.replaceAll(':id', jobId),
+        data: {'toll_fee': toll},
+      );
+
+  /// A ride's other cost (parking, a gate) as its total, with what it was;
+  /// 0 clears it.
+  Future<void> setRideOtherFee({
+    required String jobId,
+    required double fee,
+    required String note,
+  }) => _dio.put(
+    Endpoints.driverJobOtherFee.replaceAll(':id', jobId),
+    data: {'other_fee': fee, 'note': note},
+  );
+
+  /// A parcel's other cost as its total, with what it was; 0 clears it.
+  /// Returns the updated order.
+  Future<Map<String, dynamic>> setParcelOtherFee({
+    required String orderId,
+    required double fee,
+    required String note,
+  }) async {
+    final res = await _dio.put(
+      Endpoints.messengerOrderOtherFee.replaceAll(':id', orderId),
+      data: {'other_fee': fee, 'note': note},
+    );
+    final data = res.data;
+    return data is Map ? Map<String, dynamic>.from(data) : const {};
+  }
+
   /// Held fares — override-claimed fares awaiting finance review (dev15).
   /// GET /api/driver/payments/held → { items: [...], total }.
   Future<List<HeldFare>> getHeldFares() async {

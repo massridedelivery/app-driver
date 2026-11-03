@@ -58,6 +58,11 @@ class MessengerOrder {
   final double? amountDue;
   @JsonKey(defaultValue: '')
   final String paymentStatus;
+  // Another cost the driver paid for the customer (parking, a gate) and what
+  // it was — inside amountDue, paid to the driver in full (BE #66).
+  @JsonKey(defaultValue: 0.0)
+  final double otherFee;
+  final String? otherFeeNote;
 
   @JsonKey(defaultValue: 0.0)
   final double distanceKm;
@@ -108,6 +113,8 @@ class MessengerOrder {
     this.collectAt,
     this.amountDue,
     this.paymentStatus = '',
+    this.otherFee = 0.0,
+    this.otherFeeNote,
     this.distanceKm = 0.0,
     this.fare = 0.0,
     this.discount = 0.0,

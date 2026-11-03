@@ -20,6 +20,10 @@ import 'package:massdrive/features/payment/data/payment_api_service.dart';
 import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
+import 'package:massdrive/features/payment/domain/extra_charge.dart';
+import 'package:massdrive/features/payment/presentation/widgets/extra_charge_sheet.dart';
+import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
+import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
@@ -89,28 +93,27 @@ class PaymentScreen extends ConsumerStatefulWidget {
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   PaymentMethod? _currentMethod;
 
-  final TextEditingController _tollController = TextEditingController();
-  final TextEditingController _othersController = TextEditingController();
+  /// amount_due as the server gave it after the driver set a toll / other
+  /// cost here (BE #66); until then what the caller pushed.
+  double? _freshAmountDue;
+  double? get _amountDue => _freshAmountDue ?? widget.amount;
 
-  double get _tolls => double.tryParse(_tollController.text) ?? 0.0;
+  /// A toll / other cost is being sent.
+  bool _savingCharge = false;
 
-  double get _others => double.tryParse(_othersController.text) ?? 0.0;
-
-  // The customer pays the job fare (already net of any discount) plus any
-  // real add-ons the driver enters (tolls / others). No app fee is added on
-  // top of the customer's bill — platform commission is deducted separately.
+  // The customer pays amount_due: the fare net of any discount, plus the
+  // toll and other costs the server holds. No app fee is added on top of the
+  // customer's bill — platform commission is deducted separately.
   CollectionAmounts get _amounts {
     final job = ref.read(incomingJobControllerProvider).currentJob;
     return CollectionAmounts.resolve(
       messenger: _isMessenger,
       prepaid: _alreadyPaid || _customerPaid,
       intentAmount: _intentAmount,
-      routeAmount: widget.amount,
+      routeAmount: _amountDue,
       jobAmountDue: job?.amountDue,
       jobFare: job?.netIncome,
       baseFare: widget.baseFare,
-      tolls: _tolls,
-      others: _others,
       cod: widget.codAmount,
     );
   }
@@ -139,6 +142,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final j = _rideJob;
     return j != null &&
         (j.tollFee > 0 ||
+            j.otherFee > 0 ||
             j.waitingFee > 0 ||
             j.discount > 0 ||
             j.priorCancelFee > 0);
@@ -201,11 +205,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// A ride or parcel whose amount_due is 0 (a promo covered it all) and no
   /// COD. Food pushes no amount; a prepaid food order is [_customerPaid].
   bool get _nothingToCollect =>
-      widget.amount == 0 && (widget.codAmount ?? 0) <= 0;
+      _amountDue == 0 && (widget.codAmount ?? 0) <= 0;
 
   /// No fee left to collect (amount_due 0) — only COD, if any, in cash. A ฿0
   /// QR can't be minted (payment/intent refuses it).
-  bool get _noFeeDue => widget.amount != null && widget.amount! <= 0;
+  bool get _noFeeDue => _amountDue != null && _amountDue! <= 0;
 
   // ── QR collection (SCRUM-86) ───────────────────────────────────────────────
   static const _pollInterval = Duration(seconds: 3);
@@ -275,6 +279,137 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (who == null && where == null) return null;
     if (who != null && where != null) return 'เก็บจาก$who ที่$where';
     return 'เก็บจาก${who ?? where}';
+  }
+
+  // ── Toll / other costs the driver paid (BE #66) ────────────────────────────
+
+  bool get _isFood =>
+      widget.service == ReviewService.food ||
+      (!_isMessenger &&
+          (ref.read(incomingJobControllerProvider).currentJob?.isFood ??
+              false));
+
+  /// A ride takes a toll and another cost, a parcel another cost only, food
+  /// neither — and only until the customer has paid.
+  bool get _canAddCharges =>
+      !_isFood && !_paid && !_alreadyPaid && !_customerPaid;
+
+  /// The parcel's other cost and what it was, when it has one.
+  (double, String?)? get _parcelOtherFee {
+    if (!_isMessenger) return null;
+    final order = ref.read(messengerControllerProvider).activeOrder;
+    if (order == null || order.otherFee <= 0) return null;
+    return (order.otherFee, order.otherFeeNote);
+  }
+
+  /// "ค่าทางด่วน +" / "อื่นๆ +", or the amount set ("ค่าทางด่วน ฿25") to
+  /// change it. Null when no charge can be added.
+  Widget? _chargeButtons() {
+    if (!_canAddCharges) return null;
+    final ride = _rideJob;
+    final order = _isMessenger
+        ? ref.read(messengerControllerProvider).activeOrder
+        : null;
+    final other = _isMessenger ? order?.otherFee ?? 0 : ride?.otherFee ?? 0;
+    final busy = _savingCharge || _submitting;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (!_isMessenger)
+          _buildAddButton(
+            "ค่าทางด่วน",
+            value: ride?.tollFee ?? 0,
+            onTap: busy ? null : () => _editCharge(ExtraCharge.toll),
+          ),
+        _buildAddButton(
+          "อื่นๆ",
+          value: other,
+          onTap: busy ? null : () => _editCharge(ExtraCharge.other),
+        ),
+        if (_savingCharge)
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+      ],
+    );
+  }
+
+  /// Ask for the charge, send it as the job's total, then take the new
+  /// amount_due from the server. A QR showing was voided by the server, so a
+  /// new one is asked for. Nothing is added up here.
+  Future<void> _editCharge(ExtraCharge kind) async {
+    final ride = _rideJob;
+    final order = _isMessenger
+        ? ref.read(messengerControllerProvider).activeOrder
+        : null;
+    final input = await showExtraChargeSheet(
+      context,
+      kind: kind,
+      current: kind == ExtraCharge.toll
+          ? ride?.tollFee ?? 0
+          : (_isMessenger ? order?.otherFee : ride?.otherFee) ?? 0,
+      currentNote: _isMessenger ? order?.otherFeeNote : ride?.otherFeeNote,
+    );
+    if (input == null || !mounted) return;
+    setState(() => _savingCharge = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final api = ref.read(paymentApiServiceProvider);
+      double? due;
+      if (_isMessenger) {
+        final json = await api.setParcelOtherFee(
+          orderId: _orderId,
+          fee: input.amount,
+          note: input.note,
+        );
+        final updated = MessengerOrder.fromJson({
+          ...json,
+          if (json['driver_earnings'] == null && order?.driverEarnings != null)
+            'driver_earnings': order!.driverEarnings!.toJson(),
+        });
+        ref.read(messengerControllerProvider.notifier).setActiveOrder(updated);
+        due = updated.feeDue;
+      } else {
+        if (kind == ExtraCharge.toll) {
+          await api.setRideToll(jobId: _orderId, toll: input.amount);
+        } else {
+          await api.setRideOtherFee(
+            jobId: _orderId,
+            fee: input.amount,
+            note: input.note,
+          );
+        }
+        due = (await ref
+                .read(incomingJobControllerProvider.notifier)
+                .refreshActiveJob())
+            ?.amountDue;
+      }
+      if (!mounted) return;
+      if (due == null) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('ตรวจยอดที่ต้องเก็บไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'),
+          ),
+        );
+        return;
+      }
+      setState(() {
+        _freshAmountDue = due! < 0 ? 0 : due;
+        _intentAmount = null;
+      });
+      if (_currentMethod == PaymentMethod.qr) await _requestNewQr();
+      messenger.showSnackBar(const SnackBar(content: Text('บันทึกแล้ว')));
+    } catch (e) {
+      // The backend's reason as sent (e.g. "เพิ่มค่าใช้จ่ายได้ก่อนลูกค้า
+      // ชำระเงินเท่านั้น" once paid).
+      messenger.showSnackBar(SnackBar(content: Text(friendlyErrorMessage(e))));
+    } finally {
+      if (mounted) setState(() => _savingCharge = false);
+    }
   }
 
   String get _orderId =>
@@ -425,8 +560,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   void dispose() {
     _pollTimer?.cancel();
     _wsSub?.cancel();
-    _tollController.dispose();
-    _othersController.dispose();
     super.dispose();
   }
 
@@ -714,16 +847,45 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   Widget _buildCashContent() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        24 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    // The bill scrolls (a toll, another cost and the earnings can make it
+    // long on a small phone); the slide stays pinned above the nav bar.
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _cashBill(),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            16 + MediaQuery.viewPaddingOf(context).bottom,
+          ),
+          // Confirm Button — cash settles on confirm.
+          // Nothing to collect: finishing the job is all that's left.
+          // A slide, not a tap: harder to confirm cash by accident.
+          child: SlideToConfirm(
+            label: _amounts.cashTotal <= 0
+                ? 'เลื่อนเพื่อจบงาน'
+                : 'เลื่อนเมื่อรับเงินสดแล้ว',
+            color: AppColors.foundationGreen700,
+            enabled: _canConfirm,
+            loading: _submitting,
+            onConfirmed: _onConfirmPayment,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _cashBill() {
+    return [
           // Drag handle
           Center(
             child: Container(
@@ -737,15 +899,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Buttons
-          Row(
-            children: [
-              _buildAddButton("ค่าทางด่วน"),
-              const SizedBox(width: 12),
-              _buildAddButton("อื่นๆ"),
-            ],
-          ),
-          const SizedBox(height: 24),
+          if (_chargeButtons() case final buttons?) ...[
+            buttons,
+            const SizedBox(height: 24),
+          ],
 
           // Breakdown
           // The parts of amount_due as the server gave them (BE #199):
@@ -755,6 +912,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             if (_rideJob!.tollFee > 0) ...[
               const SizedBox(height: 16),
               _buildBreakdownRow("ค่าทางด่วน", _rideJob!.tollFee),
+            ],
+            if (_rideJob!.otherFee > 0) ...[
+              const SizedBox(height: 16),
+              _buildBreakdownRow(
+                extraChargeLabel(
+                  ExtraCharge.other,
+                  note: _rideJob!.otherFeeNote,
+                ),
+                _rideJob!.otherFee,
+              ),
             ],
             if (_rideJob!.waitingFee > 0) ...[
               const SizedBox(height: 16),
@@ -788,20 +955,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ],
               ),
             ],
+          ] else if (_parcelOtherFee case final other? when _baseFare > 0) ...[
+            // amount_due holds the parcel's other cost: show it as its own
+            // line under the delivery fee.
+            _buildBreakdownRow("ค่าส่ง", _baseFare - other.$1),
+            const SizedBox(height: 16),
+            _buildBreakdownRow(
+              extraChargeLabel(ExtraCharge.other, note: other.$2),
+              other.$1,
+            ),
           ] else
             _buildBreakdownRow(
               _isMessenger ? "ค่าส่ง" : "ค่าโดยสาร",
               _baseFare,
             ),
           const SizedBox(height: 16),
-          if (_tolls > 0) ...[
-            _buildBreakdownRow("ค่าทางด่วน", _tolls),
-            const SizedBox(height: 16),
-          ],
-          if (_others > 0) ...[
-            _buildBreakdownRow("อื่นๆ", _others),
-            const SizedBox(height: 16),
-          ],
           // COD goods value (dev14): a SEPARATE debt from the delivery fee —
           // its own line, never folded into the fee total above.
           if (_codAmount > 0) ...[
@@ -809,13 +977,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             const SizedBox(height: 16),
           ],
 
-          // _buildInputRow(
-          //   "ค่าทางด่วน",
-          //   "โปรดตรวจสอบความถูกต้องของจำนวนเงิน",
-          //   _tollController,
-          // ),
-          // const SizedBox(height: 16),
-          // _buildInputRow("อื่นๆ", null, _othersController),
           Divider(color: context.palette.border, height: 40),
 
           // Total
@@ -881,24 +1042,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ],
 
           ..._earningsRows(),
-
-          const Spacer(),
-
-          // Confirm Button — cash settles on confirm.
-          // Nothing to collect: finishing the job is all that's left.
-          // A slide, not a tap: harder to confirm cash by accident.
-          SlideToConfirm(
-            label: _amounts.cashTotal <= 0
-                ? 'เลื่อนเพื่อจบงาน'
-                : 'เลื่อนเมื่อรับเงินสดแล้ว',
-            color: AppColors.foundationGreen700,
-            enabled: _canConfirm,
-            loading: _submitting,
-            onConfirmed: _onConfirmPayment,
-          ),
-        ],
-      ),
-    );
+    ];
   }
 
   Widget _buildQRContent() {
@@ -922,7 +1066,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Toll / other cost first: the QR is minted for amount_due.
+                if (_chargeButtons() case final buttons?) ...[
+                  Align(alignment: Alignment.centerLeft, child: buttons),
+                  const SizedBox(height: 12),
+                ],
 
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1143,26 +1292,48 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildAddButton(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        border: Border.all(color: context.palette.border),
+  Widget _buildAddButton(
+    String text, {
+    double value = 0,
+    VoidCallback? onTap,
+  }) {
+    final set = value > 0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            text,
-            style: AppTypography.body2.copyWith(
-              color: context.palette.textPrimary,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border.all(
+              color: set
+                  ? AppColors.semanticSupportMintBgHigh
+                  : context.palette.border,
             ),
+            borderRadius: BorderRadius.circular(20),
           ),
-          const SizedBox(width: 4),
-          Icon(Icons.add, color: context.palette.textPrimary, size: 16),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                set ? '$text ${formatBaht(value)}' : text,
+                style: AppTypography.body2.copyWith(
+                  color: onTap == null
+                      ? context.palette.textSecondary
+                      : context.palette.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                set ? Icons.edit_outlined : Icons.add,
+                color: context.palette.textPrimary,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
