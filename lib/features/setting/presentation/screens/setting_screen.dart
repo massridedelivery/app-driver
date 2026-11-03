@@ -705,11 +705,29 @@ class _ConnectivityVisual {
   });
 }
 
-class _AccountTile extends ConsumerWidget {
+class _AccountTile extends ConsumerStatefulWidget {
   const _AccountTile();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AccountTile> createState() => _AccountTileState();
+}
+
+class _AccountTileState extends ConsumerState<_AccountTile> {
+  @override
+  void initState() {
+    super.initState();
+    // Re-read the (keepAlive) profile on open so the photo is current; with
+    // none loaded yet, build() fetches it with the loader instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || ref.read(profileControllerProvider).profile == null) {
+        return;
+      }
+      ref.read(profileControllerProvider.notifier).fetchProfile(silent: true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
 
