@@ -22,6 +22,7 @@ class HeaderInterceptor extends Interceptor {
     }
     // The backend writes its error / message text in this language.
     options.headers['Accept-Language'] = deviceLanguageTag();
+    options.headers['X-Lang'] = deviceLangCode();
 
     // Set each device header independently so one failing lookup doesn't drop
     // the others. device_info_plus can throw a null-cast TypeError on some

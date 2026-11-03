@@ -8,3 +8,10 @@ String deviceLanguageTag([Locale? locale]) {
       ? 'th'
       : l.toLanguageTag();
 }
+
+/// `X-Lang` for the backend: "th" on a Thai phone, "en" otherwise (it
+/// supports only these two).
+String deviceLangCode([Locale? locale]) =>
+    (locale ?? PlatformDispatcher.instance.locale).languageCode == 'en'
+        ? 'en'
+        : 'th';
