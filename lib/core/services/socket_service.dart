@@ -96,7 +96,35 @@ class SocketService with WidgetsBindingObserver {
     return url;
   }
 
+  /// A call is on: its signalling (offer, answer, ICE) rides this socket,
+  /// so an intentional [disconnect] waits until the call is over, and a
+  /// drop is reconnected at once — the backend replays missed signals.
+  bool _callHold = false;
+
+  /// A [disconnect] asked for while [_callHold] was set.
+  bool _closeAfterCall = false;
+
+  /// Keep the socket up for a call, whatever the online state or the job.
+  void holdForCall() => _callHold = true;
+
+  /// The call is over: carry out a [disconnect] that waited for it.
+  void releaseCall() {
+    _callHold = false;
+    if (_closeAfterCall) {
+      _closeAfterCall = false;
+      disconnect();
+    }
+  }
+
   Future<void> connect() async {
+    // Someone wants the socket up again: a close that waited is void.
+    _closeAfterCall = false;
+    await _open();
+  }
+
+  /// [connect] minus voiding a close that waits for a call — what the
+  /// automatic reconnects use.
+  Future<void> _open() async {
     if (_isReady || _connecting) return;
 
     _connecting = true;
@@ -183,12 +211,13 @@ class SocketService with WidgetsBindingObserver {
     if (_intentionalClose) return;
 
     _reconnectAttempts++;
-    final delay = _backoffSeconds(_reconnectAttempts);
+    // On a call: straight back (1s), not the 2–30s backoff.
+    final delay = _callHold ? 1 : _backoffSeconds(_reconnectAttempts);
     if (kDebugMode) {
       debugPrint('SocketService: Reconnecting in ${delay}s (attempt $_reconnectAttempts)');
     }
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(Duration(seconds: delay), connect);
+    _reconnectTimer = Timer(Duration(seconds: delay), _open);
   }
 
   /// Exponential backoff (2,4,8,16,…) capped at [_maxBackoffSeconds].
@@ -218,7 +247,7 @@ class SocketService with WidgetsBindingObserver {
     if (_intentionalClose || _isReady || _connecting) return;
     _reconnectAttempts = 0;
     _reconnectTimer?.cancel();
-    connect();
+    _open();
   }
 
   void sendMessage(String type, [Map<String, dynamic>? data]) {
@@ -306,6 +335,11 @@ class SocketService with WidgetsBindingObserver {
   /// Intentional close (logout, job finished, provider dispose). Suppresses
   /// auto-reconnect until [connect] is called again.
   void disconnect() {
+    if (_callHold) {
+      // Job finished / went offline mid-call: close once the call ends.
+      _closeAfterCall = true;
+      return;
+    }
     _intentionalClose = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;

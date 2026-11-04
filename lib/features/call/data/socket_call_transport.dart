@@ -29,6 +29,9 @@ class SocketCallTransport implements CallTransport {
 
   @override
   Future<void> ensureConnected() async {
+    // From ring to hang-up the socket stays: not closed when the job ends
+    // or the driver goes offline, reconnected at once if it drops.
+    _socket.holdForCall();
     if (_socket.isConnected) return;
     _openedForCall = true;
     await _socket.connect();
@@ -42,6 +45,7 @@ class SocketCallTransport implements CallTransport {
 
   @override
   void release() {
+    _socket.releaseCall();
     if (!_openedForCall) return;
     _openedForCall = false;
     // Went online during the call: the socket is the online session's now.
