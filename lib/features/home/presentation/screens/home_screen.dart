@@ -26,6 +26,7 @@ import 'package:massdrive/features/home/presentation/widgets/active_job_banner.d
 import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 import 'package:massdrive/features/income/presentation/widgets/credit_notice_dialog.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
+import 'package:massdrive/features/home/presentation/widgets/online_toggle_button.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -914,12 +915,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               top: 0,
               left: 0,
               right: 0,
-              child: Center(
-                child: KeyedSubtree(
-                  key: HomeCoachMarks.onlineButton,
-                  child: _OnlineButton(),
-                ),
-              ),
+              child: const _OnlineButton(),
             ),
           ],
         );
@@ -1004,7 +1000,9 @@ class _OnlineButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(onlineStatusProvider).isOnline;
 
-    return GestureDetector(
+    return OnlineToggleButton(
+      isOnline: isOnline,
+      buttonKey: HomeCoachMarks.onlineButton,
       onTap: () async {
         final current = ref.read(onlineStatusProvider).isOnline;
         final newValue = !current;
@@ -1079,46 +1077,6 @@ class _OnlineButton extends ConsumerWidget {
           }
         }
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(40),
-          gradient: LinearGradient(
-            colors: isOnline
-                ? [
-                    AppColors.semanticSupportMintBgHigh,
-                    AppColors.semanticSupportMintBgMid,
-                    AppColors.semanticSupportMintBgHigh,
-                  ]
-                : [
-                    AppColors.foundationOrange700,
-                    AppColors.foundationOrange500,
-                    AppColors.foundationOrange700,
-                  ],
-          ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // White on the mint/orange gradient fill (readable in light & dark).
-            const Icon(
-              Icons.power_settings_new,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              isOnline ? "พร้อมรับงาน" : "ปิดรับงาน",
-              style: AppTypography.heading5.copyWith(
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
