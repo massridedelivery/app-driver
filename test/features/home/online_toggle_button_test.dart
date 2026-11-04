@@ -27,6 +27,7 @@ void main() {
     await _pump(tester, true, () => taps++);
     expect(find.text('เริ่มรับงาน'), findsNothing);
     expect(find.bySemanticsLabel('ปิดรับงาน'), findsOneWidget);
+    await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(InkWell)), const Size(52, 52));
     await tester.tap(find.byType(InkWell));
     expect(taps, 1);
