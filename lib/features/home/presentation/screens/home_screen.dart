@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:dio/dio.dart' as dio_client;
 import 'package:flutter/foundation.dart';
@@ -303,24 +302,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
-  late DraggableScrollableController _sheetController;
   late final MapController _mapNotifier;
-
-  final double _minSize = 0.2;
-
-  // The sheet rests at the height that shows all its cards (online control,
-  // status, menu) — at least 0.25, at most 0.75 —
-  // and can't be dragged taller than that: there's nothing more to reveal.
-  static const double _restMin = 0.25;
-  static const double _restMax = 0.75;
-  double _restSize = _restMin;
-  final GlobalKey _sheetContentKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
 
-    _sheetController = DraggableScrollableController();
     _mapNotifier = ref.read(mapControllerProvider.notifier);
     // NOTE: Removed the _sheetSize listener — it was calling setState on every
     // pixel of scroll but _sheetSize was never used in build(), causing
@@ -376,7 +363,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
-    _sheetController.dispose();
     // Drop the app-wide GoogleMapController reference so the native map can be
     // released instead of being held for the app's lifetime. `ref` is off
     // limits in dispose (Riverpod throws "Using ref when a widget is about to
@@ -814,74 +800,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ================= BOTTOM SHEET =================
 
-  /// Fits the resting size to the measured content (the cash-job card can
-  /// push the menu below a fixed 0.40 sheet) and moves an open sheet there.
-  void _fitSheet(double availableH) {
-    if (!mounted || availableH <= 0) return;
-    final h = _sheetContentKey.currentContext?.size?.height;
-    if (h == null) return;
-    final fit = (h / availableH).clamp(_restMin, _restMax);
-    if ((fit - _restSize).abs() < 0.005) return;
-    final wasOpen =
-        !_sheetController.isAttached ||
-        _sheetController.size >= _restSize - 0.02;
-    setState(() => _restSize = fit);
-    if (wasOpen) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _sheetController.isAttached) {
-          _sheetController.jumpTo(_restSize);
-        }
-      });
-    }
-  }
-
+  /// Three cards over the map, Grab-style: the online control, the status
+  /// and the menu. Fixed at the bottom — no sheet to drag or scroll, so the
+  /// cards always show in full.
   Widget _buildBottomSheet() {
-    return LayoutBuilder(
-      builder: (context, box) {
-        WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _fitSheet(box.maxHeight),
-        );
-        return _sheet();
-      },
-    );
-  }
-
-  Widget _sheet() {
-    // The sheet is edge-to-edge (its panel colour runs under the Android nav
-    // bar), so on Android the content's bottom padding is reserved on top of
-    // the nav-bar inset — the menu row clears the 3-button bar. Never less
-    // than the original 40, and iOS keeps exactly 40. The padding is part of
-    // the MEASURED content, so _fitSheet sizes the sheet to include it.
-    final bool isAndroid = defaultTargetPlatform == TargetPlatform.android;
-    final double bottomPad = isAndroid
-        ? math.max(40.0, 16 + MediaQuery.viewPaddingOf(context).bottom)
-        : 40.0;
-    return DraggableScrollableSheet(
-      controller: _sheetController,
-      initialChildSize: _restSize,
-      minChildSize: _minSize,
-      maxChildSize: _restSize,
-      snap: true,
-      snapSizes: [_restSize],
-      builder: (context, scrollController) {
-        // Three cards over the map, Grab-style: the online control, the
-        // status and the menu. No panel behind them.
-        return SingleChildScrollView(
-          controller: scrollController,
-          child: Padding(
-            key: _sheetContentKey,
-            padding: EdgeInsets.fromLTRB(12, 0, 12, bottomPad),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _OnlineAndStatus(),
-                const SizedBox(height: 8),
-                _buildMenuRow(),
-              ],
-            ),
-          ),
-        );
-      },
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          12,
+          0,
+          12,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _OnlineAndStatus(),
+            const SizedBox(height: 8),
+            _buildMenuRow(),
+          ],
+        ),
+      ),
     );
   }
 
