@@ -22,13 +22,13 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('online: a small 52×52 button, no label', (tester) async {
+  testWidgets('online: a 64×64 button, no label', (tester) async {
     var taps = 0;
     await _pump(tester, true, () => taps++);
     expect(find.text('เริ่มรับงาน'), findsNothing);
     expect(find.bySemanticsLabel('ปิดรับงาน'), findsOneWidget);
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(InkWell)), const Size(52, 52));
+    expect(tester.getSize(find.byType(InkWell)), const Size(64, 64));
     await tester.tap(find.byType(InkWell));
     expect(taps, 1);
   });

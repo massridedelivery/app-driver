@@ -975,17 +975,14 @@ class _OnlineButton extends ConsumerWidget {
 }
 
 /// The online control and the status. Offline, the "เริ่มรับงาน" pill sits
-/// centred above the status card; online, it shrinks into a white square and
-/// slides to the right of the status card, which narrows to make room. Going
-/// offline plays it backwards.
+/// centred above the status card; online, it shrinks into a white square as
+/// tall as the status card and slides to its right, the card narrowing to
+/// make room. Going offline plays it backwards.
 class _OnlineAndStatus extends ConsumerWidget {
   const _OnlineAndStatus();
 
   static const double _statusH = 64;
   static const double _gap = 8;
-
-  /// The card around the online square: the square plus 6 on each side.
-  static const double _sideCard = _statusH;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1008,7 +1005,7 @@ class _OnlineAndStatus extends ConsumerWidget {
                 duration: d,
                 curve: c,
                 left: 0,
-                right: isOnline ? _sideCard + _gap : 0,
+                right: isOnline ? square.width + _gap : 0,
                 bottom: 0,
                 height: _statusH,
                 child: KeyedSubtree(
@@ -1016,26 +1013,11 @@ class _OnlineAndStatus extends ConsumerWidget {
                   child: const _StatusCard(),
                 ),
               ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                width: _sideCard,
-                height: _statusH,
-                child: AnimatedOpacity(
-                  duration: d,
-                  opacity: isOnline ? 1 : 0,
-                  child: const HomeCard(child: SizedBox.expand()),
-                ),
-              ),
               AnimatedPositioned(
                 duration: d,
                 curve: c,
-                left: isOnline
-                    ? w - _sideCard + (_sideCard - square.width) / 2
-                    : (w - pill.width) / 2,
-                bottom: isOnline
-                    ? (_statusH - square.height) / 2
-                    : _statusH + 10,
+                left: isOnline ? w - square.width : (w - pill.width) / 2,
+                bottom: isOnline ? 0 : _statusH + 10,
                 child: const _OnlineButton(),
               ),
             ],

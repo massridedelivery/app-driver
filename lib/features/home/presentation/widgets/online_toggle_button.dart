@@ -6,8 +6,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 /// two looks while the home layout moves it (see [OnlineToggleButton.motion]):
 ///
 /// - offline: a wide orange pill, "เริ่มรับงาน", centred above the status;
-/// - online: a small white rounded square with a green power icon and a
-///   green dot, beside the status.
+/// - online: a white rounded square, as tall as the status card, with a
+///   green power icon and a green dot, beside it.
 class OnlineToggleButton extends StatelessWidget {
   const OnlineToggleButton({
     super.key,
@@ -24,7 +24,7 @@ class OnlineToggleButton extends StatelessWidget {
 
   /// The pill's and the square's sizes, for the layout that places them.
   static const Size offlineSize = Size(176, 52);
-  static const Size onlineSize = Size(52, 52);
+  static const Size onlineSize = Size(64, 64);
 
   /// Shared by the morph here and the move in the home layout, so the button
   /// shrinks and slides as one.
