@@ -981,19 +981,9 @@ class _OnlineButton extends ConsumerWidget {
         try {
           await ref.read(onlineStatusProvider.notifier).setStatus(newValue);
 
+          // No "พร้อมรับงานแล้ว" snackbar: the button moving to the corner and
+          // the status card saying กำลังค้นหางาน already say it.
           if (context.mounted && newValue && ref.read(onlineStatusProvider).isOnline) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'พร้อมรับงานแล้ว',
-                  style: AppTypography.label2.copyWith(
-                    // White on the green fill (readable in light & dark).
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: AppColors.semanticSuccessBgHigh,
-              ),
-            );
             // The driver just went online but can't share location if GPS is
             // off or location is permanently denied — nudge them to Settings.
             await _promptLocationIfNeeded(context, ref);
