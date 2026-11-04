@@ -1043,41 +1043,74 @@ class _OnlineButton extends ConsumerWidget {
   }
 }
 
-/// The online control and the status, laid out by state: offline, the
-/// "เริ่มรับงาน" pill sits centred above the status card; online, the status
-/// card and a small card holding the stop button share one row.
+/// The online control and the status. Offline, the "เริ่มรับงาน" pill sits
+/// centred above the status card; online, it shrinks into a white square and
+/// slides to the right of the status card, which narrows to make room. Going
+/// offline plays it backwards.
 class _OnlineAndStatus extends ConsumerWidget {
   const _OnlineAndStatus();
+
+  static const double _statusH = 64;
+  static const double _gap = 8;
+
+  /// The card around the online square: the square plus 6 on each side.
+  static const double _sideCard = _statusH;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(onlineStatusProvider).isOnline;
-    final status = KeyedSubtree(
-      key: HomeCoachMarks.statusCard,
-      child: const _StatusCard(),
-    );
-    if (!isOnline) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Center(child: _OnlineButton()),
-          const SizedBox(height: 10),
-          status,
-        ],
-      );
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: status),
-          const SizedBox(width: 8),
-          const HomeCard(
-            padding: EdgeInsets.all(8),
-            child: Center(child: _OnlineButton()),
+    const d = OnlineToggleButton.motion;
+    const c = OnlineToggleButton.curve;
+    final pill = OnlineToggleButton.offlineSize;
+    final square = OnlineToggleButton.onlineSize;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = box.maxWidth;
+        return AnimatedContainer(
+          duration: d,
+          curve: c,
+          height: isOnline ? _statusH : pill.height + 10 + _statusH,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedPositioned(
+                duration: d,
+                curve: c,
+                left: 0,
+                right: isOnline ? _sideCard + _gap : 0,
+                bottom: 0,
+                height: _statusH,
+                child: KeyedSubtree(
+                  key: HomeCoachMarks.statusCard,
+                  child: const _StatusCard(),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                width: _sideCard,
+                height: _statusH,
+                child: AnimatedOpacity(
+                  duration: d,
+                  opacity: isOnline ? 1 : 0,
+                  child: const HomeCard(child: SizedBox.expand()),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: d,
+                curve: c,
+                left: isOnline
+                    ? w - _sideCard + (_sideCard - square.width) / 2
+                    : (w - pill.width) / 2,
+                bottom: isOnline
+                    ? (_statusH - square.height) / 2
+                    : _statusH + 10,
+                child: const _OnlineButton(),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1108,6 +1141,8 @@ class _StatusCard extends ConsumerWidget {
               children: [
                 Text(
                   isOnline ? 'กำลังค้นหางาน' : 'คุณปิดรับงาน',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.label2.copyWith(
                     color: context.palette.textPrimary,
                   ),
@@ -1117,6 +1152,8 @@ class _StatusCard extends ConsumerWidget {
                   isOnline
                       ? 'งานใหม่จะเด้งขึ้นมาเอง'
                       : 'กดเริ่มรับงานเมื่อพร้อม',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.caption5.copyWith(
                     color: context.palette.textSecondary,
                   ),
