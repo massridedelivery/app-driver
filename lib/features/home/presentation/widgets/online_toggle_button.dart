@@ -6,8 +6,8 @@ import 'package:massdrive/core/constants/app_typography.dart';
 /// two looks while the home layout moves it (see [OnlineToggleButton.motion]):
 ///
 /// - offline: a wide orange pill, "เริ่มรับงาน", centred above the status;
-/// - online: a white rounded square, as tall as the status card, with a
-///   green power icon and a green dot, beside it.
+/// - online: a solid green rounded square (the status dot's green), as tall
+///   as the status card, with a white power icon, beside it.
 class OnlineToggleButton extends StatelessWidget {
   const OnlineToggleButton({
     super.key,
@@ -45,7 +45,9 @@ class OnlineToggleButton extends StatelessWidget {
         width: size.width,
         height: size.height,
         decoration: BoxDecoration(
-          color: isOnline ? Colors.white : AppColors.foundationOrange700,
+          color: isOnline
+              ? AppColors.semanticSupportMintBgHigh
+              : AppColors.foundationOrange700,
           borderRadius: radius,
           boxShadow: const [
             BoxShadow(
@@ -93,28 +95,8 @@ class OnlineToggleButton extends StatelessWidget {
     ),
   );
 
-  Widget _online() => Stack(
-    key: const ValueKey('online'),
-    alignment: Alignment.center,
-    children: [
-      const Icon(
-        Icons.power_settings_new,
-        size: 28,
-        color: AppColors.semanticSupportMintBgHigh,
-      ),
-      Positioned(
-        top: 8,
-        right: 8,
-        child: Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            color: AppColors.semanticSupportMintBgHigh,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 1.5),
-          ),
-        ),
-      ),
-    ],
+  Widget _online() => const Center(
+    key: ValueKey('online'),
+    child: Icon(Icons.power_settings_new, size: 30, color: Colors.white),
   );
 }
