@@ -79,22 +79,9 @@ class CreditWalletScreen extends ConsumerWidget {
                             );
                           },
                         ),
-                        // Hidden once the backend says the company's receiving
-                        // account isn't set (POST /settle-debt MANUAL → 400);
-                        // PromptPay stays the main channel.
-                        if (!state.manualTopupUnavailable)
-                          WalletActionTile(
-                            title: 'โอนเงินเข้าบัญชี (Manual)',
-                            icon: Icons.account_balance_rounded,
-                            onTap: () {
-                              AppNavigator.push(
-                                context,
-                                const SettleDebtFormScreen(
-                                  paymentMethod: 'MANUAL',
-                                ),
-                              );
-                            },
-                          ),
+                        // Debt is settled by PromptPay only: the manual bank
+                        // transfer with a slip is no longer offered. Past
+                        // slips stay under ประวัติการแจ้งโอนเงิน.
                         WalletActionTile(
                           title: 'ประวัติการแจ้งโอนเงิน',
                           icon: Icons.receipt_long_rounded,
