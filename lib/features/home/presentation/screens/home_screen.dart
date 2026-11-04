@@ -27,6 +27,7 @@ import 'package:massdrive/features/income/presentation/controllers/wallet_contro
 import 'package:massdrive/features/income/presentation/widgets/credit_notice_dialog.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/features/home/presentation/widgets/online_toggle_button.dart';
+import 'package:massdrive/features/home/presentation/widgets/home_card.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -305,12 +306,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late DraggableScrollableController _sheetController;
   late final MapController _mapNotifier;
 
-  final double _minSize = 0.25;
+  final double _minSize = 0.2;
 
-  // The sheet rests at the height that shows all its content (status, menu,
-  // and the cash-job card when there is one) — at least 0.40, at most 0.75 —
+  // The sheet rests at the height that shows all its cards (online control,
+  // status, menu) — at least 0.25, at most 0.75 —
   // and can't be dragged taller than that: there's nothing more to reveal.
-  static const double _restMin = 0.40;
+  static const double _restMin = 0.25;
   static const double _restMax = 0.75;
   double _restSize = _restMin;
   final GlobalKey _sheetContentKey = GlobalKey();
@@ -819,8 +820,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!mounted || availableH <= 0) return;
     final h = _sheetContentKey.currentContext?.size?.height;
     if (h == null) return;
-    // +26: the content starts under the overlapping online button.
-    final fit = ((h + 26) / availableH).clamp(_restMin, _restMax);
+    final fit = (h / availableH).clamp(_restMin, _restMax);
     if ((fit - _restSize).abs() < 0.005) return;
     final wasOpen =
         !_sheetController.isAttached ||
@@ -864,60 +864,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       snap: true,
       snapSizes: [_restSize],
       builder: (context, scrollController) {
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Fill the whole sheet (top:26 leaves room for the overlapping
-            // online button) so the panel colour reaches the bottom edge —
-            // otherwise short content lets the map show through underneath.
-            Positioned(
-              top: 26,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.palette.bg,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Padding(
-                    key: _sheetContentKey,
-                    padding: EdgeInsets.fromLTRB(14, 22, 14, bottomPad),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: context.palette.textSecondary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      KeyedSubtree(
-                        key: HomeCoachMarks.statusCard,
-                        child: const _StatusCard(),
-                      ),
-                      _buildMenuRow(),
-                    ],
-                  ),
-                ),
-                ),
-              ),
+        // Three cards over the map, Grab-style: the online control, the
+        // status and the menu. No panel behind them.
+        return SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            key: _sheetContentKey,
+            padding: EdgeInsets.fromLTRB(12, 0, 12, bottomPad),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _OnlineAndStatus(),
+                const SizedBox(height: 8),
+                _buildMenuRow(),
+              ],
             ),
-
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: const _OnlineButton(),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -927,10 +889,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildMenuRow() {
     // Use a simple Row instead of GridView to avoid shrinkWrap layout cost
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+    return HomeCard(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _circleMenu(Icons.card_giftcard, "รายได้", key: HomeCoachMarks.incomeMenu, () {
             context.push(AppRoutes.incomeNamedPage);
@@ -955,7 +917,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     VoidCallback onTap, {
     Key? key,
   }) {
-    return InkWell(
+    return Expanded(
+      child: InkWell(
       key: key,
       onTap: onTap,
       borderRadius: BorderRadius.circular(50),
@@ -970,18 +933,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             child: Icon(icon, color: AppColors.foundationOrange700),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: 90,
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: AppTypography.caption5.copyWith(
-                color: context.palette.textPrimary,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: AppTypography.caption5.copyWith(
+              color: context.palette.textPrimary,
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -1081,20 +1043,55 @@ class _OnlineButton extends ConsumerWidget {
   }
 }
 
-/// Status text card ("ระบบกำลังค้นหางาน" / "คุณปิดรับงาน") — extracted so
-/// only this widget rebuilds when online status changes.
+/// The online control and the status, laid out by state: offline, the
+/// "เริ่มรับงาน" pill sits centred above the status card; online, the status
+/// card and a small card holding the stop button share one row.
+class _OnlineAndStatus extends ConsumerWidget {
+  const _OnlineAndStatus();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(onlineStatusProvider).isOnline;
+    final status = KeyedSubtree(
+      key: HomeCoachMarks.statusCard,
+      child: const _StatusCard(),
+    );
+    if (!isOnline) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Center(child: _OnlineButton()),
+          const SizedBox(height: 10),
+          status,
+        ],
+      );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: status),
+          const SizedBox(width: 8),
+          const HomeCard(
+            padding: EdgeInsets.all(8),
+            child: Center(child: _OnlineButton()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Status card ("กำลังค้นหางาน" / "คุณปิดรับงาน") — extracted so only this
+/// widget rebuilds when online status changes.
 class _StatusCard extends ConsumerWidget {
   const _StatusCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(onlineStatusProvider).isOnline;
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: context.palette.surfaceAlt,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return HomeCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           CircleAvatar(
@@ -1104,10 +1101,27 @@ class _StatusCard extends ConsumerWidget {
                 : AppColors.foundationOrange700,
           ),
           const SizedBox(width: 12),
-          Text(
-            isOnline ? "ระบบกำลังค้นหางาน...." : "คุณปิดรับงาน",
-            style: AppTypography.caption3.copyWith(
-              color: context.palette.textPrimary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isOnline ? 'กำลังค้นหางาน' : 'คุณปิดรับงาน',
+                  style: AppTypography.label2.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isOnline
+                      ? 'งานใหม่จะเด้งขึ้นมาเอง'
+                      : 'กดเริ่มรับงานเมื่อพร้อม',
+                  style: AppTypography.caption5.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

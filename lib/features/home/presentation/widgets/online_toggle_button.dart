@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 
-/// The home sheet's go online / go offline control. It sits on the sheet's
-/// top edge and moves with the state, so the two are told apart at a glance:
+/// The home screen's go online / go offline control; the home layout places
+/// it, so the two states are told apart by place as well as by look:
 ///
-/// - offline: a wide orange pill in the middle, "เริ่มรับงาน";
-/// - online: a small white rounded square on the right, a green power icon
-///   and a green dot — out of the way while the driver waits for jobs.
+/// - offline: a wide orange pill, "เริ่มรับงาน", centred above the status;
+/// - online: a small white rounded square with a green power icon and a
+///   green dot, beside the status.
 ///
 /// No animation: it switches in place.
 class OnlineToggleButton extends StatelessWidget {
@@ -21,24 +21,14 @@ class OnlineToggleButton extends StatelessWidget {
   final bool isOnline;
   final VoidCallback onTap;
 
-  /// Put on the button itself (not the full-width row), so the coach mark
-  /// highlights just the button.
+  /// Put on the button itself, so the coach mark highlights just it.
   final Key? buttonKey;
 
   @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isOnline ? Alignment.centerRight : Alignment.center,
-      heightFactor: 1,
-      child: Padding(
-        padding: EdgeInsets.only(right: isOnline ? 16 : 0),
-        child: KeyedSubtree(
-          key: buttonKey,
-          child: isOnline ? _online() : _offline(),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => KeyedSubtree(
+    key: buttonKey,
+    child: isOnline ? _online() : _offline(),
+  );
 
   Widget _offline() => Semantics(
     button: true,
