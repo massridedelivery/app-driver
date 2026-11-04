@@ -124,6 +124,50 @@ void main() {
     });
   });
 
+  // The ride in the screenshot: fare 30, then 30 of toll / other costs the
+  // driver keeps whole; 15% commission on the fare only → net 55.
+  Map<String, dynamic> extras() => _trip({
+    'fare': 30,
+    'toll_fee': 25,
+    'other_fee': 5,
+    'other_fee_note': 'ค่าจอดรถ',
+    'gross_fare': 60,
+    'commission': 5,
+    'commission_rate': 0.15,
+    'driver_net': 55,
+    'customer_paid': 60,
+    'payment_method': 'CASH',
+  });
+
+  group('toll and other costs', () {
+    test('the row carries them; the fare part is gross minus them', () {
+      final d = historyDetailFromTrip(extras());
+      expect(d.tollFee, 25);
+      expect(d.otherFee, 5);
+      expect(d.otherFeeNote, 'ค่าจอดรถ');
+      expect(d.customerPaid, 60);
+      expect(d.baseFare, 30);
+    });
+
+    testWidgets('รายได้สุทธิ lists fare, toll and other cost apart', (t) async {
+      await _pump(t, YourNetIncomeSection(data: historyDetailFromTrip(extras())));
+      expect(find.text('ค่าโดยสาร'), findsOneWidget);
+      expect(find.text('฿30'), findsOneWidget);
+      expect(find.text('ค่าทางด่วน'), findsOneWidget);
+      expect(find.text('฿25'), findsOneWidget);
+      expect(find.text('ค่าอื่นๆ (ค่าจอดรถ)'), findsOneWidget);
+      expect(find.text('฿5'), findsOneWidget);
+      expect(find.text('หักค่าคอมมิชชัน 15%'), findsOneWidget);
+      expect(find.text('฿55'), findsOneWidget);
+      expect(find.text('ค่ารอ'), findsNothing);
+    });
+
+    testWidgets('รวม is what the customer paid', (t) async {
+      await _pump(t, PaymentSection(data: historyDetailFromTrip(extras())));
+      expect(find.text('฿60'), findsOneWidget);
+    });
+  });
+
   group('รายละเอียดการชำระเงิน section', () {
     testWidgets('method, distance, duration and total', (t) async {
       final d = historyDetailFromTrip(_trip({'fare': 82.5}));

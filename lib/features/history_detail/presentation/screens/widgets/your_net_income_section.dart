@@ -39,7 +39,27 @@ class YourNetIncomeSection extends StatelessWidget {
         children: [
           _buildHeader(context, theme),
           const SizedBox(height: 16),
-          _buildInfoRow(context, title: "ค่าโดยสาร", value: _money(gross)),
+          // The gross split into the fare and the pass-through costs (toll,
+          // other cost, waiting), each as the trip row gives it.
+          _buildInfoRow(
+            context,
+            title: "ค่าโดยสาร",
+            value: _money(data.baseFare ?? gross),
+          ),
+          for (final (label, amount) in [
+            ("ค่ารอ", data.waitingFee),
+            ("ค่าทางด่วน", data.tollFee),
+            (
+              data.otherFeeNote == null
+                  ? "ค่าอื่นๆ"
+                  : "ค่าอื่นๆ (${data.otherFeeNote})",
+              data.otherFee,
+            ),
+          ])
+            if (data.grossFare != null && amount > 0) ...[
+              const SizedBox(height: 12),
+              _buildInfoRow(context, title: label, value: _money(amount)),
+            ],
           if (commission != null && commission > 0) ...[
             const SizedBox(height: 12),
             _buildInfoRow(

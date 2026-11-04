@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/features/history_detail/domain/entities/history_entity.dart';
@@ -104,7 +103,9 @@ class PaymentSection extends StatelessWidget {
           ),
         ),
         Text(
-          formatBaht(data.total),
+          // What the customer paid (toll and other costs included, promo
+          // off) once settled; the job fare before that.
+          formatBaht((data.customerPaid ?? data.total).toDouble()),
           style: AppTypography.heading5.copyWith(
             color: context.palette.textPrimary,
           ),

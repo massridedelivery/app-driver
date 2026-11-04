@@ -20,6 +20,27 @@ class HistoryDetailEntity {
 
   /// `commission_rate` the trip settled at (0.2 = 20 %); null until then.
   final double? commissionRate;
+
+  /// The pass-through costs inside [grossFare], as the trip row gives them:
+  /// the toll, another cost (parking, a gate) with what it was, and the
+  /// waiting fee. The driver keeps them in full; no commission is taken.
+  final double tollFee;
+  final double otherFee;
+  final String? otherFeeNote;
+  final double waitingFee;
+
+  /// What the customer paid (`customer_paid`, gross − promo); null until the
+  /// trip settles.
+  final int? customerPaid;
+
+  /// The fare part of [grossFare]: gross minus the toll, other cost and
+  /// waiting fee. Null without a settled gross.
+  int? get baseFare {
+    final g = grossFare;
+    if (g == null) return null;
+    final base = (g - tollFee - otherFee - waitingFee).round();
+    return base < 0 ? 0 : base;
+  }
   final String serviceType; // 'ride' or 'food'
   final String? restaurantName;
   final List<Map<String, dynamic>>? orderItems;
@@ -45,6 +66,11 @@ class HistoryDetailEntity {
     this.commission,
     this.settledNet,
     this.commissionRate,
+    this.tollFee = 0,
+    this.otherFee = 0,
+    this.otherFeeNote,
+    this.waitingFee = 0,
+    this.customerPaid,
     this.serviceType = 'ride',
     this.restaurantName,
     this.orderItems,
