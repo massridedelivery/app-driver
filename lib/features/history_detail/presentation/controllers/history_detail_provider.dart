@@ -75,6 +75,14 @@ HistoryDetailEntity historyDetailFromTrip(Map<String, dynamic> trip) {
     commissionRate: trip['commission_rate'] is num
         ? (trip['commission_rate'] as num).toDouble()
         : null,
+    tollFee: _d(trip['toll_fee']),
+    otherFee: _d(trip['other_fee']),
+    otherFeeNote: () {
+      final note = trip['other_fee_note']?.toString().trim();
+      return (note == null || note.isEmpty) ? null : note;
+    }(),
+    waitingFee: _d(trip['waiting_fee']),
+    customerPaid: _int(trip['customer_paid']),
     serviceType: 'ride',
     pickupLat: trip['pickup_lat'] == null ? null : _d(trip['pickup_lat']),
     pickupLng: trip['pickup_lng'] == null ? null : _d(trip['pickup_lng']),
