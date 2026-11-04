@@ -5,6 +5,7 @@ import 'package:massdrive/core/models/socket_message_model.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/call/data/call_api_service.dart';
 import 'package:massdrive/features/call/data/call_pushes.dart';
+import 'package:massdrive/features/call/data/call_trail.dart';
 import 'package:massdrive/features/call/data/callkit_system_ui.dart';
 import 'package:massdrive/features/call/data/socket_call_transport.dart';
 import 'package:massdrive/features/call/data/webrtc_call_peer.dart';
@@ -62,6 +63,11 @@ class CallController extends _$CallController {
   List<Map<String, dynamic>> _iceServers = const [];
   bool _placing = false;
 
+  /// While our outgoing call rings: asks the backend now and then whether it
+  /// was answered, in case the `call_accepted` frame never reached us.
+  Timer? _ringWatch;
+  static const _ringWatchEvery = Duration(seconds: 3);
+
   @override
   CallState build() {
     _api = ref.watch(callApiProvider);
@@ -91,6 +97,7 @@ class CallController extends _$CallController {
       }
       _subs.clear();
       _session?.close();
+      _ringWatch?.cancel();
     });
 
     Future.microtask(_init);
@@ -123,10 +130,16 @@ class CallController extends _$CallController {
       final CallView view;
       try {
         view = await _api.startCall(kind, jobId);
-      } on CallError {
+      } on CallError catch (e) {
+        CallTrail.step(jobId, 'start refused ${e.status} ${e.code}');
         _transport.release();
         rethrow;
       }
+      CallTrail.step(
+        view.callId,
+        'ringing ${kind.name} socket=${_transport.isConnected} '
+        'ice=${view.iceServers.length}',
+      );
       _iceServers = view.iceServers;
       final call = CallInfo(
         callId: view.callId,
@@ -143,6 +156,7 @@ class CallController extends _$CallController {
         speakerOn: state.speakerOn,
       );
       unawaited(_ui.showOutgoing(call));
+      _watchRing(call.callId);
     } finally {
       _placing = false;
     }
@@ -241,6 +255,11 @@ class CallController extends _$CallController {
       // The caller's offer comes over the socket right after the accept.
       await _transport.ensureConnected();
       view = await _api.accept(call.callId);
+      CallTrail.step(
+        call.callId,
+        'answered socket=${_transport.isConnected} '
+        'ice=${view.iceServers.length}',
+      );
     } on CallError catch (e) {
       if (session != _session) return;
       // 409 CALL_ENDED: it stopped ringing meanwhile — just dismiss.
@@ -266,7 +285,10 @@ class CallController extends _$CallController {
         }
       case 'call_accepted':
         final view = _view(raw['call']);
-        if (view != null) _onAccepted(view);
+        if (view != null) {
+          CallTrail.step(view.callId, 'call_accepted frame');
+          _onAccepted(view);
+        }
       case 'call_ended':
         final view = _view(raw['call']);
         if (view != null) _onEnded(view.callId, view.endReason);
@@ -274,6 +296,7 @@ class CallController extends _$CallController {
         final id = raw['call_id']?.toString() ?? '';
         final payload = raw['payload'];
         if (_isCurrent(id) && payload is Map) {
+          CallTrail.step(id, 'received ${raw['kind']}');
           unawaited(
             _session?.onSignal(
               raw['kind']?.toString() ?? '',
@@ -327,11 +350,41 @@ class CallController extends _$CallController {
     }
   }
 
+  /// Polls the call while it rings: answered → start like `call_accepted`;
+  /// over → end. Covers a `call_accepted` / `call_ended` frame lost while
+  /// the socket was dropping (e.g. right after a job ends).
+  void _watchRing(String callId) {
+    _ringWatch?.cancel();
+    _ringWatch = _startTimer(_ringWatchEvery, () async {
+      _ringWatch = null;
+      bool ringing() =>
+          _isCurrent(callId) && state.phase == CallPhase.outgoingRinging;
+      if (!ringing()) return;
+      try {
+        final view = await _api.getCall(callId);
+        if (!ringing()) return;
+        if (view.status == 'accepted') {
+          CallTrail.step(callId, 'accepted (seen by polling)');
+          _onAccepted(view);
+          return;
+        }
+        if (view.status == 'ended') {
+          _onEnded(callId, view.endReason);
+          return;
+        }
+      } catch (_) {}
+      if (ringing()) _watchRing(callId);
+    });
+  }
+
   /// The customer picked up: send the offer.
   void _onAccepted(CallView view) {
     if (!_isCurrent(view.callId) || state.phase != CallPhase.outgoingRinging) {
       return;
     }
+    _ringWatch?.cancel();
+    _ringWatch = null;
+    CallTrail.step(view.callId, 'accepted → sending offer');
     state = state.copyWith(phase: CallPhase.connecting);
     _start(_newSession(view.callId, CallRole.caller), _iceServers);
   }
@@ -375,8 +428,13 @@ class CallController extends _$CallController {
       callId: callId,
       role: role,
       createPeer: _createPeer,
-      sendSignal: (kind, payload) =>
-          _transport.sendSignal(callId, kind, payload),
+      sendSignal: (kind, payload) {
+        CallTrail.step(
+          callId,
+          'sent $kind socket=${_transport.isConnected}',
+        );
+        _transport.sendSignal(callId, kind, payload);
+      },
       onLink: (link) => _onLink(session, link),
       startTimer: _startTimer,
     );
@@ -393,6 +451,7 @@ class CallController extends _$CallController {
 
   void _onLink(CallSession session, CallLink link) {
     if (session != _session) return;
+    CallTrail.step(session.callId, 'link ${link.name}');
     switch (link) {
       case CallLink.connected:
         final first = state.connectedAt == null;
@@ -413,6 +472,13 @@ class CallController extends _$CallController {
   /// The audio never connected, or dropped for good.
   Future<void> _fail() async {
     final call = state.call;
+    if (call != null) {
+      CallTrail.failed(
+        call.callId,
+        '${call.kind.name} ${state.outgoing ? 'outgoing' : 'incoming'} '
+        'at ${state.phase.name} socket=${_transport.isConnected}',
+      );
+    }
     _teardown(CallEndReason.failed);
     if (call != null) {
       await _quietly(() => _api.end(call.callId, reason: 'failed'));
@@ -432,6 +498,9 @@ class CallController extends _$CallController {
     if (!state.isBusy) return;
     final call = state.call;
     final hadScreen = state.hasScreen;
+    if (call != null) CallTrail.step(call.callId, 'end ${reason.name}');
+    _ringWatch?.cancel();
+    _ringWatch = null;
     unawaited(_session?.close());
     _session = null;
     _iceServers = const [];

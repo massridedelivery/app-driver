@@ -117,6 +117,46 @@ void main() {
       expect(peers.single.speaker, isTrue);
     });
 
+    // After a job ends the call_accepted frame can be lost (the socket was
+    // being reset): polling the call while it rings still starts the call.
+    test('a lost call_accepted is caught by polling the ringing call', () async {
+      await boot();
+      await placeCall();
+      expect(timers.active.single.duration, const Duration(seconds: 3));
+
+      // Still ringing: poll again.
+      api.getCallResult = CallView.fromJson(callViewJson(withIce: false));
+      timers.fireActive();
+      await pumpEventQueue();
+      expect(api.calls.last, 'get:call-1');
+      expect(state().phase, CallPhase.outgoingRinging);
+      expect(timers.active, hasLength(1));
+
+      // The customer answered; no frame came.
+      api.getCallResult = CallView.fromJson(
+        callViewJson(status: 'accepted', withIce: false),
+      );
+      timers.fireActive();
+      await pumpEventQueue();
+      expect(state().phase, CallPhase.connecting);
+      expect(transport.sent.single.kind, 'offer');
+      // Polling stops once connecting (only the session's timer is left).
+      expect(timers.active.every((t) => t.duration != const Duration(seconds: 3)), isTrue);
+    });
+
+    test('polling sees a call that ended while ringing', () async {
+      await boot();
+      await placeCall();
+      api.getCallResult = CallView.fromJson(
+        callViewJson(status: 'ended', endReason: 'declined', withIce: false),
+      );
+      timers.fireActive();
+      await pumpEventQueue();
+      expect(state().phase, CallPhase.ended);
+      expect(state().endReason, CallEndReason.declined);
+      expect(timers.active, isEmpty);
+    });
+
     test('a refusal is rethrown and leaves no call', () async {
       api.startError = const CallError(status: 409, code: 'CALL_BUSY');
       await boot();
