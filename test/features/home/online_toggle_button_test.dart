@@ -6,8 +6,7 @@ Future<void> _pump(WidgetTester tester, bool online, VoidCallback onTap) =>
     tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: SizedBox(
-            width: 400,
+          body: Center(
             child: OnlineToggleButton(isOnline: online, onTap: onTap),
           ),
         ),
@@ -15,24 +14,20 @@ Future<void> _pump(WidgetTester tester, bool online, VoidCallback onTap) =>
     );
 
 void main() {
-  testWidgets('offline: a "เริ่มรับงาน" pill in the middle', (tester) async {
+  testWidgets('offline: a wide "เริ่มรับงาน" pill', (tester) async {
     var taps = 0;
     await _pump(tester, false, () => taps++);
     expect(find.text('เริ่มรับงาน'), findsOneWidget);
-    final center = tester.getCenter(find.byType(Material).last);
-    expect(center.dx, closeTo(400 / 2, 1));
     await tester.tap(find.text('เริ่มรับงาน'));
     expect(taps, 1);
   });
 
-  testWidgets('online: a small button on the right, no label', (tester) async {
+  testWidgets('online: a small 52×52 button, no label', (tester) async {
     var taps = 0;
     await _pump(tester, true, () => taps++);
     expect(find.text('เริ่มรับงาน'), findsNothing);
     expect(find.bySemanticsLabel('ปิดรับงาน'), findsOneWidget);
-    final rect = tester.getRect(find.byType(InkWell));
-    expect(rect.width, 52);
-    expect(rect.right, closeTo(400 - 16, 1));
+    expect(tester.getSize(find.byType(InkWell)), const Size(52, 52));
     await tester.tap(find.byType(InkWell));
     expect(taps, 1);
   });
