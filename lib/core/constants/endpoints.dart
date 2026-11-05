@@ -164,6 +164,9 @@ abstract class Endpoints {
   /// HTTP fallback for the socket's `location_update` (backgrounded app or
   /// socket down): `{"lat","lng"}` → `{"status":"location updated"}`.
   static const driverLocation = '/api/driver/location';
+  // Refer a driver (ชวนเพื่อนมาขับ).
+  static const driverReferral = '/api/driver/referral';
+  static const driverReferralApply = '/api/driver/referral/apply';
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
   static const driverPayoutsSummary = '/api/driver/payouts/summary';

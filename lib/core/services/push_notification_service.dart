@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:massdrive/features/referral/domain/driver_referral.dart';
 import 'package:massdrive/features/call/data/call_pushes.dart';
 import 'package:massdrive/features/call/data/callkit_system_ui.dart';
 import 'package:massdrive/features/call/domain/call_kind.dart';
@@ -342,6 +343,10 @@ class PushNotificationService {
     // Slip approved/rejected (topup_approved / topup_rejected): wallet and
     // COD status changed — refresh them and the slip list.
     if (_isTopupUpdate(message)) TopupUpdates.instance.notifyChanged();
+    // A referral bonus landed in the wallet: refresh it and the invite screen.
+    if (isDriverReferralBonusPush(message.data)) {
+      ReferralUpdates.instance.notifyChanged();
+    }
     // A document was reviewed (document_status): an approved selfie is now the
     // avatar, and verification may have changed — re-read the profile.
     if (isDocumentStatusPush(message.data)) {
@@ -520,6 +525,13 @@ class PushNotificationService {
       TopupUpdates.instance.notifyChanged();
       AppRouter.router.go(AppRoutes.homeNamedPage);
       AppRouter.router.push(AppRoutes.creditWalletNamedPage);
+      return;
+    }
+    // Referral bonus paid → the wallet (income) on top of home.
+    if (isDriverReferralBonusPush(message.data)) {
+      ReferralUpdates.instance.notifyChanged();
+      AppRouter.router.go(AppRoutes.homeNamedPage);
+      AppRouter.router.push(AppRoutes.incomeNamedPage);
       return;
     }
     // Payout status push → open the withdrawal history on top of home.

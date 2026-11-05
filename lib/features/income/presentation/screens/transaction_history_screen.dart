@@ -671,6 +671,8 @@ class _TransactionTile extends StatelessWidget {
         return Icons.account_balance_rounded;
       case TransactionType.bonus:
         return Icons.star_rounded;
+      case TransactionType.driverReferralBonus:
+        return Icons.group_add_rounded;
       case TransactionType.adjustment:
         return Icons.tune_rounded;
       case TransactionType.promoDiscount:
@@ -692,6 +694,8 @@ class _TransactionTile extends StatelessWidget {
         return 'ถอนเงิน';
       case TransactionType.bonus:
         return 'โบนัส';
+      case TransactionType.driverReferralBonus:
+        return driverReferralBonusLabel;
       case TransactionType.adjustment:
         return 'ปรับยอด';
       case TransactionType.promoDiscount:

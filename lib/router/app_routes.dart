@@ -43,6 +43,7 @@ import 'package:massdrive/features/inbox/domain/inbox_message.dart';
 import 'package:massdrive/features/inbox/presentation/screens/inbox_detail_screen.dart';
 import 'package:massdrive/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
+import 'package:massdrive/features/referral/presentation/screens/referral_screen.dart';
 import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/topup_history_screen.dart';
@@ -244,6 +245,11 @@ class AppRouter {
         path: AppRoutes.questsNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: QuestsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.referralNamedPage,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ReferralScreen()),
       ),
       GoRoute(
         path: AppRoutes.tripCalendarNamedPage,
