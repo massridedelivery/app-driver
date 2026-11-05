@@ -149,17 +149,19 @@ void main() {
       expect(d.baseFare, 30);
     });
 
-    testWidgets('รายได้สุทธิ lists fare, toll and other cost apart', (t) async {
+    testWidgets('ค่าโดยสาร is gross_fare, with the toll and other cost it '
+        'includes listed under it', (t) async {
       await _pump(t, YourNetIncomeSection(data: historyDetailFromTrip(extras())));
       expect(find.text('ค่าโดยสาร'), findsOneWidget);
-      expect(find.text('฿30'), findsOneWidget);
-      expect(find.text('ค่าทางด่วน'), findsOneWidget);
+      // gross_fare − commission == driver_net: ฿60 − ฿5 = ฿55.
+      expect(find.text('฿60'), findsOneWidget);
+      expect(find.text('รวมค่าทางด่วน'), findsOneWidget);
       expect(find.text('฿25'), findsOneWidget);
-      expect(find.text('ค่าอื่นๆ (ค่าจอดรถ)'), findsOneWidget);
+      expect(find.text('รวมค่าอื่นๆ (ค่าจอดรถ)'), findsOneWidget);
       expect(find.text('฿5'), findsOneWidget);
       expect(find.text('หักค่าคอมมิชชัน 15%'), findsOneWidget);
       expect(find.text('฿55'), findsOneWidget);
-      expect(find.text('ค่ารอ'), findsNothing);
+      expect(find.text('รวมค่ารอ'), findsNothing);
     });
 
     testWidgets('รวม is what the customer paid', (t) async {

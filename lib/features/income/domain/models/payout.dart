@@ -135,6 +135,11 @@ enum PayoutStatus {
 @immutable
 class PayoutRecord {
   final String id;
+
+  /// `reference_no` ("WD-261105-000123"): the number drivers quote to
+  /// support. Opaque — the date comes from [createdAt], never from this.
+  /// Not `transaction_reference` (that is the bank's).
+  final String? referenceNo;
   final double amount;
   final PayoutStatus status;
   final DateTime? createdAt;
@@ -152,6 +157,7 @@ class PayoutRecord {
 
   const PayoutRecord({
     required this.id,
+    this.referenceNo,
     required this.amount,
     required this.status,
     this.createdAt,
@@ -175,6 +181,7 @@ class PayoutRecord {
 
     return PayoutRecord(
       id: j['id']?.toString() ?? '',
+      referenceNo: text(j['reference_no']),
       amount: (j['amount'] as num?)?.toDouble() ?? 0,
       status: status,
       createdAt: DateTime.tryParse(
@@ -255,8 +262,10 @@ class PayoutUpdates extends ChangeNotifier {
 /// and what will reach the bank (POST /api/driver/payouts response).
 @immutable
 class PayoutReceipt {
-  const PayoutReceipt({this.whtAmount, this.netAmount});
+  const PayoutReceipt({this.referenceNo, this.whtAmount, this.netAmount});
 
+  /// `reference_no` of the new request, see [PayoutRecord.referenceNo].
+  final String? referenceNo;
   final double? whtAmount;
   final double? netAmount;
 
@@ -264,7 +273,9 @@ class PayoutReceipt {
     final body = j?['payout'] is Map
         ? Map<String, dynamic>.from(j!['payout'] as Map)
         : j;
+    final ref = body?['reference_no']?.toString().trim();
     return PayoutReceipt(
+      referenceNo: ref == null || ref.isEmpty ? null : ref,
       whtAmount: (body?['wht_amount'] as num?)?.toDouble(),
       netAmount: (body?['net_amount'] as num?)?.toDouble(),
     );

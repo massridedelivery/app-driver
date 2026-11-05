@@ -39,13 +39,10 @@ class YourNetIncomeSection extends StatelessWidget {
         children: [
           _buildHeader(context, theme),
           const SizedBox(height: 16),
-          // The gross split into the fare and the pass-through costs (toll,
-          // other cost, waiting), each as the trip row gives it.
-          _buildInfoRow(
-            context,
-            title: "ค่าโดยสาร",
-            value: _money(data.baseFare ?? gross),
-          ),
+          // ค่าโดยสาร is gross_fare (fare + waiting + toll + other), so
+          // ค่าโดยสาร − commission == รายได้สุทธิ. The extras inside it are
+          // listed under it; toll and other costs carry no commission.
+          _buildInfoRow(context, title: "ค่าโดยสาร", value: _money(gross)),
           for (final (label, amount) in [
             ("ค่ารอ", data.waitingFee),
             ("ค่าทางด่วน", data.tollFee),
@@ -57,8 +54,8 @@ class YourNetIncomeSection extends StatelessWidget {
             ),
           ])
             if (data.grossFare != null && amount > 0) ...[
-              const SizedBox(height: 12),
-              _buildInfoRow(context, title: label, value: _money(amount)),
+              const SizedBox(height: 6),
+              _buildIncludedRow(context, label, amount),
             ],
           if (commission != null && commission > 0) ...[
             const SizedBox(height: 12),
@@ -105,6 +102,23 @@ class YourNetIncomeSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// A part of ค่าโดยสาร: indented, quieter, "รวม…".
+  Widget _buildIncludedRow(BuildContext context, String label, num amount) {
+    final style = AppTypography.caption5.copyWith(
+      color: context.palette.textSecondary,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(child: Text("รวม$label", style: style)),
+          Text(_money(amount), style: style),
+        ],
+      ),
     );
   }
 

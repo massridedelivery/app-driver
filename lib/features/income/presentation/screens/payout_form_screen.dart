@@ -58,6 +58,7 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
 
     if (error == null) {
       final net = receipt?.netAmount;
+      final refNo = receipt?.referenceNo;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -65,9 +66,12 @@ class _PayoutFormScreenState extends ConsumerState<PayoutFormScreen> {
             // A request, not a completed transfer — an admin approves and
             // transfers it (usually within 1–2 business days).
             // Mention what reaches the bank only if it differs (a tax).
-            net == null || net == amount
-                ? 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ'
-                : 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว · ได้รับ ${formatBaht(net)} · รอการอนุมัติ',
+            [
+              net == null || net == amount
+                  ? 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว รอการอนุมัติ'
+                  : 'ส่งคำขอถอนเงิน ${formatBaht(amount)} แล้ว · ได้รับ ${formatBaht(net)} · รอการอนุมัติ',
+              if (refNo != null) 'เลขที่รายการ $refNo',
+            ].join('\n'),
             style: AppTypography.label2.copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.semanticSupportMintBgHigh,

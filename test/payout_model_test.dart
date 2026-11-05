@@ -114,4 +114,37 @@ void main() {
       );
     });
   });
+
+  group('reference_no', () {
+    test('a history row carries its withdrawal number', () {
+      final r = PayoutRecord.fromJson({
+        'id': 'p1',
+        'reference_no': 'WD-261105-000123',
+        'transaction_reference': 'BANK-REF-9',
+        'amount': 500,
+        'status': 'pending',
+        'created_at': '2026-11-05T03:00:00Z',
+      });
+      expect(r.referenceNo, 'WD-261105-000123');
+      expect(r.createdAt, DateTime.utc(2026, 11, 5, 3).toLocal());
+    });
+
+    test('missing on older rows → null', () {
+      final r = PayoutRecord.fromJson({'id': 'p1', 'amount': 1});
+      expect(r.referenceNo, isNull);
+    });
+
+    test('the POST receipt carries it, flat or under payout', () {
+      expect(
+        PayoutReceipt.fromJson({'reference_no': 'WD-1'}).referenceNo,
+        'WD-1',
+      );
+      expect(
+        PayoutReceipt.fromJson({
+          'payout': {'reference_no': 'WD-2'},
+        }).referenceNo,
+        'WD-2',
+      );
+    });
+  });
 }
