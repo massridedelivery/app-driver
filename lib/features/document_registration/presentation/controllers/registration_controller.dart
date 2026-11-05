@@ -11,6 +11,8 @@ import '../../domain/models/profile_update_error.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/models/vehicle_info.dart';
 import '../../domain/models/driver_document_model.dart';
+import '../../domain/document_reupload.dart';
+import 'rejected_documents_provider.dart';
 import '../../domain/repositories/document_registration_repository.dart';
 import '../states/registration_state.dart';
 
@@ -48,25 +50,7 @@ class RegistrationController extends _$RegistrationController {
 
       final Map<DocumentType, DriverDocumentModel> remoteDocs = {};
       for (final doc in docList) {
-        DocumentType? type;
-        if (doc.docType == 'selfie') {
-          type = DocumentType.profilePhoto;
-        } else if (doc.docType == 'id_card') {
-          type = DocumentType.idCard;
-        } else if (doc.docType == 'driver_license') {
-          type = DocumentType.drivingLicense;
-        } else if (doc.docType == 'public_transport_license') {
-          type = DocumentType.publicDrivingLicense;
-        } else if (doc.docType == 'vehicle_registration') {
-          type = DocumentType.vehicleRegistration;
-        } else if (doc.docType == 'insurance') {
-          type = DocumentType.insurance;
-        } else if (doc.docType == 'vehicle_photo') {
-          type = DocumentType.vehiclePhoto;
-        } else if (doc.docType == 'bank_passbook') {
-          type = DocumentType.bankPassbook;
-        }
-        
+        final type = documentTypeFromApi(doc.docType);
         if (type != null) {
           remoteDocs[type] = doc;
         }
@@ -145,6 +129,8 @@ class RegistrationController extends _$RegistrationController {
         profileInfo: profileInfo,
         vehicleInfo: savedVehicle,
       );
+      // The home banner shows what is still sent back.
+      ref.invalidate(rejectedDocumentsProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
     }

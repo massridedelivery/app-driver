@@ -27,6 +27,7 @@ import 'package:massdrive/features/income/presentation/widgets/credit_notice_dia
 import 'package:massdrive/features/home/presentation/widgets/home_coach_marks.dart';
 import 'package:massdrive/features/home/presentation/widgets/online_toggle_button.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_card.dart';
+import 'package:massdrive/features/home/presentation/widgets/reupload_banner.dart';
 import 'package:massdrive/features/service_area/service_area_service.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
@@ -817,6 +818,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const ReuploadBanner(),
             const _OnlineAndStatus(),
             const SizedBox(height: 8),
             _buildMenuRow(),

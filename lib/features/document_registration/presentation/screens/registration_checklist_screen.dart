@@ -5,6 +5,7 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../domain/document_reupload.dart';
 import '../../domain/models/registration_status.dart';
 import '../controllers/registration_controller.dart';
 import '../states/registration_state.dart';
@@ -36,6 +37,25 @@ class _RegistrationChecklistScreenState
       ref.read(registrationControllerProvider.notifier).fetchStatus();
     });
   }
+
+  /// Where a document is (re)uploaded: the vehicle and bank steps are forms
+  /// that carry their document, the rest is the plain upload screen.
+  void _openDocument(BuildContext context, DocumentType type) {
+    switch (type) {
+      case DocumentType.vehicleRegistration:
+        context.push('/document-registration/vehicle-info');
+      case DocumentType.bankPassbook:
+        context.push('/document-registration/bank-account');
+      default:
+        context.push(
+          '/document-registration/upload-document',
+          extra: {'type': type, 'title': _uploadTitle(type)},
+        );
+    }
+  }
+
+  static String _uploadTitle(DocumentType type) =>
+      type == DocumentType.insurance ? 'พ.ร.บ. / ประกัน' : documentTitle(type);
 
   List<_StepSpec> _steps(BuildContext context, RegistrationState state) {
     _StepSpec doc(
@@ -135,8 +155,16 @@ class _RegistrationChecklistScreenState
     // Only show the approved screen when the backend has confirmed is_verified = true.
     // For all other statuses (inReview, pending, rejected), show the checklist
     // so the driver can see the status of each document.
+    // An approved driver can still have documents sent back (the admin asks
+    // for a re-upload, the account stays verified): show those, or the push
+    // "เอกสารถูกปฏิเสธ" would open a screen with no way to fix them.
     if (state.overallStatus == RegistrationStateStatus.approved) {
-      return const _ApprovedView();
+      final rejected = rejectedDocuments(state.remoteDocuments.values);
+      if (rejected.isEmpty) return const _ApprovedView();
+      return _ReuploadView(
+        rejected: rejected,
+        onOpen: (type) => _openDocument(context, type),
+      );
     }
 
     if (state.selectedTier == null) {
@@ -261,6 +289,53 @@ class _InReviewView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// An approved account with documents sent back: only those rows, each
+/// re-uploadable. The driver keeps taking jobs meanwhile.
+class _ReuploadView extends StatelessWidget {
+  const _ReuploadView({required this.rejected, required this.onOpen});
+
+  final List<RejectedDocument> rejected;
+  final void Function(DocumentType type) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return RegistrationScaffold(
+      icon: Icons.upload_file_rounded,
+      title: 'อัปโหลดเอกสารใหม่',
+      subtitle: 'บัญชีของคุณยังรับงานได้ตามปกติ กรุณาอัปโหลดเอกสารต่อไปนี้ใหม่',
+      onBack: () => _goHome(context),
+      bottom: RegistrationPrimaryButton(
+        label: 'ไปหน้ารับงาน',
+        onPressed: () => _goHome(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < rejected.length; i++)
+            RegistrationStatusRow(
+              number: i + 1,
+              title: documentTitle(rejected[i].type),
+              status: RegistrationRowStatus.rejected,
+              statusLines: [
+                'ถูกปฏิเสธ: ${rejected[i].reason ?? "กรุณาอัปโหลดใหม่"}',
+                'แตะเพื่ออัปโหลดใหม่',
+              ],
+              underlineLine: 1,
+              onTap: () => onOpen(rejected[i].type),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Back to Home from a checklist that may sit on imperative routes (e.g.
+/// opened from Edit Profile or a push), which `context.go` alone won't clear.
+void _goHome(BuildContext context) {
+  Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+  context.go('/home');
 }
 
 class _ApprovedView extends StatelessWidget {
