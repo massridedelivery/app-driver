@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/models/socket_message_model.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/call/data/audio_ringback.dart';
 import 'package:massdrive/features/call/data/call_api_service.dart';
 import 'package:massdrive/features/call/data/call_pushes.dart';
 import 'package:massdrive/features/call/data/call_trail.dart';
@@ -42,6 +43,9 @@ CallPeerFactory callPeerFactory(Ref ref) => WebRtcCallPeer.create;
 @Riverpod(keepAlive: true)
 CallTimerFactory callTimerFactory(Ref ref) => Timer.new;
 
+@Riverpod(keepAlive: true)
+CallRingback callRingback(Ref ref) => AudioRingback();
+
 const _speakerPrefKey = 'call_speaker_on';
 
 /// The driver's one call at a time, from ring to hang-up: places calls,
@@ -55,6 +59,7 @@ class CallController extends _$CallController {
   late CallSystemUi _ui;
   late CallPeerFactory _createPeer;
   late CallTimerFactory _startTimer;
+  late CallRingback _ringback;
 
   final List<StreamSubscription<Object?>> _subs = [];
   CallSession? _session;
@@ -68,6 +73,16 @@ class CallController extends _$CallController {
   Timer? _ringWatch;
   static const _ringWatchEvery = Duration(seconds: 3);
 
+  /// Polls made while our call rings: the ringback stops after
+  /// `ring_timeout_sec`, and a ring the backend never closed is ended
+  /// [_ringGrace] later.
+  int _ringPolls = 0;
+  static const _ringGrace = Duration(seconds: 15);
+
+  /// An incoming call rung by a push while the socket is down: iOS gets no
+  /// VoIP push for `call_ended`, so the call is polled until the socket is up.
+  Timer? _incomingWatch;
+
   @override
   CallState build() {
     _api = ref.watch(callApiProvider);
@@ -75,6 +90,7 @@ class CallController extends _$CallController {
     _ui = ref.watch(callSystemUiProvider);
     _createPeer = ref.watch(callPeerFactoryProvider);
     _startTimer = ref.watch(callTimerFactoryProvider);
+    _ringback = ref.watch(callRingbackProvider);
 
     _subs
       ..add(_transport.messages.listen(_onSocket))
@@ -98,6 +114,8 @@ class CallController extends _$CallController {
       _subs.clear();
       _session?.close();
       _ringWatch?.cancel();
+      _incomingWatch?.cancel();
+      unawaited(_ringback.stop());
     });
 
     Future.microtask(_init);
@@ -156,6 +174,9 @@ class CallController extends _$CallController {
         speakerOn: state.speakerOn,
       );
       unawaited(_ui.showOutgoing(call));
+      // "ตู๊ด… ตู๊ด…" until call_accepted / call_ended or the ring times out.
+      unawaited(_ringback.start(speaker: state.speakerOn));
+      _ringPolls = 0;
       _watchRing(call.callId);
     } finally {
       _placing = false;
@@ -194,6 +215,13 @@ class CallController extends _$CallController {
     final on = !state.speakerOn;
     state = state.copyWith(speakerOn: on);
     unawaited(_session?.setSpeaker(on));
+    if (state.phase == CallPhase.outgoingRinging) {
+      // Re-route the ringback to the new output.
+      await _ringback.stop();
+      if (state.phase == CallPhase.outgoingRinging) {
+        unawaited(_ringback.start(speaker: on));
+      }
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_speakerPrefKey, on);
@@ -222,6 +250,9 @@ class CallController extends _$CallController {
     );
     if (!shown) await _ui.showIncoming(call);
     if (verified) return;
+    // Rung by a push or the system UI: open the socket now, so call_ended
+    // (the customer hung up) reaches us while it rings.
+    unawaited(_transport.ensureConnected());
     // A push can outlive the ring: ask before letting it ring on.
     bool stillRinging() =>
         _isCurrent(call.callId) && state.phase == CallPhase.incomingRinging;
@@ -234,6 +265,34 @@ class CallController extends _$CallController {
     } on CallError catch (e) {
       if (e.status == 404 && stillRinging()) _onEnded(call.callId, null);
     }
+    if (stillRinging()) _watchIncoming(call.callId);
+  }
+
+  /// Polls a ringing incoming call while the socket is down; ended → stop
+  /// the ring. Stops once the socket is up (call_ended comes over it).
+  void _watchIncoming(String callId) {
+    _incomingWatch?.cancel();
+    _incomingWatch = null;
+    if (_transport.isConnected) return;
+    _incomingWatch = _startTimer(_ringWatchEvery, () async {
+      _incomingWatch = null;
+      bool ringing() =>
+          _isCurrent(callId) && state.phase == CallPhase.incomingRinging;
+      if (!ringing()) return;
+      try {
+        final view = await _api.getCall(callId);
+        if (!view.isRinging && ringing()) {
+          _onEnded(callId, view.endReason);
+          return;
+        }
+      } on CallError catch (e) {
+        if (e.status == 404 && ringing()) {
+          _onEnded(callId, null);
+          return;
+        }
+      } catch (_) {}
+      if (ringing()) _watchIncoming(callId);
+    });
   }
 
   /// Answered — from CallKit, the lock screen, a headset or the full-screen
@@ -360,6 +419,17 @@ class CallController extends _$CallController {
       bool ringing() =>
           _isCurrent(callId) && state.phase == CallPhase.outgoingRinging;
       if (!ringing()) return;
+      _ringPolls++;
+      final rang = _ringWatchEvery * _ringPolls;
+      final timeout = Duration(seconds: state.call?.ringTimeoutSec ?? 30);
+      if (rang >= timeout) unawaited(_ringback.stop());
+      if (rang >= timeout + _ringGrace) {
+        // The backend should have ended it as missed long ago.
+        CallTrail.step(callId, 'ring timed out locally');
+        _teardown(CallEndReason.missed);
+        unawaited(_quietly(() => _api.end(callId)));
+        return;
+      }
       try {
         final view = await _api.getCall(callId);
         if (!ringing()) return;
@@ -384,6 +454,7 @@ class CallController extends _$CallController {
     }
     _ringWatch?.cancel();
     _ringWatch = null;
+    unawaited(_ringback.stop());
     CallTrail.step(view.callId, 'accepted → sending offer');
     state = state.copyWith(phase: CallPhase.connecting);
     _start(_newSession(view.callId, CallRole.caller), _iceServers);
@@ -429,10 +500,7 @@ class CallController extends _$CallController {
       role: role,
       createPeer: _createPeer,
       sendSignal: (kind, payload) {
-        CallTrail.step(
-          callId,
-          'sent $kind socket=${_transport.isConnected}',
-        );
+        CallTrail.step(callId, 'sent $kind socket=${_transport.isConnected}');
         _transport.sendSignal(callId, kind, payload);
       },
       onLink: (link) => _onLink(session, link),
@@ -501,6 +569,9 @@ class CallController extends _$CallController {
     if (call != null) CallTrail.step(call.callId, 'end ${reason.name}');
     _ringWatch?.cancel();
     _ringWatch = null;
+    _incomingWatch?.cancel();
+    _incomingWatch = null;
+    unawaited(_ringback.stop());
     unawaited(_session?.close());
     _session = null;
     _iceServers = const [];

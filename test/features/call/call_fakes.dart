@@ -237,3 +237,20 @@ class FakeSystemUi implements CallSystemUi {
   @override
   Future<List<SystemCall>> activeCalls() async => active;
 }
+
+class FakeRingback implements CallRingback {
+  bool playing = false;
+  final log = <String>[];
+
+  @override
+  Future<void> start({required bool speaker}) async {
+    playing = true;
+    log.add('start:${speaker ? 'speaker' : 'earpiece'}');
+  }
+
+  @override
+  Future<void> stop() async {
+    if (playing) log.add('stop');
+    playing = false;
+  }
+}

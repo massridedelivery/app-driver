@@ -21,6 +21,7 @@ void main() {
   late FakeSystemUi ui;
   late FakeTimers timers;
   late List<FakePeer> peers;
+  late FakeRingback ringback;
   late ProviderContainer container;
 
   CallController controller() =>
@@ -40,6 +41,7 @@ void main() {
           return p;
         }),
         callTimerFactoryProvider.overrideWithValue(timers.start),
+        callRingbackProvider.overrideWithValue(ringback),
       ],
     );
     container.listen(callControllerProvider, (_, _) {});
@@ -70,6 +72,7 @@ void main() {
     ui = FakeSystemUi();
     timers = FakeTimers();
     peers = [];
+    ringback = FakeRingback();
   });
 
   tearDown(() => container.dispose());
@@ -119,30 +122,36 @@ void main() {
 
     // After a job ends the call_accepted frame can be lost (the socket was
     // being reset): polling the call while it rings still starts the call.
-    test('a lost call_accepted is caught by polling the ringing call', () async {
-      await boot();
-      await placeCall();
-      expect(timers.active.single.duration, const Duration(seconds: 3));
+    test(
+      'a lost call_accepted is caught by polling the ringing call',
+      () async {
+        await boot();
+        await placeCall();
+        expect(timers.active.single.duration, const Duration(seconds: 3));
 
-      // Still ringing: poll again.
-      api.getCallResult = CallView.fromJson(callViewJson(withIce: false));
-      timers.fireActive();
-      await pumpEventQueue();
-      expect(api.calls.last, 'get:call-1');
-      expect(state().phase, CallPhase.outgoingRinging);
-      expect(timers.active, hasLength(1));
+        // Still ringing: poll again.
+        api.getCallResult = CallView.fromJson(callViewJson(withIce: false));
+        timers.fireActive();
+        await pumpEventQueue();
+        expect(api.calls.last, 'get:call-1');
+        expect(state().phase, CallPhase.outgoingRinging);
+        expect(timers.active, hasLength(1));
 
-      // The customer answered; no frame came.
-      api.getCallResult = CallView.fromJson(
-        callViewJson(status: 'accepted', withIce: false),
-      );
-      timers.fireActive();
-      await pumpEventQueue();
-      expect(state().phase, CallPhase.connecting);
-      expect(transport.sent.single.kind, 'offer');
-      // Polling stops once connecting (only the session's timer is left).
-      expect(timers.active.every((t) => t.duration != const Duration(seconds: 3)), isTrue);
-    });
+        // The customer answered; no frame came.
+        api.getCallResult = CallView.fromJson(
+          callViewJson(status: 'accepted', withIce: false),
+        );
+        timers.fireActive();
+        await pumpEventQueue();
+        expect(state().phase, CallPhase.connecting);
+        expect(transport.sent.single.kind, 'offer');
+        // Polling stops once connecting (only the session's timer is left).
+        expect(
+          timers.active.every((t) => t.duration != const Duration(seconds: 3)),
+          isTrue,
+        );
+      },
+    );
 
     test('polling sees a call that ended while ringing', () async {
       await boot();
@@ -188,6 +197,54 @@ void main() {
         expect(state().phase, CallPhase.idle);
       },
     );
+
+    test('the ringback plays from the 201 until call_accepted', () async {
+      await boot();
+      await placeCall();
+      expect(ringback.playing, isTrue);
+      expect(ringback.log, ['start:speaker']);
+
+      await frame({
+        'type': 'call_accepted',
+        'call': callViewJson(status: 'accepted', withIce: false),
+      });
+      expect(ringback.playing, isFalse);
+    });
+
+    test('the ringback stops on call_ended', () async {
+      await boot();
+      await placeCall();
+      await frame({
+        'type': 'call_ended',
+        'call': callViewJson(status: 'ended', endReason: 'missed'),
+      });
+      expect(ringback.playing, isFalse);
+    });
+
+    test('ringback stops at ring_timeout_sec; a ring never closed by the '
+        'backend ends as missed', () async {
+      api.getCallResult = CallView.fromJson(callViewJson(withIce: false));
+      await boot();
+      await placeCall();
+      // 30 s ring timeout, polled every 3 s.
+      for (var i = 0; i < 9; i++) {
+        timers.fireActive();
+        await pumpEventQueue();
+      }
+      expect(ringback.playing, isTrue);
+      timers.fireActive();
+      await pumpEventQueue();
+      expect(ringback.playing, isFalse);
+      expect(state().phase, CallPhase.outgoingRinging);
+
+      for (var i = 0; i < 5; i++) {
+        timers.fireActive();
+        await pumpEventQueue();
+      }
+      expect(state().phase, CallPhase.ended);
+      expect(state().endReason, CallEndReason.missed);
+      expect(api.calls.last, 'end:call-1');
+    });
 
     test('hanging up while ringing cancels it', () async {
       await boot();
@@ -255,6 +312,30 @@ void main() {
         expect(state().phase, CallPhase.idle);
       },
     );
+
+    test('a push ring with the socket down is polled until it ends', () async {
+      transport.connected = false;
+      api.getCallResult = CallView.fromJson(callViewJson(withIce: false));
+      await boot();
+      CallPushes.instance.report({
+        'type': 'call_incoming',
+        ...incoming.toExtra(),
+      });
+      await pumpEventQueue();
+      expect(transport.ensureCount, 1);
+      expect(state().phase, CallPhase.incomingRinging);
+      expect(timers.active, hasLength(1));
+
+      // The customer hung up; no call_ended push reaches iOS.
+      api.getCallResult = CallView.fromJson(
+        callViewJson(status: 'ended', endReason: 'cancelled', withIce: false),
+      );
+      timers.fireActive();
+      await pumpEventQueue();
+      expect(ui.ended, ['call-1']);
+      expect(state().phase, isNot(CallPhase.incomingRinging));
+      expect(timers.active, isEmpty);
+    });
 
     test('answering before the ring check returns keeps the call', () async {
       api.getCallGate = Completer();

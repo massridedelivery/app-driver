@@ -120,3 +120,10 @@ abstract class CallSystemUi {
   Future<void> end(String callId);
   Future<List<SystemCall>> activeCalls();
 }
+
+/// The local "ตู๊ด… ตู๊ด…" heard while our outgoing call rings — the backend
+/// sends no ringback, so without it the driver hears silence.
+abstract class CallRingback {
+  Future<void> start({required bool speaker});
+  Future<void> stop();
+}
