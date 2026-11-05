@@ -78,6 +78,8 @@ dependencies:
   # + the full-screen incoming call (Android).
   flutter_webrtc: ^1.6.3
   flutter_callkit_incoming: ^3.1.6
+  # The local ringback ("ตู๊ด… ตู๊ด…") while an outgoing call rings.
+  audioplayers: ^6.7.1
   in_app_update: ^4.2.5
   firebase_crashlytics: ^5.2.3
   crypto: ^3.0.8
@@ -137,6 +139,7 @@ flutter:
     - assets/images/icons/
     - assets/images/icons/vehicles/
     - assets/locales/
+    - assets/sounds/
 
   fonts:
     - family: Ibm

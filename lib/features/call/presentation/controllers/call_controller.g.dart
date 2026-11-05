@@ -220,6 +220,47 @@ final class CallTimerFactoryProvider
 
 String _$callTimerFactoryHash() => r'ebbde41018d85e3c725e9e6cf5a0066695936f41';
 
+@ProviderFor(callRingback)
+const callRingbackProvider = CallRingbackProvider._();
+
+final class CallRingbackProvider
+    extends $FunctionalProvider<CallRingback, CallRingback, CallRingback>
+    with $Provider<CallRingback> {
+  const CallRingbackProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'callRingbackProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$callRingbackHash();
+
+  @$internal
+  @override
+  $ProviderElement<CallRingback> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  CallRingback create(Ref ref) {
+    return callRingback(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CallRingback value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CallRingback>(value),
+    );
+  }
+}
+
+String _$callRingbackHash() => r'cd07154860bb74ceeba6701d67bbdfd46108bd65';
+
 /// The driver's one call at a time, from ring to hang-up: places calls,
 /// takes incoming ones from the socket, pushes and the system call UI, runs
 /// the WebRTC [CallSession] once answered, and ends it on `call_ended`, a
@@ -265,7 +306,7 @@ final class CallControllerProvider
   }
 }
 
-String _$callControllerHash() => r'382cca050d38ed5fffa7143316335c2d8bb605b7';
+String _$callControllerHash() => r'5f8e9cd30e2c6dbdcbf147dd78ab83167575f18e';
 
 /// The driver's one call at a time, from ring to hang-up: places calls,
 /// takes incoming ones from the socket, pushes and the system call UI, runs
