@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/services/socket_service.dart';
+import 'package:massdrive/features/dependency_injection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'location_service.g.dart';
@@ -10,7 +12,15 @@ part 'location_service.g.dart';
 @Riverpod(keepAlive: true)
 LocationService locationService(ref) {
   final socket = ref.watch(socketServiceProvider);
-  final service = LocationService(socket);
+  final service = LocationService(
+    socket,
+    postLocation: (lat, lng) => ref
+        .read(dioProvider)
+        .post<dynamic>(
+          Endpoints.driverLocation,
+          data: {'lat': lat, 'lng': lng},
+        ),
+  );
   ref.onDispose(service.dispose);
   return service;
 }
@@ -26,6 +36,8 @@ class LocationService {
   Position? _lastPosition;
   DateTime? _lastSentAt;
   Duration _minSendInterval = const Duration(seconds: 8);
+  DateTime? _lastPostAt;
+  bool _posting = false;
 
   /// Open job screens (ride / food / parcel): any open → the trip profile.
   int _activeJobs = 0;
@@ -42,6 +54,7 @@ class LocationService {
   final Future<LocationPermission> Function() _checkPermission;
   final Future<LocationPermission> Function() _requestPermission;
   final Stream<Position> Function(LocationSettings) _positionStream;
+  final Future<void> Function(double lat, double lng)? _postLocation;
 
   /// Every fix produced by the tracking session, unthrottled — the throttle
   /// applies to what we send upstream, not to what the UI may observe.
@@ -49,8 +62,14 @@ class LocationService {
   Stream<Position> get onPosition => _positionController.stream;
 
   /// Send the last position at least this often even when stationary — the
-  /// dispatch pool drops drivers that go silent for ~1 min (driver spec §4).
-  static const Duration _keepAlive = Duration(seconds: 20);
+  /// dispatch pool drops drivers that go silent for ~1 min (driver spec §4),
+  /// and on a job a fix older than 60 s leaves the customer without an ETA.
+  static const Duration _idleKeepAlive = Duration(seconds: 20);
+  static const Duration _jobKeepAlive = Duration(seconds: 15);
+  Duration _keepAlive = _idleKeepAlive;
+
+  /// The HTTP fallback is a request per fix — never closer than this.
+  static const Duration _minPostInterval = Duration(seconds: 10);
 
   LocationService(
     this._socketService, {
@@ -59,7 +78,9 @@ class LocationService {
     Future<LocationPermission> Function()? checkPermission,
     Future<LocationPermission> Function()? requestPermission,
     Stream<Position> Function(LocationSettings)? positionStream,
-  }) : _isForeground = isForeground ?? _appInForeground,
+    Future<void> Function(double lat, double lng)? postLocation,
+  }) : _postLocation = postLocation,
+       _isForeground = isForeground ?? _appInForeground,
        _serviceEnabled = serviceEnabled ?? Geolocator.isLocationServiceEnabled,
        _checkPermission = checkPermission ?? Geolocator.checkPermission,
        _requestPermission = requestPermission ?? Geolocator.requestPermission,
@@ -118,6 +139,7 @@ class LocationService {
         : LocationAccuracy.medium;
     final distanceFilter = activeJob ? 10 : 25;
     _minSendInterval = Duration(seconds: activeJob ? 3 : 8);
+    _keepAlive = activeJob ? _jobKeepAlive : _idleKeepAlive;
 
     _positionSubscription =
         _positionStream(_buildSettings(accuracy, distanceFilter)).listen(
@@ -277,13 +299,43 @@ class LocationService {
     return true;
   }
 
+  /// Upstream: the socket while the app is in front and the socket is up;
+  /// otherwise `POST /api/driver/location` — a backgrounded app's socket may
+  /// be suspended or gone, and a `location_update` frame sent to a closed
+  /// socket is dropped, which left the customer's ETA blank.
   void _send(Position pos) {
-    _lastSentAt = DateTime.now();
-    _socketService.sendLocationUpdate(pos.latitude, pos.longitude);
-    if (kDebugMode) {
-      debugPrint(
-        '📍 LocationService: Updated ${pos.latitude}, ${pos.longitude}',
-      );
+    if (_isForeground() && _socketService.isConnected) {
+      _lastSentAt = DateTime.now();
+      _socketService.sendLocationUpdate(pos.latitude, pos.longitude);
+      if (kDebugMode) {
+        debugPrint(
+          '📍 LocationService: Updated ${pos.latitude}, ${pos.longitude}',
+        );
+      }
+      return;
+    }
+    unawaited(_post(pos));
+  }
+
+  Future<void> _post(Position pos) async {
+    final post = _postLocation;
+    if (post == null || _posting) return;
+    final now = DateTime.now();
+    if (_lastPostAt != null &&
+        now.difference(_lastPostAt!) < _minPostInterval) {
+      return;
+    }
+    _posting = true;
+    _lastPostAt = now;
+    try {
+      await post(pos.latitude, pos.longitude);
+      _lastSentAt = DateTime.now();
+      if (kDebugMode) debugPrint('📍 LocationService: posted over HTTP');
+    } catch (e) {
+      // The keep-alive tries again; nothing else to do.
+      if (kDebugMode) debugPrint('LocationService: HTTP fallback failed: $e');
+    } finally {
+      _posting = false;
     }
   }
 
@@ -294,6 +346,7 @@ class LocationService {
     _keepAliveTimer = null;
     _lastPosition = null;
     _lastSentAt = null;
+    _lastPostAt = null;
     _runningActiveJob = null;
     _startOnResume = false;
   }
