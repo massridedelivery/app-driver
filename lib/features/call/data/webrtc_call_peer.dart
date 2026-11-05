@@ -43,6 +43,7 @@ class WebRtcCallPeer implements CallPeer {
       ..onIceCandidate = (c) {
         final candidate = c.candidate;
         if (candidate == null || candidate.isEmpty) return;
+        if (peer._candidates.isClosed) return;
         peer._candidates.add(
           CallIceCandidate(candidate, c.sdpMid, c.sdpMLineIndex),
         );
@@ -60,7 +61,9 @@ class WebRtcCallPeer implements CallPeer {
             CallPeerState.closed,
           _ => CallPeerState.connecting,
         };
-        peer._states.add(mapped);
+        // `pc.close()` reports "closed" after [close] has shut this stream —
+        // adding then threw "Cannot add new events after calling close".
+        if (!peer._states.isClosed) peer._states.add(mapped);
       };
     return peer;
   }
@@ -105,6 +108,9 @@ class WebRtcCallPeer implements CallPeer {
 
   @override
   Future<void> close() async {
+    _pc
+      ..onIceCandidate = null
+      ..onIceConnectionState = null;
     for (final track in _mic.getTracks()) {
       await track.stop();
     }

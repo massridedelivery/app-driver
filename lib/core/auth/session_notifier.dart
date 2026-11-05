@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/core/auth/session_trail.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 
 /// Single source of truth for whether a driver session is currently active.
@@ -33,7 +34,10 @@ class SessionNotifier extends ChangeNotifier {
   /// Wipe the stored session and flip to logged-out. Safe to call repeatedly
   /// and from anywhere (interceptor, API layer) — it clears secure storage so a
   /// dead token can't survive, then notifies the router to redirect to login.
-  Future<void> notifySessionExpired() async {
+  ///
+  /// [reason] goes to Crashlytics ([SessionTrail.ended]).
+  Future<void> notifySessionExpired({required String reason}) async {
+    if (_isAuthenticated) SessionTrail.ended(reason);
     try {
       await SecureStorageManager().deleteAll();
     } finally {

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/auth/session_trail.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -43,6 +44,7 @@ class AuthController extends _$AuthController {
       token = await _secureStorage.read(SecureStorageKey.accessToken);
     } catch (e) {
       debugPrint('AuthController: access token read failed: $e');
+      SessionTrail.ended('access token unreadable (${e.runtimeType})');
       return false;
     }
     if (token == null || token.isEmpty) return false;
@@ -68,6 +70,7 @@ class AuthController extends _$AuthController {
       return refresh != null && refresh.isNotEmpty;
     } catch (e) {
       debugPrint('AuthController: refresh token read failed: $e');
+      SessionTrail.ended('refresh token unreadable (${e.runtimeType})');
       return false;
     }
   }
@@ -102,6 +105,7 @@ class AuthController extends _$AuthController {
   /// wiped and the router redirect fires regardless. Works the same for phone
   /// and email sessions, since both funnel through [SessionNotifier].
   Future<void> logout() async {
+    SessionTrail.step('logout by the driver');
     try {
       // While the token still authenticates: stop VoIP call pushes to this
       // phone for this driver. (Refused for a deleted/suspended account; the
@@ -119,7 +123,9 @@ class AuthController extends _$AuthController {
       await usecase.execute();
     } catch (e) {
       debugPrint('AuthController: logout failed, forcing local logout: $e');
-      await SessionNotifier.instance.notifySessionExpired();
+      await SessionNotifier.instance.notifySessionExpired(
+        reason: 'logout call failed',
+      );
     } finally {
       await RouteRestorationService.instance.clear();
       SessionNotifier.instance.setAuthenticated(false);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -26,6 +27,22 @@ class LocationService {
   DateTime? _lastSentAt;
   Duration _minSendInterval = const Duration(seconds: 8);
 
+  /// Open job screens (ride / food / parcel): any open → the trip profile.
+  int _activeJobs = 0;
+
+  /// The profile the running session was started with.
+  bool? _runningActiveJob;
+
+  /// A start asked for while the app was in the background, run on resume.
+  bool _startOnResume = false;
+  AppLifecycleListener? _resumeListener;
+
+  final bool Function() _isForeground;
+  final Future<bool> Function() _serviceEnabled;
+  final Future<LocationPermission> Function() _checkPermission;
+  final Future<LocationPermission> Function() _requestPermission;
+  final Stream<Position> Function(LocationSettings) _positionStream;
+
   /// Every fix produced by the tracking session, unthrottled — the throttle
   /// applies to what we send upstream, not to what the UI may observe.
   /// Only emits while [startLocationUpdates] is running (driver is online).
@@ -35,12 +52,55 @@ class LocationService {
   /// dispatch pool drops drivers that go silent for ~1 min (driver spec §4).
   static const Duration _keepAlive = Duration(seconds: 20);
 
-  LocationService(this._socketService);
+  LocationService(
+    this._socketService, {
+    bool Function()? isForeground,
+    Future<bool> Function()? serviceEnabled,
+    Future<LocationPermission> Function()? checkPermission,
+    Future<LocationPermission> Function()? requestPermission,
+    Stream<Position> Function(LocationSettings)? positionStream,
+  }) : _isForeground = isForeground ?? _appInForeground,
+       _serviceEnabled = serviceEnabled ?? Geolocator.isLocationServiceEnabled,
+       _checkPermission = checkPermission ?? Geolocator.checkPermission,
+       _requestPermission = requestPermission ?? Geolocator.requestPermission,
+       _positionStream =
+           positionStream ??
+           ((settings) =>
+               Geolocator.getPositionStream(locationSettings: settings));
 
-  /// [activeJob] tightens accuracy/cadence while on a trip; idle (online,
-  /// waiting) uses a cheaper profile to save battery.
-  Future<void> startLocationUpdates({bool activeJob = false}) async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
+  /// Android only lets an app start a foreground service while it is visible
+  /// (Android 12+); started from the background it throws
+  /// `Service.startForeground() not allowed` (a Crashlytics issue) and the
+  /// location stream never opens. `inactive` still counts: the permission
+  /// dialog and the notification shade leave the activity visible.
+  static bool _appInForeground() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null ||
+        state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
+  }
+
+  /// Whether a tracking session is running.
+  bool get isTracking => _positionSubscription != null;
+
+  /// Starts tracking — or does nothing when a session with the same profile
+  /// is already running. Called on going online and on every socket
+  /// (re)connect: restarting a live session there swapped the foreground
+  /// service for a new one, which Android refuses in the background, so a
+  /// network blip with the app behind the map app ended location for good.
+  ///
+  /// The profile follows the open job screens ([beginActiveJob]): the trip
+  /// one is tighter, idle (online, waiting) is cheaper on battery.
+  Future<void> startLocationUpdates() async {
+    final activeJob = _activeJobs > 0;
+    if (isTracking && _runningActiveJob == activeJob) return;
+    if (!_isForeground()) {
+      _deferUntilResume();
+      return;
+    }
+    _startOnResume = false;
+
+    if (!await _serviceEnabled()) {
       if (kDebugMode) debugPrint('Location services are disabled.');
       return;
     }
@@ -51,29 +111,35 @@ class LocationService {
     _positionSubscription?.cancel();
     _keepAliveTimer?.cancel();
     _lastSentAt = null;
+    _runningActiveJob = activeJob;
 
-    final accuracy =
-        activeJob ? LocationAccuracy.high : LocationAccuracy.medium;
+    final accuracy = activeJob
+        ? LocationAccuracy.high
+        : LocationAccuracy.medium;
     final distanceFilter = activeJob ? 10 : 25;
     _minSendInterval = Duration(seconds: activeJob ? 3 : 8);
 
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: _buildSettings(accuracy, distanceFilter),
-    ).listen(
-      (pos) {
-        _lastPosition = pos;
-        if (!_positionController.isClosed) _positionController.add(pos);
-        // Throttle rapid emissions (e.g. highway speeds).
-        final now = DateTime.now();
-        if (_lastSentAt == null ||
-            now.difference(_lastSentAt!) >= _minSendInterval) {
-          _send(pos);
-        }
-      },
-      onError: (e) {
-        if (kDebugMode) debugPrint('LocationService Stream Error: $e');
-      },
-    );
+    _positionSubscription =
+        _positionStream(_buildSettings(accuracy, distanceFilter)).listen(
+          (pos) {
+            _lastPosition = pos;
+            if (!_positionController.isClosed) _positionController.add(pos);
+            // Throttle rapid emissions (e.g. highway speeds).
+            final now = DateTime.now();
+            if (_lastSentAt == null ||
+                now.difference(_lastSentAt!) >= _minSendInterval) {
+              _send(pos);
+            }
+          },
+          onError: (e) {
+            if (kDebugMode) debugPrint('LocationService Stream Error: $e');
+          },
+          // The platform ended the stream: let the next start open a new one.
+          onDone: () {
+            _positionSubscription = null;
+            _runningActiveJob = null;
+          },
+        );
 
     // Keep-alive: resend the last fix when the driver is stationary (the stream
     // is silent under distanceFilter) so we stay in the dispatch pool.
@@ -87,13 +153,47 @@ class LocationService {
     });
   }
 
+  /// A job screen opened: track on the trip profile until [endActiveJob].
+  /// Counted, so one job screen replacing another keeps it.
+  void beginActiveJob() {
+    _activeJobs++;
+    _reprofile();
+  }
+
+  /// The job screen closed. Back to the idle profile when none is open.
+  void endActiveJob() {
+    if (_activeJobs > 0) _activeJobs--;
+    _reprofile();
+  }
+
+  /// Restarts a running session on the new profile. Never starts one: the
+  /// driver may be offline.
+  void _reprofile() {
+    if (!isTracking || _runningActiveJob == _activeJobs > 0) return;
+    unawaited(startLocationUpdates());
+  }
+
+  void _deferUntilResume() {
+    _startOnResume = true;
+    _resumeListener ??= AppLifecycleListener(onResume: _onResume);
+  }
+
+  void _onResume() {
+    if (!_startOnResume) return;
+    _startOnResume = false;
+    unawaited(startLocationUpdates());
+  }
+
   /// Platform location settings that keep updates flowing while the app is
   /// backgrounded, so the driver stays in the dispatch pool (SCRUM-122):
   ///  • Android → a foreground service with a persistent notification.
   ///  • iOS → the background-location mode (blue status indicator).
   /// Both work with "while in use" permission because the session starts while
   /// the app is in the foreground (driver taps "online").
-  LocationSettings _buildSettings(LocationAccuracy accuracy, int distanceFilter) {
+  LocationSettings _buildSettings(
+    LocationAccuracy accuracy,
+    int distanceFilter,
+  ) {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
         accuracy: accuracy,
@@ -159,10 +259,10 @@ class LocationService {
   /// Resolves true when location permission is usable. [request] prompts the
   /// driver when it has not been asked for yet.
   Future<bool> _ensurePermission({bool request = false}) async {
-    var permission = await Geolocator.checkPermission();
+    var permission = await _checkPermission();
 
     if (permission == LocationPermission.denied && request) {
-      permission = await Geolocator.requestPermission();
+      permission = await _requestPermission();
     }
 
     if (permission == LocationPermission.denied) {
@@ -170,7 +270,8 @@ class LocationService {
       return false;
     }
     if (permission == LocationPermission.deniedForever) {
-      if (kDebugMode) debugPrint('Location permissions are permanently denied.');
+      if (kDebugMode)
+        debugPrint('Location permissions are permanently denied.');
       return false;
     }
     return true;
@@ -180,7 +281,9 @@ class LocationService {
     _lastSentAt = DateTime.now();
     _socketService.sendLocationUpdate(pos.latitude, pos.longitude);
     if (kDebugMode) {
-      debugPrint('📍 LocationService: Updated ${pos.latitude}, ${pos.longitude}');
+      debugPrint(
+        '📍 LocationService: Updated ${pos.latitude}, ${pos.longitude}',
+      );
     }
   }
 
@@ -191,12 +294,16 @@ class LocationService {
     _keepAliveTimer = null;
     _lastPosition = null;
     _lastSentAt = null;
+    _runningActiveJob = null;
+    _startOnResume = false;
   }
 
   /// Tears the service down for good. [onPosition] is closed here rather than
   /// in [stopLocationUpdates] so listeners survive going offline and online.
   void dispose() {
     stopLocationUpdates();
+    _resumeListener?.dispose();
+    _resumeListener = null;
     _positionController.close();
   }
 }

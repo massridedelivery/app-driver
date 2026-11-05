@@ -27,13 +27,21 @@ class MarketingOptInController extends Notifier<MarketingOptIn> {
   }
 
   Future<void> load() async {
+    // The provider is autoDispose: settings closed before the answer came
+    // back left `ref` dead ("Cannot use the Ref … after it has been
+    // disposed", a Crashlytics issue).
+    if (!ref.mounted) return;
+    MarketingOptIn next;
     try {
-      final enabled = await _api.marketingOptIn();
-      state = MarketingOptIn(enabled: enabled, available: true);
+      next = MarketingOptIn(
+        enabled: await _api.marketingOptIn(),
+        available: true,
+      );
     } catch (e) {
       debugPrint('Marketing opt-in: load failed: $e');
-      state = const MarketingOptIn();
+      next = const MarketingOptIn();
     }
+    if (ref.mounted) state = next;
   }
 
   /// Flips at once; false (and back to the old value) if the backend refused.
@@ -43,11 +51,11 @@ class MarketingOptInController extends Notifier<MarketingOptIn> {
     state = MarketingOptIn(enabled: enabled, available: true);
     try {
       final saved = await _api.setMarketingOptIn(enabled);
-      state = MarketingOptIn(enabled: saved, available: true);
+      if (ref.mounted) state = MarketingOptIn(enabled: saved, available: true);
       return true;
     } catch (e) {
       debugPrint('Marketing opt-in: save failed: $e');
-      state = before;
+      if (ref.mounted) state = before;
       return false;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:massdrive/core/services/active_job_tracking.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
@@ -315,13 +316,16 @@ class AppRouter {
       GoRoute(
         path: '/job-live',
         pageBuilder: (context, state) => NoTransitionPage(
-          child: JobLiveScreen(initialStatus: state.extra as String?),
+          child: ActiveJobTracking(
+            child: JobLiveScreen(initialStatus: state.extra as String?),
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.foodLiveNamedPage,
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: FoodLiveScreen()),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: ActiveJobTracking(child: FoodLiveScreen()),
+        ),
       ),
       GoRoute(
         path: '/messenger-offer',
@@ -330,8 +334,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/messenger-live',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: MessengerLiveScreen()),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: ActiveJobTracking(child: MessengerLiveScreen()),
+        ),
       ),
       GoRoute(
         path: '/messenger-history',
