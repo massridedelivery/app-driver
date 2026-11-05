@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -201,6 +202,8 @@ class _PayoutCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          if (record.referenceNo case final ref?)
+            PayoutReferenceLine(referenceNo: ref),
           if (record.createdAt != null)
             _line(context, 'แจ้งถอน', date.format(record.createdAt!)),
           if (completed && record.processedAt != null)
@@ -273,6 +276,64 @@ class _PayoutCard extends StatelessWidget {
               value,
               style: AppTypography.caption4.copyWith(
                 color: context.palette.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "เลขที่รายการ  WD-261105-000123  [copy]" — the number a driver quotes to
+/// support about a withdrawal.
+class PayoutReferenceLine extends StatelessWidget {
+  const PayoutReferenceLine({super.key, required this.referenceNo});
+
+  final String referenceNo;
+
+  Future<void> _copy(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: referenceNo));
+    if (!context.mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('คัดลอกเลขที่รายการ $referenceNo แล้ว')),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = AppTypography.caption4.copyWith(
+      color: context.palette.textSecondary,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          SizedBox(width: 84, child: Text('เลขที่รายการ', style: label)),
+          Flexible(
+            child: SelectableText(
+              referenceNo,
+              style: AppTypography.caption4.copyWith(
+                color: context.palette.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _copy(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              child: Semantics(
+                button: true,
+                label: 'คัดลอกเลขที่รายการ',
+                child: Icon(
+                  Icons.copy_rounded,
+                  size: 16,
+                  color: context.palette.textSecondary,
+                ),
               ),
             ),
           ),
