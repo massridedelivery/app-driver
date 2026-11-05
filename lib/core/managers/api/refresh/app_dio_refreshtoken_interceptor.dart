@@ -113,6 +113,28 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     }
   }
 
+  /// For a 401 that reached the caller instead of [onError] — [ApiManager]
+  /// writes accept every status, so their 401s skip this interceptor. Renews
+  /// the session if it can; [sentToken] is the access token the request
+  /// carried. Before, such a 401 signed the driver out on the spot, without a
+  /// refresh: a phone clock running behind (the token looks valid here, the
+  /// server says expired) was enough.
+  Future<TokenRenewal> renewAfter401(String sentToken) async {
+    final stored = await secureStorage.read(SecureStorageKey.accessToken);
+    if (stored == null || stored.isEmpty) return const TokenRenewal.ended();
+    // Another request already renewed it while this one was in flight.
+    if (stored != sentToken) return TokenRenewal.renewed(stored);
+
+    final fresh = await _lockAndRefreshToken();
+    if (fresh != null && fresh != sentToken) return TokenRenewal.renewed(fresh);
+    final left = await secureStorage.read(SecureStorageKey.accessToken);
+    // Tokens still stored: the refresh couldn't reach the server, or the
+    // account is restricted — not a dead session.
+    return left == null
+        ? const TokenRenewal.ended()
+        : const TokenRenewal.kept();
+  }
+
   Future<String?> _lockAndRefreshToken() async {
     if (_refreshCompleter != null) {
       await _refreshCompleter!.future;
@@ -276,6 +298,19 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 
     return await dio.fetch(options);
   }
+}
+
+/// What [AppDioRefreshTokenInterceptor.renewAfter401] did.
+class TokenRenewal {
+  const TokenRenewal.renewed(String this.token) : sessionEnded = false;
+  const TokenRenewal.ended() : token = null, sessionEnded = true;
+  const TokenRenewal.kept() : token = null, sessionEnded = false;
+
+  /// The access token to retry with.
+  final String? token;
+
+  /// The refresh was refused: tokens are gone, the driver must sign in.
+  final bool sessionEnded;
 }
 
 /// The backend's short error code (`token revoked`, `token expired`…), or ''.

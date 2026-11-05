@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
@@ -38,7 +41,97 @@ class _StubStorage implements SecureStorageManager {
   Future<void> deleteAll() async => _values.clear();
 }
 
+/// Answers `/auth/refresh` with [status] (and a new pair on 200); null
+/// [status] = the server can't be reached.
+class _RefreshAdapter implements HttpClientAdapter {
+  _RefreshAdapter(this.status);
+  final int? status;
+  int calls = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    calls++;
+    final code = status;
+    if (code == null) {
+      throw DioException.connectionError(
+        requestOptions: options,
+        reason: 'offline',
+      );
+    }
+    final body = code == 200
+        ? {'access_token': 'new-access', 'refresh_token': 'new-refresh'}
+        : {'error': 'token has been revoked'};
+    return ResponseBody.fromString(
+      jsonEncode(body),
+      code,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 void main() {
+  group('renewAfter401', () {
+    late Map<SecureStorageKey, String> stored;
+    late bool expired;
+
+    AppDioRefreshTokenInterceptor make(_RefreshAdapter adapter) {
+      stored = {
+        SecureStorageKey.accessToken: 'sent-access',
+        SecureStorageKey.refreshToken: 'old-refresh',
+      };
+      expired = false;
+      final dio = Dio()..httpClientAdapter = adapter;
+      return AppDioRefreshTokenInterceptor(
+        secureStorage: _StubStorage(stored),
+        dio: dio,
+        onTokenExpired: () => expired = true,
+      );
+    }
+
+    test('refreshes and hands back the new token to retry with', () async {
+      final adapter = _RefreshAdapter(200);
+      final r = await make(adapter).renewAfter401('sent-access');
+      expect(r.token, 'new-access');
+      expect(r.sessionEnded, isFalse);
+      expect(stored[SecureStorageKey.refreshToken], 'new-refresh');
+      expect(adapter.calls, 1);
+    });
+
+    test('a token already renewed by another request is reused', () async {
+      final adapter = _RefreshAdapter(200);
+      final i = make(adapter);
+      stored[SecureStorageKey.accessToken] = 'renewed-meanwhile';
+      final r = await i.renewAfter401('sent-access');
+      expect(r.token, 'renewed-meanwhile');
+      expect(adapter.calls, 0);
+    });
+
+    test('a refused refresh ends the session', () async {
+      final r = await make(_RefreshAdapter(401)).renewAfter401('sent-access');
+      expect(r.token, isNull);
+      expect(r.sessionEnded, isTrue);
+      expect(stored, isEmpty);
+      expect(expired, isTrue);
+    });
+
+    test('an unreachable server keeps the session', () async {
+      final r = await make(_RefreshAdapter(null)).renewAfter401('sent-access');
+      expect(r.token, isNull);
+      expect(r.sessionEnded, isFalse);
+      expect(stored[SecureStorageKey.accessToken], 'sent-access');
+      expect(expired, isFalse);
+    });
+  });
+
   late AppDioRefreshTokenInterceptor interceptor;
 
   setUp(() {

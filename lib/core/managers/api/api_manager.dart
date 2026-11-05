@@ -14,6 +14,7 @@ import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/api_exception.dart';
 import 'package:massdrive/core/managers/api/app_exception.dart';
+import 'package:massdrive/core/managers/api/profile_error_interceptor.dart';
 import 'package:massdrive/core/managers/api/logs/app_dio_logger_interceptor.dart';
 import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interceptor.dart';
 import 'package:massdrive/core/managers/logger_manager.dart';
@@ -61,29 +62,60 @@ class ApiManager {
 
   ApiManager._internal(this.ref, this.dio);
 
-  /// Builds a [ResponseData] and, on a 401 for a request that actually carried a
-  /// bearer token, tears down the session. Writes use `validateStatus: (_) =>
-  /// true`, so their 401s never reach Dio's `onError` (and thus never hit the
-  /// refresh interceptor); the refresh interceptor already had its chance to
-  /// renew the token in `onRequest`, so a 401 here means the session is dead.
-  /// Signalling [SessionNotifier] makes the router redirect back to login.
-  /// Auth calls (login/OTP) carry no bearer token, so their 401s are left alone.
-  ResponseData _toResponseData(dio_client.Response response) {
-    final code = response.statusCode ?? 0;
-    final isSuccessful = code == 200 || code == 201;
-    if (code == 401 &&
-        response.requestOptions.headers['Authorization'] != null) {
-      unawaited(
-        SessionNotifier.instance.notifySessionExpired(
-          reason: 'api 401 ${maskedPath(response.requestOptions.path)}',
-        ),
-      );
+  /// Builds a [ResponseData]. A 401 on a request that carried a bearer token
+  /// first tries a refresh and one retry: writes use `validateStatus: (_) =>
+  /// true`, so their 401s never reach Dio's `onError` and the refresh
+  /// interceptor. Only a refused refresh (or a retry that 401s again) ends the
+  /// session, via [SessionNotifier], which sends the router back to login. A
+  /// refresh that can't reach the server keeps the session. Auth calls
+  /// (login/OTP) carry no bearer token, so their 401s are left alone.
+  Future<ResponseData> _toResponseData(dio_client.Response response) async {
+    var res = response;
+    final sent = bearerToken(res.requestOptions.headers);
+    if (res.statusCode == 401 && sent != null) {
+      res = await _afterUnauthorized(res, sent);
     }
+    final code = res.statusCode ?? 0;
     return ResponseData(
-      data: response.data,
-      isSuccessful: isSuccessful,
+      data: res.data,
+      isSuccessful: code == 200 || code == 201,
       errorStatusCode: code,
     );
+  }
+
+  Future<dio_client.Response> _afterUnauthorized(
+    dio_client.Response res,
+    String sentToken,
+  ) async {
+    final path = maskedPath(res.requestOptions.path);
+    final refresher = dio.interceptors
+        .whereType<AppDioRefreshTokenInterceptor>()
+        .firstOrNull;
+    if (refresher != null) {
+      final renewal = await refresher.renewAfter401(sentToken);
+      final token = renewal.token;
+      if (token != null) {
+        SessionTrail.step('api 401 $path, retried after a refresh');
+        final options = res.requestOptions
+          ..headers['Authorization'] = 'Bearer $token';
+        try {
+          final retried = await dio.fetch<dynamic>(options);
+          if (retried.statusCode != 401) return retried;
+          res = retried;
+        } catch (_) {
+          // Not replayable (a sent multipart body) or offline: the session
+          // was renewed, so it isn't dead — report this request as failed.
+          return res;
+        }
+      } else if (!renewal.sessionEnded) {
+        SessionTrail.step('api 401 $path, session kept');
+        return res;
+      }
+    }
+    unawaited(
+      SessionNotifier.instance.notifySessionExpired(reason: 'api 401 $path'),
+    );
+    return res;
   }
 
   Future<ResponseData> fetchApi({
@@ -143,7 +175,7 @@ class ApiManager {
             ),
           );
 
-          return _toResponseData(response);
+          return await _toResponseData(response);
 
         case 'POST':
           dynamic finalBody;
@@ -164,7 +196,7 @@ class ApiManager {
               extra: {'feature': feature, 'endPoint': endPoint},
             ),
           );
-          return _toResponseData(response);
+          return await _toResponseData(response);
 
         case 'PUT':
           var response = await dio.put(
@@ -180,7 +212,7 @@ class ApiManager {
             ),
           );
 
-          return _toResponseData(response);
+          return await _toResponseData(response);
 
         case 'PATCH':
           var response = await dio.patch(
@@ -196,7 +228,7 @@ class ApiManager {
             ),
           );
 
-          return _toResponseData(response);
+          return await _toResponseData(response);
 
         case 'DELETE':
           var response = await dio.delete(
@@ -212,7 +244,7 @@ class ApiManager {
             ),
           );
 
-          return _toResponseData(response);
+          return await _toResponseData(response);
       }
     } on SocketException {
       throw const AppException('No Internet Connection');
@@ -273,7 +305,7 @@ class ApiManager {
         ),
         onSendProgress: onSendProgress,
       );
-      return _toResponseData(response);
+      return await _toResponseData(response);
     } catch (exc) {
       throw ApiException.fromDioError(exc);
     }
