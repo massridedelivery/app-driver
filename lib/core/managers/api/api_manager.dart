@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:massdrive/core/auth/session_trail.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -48,7 +49,8 @@ extension ResponseDataExtension on ResponseData {
 }
 
 class ApiManager {
-  factory ApiManager(Ref ref) => ApiManager._internal(ref, getIt<dio_client.Dio>());
+  factory ApiManager(Ref ref) =>
+      ApiManager._internal(ref, getIt<dio_client.Dio>());
 
   String baseUrl = EnvironmentConfig.apiUrl;
   final dio_client.Dio dio;
@@ -71,7 +73,11 @@ class ApiManager {
     final isSuccessful = code == 200 || code == 201;
     if (code == 401 &&
         response.requestOptions.headers['Authorization'] != null) {
-      unawaited(SessionNotifier.instance.notifySessionExpired());
+      unawaited(
+        SessionNotifier.instance.notifySessionExpired(
+          reason: 'api 401 ${maskedPath(response.requestOptions.path)}',
+        ),
+      );
     }
     return ResponseData(
       data: response.data,

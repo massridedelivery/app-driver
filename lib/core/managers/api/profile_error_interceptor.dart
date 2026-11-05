@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/core/auth/session_notifier.dart';
+import 'package:massdrive/core/auth/session_trail.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
@@ -49,6 +50,9 @@ class ProfileErrorInterceptor extends Interceptor {
         statusCode == 401 &&
         !AccountStatusNotifier.instance.isRestricted) {
       // Clear any stored session, then send the driver to the login flow.
+      if (SessionNotifier.instance.isAuthenticated) {
+        SessionTrail.ended('profile 401');
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       await _secureStorage.deleteAll();
@@ -66,8 +70,9 @@ class ProfileErrorInterceptor extends Interceptor {
     final sent = bearerToken(options.headers);
     if (sent == null) return false;
     try {
-      final current = await (_currentToken?.call() ??
-          _secureStorage.read(SecureStorageKey.accessToken));
+      final current =
+          await (_currentToken?.call() ??
+              _secureStorage.read(SecureStorageKey.accessToken));
       return current != null && current != sent;
     } catch (_) {
       return false;

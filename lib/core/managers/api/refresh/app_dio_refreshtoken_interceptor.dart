@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/core/auth/session_trail.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
@@ -24,6 +25,9 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
   final FutureOr<void> Function()? onTokenExpired;
 
   static Completer<void>? _refreshCompleter;
+
+  /// Why the last refresh failed, for [SessionTrail].
+  String _refreshFailure = 'refresh failed';
 
   @override
   Future<void> onRequest(
@@ -124,12 +128,14 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       final success = await _refreshToken(refreshToken);
 
       if (success) {
+        SessionTrail.step('token refreshed');
         return await secureStorage.read(SecureStorageKey.accessToken);
       } else {
-        await _clearToken();
+        await _clearToken(_refreshFailure);
         return null;
       }
     } on _RefreshUnreachable {
+      SessionTrail.step('refresh unreachable, session kept');
       // No connection (offline, DNS, timeout): the refresh token may be
       // perfectly valid — keep the session. Wiping it here logged drivers out
       // just for opening the app without internet; the request fails, the
@@ -142,7 +148,7 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       // "contact the company" screen instead of logging the driver out.
       return null;
     } catch (e) {
-      await _clearToken();
+      await _clearToken('refresh threw ${e.runtimeType}');
       return null;
     } finally {
       _refreshCompleter?.complete();
@@ -187,14 +193,18 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     return false;
   }
 
-  Future<void> _clearToken() async {
+  Future<void> _clearToken(String reason) async {
+    SessionTrail.ended(reason);
     await secureStorage.deleteAll();
     await authController?.refresh();
     await onTokenExpired?.call();
   }
 
   Future<bool> _refreshToken(String? currentRefresh) async {
-    if (currentRefresh?.isEmpty ?? true) return false;
+    if (currentRefresh?.isEmpty ?? true) {
+      _refreshFailure = 'no refresh token stored';
+      return false;
+    }
 
     try {
       final response = await dio.post(
@@ -203,6 +213,7 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
+        _refreshFailure = 'refresh answered ${response.statusCode}';
         return false;
       }
 
@@ -212,13 +223,17 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
           ? data['data']
           : data;
 
-      if (tokenData == null) return false;
+      if (tokenData == null) {
+        _refreshFailure = 'refresh answer had no tokens';
+        return false;
+      }
 
       final authTokenModel = AuthTokenModel.fromJson(tokenData);
       final accessToken = authTokenModel.accessToken;
       final refreshToken = authTokenModel.refreshToken;
 
       if (accessToken == null || refreshToken == null) {
+        _refreshFailure = 'refresh answer had no tokens';
         return false;
       }
 
@@ -242,8 +257,12 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       if (e.response == null || (e.response?.statusCode ?? 0) >= 500) {
         throw const _RefreshUnreachable();
       }
+      _refreshFailure =
+          'refresh refused ${e.response?.statusCode} '
+          '${_errorCode(e.response?.data)}';
       return false;
     } catch (e) {
+      _refreshFailure = 'refresh answer unreadable (${e.runtimeType})';
       return false;
     }
   }
@@ -257,6 +276,14 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
 
     return await dio.fetch(options);
   }
+}
+
+/// The backend's short error code (`token revoked`, `token expired`…), or ''.
+String _errorCode(Object? data) {
+  if (data is! Map) return '';
+  final code = data['error'] ?? data['code'] ?? data['message'];
+  final text = code?.toString() ?? '';
+  return text.length > 60 ? text.substring(0, 60) : text;
 }
 
 /// Internal signal: the refresh was refused because the account is restricted.

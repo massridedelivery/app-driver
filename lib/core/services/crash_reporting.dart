@@ -30,9 +30,12 @@ class CrashReporting {
       await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
       if (kDebugMode) return;
 
-      FlutterError.onError = crashlytics.recordFlutterFatalError;
+      // Dart errors are non-fatal: the app keeps running after them, and
+      // reporting them as crashes made "crash-free users" read 0% with no
+      // app ever closing. Native crashes (the app really dies) stay fatal.
+      FlutterError.onError = crashlytics.recordFlutterError;
       PlatformDispatcher.instance.onError = (error, stack) {
-        crashlytics.recordError(error, stack, fatal: true);
+        crashlytics.recordError(error, stack);
         return true;
       };
 
