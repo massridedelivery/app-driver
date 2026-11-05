@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:massdrive/features/app_popup/presentation/app_popups.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -305,9 +306,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   late final MapController _mapNotifier;
 
+  /// The verified home has started (credit notice, tour): launch pop-ups
+  /// may show from then on, and again on each return to the foreground.
+  bool _popupsArmed = false;
+  AppLifecycleListener? _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        if (_popupsArmed && mounted) {
+          unawaited(AppPopups.instance.maybeShow(context));
+        }
+      },
+    );
 
     _mapNotifier = ref.read(mapControllerProvider.notifier);
     // NOTE: Removed the _sheetSize listener — it was calling setState on every
@@ -371,6 +384,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // in initState, after this frame rather than mid tree teardown.
     final mapNotifier = _mapNotifier;
     Future.microtask(mapNotifier.release);
+    _lifecycle?.dispose();
     super.dispose();
   }
 
@@ -657,7 +671,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Refresh the cash-job gate on every home entry (app open, back from a
     // job or a top-up) and warn in a dialog when credit is low / blocked.
     await _maybeShowCreditNotice(context, ref);
-    if (mounted) unawaited(HomeCoachMarks.maybeShow(context));
+    if (!mounted) return;
+    unawaited(() async {
+      await HomeCoachMarks.maybeShow(context);
+      // After the tour, so the pop-up never covers it.
+      if (!mounted) return;
+      _popupsArmed = true;
+      await AppPopups.instance.maybeShow(context);
+    }());
   }
 
   /// Re-check verification from the backend (pull-to-refresh on the under-review
