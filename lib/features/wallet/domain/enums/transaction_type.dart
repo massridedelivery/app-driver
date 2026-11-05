@@ -1,6 +1,9 @@
 /// Row label for [TransactionType.cancellationFeeCollected].
 const cancellationFeeCollectedLabel = 'ค่ายกเลิกที่เก็บแทนบริษัท';
 
+/// Row label for [TransactionType.driverReferralBonus].
+const driverReferralBonusLabel = 'โบนัสชวนเพื่อนมาขับ';
+
 /// Represents the nature of the financial movement in the wallet.
 enum TransactionType {
   /// Earnings added after completing a trip or delivery.
@@ -17,6 +20,10 @@ enum TransactionType {
 
   /// Incentive rewards (e.g., Quest completion).
   bonus,
+
+  /// `DRIVER_REFERRAL_BONUS`: paid when a referred driver finished the
+  /// required jobs in time (to the referrer, and the referee's own bonus).
+  driverReferralBonus,
 
   /// Manual correction (e.g., compensation).
   adjustment,
@@ -45,6 +52,8 @@ enum TransactionType {
         return TransactionType.withdrawal;
       case 'BONUS':
         return TransactionType.bonus;
+      case 'DRIVER_REFERRAL_BONUS':
+        return TransactionType.driverReferralBonus;
       case 'MARKETING_EXPENSE':
         return TransactionType.promoDiscount;
       case 'CANCELLATION_FEE_COLLECTED':
@@ -68,6 +77,8 @@ enum TransactionType {
         return 'WITHDRAWAL';
       case TransactionType.bonus:
         return 'BONUS';
+      case TransactionType.driverReferralBonus:
+        return 'DRIVER_REFERRAL_BONUS';
       case TransactionType.adjustment:
         return 'ADJUSTMENT';
       case TransactionType.promoDiscount:
@@ -83,6 +94,7 @@ enum TransactionType {
       case TransactionType.farePayment:
       case TransactionType.topup:
       case TransactionType.bonus:
+      case TransactionType.driverReferralBonus:
       case TransactionType.adjustment:
       case TransactionType.promoDiscount:
         return true;

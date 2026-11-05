@@ -24,6 +24,7 @@ class AppRoutes {
   static const historyDetailDetailsNamedPage = 'details';
   static const cashWalletNamedPage = '/cash-wallet';
   static const questsNamedPage = '/quests';
+  static const referralNamedPage = '/referral';
   static const tripCalendarNamedPage = '/trip-calendar';
   static const topupHistoryNamedPage = '/topup-history';
   static const transactionsNamedPage = '/transactions';

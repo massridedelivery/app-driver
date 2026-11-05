@@ -11,6 +11,7 @@ import 'package:massdrive/features/profile/presentation/controllers/profile_cont
 import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
 import 'package:massdrive/features/quests/presentation/controllers/quests_provider.dart';
 import 'package:massdrive/features/quests/presentation/widgets/quest_progress_bar.dart';
+import 'package:massdrive/features/referral/presentation/referral_providers.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -42,6 +43,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _refresh() async {
     ref.invalidate(questsTabProvider(QuestTab.today));
     ref.invalidate(tierProvider);
+    ref.invalidate(driverReferralProvider);
     await Future.wait([
       ref.read(profileControllerProvider.notifier).fetchProfile(),
       ref.read(walletControllerProvider.notifier).fetchAll(silent: true),
@@ -78,6 +80,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _WeeklyRates(profile: profile),
                 const SizedBox(height: 12),
                 const _CurrentQuestCard(),
+                const _ReferralEntry(),
               ],
             ],
           ),
@@ -373,6 +376,67 @@ class _CurrentQuestCard extends ConsumerWidget {
                 ),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "ชวนเพื่อนมาขับ": only while the backend has the program on.
+class _ReferralEntry extends ConsumerWidget {
+  const _ReferralEntry();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(referralEnabledProvider);
+    if (info == null) return const SizedBox.shrink();
+    final p = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Material(
+        color: questSurface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: p.border),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => context.push(AppRoutes.referralNamedPage),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.group_add_rounded,
+                  color: AppColors.semanticSupportMintBgHigh,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ชวนเพื่อนมาขับ',
+                        style: AppTypography.caption3.copyWith(
+                          color: p.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        info.ruleText,
+                        style: AppTypography.caption5.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: p.textSecondary),
+              ],
+            ),
           ),
         ),
       ),

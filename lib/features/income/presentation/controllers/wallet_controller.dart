@@ -1,3 +1,4 @@
+import 'package:massdrive/features/referral/domain/driver_referral.dart';
 import 'package:massdrive/core/utils/friendly_error.dart';
 import 'package:massdrive/features/income/domain/models/cash_job_gate.dart';
 import 'package:massdrive/features/income/domain/models/topup.dart';
@@ -28,6 +29,12 @@ class WalletController extends _$WalletController {
     void onTopupChanged() => fetchAll();
     TopupUpdates.instance.addListener(onTopupChanged);
     ref.onDispose(() => TopupUpdates.instance.removeListener(onTopupChanged));
+    // A referral bonus was credited (driver_referral_bonus push).
+    void onReferralPaid() => fetchAll(silent: true);
+    ReferralUpdates.instance.addListener(onReferralPaid);
+    ref.onDispose(
+      () => ReferralUpdates.instance.removeListener(onReferralPaid),
+    );
     // keepAlive outlives a logout: start clean on every login / logout so the
     // next driver never sees the previous one's totals.
     void onSessionChanged() => ref.invalidateSelf();

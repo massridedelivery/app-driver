@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/features/referral/presentation/widgets/referral_code_field.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
@@ -206,6 +207,9 @@ class _RegistrationChecklistScreenState
               children: [
                 for (var i = 0; i < steps.length; i++)
                   _buildStepItem(context, number: i + 1, spec: steps[i]),
+                // Optional: whoever referred this driver. Offered before and
+                // after the documents are sent, while the backend allows it.
+                const ReferralCodeCard(padding: EdgeInsets.only(top: 16)),
               ],
             ),
     );

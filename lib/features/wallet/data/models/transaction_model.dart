@@ -94,6 +94,9 @@ class TransactionModel {
         case 'BONUS':
           desc = 'โบนัสพิเศษ';
           break;
+        case 'DRIVER_REFERRAL_BONUS':
+          desc = driverReferralBonusLabel;
+          break;
         case 'CANCELLATION_FEE_COLLECTED':
           desc = cancellationFeeCollectedLabel;
           break;
