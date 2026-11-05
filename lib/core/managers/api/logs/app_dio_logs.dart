@@ -8,6 +8,25 @@ import 'package:talker_flutter/talker_flutter.dart';
 const _encoder = JsonEncoder.withIndent('  ');
 const _hiddenValue = '*****';
 
+/// Never logged: the bearer header and any token field (access / refresh /
+/// FCM / VoIP) in a body, request or response.
+bool _isSecretKey(Object? key) {
+  final k = key.toString().toLowerCase();
+  return k == 'authorization' || k.contains('token') || k == 'secret';
+}
+
+/// [data] with every secret value masked, at any depth.
+Object? redactSecrets(Object? data) {
+  if (data is Map) {
+    return {
+      for (final e in data.entries)
+        e.key: _isSecretKey(e.key) ? _hiddenValue : redactSecrets(e.value),
+    };
+  }
+  if (data is List) return [for (final v in data) redactSecrets(v)];
+  return data;
+}
+
 class AppDioRequestLog extends DioRequestLog {
   AppDioRequestLog(
     super.message, {
@@ -30,7 +49,8 @@ class AppDioRequestLog extends DioRequestLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${requestOptions.extra['endPoint'] ?? requestOptions.path}';
+    msg +=
+        '\nEndPoint: ${requestOptions.extra['endPoint'] ?? requestOptions.path}';
 
     try {
       if (queryParameters.isNotEmpty) {
@@ -43,7 +63,9 @@ class AppDioRequestLog extends DioRequestLog {
         if (data is FormData) {
           final formDataMap = <String, dynamic>{};
           for (var field in data.fields) {
-            formDataMap[field.key] = field.value;
+            formDataMap[field.key] = _isSecretKey(field.key)
+                ? _hiddenValue
+                : field.value;
           }
           for (var file in data.files) {
             formDataMap[file.key] = {
@@ -55,7 +77,7 @@ class AppDioRequestLog extends DioRequestLog {
 
           msg += '\nData: ${_encoder.convert(formDataMap).truncateTo(500)}';
         } else {
-          final prettyData = _encoder.convert(data);
+          final prettyData = _encoder.convert(redactSecrets(data));
           msg += '\nData: ${prettyData.truncateTo(500)}';
         }
       }
@@ -71,7 +93,7 @@ class AppDioRequestLog extends DioRequestLog {
       // Build curl command for easy copy-paste debugging
       msg += '\nCurl: ${_buildCurlCommand(requestOptions)}';
     } catch (_) {
-      msg = super.generateTextMessage(timeFormat: timeFormat);
+      msg += "\n(body not printable)";
     }
     return msg;
   }
@@ -83,7 +105,10 @@ class AppDioRequestLog extends DioRequestLog {
     // Header flags: -H 'key: value' joined inline (skip internal Dio keys)
     final headerFlags = options.headers.entries
         .where((e) => !e.key.toString().startsWith('_'))
-        .map((e) => "-H '${e.key}: ${e.value}'")
+        .map(
+          (e) =>
+              "-H '${e.key}: ${_isSecretKey(e.key) ? _hiddenValue : e.value}'",
+        )
         .join(' ');
 
     // Body flag
@@ -92,16 +117,18 @@ class AppDioRequestLog extends DioRequestLog {
     if (data != null) {
       if (data is FormData) {
         final formParts = <String>[
-          for (final field in data.fields) "-F '${field.key}=${field.value}'",
+          for (final field in data.fields)
+            "-F '${field.key}="
+                "${_isSecretKey(field.key) ? _hiddenValue : field.value}'",
           for (final file in data.files)
             "-F '${file.key}=@${file.value.filename ?? 'file'}'",
         ];
         bodyFlag = ' ${formParts.join(' ')}';
       } else {
         try {
-          bodyFlag = " -d '${json.encode(data)}'";
+          bodyFlag = " -d '${json.encode(redactSecrets(data))}'";
         } catch (_) {
-          bodyFlag = " -d '$data'";
+          bodyFlag = " -d '<body>'";
         }
       }
     }
@@ -117,7 +144,7 @@ class AppDioRequestLog extends DioRequestLog {
       lowerCaseHeaders[key.toLowerCase()] = key;
     });
 
-    for (final hiddenHeader in settings.hiddenHeaders) {
+    for (final hiddenHeader in {...settings.hiddenHeaders, 'authorization'}) {
       final lowerCaseHiddenHeader = hiddenHeader.toLowerCase();
       if (lowerCaseHeaders.containsKey(lowerCaseHiddenHeader)) {
         final originalHeader = lowerCaseHeaders[lowerCaseHiddenHeader]!;
@@ -153,15 +180,14 @@ class AppDioResponseLog extends DioResponseLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${response.requestOptions.extra['endPoint'] ?? response.requestOptions.path}';
+    msg +=
+        '\nEndPoint: ${response.requestOptions.extra['endPoint'] ?? response.requestOptions.path}';
     msg += '\nStatus: ${response.statusCode}';
     msg += '\nMessage: $responseMessage';
 
     try {
       if (data != null) {
-        final prettyData =
-            settings.responseDataConverter?.call(response) ??
-            _encoder.convert(data);
+        final prettyData = _encoder.convert(redactSecrets(data));
         msg += '\nData: ${prettyData.truncateTo(500)}';
       }
       if (headers.isNotEmpty) {
@@ -169,7 +195,7 @@ class AppDioResponseLog extends DioResponseLog {
         msg += '\nHeaders: ${prettyHeaders.truncateTo(300)}';
       }
     } catch (_) {
-      msg = super.generateTextMessage(timeFormat: timeFormat);
+      msg += "\n(body not printable)";
     }
     return msg;
   }
@@ -202,7 +228,8 @@ class AppDioErrorLog extends DioErrorLog {
       msg += '\nTID: $tid';
     }
 
-    msg += '\nEndPoint: ${dioException.requestOptions.extra['endPoint'] ?? dioException.requestOptions.path}';
+    msg +=
+        '\nEndPoint: ${dioException.requestOptions.extra['endPoint'] ?? dioException.requestOptions.path}';
 
     if (statusCode != null) {
       msg += '\nStatus: ${dioException.response?.statusCode}';
@@ -213,7 +240,7 @@ class AppDioErrorLog extends DioErrorLog {
     }
 
     if (data != null) {
-      final prettyData = _encoder.convert(data);
+      final prettyData = _encoder.convert(redactSecrets(data));
       msg += '\nData: ${prettyData.truncateTo(500)}';
     }
 

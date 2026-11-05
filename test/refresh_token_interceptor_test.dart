@@ -44,8 +44,13 @@ class _StubStorage implements SecureStorageManager {
 /// Answers `/auth/refresh` with [status] (and a new pair on 200); null
 /// [status] = the server can't be reached.
 class _RefreshAdapter implements HttpClientAdapter {
-  _RefreshAdapter(this.status);
-  final int? status;
+  _RefreshAdapter(int? status) : _statuses = [status];
+
+  /// One answer per attempt; the last one repeats.
+  _RefreshAdapter.sequence(this._statuses);
+
+  final List<int?> _statuses;
+  final sentRefresh = <Object?>[];
   int calls = 0;
 
   @override
@@ -55,7 +60,8 @@ class _RefreshAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     calls++;
-    final code = status;
+    final code = _statuses[(calls - 1).clamp(0, _statuses.length - 1)];
+    sentRefresh.add(options.data is Map ? options.data['refresh_token'] : null);
     if (code == null) {
       throw DioException.connectionError(
         requestOptions: options,
@@ -94,6 +100,7 @@ void main() {
         secureStorage: _StubStorage(stored),
         dio: dio,
         onTokenExpired: () => expired = true,
+        retryDelays: const [Duration.zero, Duration.zero, Duration.zero],
       );
     }
 
@@ -121,6 +128,36 @@ void main() {
       expect(r.sessionEnded, isTrue);
       expect(stored, isEmpty);
       expect(expired, isTrue);
+    });
+
+    test('a lost reply is retried with the same refresh token', () async {
+      final adapter = _RefreshAdapter.sequence([null, 200]);
+      final r = await make(adapter).renewAfter401('sent-access');
+      expect(r.token, 'new-access');
+      expect(adapter.sentRefresh, ['old-refresh', 'old-refresh']);
+    });
+
+    test('a 500 is retried, never a logout', () async {
+      final adapter = _RefreshAdapter.sequence([500, 502, 200]);
+      final r = await make(adapter).renewAfter401('sent-access');
+      expect(r.token, 'new-access');
+      expect(adapter.calls, 3);
+      expect(expired, isFalse);
+    });
+
+    test('a server that keeps failing keeps the session', () async {
+      final adapter = _RefreshAdapter(500);
+      final r = await make(adapter).renewAfter401('sent-access');
+      expect(r.sessionEnded, isFalse);
+      expect(adapter.calls, 4);
+      expect(stored[SecureStorageKey.refreshToken], 'old-refresh');
+      expect(expired, isFalse);
+    });
+
+    test('only a 401 logs out — a 400 keeps the session', () async {
+      final r = await make(_RefreshAdapter(400)).renewAfter401('sent-access');
+      expect(r.sessionEnded, isFalse);
+      expect(expired, isFalse);
     });
 
     test('an unreachable server keeps the session', () async {

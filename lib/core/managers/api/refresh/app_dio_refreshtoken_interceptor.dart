@@ -17,12 +17,24 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     required this.dio,
     this.authController,
     this.onTokenExpired,
+    this.retryDelays = const [
+      Duration(seconds: 1),
+      Duration(seconds: 3),
+      Duration(seconds: 6),
+    ],
   });
 
   final SecureStorageManager secureStorage;
   final Dio dio;
   final AuthController? authController;
   final FutureOr<void> Function()? onTokenExpired;
+
+  /// Waits between refresh attempts that got no verdict (no reply, a
+  /// timeout, a 5xx). Every attempt sends the SAME refresh token: within 60 s
+  /// of a rotation the server answers it with the pair it already issued, so
+  /// a reply lost to a network drop or an app suspend no longer costs the
+  /// session. Kept well inside that grace window.
+  final List<Duration> retryDelays;
 
   static Completer<void>? _refreshCompleter;
 
@@ -170,7 +182,8 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
       // "contact the company" screen instead of logging the driver out.
       return null;
     } catch (e) {
-      await _clearToken('refresh threw ${e.runtimeType}');
+      // Not a 401 from the server: no proof the session is dead.
+      SessionTrail.step('refresh threw ${e.runtimeType}, session kept');
       return null;
     } finally {
       _refreshCompleter?.complete();
@@ -222,69 +235,101 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     await onTokenExpired?.call();
   }
 
+  /// Exchanges [currentRefresh] for a new pair and stores it at once. True
+  /// on success; false only when the server refused the token with a 401 —
+  /// the one answer that ends the session. Anything else (offline, timeout,
+  /// 5xx, 429, another 4xx, an unreadable reply) throws [_RefreshUnreachable]
+  /// after the retries, and the tokens stay.
   Future<bool> _refreshToken(String? currentRefresh) async {
     if (currentRefresh?.isEmpty ?? true) {
       _refreshFailure = 'no refresh token stored';
       return false;
     }
 
-    try {
-      final response = await dio.post(
-        '${EnvironmentConfig.apiUrl}${Endpoints.refreshToken}',
-        data: {'refresh_token': currentRefresh},
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        _refreshFailure = 'refresh answered ${response.statusCode}';
-        return false;
+    for (var attempt = 0; ; attempt++) {
+      final Response<dynamic> response;
+      try {
+        response = await dio.post(
+          '${EnvironmentConfig.apiUrl}${Endpoints.refreshToken}',
+          data: {'refresh_token': currentRefresh},
+          options: Options(validateStatus: (_) => true),
+        );
+      } on DioException catch (e) {
+        // No reply at all (offline, DNS, timeout, the app suspended mid-call).
+        if (attempt < retryDelays.length && e.response == null) {
+          SessionTrail.step('refresh no reply (${e.type.name}), retrying');
+          await Future<void>.delayed(retryDelays[attempt]);
+          continue;
+        }
+        throw const _RefreshUnreachable();
       }
 
-      // Support both structured data wrapper and flat json
-      final data = response.data;
-      final tokenData = data is Map && data.containsKey('data')
-          ? data['data']
-          : data;
-
-      if (tokenData == null) {
-        _refreshFailure = 'refresh answer had no tokens';
-        return false;
+      final status = response.statusCode ?? 0;
+      if (status == 200 || status == 201) {
+        if (await _storePair(response.data)) return true;
+        // A 200 we can't read: the pair may have rotated server-side. The
+        // same token gets the same pair back within the grace window.
+        if (attempt < retryDelays.length) {
+          SessionTrail.step('refresh answer unreadable, retrying');
+          await Future<void>.delayed(retryDelays[attempt]);
+          continue;
+        }
+        throw const _RefreshUnreachable();
       }
 
-      final authTokenModel = AuthTokenModel.fromJson(tokenData);
-      final accessToken = authTokenModel.accessToken;
-      final refreshToken = authTokenModel.refreshToken;
-
-      if (accessToken == null || refreshToken == null) {
-        _refreshFailure = 'refresh answer had no tokens';
-        return false;
-      }
-
-      await Future.wait([
-        secureStorage.write(SecureStorageKey.accessToken, accessToken),
-        secureStorage.write(SecureStorageKey.refreshToken, refreshToken),
-      ]);
-
-      return true;
-    } on DioException catch (e) {
       final restriction = detectAccountRestriction(
-        statusCode: e.response?.statusCode,
-        data: e.response?.data,
+        statusCode: status,
+        data: response.data,
       );
       if (restriction != null) {
         AccountStatusNotifier.instance.markRestricted(restriction);
         throw const _AccountRestrictedRefresh();
       }
-      // Never reached the server (or it didn't answer): not a verdict on the
-      // token. Only an actual reply rejecting it should end the session.
-      if (e.response == null || (e.response?.statusCode ?? 0) >= 500) {
-        throw const _RefreshUnreachable();
+
+      if (status == 401) {
+        // The server's own words, so Crashlytics' "SessionEnded" lines up
+        // with the backend's refused-refresh log (user_id + time).
+        _refreshFailure = 'refresh refused 401 ${_errorText(response.data)}';
+        return false;
       }
-      _refreshFailure =
-          'refresh refused ${e.response?.statusCode} '
-          '${_errorCode(e.response?.data)}';
-      return false;
-    } catch (e) {
-      _refreshFailure = 'refresh answer unreadable (${e.runtimeType})';
+
+      // 5xx / 429: a server problem, not a verdict on the token.
+      if (attempt < retryDelays.length && (status >= 500 || status == 429)) {
+        SessionTrail.step('refresh answered $status, retrying');
+        await Future<void>.delayed(retryDelays[attempt]);
+        continue;
+      }
+      SessionTrail.step('refresh answered $status, session kept');
+      throw const _RefreshUnreachable();
+    }
+  }
+
+  /// Stores the pair in [data] before anything else looks at it. False when
+  /// it holds no pair.
+  Future<bool> _storePair(Object? data) async {
+    try {
+      // Support both structured data wrapper and flat json
+      final tokenData = data is Map && data.containsKey('data')
+          ? data['data']
+          : data;
+      if (tokenData is! Map) return false;
+      final model = AuthTokenModel.fromJson(
+        Map<String, dynamic>.from(tokenData),
+      );
+      final accessToken = model.accessToken;
+      final refreshToken = model.refreshToken;
+      if (accessToken == null ||
+          accessToken.isEmpty ||
+          refreshToken == null ||
+          refreshToken.isEmpty) {
+        return false;
+      }
+      await Future.wait([
+        secureStorage.write(SecureStorageKey.accessToken, accessToken),
+        secureStorage.write(SecureStorageKey.refreshToken, refreshToken),
+      ]);
+      return true;
+    } catch (_) {
       return false;
     }
   }
@@ -313,12 +358,13 @@ class TokenRenewal {
   final bool sessionEnded;
 }
 
-/// The backend's short error code (`token revoked`, `token expired`…), or ''.
-String _errorCode(Object? data) {
+/// The backend's `error` text as sent (`token has been revoked`…), or ''.
+/// Never a token: the refresh endpoint's errors don't echo it.
+String _errorText(Object? data) {
   if (data is! Map) return '';
-  final code = data['error'] ?? data['code'] ?? data['message'];
-  final text = code?.toString() ?? '';
-  return text.length > 60 ? text.substring(0, 60) : text;
+  final text = (data['error'] ?? data['message'] ?? data['code'])?.toString();
+  if (text == null) return '';
+  return text.length > 200 ? text.substring(0, 200) : text;
 }
 
 /// Internal signal: the refresh was refused because the account is restricted.
@@ -326,7 +372,7 @@ class _AccountRestrictedRefresh implements Exception {
   const _AccountRestrictedRefresh();
 }
 
-/// Internal signal: the refresh couldn't reach the server (offline / 5xx).
+/// Internal signal: no verdict on the token (offline, 5xx, other non-401).
 class _RefreshUnreachable implements Exception {
   const _RefreshUnreachable();
 }

@@ -8,9 +8,31 @@ import 'package:massdrive/core/services/location_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 
 class _Sock implements SocketService {
+  bool up = true;
+  final sent = <(double, double)>[];
+
+  @override
+  bool get isConnected => up;
+
+  @override
+  void sendLocationUpdate(double lat, double lng) => sent.add((lat, lng));
+
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
+
+Position _fix(double lat) => Position(
+  latitude: lat,
+  longitude: 100.5,
+  timestamp: DateTime.now(),
+  accuracy: 5,
+  altitude: 0,
+  altitudeAccuracy: 0,
+  heading: 0,
+  headingAccuracy: 0,
+  speed: 0,
+  speedAccuracy: 0,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -140,5 +162,63 @@ void main() {
     );
     expect(maskedPath('/api/driver/profile'), '/api/driver/profile');
     expect(maskedPath('/api/orders/123?x=1'), '/api/orders/:id');
+  });
+
+  group('upstream', () {
+    late _Sock sock;
+    late List<(double, double)> posted;
+
+    LocationService makeWith() => LocationService(
+      sock,
+      isForeground: () => foreground,
+      serviceEnabled: () async => true,
+      checkPermission: () async => LocationPermission.whileInUse,
+      requestPermission: () async => LocationPermission.whileInUse,
+      positionStream: (settings) {
+        final c = StreamController<Position>();
+        streams.add(c);
+        return c.stream;
+      },
+      postLocation: (lat, lng) async => posted.add((lat, lng)),
+    );
+
+    setUp(() {
+      sock = _Sock();
+      posted = [];
+    });
+
+    test('in front with the socket up: a location_update frame', () async {
+      final s = makeWith();
+      await s.startLocationUpdates();
+      streams.single.add(_fix(13.7));
+      await pumpEventQueue();
+      expect(sock.sent, [(13.7, 100.5)]);
+      expect(posted, isEmpty);
+      s.dispose();
+    });
+
+    test('socket down: POST /api/driver/location instead', () async {
+      final s = makeWith();
+      await s.startLocationUpdates();
+      sock.up = false;
+      streams.single.add(_fix(13.7));
+      await pumpEventQueue();
+      expect(sock.sent, isEmpty);
+      expect(posted, [(13.7, 100.5)]);
+      s.dispose();
+    });
+
+    test('backgrounded: over HTTP, at most one per 10 s', () async {
+      final s = makeWith();
+      await s.startLocationUpdates();
+      foreground = false;
+      streams.single.add(_fix(13.7));
+      await pumpEventQueue();
+      streams.single.add(_fix(13.8));
+      await pumpEventQueue();
+      expect(sock.sent, isEmpty);
+      expect(posted, [(13.7, 100.5)]);
+      s.dispose();
+    });
   });
 }

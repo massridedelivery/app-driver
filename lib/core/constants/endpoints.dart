@@ -161,6 +161,9 @@ abstract class Endpoints {
   static const driverAccount = '/api/driver/account';
 
   // MARK: Wallet & Earnings
+  /// HTTP fallback for the socket's `location_update` (backgrounded app or
+  /// socket down): `{"lat","lng"}` → `{"status":"location updated"}`.
+  static const driverLocation = '/api/driver/location';
   static const driverPayouts = '/api/driver/payouts';
   static const driverPayoutsMethod = '/api/driver/payouts/method';
   static const driverPayoutsSummary = '/api/driver/payouts/summary';
