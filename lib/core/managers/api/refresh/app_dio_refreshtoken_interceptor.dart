@@ -147,6 +147,90 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
         : const TokenRenewal.kept();
   }
 
+  // MARK: - QA (the hidden "ทดสอบ session" sheet in Settings)
+
+  /// A refresh now, the way a 401 would start one (through the lock).
+  Future<TokenRenewal> qaRefreshNow() async {
+    SessionTrail.step('qa: refresh now');
+    final sent = await secureStorage.read(SecureStorageKey.accessToken);
+    return renewAfter401(sent ?? '');
+  }
+
+  /// Sends a refresh and throws the reply away — a reply lost to a network
+  /// drop or an app kill. Storage keeps the token the server just rotated,
+  /// so the next refresh exercises the grace window. The HTTP status, or
+  /// null when no reply came.
+  Future<int?> qaRefreshDiscardingReply() async {
+    SessionTrail.step('qa: refresh, reply discarded');
+    final refresh = await secureStorage.read(SecureStorageKey.refreshToken);
+    if (refresh == null || refresh.isEmpty) return null;
+    try {
+      final res = await _postRefresh(refresh);
+      return res.statusCode;
+    } on DioException {
+      return null;
+    }
+  }
+
+  /// Two refreshes with the same token sent together, around the app's
+  /// lock (as two processes would). The pair from a 200 is stored. Both
+  /// statuses, and whether the two 200s carried the same pair (compared
+  /// here; never shown).
+  Future<({int? first, int? second, bool samePair})> qaRaceRefresh() async {
+    SessionTrail.step('qa: two refreshes at once');
+    final refresh = await secureStorage.read(SecureStorageKey.refreshToken);
+    if (refresh == null || refresh.isEmpty) {
+      return (first: null, second: null, samePair: false);
+    }
+    Future<Response<dynamic>?> send() async {
+      try {
+        return await _postRefresh(refresh);
+      } on DioException {
+        return null;
+      }
+    }
+
+    final replies = await Future.wait([send(), send()]);
+    final ok = [
+      for (final r in replies)
+        if (r != null && (r.statusCode == 200 || r.statusCode == 201)) r,
+    ];
+    for (final r in ok) {
+      if (await _storePair(r.data)) break;
+    }
+    String? refreshOf(Response<dynamic> r) {
+      final d = r.data;
+      final t = d is Map && d['data'] is Map ? d['data'] : d;
+      return t is Map ? t['refresh_token']?.toString() : null;
+    }
+
+    return (
+      first: replies[0]?.statusCode,
+      second: replies[1]?.statusCode,
+      samePair:
+          ok.length == 2 &&
+          refreshOf(ok[0]) != null &&
+          refreshOf(ok[0]) == refreshOf(ok[1]),
+    );
+  }
+
+  /// When the stored access token expires, if it is a JWT.
+  Future<DateTime?> qaAccessExpiry() async {
+    final t = await secureStorage.read(SecureStorageKey.accessToken);
+    if (t == null || t.isEmpty) return null;
+    try {
+      return JwtDecoder.getExpirationDate(t).toLocal();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Response<dynamic>> _postRefresh(String refresh) => dio.post(
+    '${EnvironmentConfig.apiUrl}${Endpoints.refreshToken}',
+    data: {'refresh_token': refresh},
+    options: Options(validateStatus: (_) => true),
+  );
+
   Future<String?> _lockAndRefreshToken() async {
     if (_refreshCompleter != null) {
       await _refreshCompleter!.future;
@@ -249,11 +333,7 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
     for (var attempt = 0; ; attempt++) {
       final Response<dynamic> response;
       try {
-        response = await dio.post(
-          '${EnvironmentConfig.apiUrl}${Endpoints.refreshToken}',
-          data: {'refresh_token': currentRefresh},
-          options: Options(validateStatus: (_) => true),
-        );
+        response = await _postRefresh(currentRefresh!);
       } on DioException catch (e) {
         // No reply at all (offline, DNS, timeout, the app suspended mid-call).
         if (attempt < retryDelays.length && e.response == null) {
