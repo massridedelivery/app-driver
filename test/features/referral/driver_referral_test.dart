@@ -254,6 +254,30 @@ void main() {
       expect(find.text('ใช้โค้ดของตัวเองไม่ได้'), findsOneWidget);
     });
 
+    testWidgets('program off: no code field, even with can_apply_code', (
+      t,
+    ) async {
+      await _pump(
+        t,
+        const ReferralCodeCard(),
+        _FakeApi(_info(enabled: false, applyBefore: null)),
+      );
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('มีโค้ดผู้แนะนำไหม?'), findsNothing);
+    });
+
+    testWidgets('switched on by admin: shows on the next load', (t) async {
+      final api = _FakeApi(_info(enabled: false, applyBefore: null));
+      await _pump(t, const ReferralCodeCard(), api);
+      expect(find.byType(TextField), findsNothing);
+
+      // Admin turns it on; the screen is opened again (autoDispose refetch).
+      api.info = _info(applyBefore: null);
+      await t.pumpWidget(const SizedBox());
+      await _pump(t, const ReferralCodeCard(), api);
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
     testWidgets('no field when the backend no longer offers it', (t) async {
       await _pump(
         t,

@@ -161,6 +161,39 @@ void main() {
       expect(find.text('ไม่แสดงหน้านี้ในครั้งถัดไป'), findsNothing);
     });
 
+    testWidgets('across launches: ✕ unticked shows again, ticked stays '
+        'hidden, a new version shows again', (t) async {
+      final ctx = await home(t);
+      Future<bool> launch(
+        Map<String, dynamic> item, {
+        bool tick = false,
+      }) async {
+        // A new AppPopups = a cold start (fresh session set, same storage).
+        final done = make([item]).maybeShow(ctx);
+        await t.pump();
+        await t.pump();
+        final shown = find
+            .text('ไม่แสดงหน้านี้ในครั้งถัดไป')
+            .evaluate()
+            .isNotEmpty;
+        if (shown) {
+          if (tick) {
+            await t.tap(find.text('ไม่แสดงหน้านี้ในครั้งถัดไป'));
+            await t.pump();
+          }
+          await t.tap(find.byTooltip('ปิด'));
+          await t.pumpAndSettle();
+        }
+        await done;
+        return shown;
+      }
+
+      expect(await launch(b), isTrue); // ✕ without the tick
+      expect(await launch(b, tick: true), isTrue); // shows again; now ticked
+      expect(await launch(b), isFalse); // hidden for good
+      expect(await launch({...b, 'version': 2}), isTrue); // edited → again
+    });
+
     testWidgets('a fetch error means no pop-up', (t) async {
       final ctx = await home(t);
       final popups = AppPopups(

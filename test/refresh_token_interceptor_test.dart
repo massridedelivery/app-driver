@@ -130,6 +130,29 @@ void main() {
       expect(expired, isTrue);
     });
 
+    test('two refreshes at once: one request, both get the new pair', () async {
+      final adapter = _RefreshAdapter(200);
+      final i = make(adapter);
+      final results = await Future.wait([
+        i.renewAfter401('sent-access'),
+        i.renewAfter401('sent-access'),
+      ]);
+      expect(adapter.calls, 1);
+      expect(results.map((r) => r.token), ['new-access', 'new-access']);
+      expect(results.any((r) => r.sessionEnded), isFalse);
+      expect(expired, isFalse);
+    });
+
+    test('app killed before the reply: the next launch sends the same '
+        'refresh token (the grace window answers it)', () async {
+      // Nothing was stored for the lost reply, so storage still holds the
+      // token the server just rotated — exactly what it accepts for 60 s.
+      final adapter = _RefreshAdapter(200);
+      final r = await make(adapter).renewAfter401('sent-access');
+      expect(adapter.sentRefresh, ['old-refresh']);
+      expect(r.token, 'new-access');
+    });
+
     test('a lost reply is retried with the same refresh token', () async {
       final adapter = _RefreshAdapter.sequence([null, 200]);
       final r = await make(adapter).renewAfter401('sent-access');
