@@ -273,29 +273,32 @@ class SettingScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: 24),
-            // App version footer (moved from the login screen). Seven taps
-            // open the QA "ทดสอบ session" sheet.
+            // App version footer (moved from the login screen). In QA builds
+            // (--dart-define=QA_TOOLS=true) seven taps open "ทดสอบ session".
             Center(
-              child: _SecretTaps(
-                onUnlocked: () => showSessionQaSheet(context),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    ref
-                        .watch(appVersionProvider)
-                        .maybeWhen(data: (v) => 'เวอร์ชัน $v', orElse: () => ''),
-                    style: AppTypography.caption4.copyWith(
-                      color: context.palette.textTertiary,
-                    ),
-                  ),
-                ),
-              ),
+              child: kQaToolsEnabled
+                  ? _SecretTaps(
+                      onUnlocked: () => showSessionQaSheet(context),
+                      child: _versionLabel(context, ref),
+                    )
+                  : _versionLabel(context, ref),
             ),
             const SizedBox(height: 12),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _versionLabel(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      child: Text(
+        ref
+            .watch(appVersionProvider)
+            .maybeWhen(data: (v) => 'เวอร์ชัน $v', orElse: () => ''),
+        style: AppTypography.caption4.copyWith(
+          color: context.palette.textTertiary,
         ),
       ),
     );

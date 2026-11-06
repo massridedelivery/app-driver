@@ -9,9 +9,15 @@ import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interce
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 
+/// Compile-time switch for QA-only tools. Off unless the build passes
+/// `--dart-define=QA_TOOLS=true`, so store builds carry no entry point and the
+/// compiler drops the sheet.
+const bool kQaToolsEnabled = bool.fromEnvironment('QA_TOOLS');
+
 /// "ทดสอบ session" for QA: opened by tapping the version label 7 times in
-/// Settings. Starts refreshes on demand so the grace window can be tried
-/// against an app kill, airplane mode or two refreshes at once. No token is
+/// Settings, only in builds with [kQaToolsEnabled]. Starts refreshes on demand
+/// so the grace window can be tried against an app kill, airplane mode or two
+/// refreshes at once. No token is
 /// ever shown — only statuses and the access token's expiry.
 Future<void> showSessionQaSheet(BuildContext context) {
   final interceptor = getIt<Dio>().interceptors
