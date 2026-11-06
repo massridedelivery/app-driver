@@ -187,6 +187,11 @@ void main() {
     });
 
     group('QA sheet', () {
+      test('is off unless the build passes QA_TOOLS=true', () {
+        // `flutter test` runs without the define, like a store build.
+        expect(kQaToolsEnabled, isFalse);
+      });
+
       testWidgets('the sheet runs a refresh and never shows a token', (
         t,
       ) async {
