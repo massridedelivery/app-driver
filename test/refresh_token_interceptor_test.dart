@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
 import 'package:massdrive/core/managers/api/refresh/app_dio_refreshtoken_interceptor.dart';
+import 'package:massdrive/features/setting/presentation/widgets/session_qa_sheet.dart';
 
 /// Storage holding whatever the app persisted earlier — during sign-in that is
 /// the *previous* session's token, which is the whole point of these cases.
@@ -181,6 +184,56 @@ void main() {
       final r = await make(_RefreshAdapter(400)).renewAfter401('sent-access');
       expect(r.sessionEnded, isFalse);
       expect(expired, isFalse);
+    });
+
+    group('QA sheet', () {
+      testWidgets('the sheet runs a refresh and never shows a token', (
+        t,
+      ) async {
+        await initializeDateFormatting('th_TH');
+        final i = make(_RefreshAdapter(200));
+        await t.pumpWidget(
+          MaterialApp(home: Scaffold(body: SessionQaSheet(interceptor: i))),
+        );
+        await t.pump();
+        await t.tap(find.text('Refresh ตอนนี้'));
+        await t.pumpAndSettle();
+        expect(
+          find.textContaining('สำเร็จ — ได้ token ใหม่'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('new-access'), findsNothing);
+        expect(find.textContaining('new-refresh'), findsNothing);
+      });
+
+      test('a discarded reply leaves storage on the rotated token', () async {
+        final adapter = _RefreshAdapter(200);
+        final status = await make(adapter).qaRefreshDiscardingReply();
+        expect(status, 200);
+        expect(stored[SecureStorageKey.refreshToken], 'old-refresh');
+        expect(stored[SecureStorageKey.accessToken], 'sent-access');
+      });
+
+      test('two raw refreshes: both answered, the pair is stored', () async {
+        final adapter = _RefreshAdapter(200);
+        final r = await make(adapter).qaRaceRefresh();
+        expect(adapter.calls, 2);
+        expect(adapter.sentRefresh, ['old-refresh', 'old-refresh']);
+        expect((r.first, r.second, r.samePair), (200, 200, true));
+        expect(stored[SecureStorageKey.refreshToken], 'new-refresh');
+      });
+
+      test(
+        'a raw race that gets a 401 stores nothing, logs nothing out',
+        () async {
+          final r = await make(
+            _RefreshAdapter.sequence([200, 401]),
+          ).qaRaceRefresh();
+          expect((r.first, r.second, r.samePair), (200, 401, false));
+          expect(stored[SecureStorageKey.refreshToken], 'new-refresh');
+          expect(expired, isFalse);
+        },
+      );
     });
 
     test('an unreachable server keeps the session', () async {

@@ -22,6 +22,7 @@ import 'package:massdrive/features/review/data/customer_review_api.dart';
 import 'package:massdrive/features/setting/presentation/controllers/auto_accept_controller.dart';
 import 'package:massdrive/features/inbox/presentation/inbox_strings.dart';
 import 'package:massdrive/features/inbox/presentation/marketing_opt_in_controller.dart';
+import 'package:massdrive/features/setting/presentation/widgets/session_qa_sheet.dart';
 import 'package:massdrive/features/setting/presentation/screens/dark_mode_screen.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 
@@ -272,14 +273,24 @@ class SettingScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: 24),
-            // App version footer (moved from the login screen).
+            // App version footer (moved from the login screen). Seven taps
+            // open the QA "ทดสอบ session" sheet.
             Center(
-              child: Text(
-                ref
-                    .watch(appVersionProvider)
-                    .maybeWhen(data: (v) => 'เวอร์ชัน $v', orElse: () => ''),
-                style: AppTypography.caption4.copyWith(
-                  color: context.palette.textTertiary,
+              child: _SecretTaps(
+                onUnlocked: () => showSessionQaSheet(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    ref
+                        .watch(appVersionProvider)
+                        .maybeWhen(data: (v) => 'เวอร์ชัน $v', orElse: () => ''),
+                    style: AppTypography.caption4.copyWith(
+                      color: context.palette.textTertiary,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -919,4 +930,40 @@ class _AutoAcceptCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Calls [onUnlocked] after 7 taps, each within 1.5 s of the last.
+class _SecretTaps extends StatefulWidget {
+  const _SecretTaps({required this.child, required this.onUnlocked});
+
+  final Widget child;
+  final VoidCallback onUnlocked;
+
+  @override
+  State<_SecretTaps> createState() => _SecretTapsState();
+}
+
+class _SecretTapsState extends State<_SecretTaps> {
+  int _count = 0;
+  DateTime? _last;
+
+  void _tap() {
+    final now = DateTime.now();
+    if (_last == null ||
+        now.difference(_last!) > const Duration(milliseconds: 1500)) {
+      _count = 0;
+    }
+    _last = now;
+    if (++_count >= 7) {
+      _count = 0;
+      widget.onUnlocked();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: _tap,
+    child: widget.child,
+  );
 }
