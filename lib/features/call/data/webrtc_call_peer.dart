@@ -106,18 +106,36 @@ class WebRtcCallPeer implements CallPeer {
   @override
   Future<void> setSpeaker(bool on) => Helper.setSpeakerphoneOn(on);
 
+  Future<void>? _closing;
+
+  /// Idempotent: hang-up from both sides (local button, `call_ended`, the
+  /// system UI) can all land here. The callbacks are cut first so nothing is
+  /// added to the streams after they close, and the streams close even when
+  /// releasing the mic or the connection fails.
   @override
-  Future<void> close() async {
+  Future<void> close() => _closing ??= _close();
+
+  Future<void> _close() async {
     _pc
       ..onIceCandidate = null
-      ..onIceConnectionState = null;
-    for (final track in _mic.getTracks()) {
-      await track.stop();
+      ..onIceConnectionState = null
+      ..onConnectionState = null
+      ..onTrack = null;
+    // Each step on its own: one already released natively must not leave
+    // the others (or the streams) open.
+    try {
+      for (final track in _mic.getTracks()) {
+        await track.stop();
+      }
+      await _mic.dispose();
+    } catch (_) {}
+    try {
+      await _pc.close();
+    } catch (_) {
+    } finally {
+      await _candidates.close();
+      await _states.close();
     }
-    await _mic.dispose();
-    await _pc.close();
-    await _candidates.close();
-    await _states.close();
   }
 
   CallSdp _sdp(RTCSessionDescription d) => CallSdp(d.type ?? '', d.sdp ?? '');

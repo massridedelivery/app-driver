@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
@@ -87,7 +88,9 @@ class LocationService {
        _positionStream =
            positionStream ??
            ((settings) =>
-               Geolocator.getPositionStream(locationSettings: settings));
+               Geolocator.getPositionStream(locationSettings: settings)) {
+    _current = this;
+  }
 
   /// Android only lets an app start a foreground service while it is visible
   /// (Android 12+); started from the background it throws
@@ -127,6 +130,13 @@ class LocationService {
     }
 
     if (!await _ensurePermission(request: true)) return;
+
+    // The checks above await the platform; the app may have gone behind
+    // another app meanwhile, and opening the stream then is refused.
+    if (!_isForeground()) {
+      _deferUntilResume();
+      return;
+    }
 
     // Reset any existing session.
     _positionSubscription?.cancel();
@@ -351,9 +361,46 @@ class LocationService {
     _startOnResume = false;
   }
 
+  /// The tracking service last created; it gets [onFlutterError].
+  static LocationService? _current;
+
+  /// geolocator starts its Android foreground service inside the stream's
+  /// platform `listen` call. When Android refuses it (`Service.startForeground()
+  /// not allowed`, the app went to the background between our check and the
+  /// call) Flutter only reports the error — the stream stays open but silent
+  /// and [isTracking] would stay true for good. Returns true when [details] is
+  /// that refusal; the session is then dropped and started again on resume.
+  static bool onFlutterError(FlutterErrorDetails details) {
+    if (!isRefusedForegroundStart(details)) return false;
+    _current?._foregroundRefused();
+    return true;
+  }
+
+  @visibleForTesting
+  static bool isRefusedForegroundStart(FlutterErrorDetails details) {
+    final e = details.exception;
+    if (e is! PlatformException) return false;
+    final where = details.context?.toString() ?? '';
+    if (!where.contains('geolocator_updates')) return false;
+    final message = e.message ?? '';
+    return message.contains('startForeground') ||
+        message.contains('Starting FGS');
+  }
+
+  void _foregroundRefused() {
+    if (!isTracking) return;
+    stopLocationUpdates();
+    if (_isForeground()) {
+      unawaited(startLocationUpdates());
+    } else {
+      _deferUntilResume();
+    }
+  }
+
   /// Tears the service down for good. [onPosition] is closed here rather than
   /// in [stopLocationUpdates] so listeners survive going offline and online.
   void dispose() {
+    if (identical(_current, this)) _current = null;
     stopLocationUpdates();
     _resumeListener?.dispose();
     _resumeListener = null;

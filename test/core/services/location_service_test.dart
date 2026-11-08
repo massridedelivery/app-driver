@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -153,6 +154,80 @@ void main() {
     await s.startLocationUpdates();
     expect(opened, hasLength(2));
     s.dispose();
+  });
+
+  test('going to the background during the checks defers the start', () async {
+    final s = LocationService(
+      _Sock(),
+      isForeground: () => foreground,
+      serviceEnabled: () async {
+        foreground = false; // the driver switched apps meanwhile
+        return true;
+      },
+      checkPermission: () async => LocationPermission.whileInUse,
+      requestPermission: () async => LocationPermission.whileInUse,
+      positionStream: (settings) {
+        opened.add(settings);
+        return const Stream.empty();
+      },
+    );
+    await s.startLocationUpdates();
+    expect(opened, isEmpty);
+    expect(s.isTracking, isFalse);
+    s.dispose();
+  });
+
+  group('Android refuses the location foreground service', () {
+    FlutterErrorDetails refused({
+      String channel = 'geolocator_updates_android',
+    }) => FlutterErrorDetails(
+      exception: PlatformException(
+        code: 'error',
+        message:
+            'Service.startForeground() not allowed due to mAllowStartForeground false',
+      ),
+      context: ErrorDescription(
+        'while activating platform stream on channel flutter.baseflow.com/$channel',
+      ),
+    );
+
+    test('is recognised only for the geolocator stream', () {
+      expect(LocationService.isRefusedForegroundStart(refused()), isTrue);
+      expect(
+        LocationService.isRefusedForegroundStart(refused(channel: 'other')),
+        isFalse,
+      );
+      expect(
+        LocationService.isRefusedForegroundStart(
+          FlutterErrorDetails(exception: StateError('x')),
+        ),
+        isFalse,
+      );
+    });
+
+    test('drops the silent session and starts again on resume', () async {
+      final s = make();
+      await s.startLocationUpdates();
+      expect(s.isTracking, isTrue);
+
+      foreground = false;
+      expect(LocationService.onFlutterError(refused()), isTrue);
+      expect(s.isTracking, isFalse);
+
+      foreground = true;
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        WidgetsBinding.instance.handleAppLifecycleStateChanged(state);
+      }
+      await pumpEventQueue();
+      expect(opened, hasLength(2));
+      expect(s.isTracking, isTrue);
+      s.dispose();
+    });
   });
 
   test('maskedPath hides ids', () {
