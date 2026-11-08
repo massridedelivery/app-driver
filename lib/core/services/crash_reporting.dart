@@ -7,6 +7,7 @@ import 'package:massdrive/core/auth/session_notifier.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_key.dart';
 import 'package:massdrive/core/data/secure_storage/secure_storage_manager.dart';
+import 'package:massdrive/core/services/location_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Crash and error reports to Firebase Crashlytics (native crashes on iOS
@@ -33,7 +34,17 @@ class CrashReporting {
       // Dart errors are non-fatal: the app keeps running after them, and
       // reporting them as crashes made "crash-free users" read 0% with no
       // app ever closing. Native crashes (the app really dies) stay fatal.
-      FlutterError.onError = crashlytics.recordFlutterError;
+      FlutterError.onError = (details) {
+        // Android refused the location service's start in the background:
+        // tracking restarts on resume, so it is a breadcrumb, not an issue.
+        if (LocationService.onFlutterError(details)) {
+          crashlytics.log(
+            'location: foreground service refused, retry on resume',
+          );
+          return;
+        }
+        crashlytics.recordFlutterError(details);
+      };
       PlatformDispatcher.instance.onError = (error, stack) {
         crashlytics.recordError(error, stack);
         return true;
