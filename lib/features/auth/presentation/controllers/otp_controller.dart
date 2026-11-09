@@ -33,6 +33,11 @@ class OtpController extends _$OtpController {
       return OtpVerifyResult.error;
     }
 
+    // Taken before any await: a successful verify stores the token, the
+    // router leaves the OTP screen and this autoDispose controller is gone —
+    // `ref` is dead after that ("Cannot use the Ref of otpControllerProvider
+    // after it has been disposed", a Crashlytics issue).
+    final auth = ref.read(authControllerProvider.notifier);
     state = state.copyWith(
       isLoading: true,
       errorMessage: '',
@@ -41,22 +46,24 @@ class OtpController extends _$OtpController {
     try {
       final verifyOtpUseCase = getIt<VerifyOtpUseCase>();
       await verifyOtpUseCase.execute(phone, state.otpCode, refId: refId);
-      state = state.copyWith(isLoading: false);
+      if (ref.mounted) state = state.copyWith(isLoading: false);
       // Refresh auth state and WAIT for it to settle before navigating. This
       // re-derives the session from the freshly stored token and pushes the
       // result into SessionNotifier (the router's refreshListenable). If we
       // navigate first and let this run un-awaited, a late session flip can
       // redirect the just-opened protected screen straight back to /login.
-      await ref.read(authControllerProvider.notifier).refresh();
+      await auth.refresh();
       return isRegistered
           ? OtpVerifyResult.home
           : OtpVerifyResult.registrationChecklist;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: friendlyErrorMessage(e),
-        needsNewCode: e is OtpVerifyException && e.needsNewCode,
-      );
+      if (ref.mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: friendlyErrorMessage(e),
+          needsNewCode: e is OtpVerifyException && e.needsNewCode,
+        );
+      }
       return OtpVerifyResult.error;
     }
   }

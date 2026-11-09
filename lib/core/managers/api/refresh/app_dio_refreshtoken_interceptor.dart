@@ -313,7 +313,16 @@ class AppDioRefreshTokenInterceptor extends Interceptor {
   }
 
   Future<void> _clearToken(String reason) async {
-    SessionTrail.ended(reason);
+    // Only a session that still had tokens is one the app ended. Once they
+    // are wiped, every later 401 came back here and filed another
+    // "SessionEnded: no refresh token stored" (7 for one driver in a week).
+    final access = await secureStorage.read(SecureStorageKey.accessToken);
+    final refresh = await secureStorage.read(SecureStorageKey.refreshToken);
+    if ((access?.isNotEmpty ?? false) || (refresh?.isNotEmpty ?? false)) {
+      SessionTrail.ended(reason);
+    } else {
+      SessionTrail.step('already signed out ($reason)');
+    }
     await secureStorage.deleteAll();
     await authController?.refresh();
     await onTokenExpired?.call();
