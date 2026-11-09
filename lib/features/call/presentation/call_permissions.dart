@@ -27,6 +27,12 @@ Future<bool> requestCallAudioPermissions() async {
 /// sits in a mount, locked or under navigation, and answering there needs
 /// the microphone granted beforehand — and on Android 14+ the full-screen
 /// call permission, or the call is only a notification.
+///
+/// App Store guideline 5.1.1(iv): the message before the system prompt has a
+/// single neutral "ดำเนินการต่อ" button and cannot be dismissed, so the
+/// driver always reaches the system permission request (1.0.1 was rejected
+/// for an "อนุญาต" / "ไว้ทีหลัง" pair). The choice itself stays with the
+/// system dialog.
 Future<void> primeCallPermissions(BuildContext context, WidgetRef ref) async {
   if (!ref.read(callAvailabilityProvider).enabled) return;
   final prefs = await SharedPreferences.getInstance();
@@ -42,45 +48,41 @@ Future<void> primeCallPermissions(BuildContext context, WidgetRef ref) async {
   if (!context.mounted) return;
 
   final p = context.palette;
-  final allow = await showDialog<bool>(
+  await showDialog<void>(
     context: context,
-    builder: (d) => AlertDialog(
-      backgroundColor: p.sheet,
-      title: Text(
-        'รับสายจากลูกค้าในแอป',
-        style: AppTypography.heading6.copyWith(color: p.textPrimary),
-      ),
-      content: Text(
-        fullScreen
-            ? 'ลูกค้าโทรหาคุณผ่านแอปได้ระหว่างงาน กรุณาอนุญาตให้ใช้ไมโครโฟน '
-                  'ไม่งั้นจะพลาดสายจากลูกค้า'
-            : 'ลูกค้าโทรหาคุณผ่านแอปได้ระหว่างงาน กรุณาอนุญาตให้ใช้ไมโครโฟน '
-                  'และให้แสดงสายเรียกเข้าแบบเต็มหน้าจอ '
-                  'ไม่งั้นจะพลาดสายจากลูกค้า',
-        style: AppTypography.body2.copyWith(color: p.textSecondary),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(d, false),
-          child: Text(
-            'ไว้ทีหลัง',
-            style: AppTypography.label2.copyWith(color: p.textSecondary),
-          ),
+    barrierDismissible: false,
+    builder: (d) => PopScope(
+      canPop: false,
+      child: AlertDialog(
+        backgroundColor: p.sheet,
+        title: Text(
+          'รับสายจากลูกค้าในแอป',
+          style: AppTypography.heading6.copyWith(color: p.textPrimary),
         ),
-        TextButton(
-          onPressed: () => Navigator.pop(d, true),
-          child: Text(
-            'อนุญาต',
-            style: AppTypography.label2.copyWith(
-              color: AppColors.semanticSuccessBgHigh,
+        content: Text(
+          fullScreen
+              ? 'ลูกค้าโทรหาคุณผ่านแอปได้ระหว่างงาน '
+                    'แอปจะขอใช้ไมโครโฟนเพื่อให้คุณคุยกับลูกค้าได้'
+              : 'ลูกค้าโทรหาคุณผ่านแอปได้ระหว่างงาน '
+                    'แอปจะขอใช้ไมโครโฟนเพื่อให้คุณคุยกับลูกค้าได้ '
+                    'และขอแสดงสายเรียกเข้าแบบเต็มหน้าจอ',
+          style: AppTypography.body2.copyWith(color: p.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d),
+            child: Text(
+              'ดำเนินการต่อ',
+              style: AppTypography.label2.copyWith(
+                color: AppColors.semanticSuccessBgHigh,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
   await prefs.setBool(_primedKey, true);
-  if (allow != true) return;
   if (!micGranted) await requestCallAudioPermissions();
   // Opens the system setting (Android 14+).
   if (!fullScreen) await FlutterCallkitIncoming.requestFullIntentPermission();
