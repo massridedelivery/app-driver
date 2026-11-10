@@ -88,9 +88,21 @@ void main() {
   ) async {
     await _pumpChecklist(
       tester,
-      _approved({DocumentType.idCard: _doc('id_card', 'approved')}),
+      _approved({
+        DocumentType.insurance: _doc('insurance', 'approved'),
+        DocumentType.idCard: _doc('id_card', 'approved'),
+      }),
     );
-    expect(find.text('เอกสารของคุณผ่านการอนุมัติแล้ว'), findsOneWidget);
+    expect(find.text('ผ่านการอนุมัติครบแล้ว'), findsOneWidget);
+    // What passed, in checklist order.
+    expect(find.text('บัตรประชาชน'), findsOneWidget);
+    expect(find.text('พ.ร.บ. รถจักรยานยนต์ / ประกัน'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('บัตรประชาชน')).dy,
+      lessThan(
+        tester.getTopLeft(find.text('พ.ร.บ. รถจักรยานยนต์ / ประกัน')).dy,
+      ),
+    );
   });
 
   testWidgets('approved with a document sent back: it can be re-uploaded', (
@@ -107,7 +119,7 @@ void main() {
         ),
       }),
     );
-    expect(find.text('เอกสารของคุณผ่านการอนุมัติแล้ว'), findsNothing);
+    expect(find.text('ผ่านการอนุมัติครบแล้ว'), findsNothing);
     expect(find.text('อัปโหลดเอกสารใหม่'), findsOneWidget);
     expect(find.text('พ.ร.บ. รถจักรยานยนต์ / ประกัน'), findsOneWidget);
     expect(

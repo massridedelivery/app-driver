@@ -215,7 +215,9 @@ class _RegistrationChecklistScreenState
     if (state.overallStatus == RegistrationStateStatus.approved) {
       // Approved documents are not shown: only rejected and pending ones.
       final rows = openReuploads(state.remoteDocuments);
-      if (rows.isEmpty) return const _ApprovedView();
+      if (rows.isEmpty) {
+        return _ApprovedView(approved: approvedDocuments(state.remoteDocuments));
+      }
       return _ReuploadView(
         rows: rows,
         onOpen: (type) => _openDocument(context, type),
@@ -445,36 +447,87 @@ void _goHome(BuildContext context) {
   context.go('/home');
 }
 
+/// Every document approved: what passed, and the way to the jobs.
 class _ApprovedView extends StatelessWidget {
-  const _ApprovedView();
+  const _ApprovedView({required this.approved});
+
+  /// The approved documents, in checklist order.
+  final List<DocumentType> approved;
 
   @override
   Widget build(BuildContext context) {
+    final brand = context.brand;
     return RegistrationScaffold(
-      icon: Icons.task_alt_rounded,
-      title: 'ลงทะเบียนเอกสาร',
+      icon: Icons.fact_check_rounded,
+      title: 'เอกสารของคุณ',
       showBack: false,
       bottom: RegistrationPrimaryButton(
         label: 'ไปหน้ารับงาน',
-        onPressed: () {
-          // This screen can be reached as an imperative route (e.g.
-          // from Edit Profile), which context.go alone won't clear —
-          // it would leave this screen covering Home. Pop every
-          // imperative route first, then land on Home.
-          Navigator.of(
-            context,
-            rootNavigator: true,
-          ).popUntil((route) => route.isFirst);
-          context.go('/home');
-        },
+        // Reached as an imperative route too (Edit Profile, a push): pop
+        // those first, then land on Home.
+        onPressed: () => _goHome(context),
       ),
-      child: const Padding(
-        padding: EdgeInsets.only(top: 22),
-        child: RegistrationResultContent(
-          icon: Icons.task_alt_rounded,
-          title: 'เอกสารของคุณผ่านการอนุมัติแล้ว',
-          body: 'คุณสามารถเริ่มรับงานได้ทันที',
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded, size: 32, color: brand.ok),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ผ่านการอนุมัติครบแล้ว',
+                      style: AppTypography.heading5.copyWith(
+                        color: brand.text1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'คุณสามารถเริ่มรับงานได้ทันที',
+                      style: AppTypography.body2.copyWith(color: brand.text2),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (approved.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: brand.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: brand.line),
+              ),
+              child: Column(
+                children: [
+                  for (final type in approved)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_rounded, size: 20, color: brand.ok),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              documentTitle(type),
+                              style: AppTypography.body2.copyWith(
+                                color: brand.text1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
