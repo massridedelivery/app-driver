@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/features/document_registration/domain/document_photo.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
@@ -103,15 +104,17 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    // The profile photo becomes the avatar the apps show: re-encoding it
-    // (quality / size set) turns an iPhone HEIC into a JPEG the backend
-    // accepts, and keeps it small. Documents stay untouched for legibility.
+    // Re-encoded on pick (size / quality set): an iPhone HEIC becomes a JPEG
+    // the backend accepts, and a 12 MP shot shrinks to ~1–2 MB so it goes up
+    // quickly on mobile data. 2000 px keeps a card or plate readable; the
+    // profile photo (the avatar) needs less.
     final isPhoto = widget.type == DocumentType.profilePhoto;
+    final side = (isPhoto ? 1600 : docPhotoMaxSide).toDouble();
     final pickedFile = await _picker.pickImage(
       source: source,
-      maxWidth: isPhoto ? 1600 : null,
-      maxHeight: isPhoto ? 1600 : null,
-      imageQuality: isPhoto ? 85 : null,
+      maxWidth: side,
+      maxHeight: side,
+      imageQuality: isPhoto ? 85 : docPhotoQuality,
     );
     if (pickedFile != null) {
       setState(() {
@@ -158,6 +161,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           ref.read(registrationControllerProvider).errorMessage ??
           'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
       debugPrint('[Upload] Failed for ${widget.type}: $errorMsg');
+      // Refused as too large: drop the photo so the driver takes it again.
+      if (ref.read(registrationControllerProvider.notifier).lastUploadTooLarge) {
+        setState(() => _selectedImage = null);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMsg),
