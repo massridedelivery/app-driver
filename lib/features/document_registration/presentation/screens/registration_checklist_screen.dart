@@ -6,6 +6,7 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/profile/domain/profile_updates.dart';
 import '../../domain/document_reupload.dart';
 import '../../domain/models/registration_status.dart';
@@ -216,7 +217,12 @@ class _RegistrationChecklistScreenState
       // Approved documents are not shown: only rejected and pending ones.
       final rows = openReuploads(state.remoteDocuments);
       if (rows.isEmpty) {
-        return _ApprovedView(approved: approvedDocuments(state.remoteDocuments));
+        return _ApprovedView(
+          approved: [
+            for (final type in approvedDocuments(state.remoteDocuments))
+              (type: type, expiry: state.remoteDocuments[type]?.expiryDay),
+          ],
+        );
       }
       return _ReuploadView(
         rows: rows,
@@ -370,12 +376,15 @@ class _ReuploadView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final anyRejected = rows.any((r) => r.state == ReuploadState.rejected);
+    bool any(ReuploadState s) => rows.any((r) => r.state == s);
     return RegistrationScaffold(
       icon: Icons.upload_file_rounded,
       title: 'อัปโหลดเอกสารใหม่',
-      subtitle: anyRejected
+      // The account keeps working whatever is listed here.
+      subtitle: any(ReuploadState.rejected)
           ? 'บัญชีของคุณยังรับงานได้ตามปกติ กรุณาอัปโหลดเอกสารต่อไปนี้ใหม่'
+          : any(ReuploadState.expiring)
+          ? 'เอกสารใกล้หมดอายุ อัปโหลดฉบับใหม่ได้เลย บัญชีของคุณยังรับงานได้ตามปกติ'
           : 'ส่งเอกสารแล้ว รอเจ้าหน้าที่ตรวจสอบ บัญชีของคุณยังรับงานได้ตามปกติ',
       onBack: () => _goHome(context),
       onRefresh: onRefresh,
@@ -399,28 +408,28 @@ class _ReuploadView extends StatelessWidget {
         number: number,
         title: title,
         status: RegistrationRowStatus.rejected,
-        statusLines: [
-          'ถูกปฏิเสธ: ${_reasonText(item.reason)}',
-          'แตะเพื่ออัปโหลดใหม่',
-        ],
+        statusLines: [rejectedLine(item), 'แตะเพื่ออัปโหลดใหม่'],
         underlineLine: 1,
         onTap: () => onOpen(item.type),
       ),
       ReuploadState.pending => RegistrationStatusRow(
         number: number,
         title: title,
-        status: RegistrationRowStatus.review,
+        status: RegistrationRowStatus.todo,
         statusLines: const ['รอตรวจสอบ'],
         onTap: () => _toast(context, 'ส่งแล้ว รอเจ้าหน้าที่ตรวจ'),
+      ),
+      // Uploading early is fine: the new copy replaces this one once approved.
+      ReuploadState.expiring => RegistrationStatusRow(
+        number: number,
+        title: title,
+        status: RegistrationRowStatus.review,
+        statusLines: [expiringLine(item)],
+        onTap: () => onOpen(item.type),
       ),
       // Never listed: openReuploads drops approved documents.
       ReuploadState.approved => const SizedBox.shrink(),
     };
-  }
-
-  static String _reasonText(String? raw) {
-    final text = raw?.trim();
-    return text == null || text.isEmpty ? 'กรุณาอัปโหลดใหม่' : text;
   }
 
   static void _toast(BuildContext context, String message) {
@@ -452,7 +461,7 @@ class _ApprovedView extends StatelessWidget {
   const _ApprovedView({required this.approved});
 
   /// The approved documents, in checklist order.
-  final List<DocumentType> approved;
+  final List<({DocumentType type, DateTime? expiry})> approved;
 
   @override
   Widget build(BuildContext context) {
@@ -505,7 +514,7 @@ class _ApprovedView extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  for (final type in approved)
+                  for (final (:type, :expiry) in approved)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       child: Row(
@@ -520,6 +529,13 @@ class _ApprovedView extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (expiry != null)
+                            Text(
+                              'หมดอายุ ${formatThaiDate(expiry)}',
+                              style: AppTypography.caption4.copyWith(
+                                color: brand.text2,
+                              ),
+                            ),
                         ],
                       ),
                     ),

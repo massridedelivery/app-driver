@@ -875,7 +875,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 final doc = watchDocumentAlert(ref);
                 return DocumentMenuBadge(
                   alert: doc.alert,
-                  rejected: doc.rejected,
+                  count: doc.count,
                 );
               },
             ),

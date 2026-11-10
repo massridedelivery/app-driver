@@ -23,6 +23,7 @@ import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/document_registration/domain/document_expiry.dart';
 import 'package:massdrive/features/profile/domain/profile_updates.dart';
 
 /// Requests notification permission and returns the resulting iOS/Firebase
@@ -347,9 +348,12 @@ class PushNotificationService {
     if (isDriverReferralBonusPush(message.data)) {
       ReferralUpdates.instance.notifyChanged();
     }
-    // A document was reviewed (document_status): an approved selfie is now the
-    // avatar, and verification may have changed — re-read the profile.
+    // A document was reviewed, asked for again or is about to expire
+    // (document_status / document_expiring): an approved selfie is now the
+    // avatar, and verification may have changed — re-read the profile and
+    // the document list.
     if (isDocumentStatusPush(message.data)) {
+      RequestedDocuments.addFromPush(message.data);
       ProfileUpdates.instance.notifyChanged();
     }
     // The job was cancelled (customer / admin / system): the app-root
@@ -491,6 +495,7 @@ class PushNotificationService {
     // Opened from a document review: the app may have been in the background
     // when the photo changed, so re-read the profile before the route opens.
     if (isDocumentStatusPush(message.data)) {
+      RequestedDocuments.addFromPush(message.data);
       ProfileUpdates.instance.notifyChanged();
     }
     // Finance decided on a held (override-claimed) fare → open the held list.
@@ -542,7 +547,12 @@ class PushNotificationService {
       return;
     }
     final route = message.data['route'];
-    if (route is String) _navigateTo(route);
+    if (route is String) {
+      _navigateTo(route);
+    } else if (isDocumentStatusPush(message.data)) {
+      // Document pushes always mean the documents screen, route or not.
+      _navigateTo('/documents');
+    }
   }
 
   /// Manually re-fetch the current FCM token and log it, without going

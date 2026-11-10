@@ -164,7 +164,12 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
-  Future<bool> uploadDocument(File file, DocumentType type, {String? docNumber}) async {
+  Future<bool> uploadDocument(
+    File file,
+    DocumentType type, {
+    String? docNumber,
+    DateTime? expiryDate,
+  }) async {
     lastUploadTooLarge = false;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -182,6 +187,7 @@ class RegistrationController extends _$RegistrationController {
         type,
         category: category,
         docNumber: docNumber,
+        expiryDate: expiryDate,
       );
 
       final updatedDocs = Map<DocumentType, String>.from(
@@ -232,8 +238,9 @@ class RegistrationController extends _$RegistrationController {
 
   Future<bool> submitVehicleDetails(
     VehicleInfo info,
-    File? greenBookFile,
-  ) async {
+    File? greenBookFile, {
+    DateTime? registrationExpiry,
+  }) async {
     lastUploadTooLarge = false;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -243,6 +250,7 @@ class RegistrationController extends _$RegistrationController {
           DocumentType.vehicleRegistration,
           category: MediaCategory.driverDoc,
           docNumber: info.licensePlate,
+          expiryDate: registrationExpiry,
         );
         state = state.copyWith(
           remoteDocuments: _withRegistered(

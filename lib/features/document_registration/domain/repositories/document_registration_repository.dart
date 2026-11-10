@@ -17,6 +17,7 @@ abstract class DocumentRegistrationRepository {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
     String? docTypeOverride,
+    DateTime? expiryDate,
   });
   Future<void> submitVehicleDetails(VehicleInfo info);
   Future<void> submitBankDetails(BankAccountInfo info);
