@@ -5,7 +5,6 @@ import 'package:massdrive/features/document_registration/domain/document_reuploa
 import 'package:massdrive/features/document_registration/domain/models/driver_document_model.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/presentation/controllers/registration_controller.dart';
-import 'package:massdrive/features/document_registration/presentation/controllers/rejected_documents_provider.dart';
 import 'package:massdrive/features/document_registration/presentation/screens/registration_checklist_screen.dart';
 import 'package:massdrive/features/document_registration/presentation/states/registration_state.dart';
 import 'package:massdrive/features/home/presentation/widgets/reupload_banner.dart';
@@ -141,109 +140,72 @@ void main() {
     expect(find.text('ส่งแล้ว รอเจ้าหน้าที่ตรวจ'), findsOneWidget);
   });
 
-  Future<int> pumpBanner(
-    WidgetTester tester,
-    List<ReuploadItem> docs, {
-    bool waiting = false,
-  }) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ReuploadBannerCard(
-            documents: docs,
-            waiting: waiting,
-            onTap: () => taps++,
-          ),
-        ),
-      ),
-    );
-    return taps;
-  }
+  const pending = (
+    type: DocumentType.idCard,
+    state: ReuploadState.pending,
+    reason: null,
+  );
+  const rejected = (
+    type: DocumentType.insurance,
+    state: ReuploadState.rejected,
+    reason: 'x',
+  );
 
-  testWidgets('home banner names the documents and opens on tap', (
+  test('home alert: rejected wins, then waiting, then nothing', () {
+    expect(documentAlertOf(const [pending, rejected]), (
+      alert: DocumentAlert.rejected,
+      rejected: 1,
+    ));
+    expect(documentAlertOf(const [pending]), (
+      alert: DocumentAlert.waiting,
+      rejected: 0,
+    ));
+    expect(documentAlertOf(const []), (alert: DocumentAlert.none, rejected: 0));
+  });
+
+  Future<void> pumpAlert(WidgetTester tester, Widget child) =>
+      tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: Center(child: child)),
+        ),
+      );
+
+  testWidgets('status card line: red to re-upload, neutral while waiting', (
     tester,
   ) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ReuploadBannerCard(
-            documents: const [
-              (
-                type: DocumentType.idCard,
-                state: ReuploadState.rejected,
-                reason: null,
-              ),
-              (
-                type: DocumentType.vehiclePhoto,
-                state: ReuploadState.rejected,
-                reason: 'ภาพไม่ชัด',
-              ),
-            ],
-            onTap: () => taps++,
-          ),
-        ),
-      ),
+    await pumpAlert(
+      tester,
+      const DocumentAlertLine(alert: DocumentAlert.rejected),
     );
     expect(find.text('มีเอกสารต้องอัปโหลดใหม่'), findsOneWidget);
-    expect(find.text('บัตรประชาชน, รูปถ่ายตัวรถ'), findsOneWidget);
-    await tester.tap(find.text('มีเอกสารต้องอัปโหลดใหม่'));
-    expect(taps, 1);
-  });
 
-  testWidgets('everything sent again: a neutral "เอกสารรอตรวจสอบ" banner', (
-    tester,
-  ) async {
-    await pumpBanner(tester, const [
-      (type: DocumentType.idCard, state: ReuploadState.pending, reason: null),
-    ], waiting: true);
-    expect(find.text('เอกสารรอตรวจสอบ'), findsOneWidget);
-    expect(find.text('มีเอกสารต้องอัปโหลดใหม่'), findsNothing);
-    expect(find.text('บัตรประชาชน'), findsOneWidget);
-  });
-
-  Future<void> pumpHomeBanner(
-    WidgetTester tester,
-    List<ReuploadItem> open,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          reuploadDocumentsProvider.overrideWith((ref) async => open),
-        ],
-        child: const MaterialApp(home: Scaffold(body: ReuploadBanner())),
-      ),
+    await pumpAlert(
+      tester,
+      const DocumentAlertLine(alert: DocumentAlert.waiting),
     );
-    await tester.pump();
-  }
-
-  testWidgets('home: red while any document is rejected, naming only those', (
-    tester,
-  ) async {
-    await pumpHomeBanner(tester, const [
-      (type: DocumentType.idCard, state: ReuploadState.pending, reason: null),
-      (
-        type: DocumentType.insurance,
-        state: ReuploadState.rejected,
-        reason: 'x',
-      ),
-    ]);
-    expect(find.text('มีเอกสารต้องอัปโหลดใหม่'), findsOneWidget);
-    expect(find.text('พ.ร.บ. รถจักรยานยนต์ / ประกัน'), findsOneWidget);
+    expect(find.text('เอกสารรอตรวจสอบ'), findsOneWidget);
   });
 
-  testWidgets('home: neutral once all were sent again, hidden when none', (
+  testWidgets('profile badge: count when rejected, dot when waiting', (
     tester,
   ) async {
-    await pumpHomeBanner(tester, const [
-      (type: DocumentType.idCard, state: ReuploadState.pending, reason: null),
-    ]);
-    expect(find.text('เอกสารรอตรวจสอบ'), findsOneWidget);
+    await pumpAlert(
+      tester,
+      const DocumentMenuBadge(alert: DocumentAlert.rejected, rejected: 2),
+    );
+    expect(find.text('2'), findsOneWidget);
 
-    await tester.pumpWidget(const SizedBox()); // a fresh ProviderScope
-    await pumpHomeBanner(tester, const []);
-    expect(find.text('เอกสารรอตรวจสอบ'), findsNothing);
-    expect(find.text('มีเอกสารต้องอัปโหลดใหม่'), findsNothing);
+    await pumpAlert(
+      tester,
+      const DocumentMenuBadge(alert: DocumentAlert.waiting, rejected: 0),
+    );
+    expect(find.text('2'), findsNothing);
+    expect(find.byType(Container), findsOneWidget);
+
+    await pumpAlert(
+      tester,
+      const DocumentMenuBadge(alert: DocumentAlert.none, rejected: 0),
+    );
+    expect(find.byType(Container), findsNothing);
   });
 }

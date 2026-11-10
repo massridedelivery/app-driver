@@ -7,99 +7,111 @@ import 'package:massdrive/core/constants/app_typography.dart';
 import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/document_registration/domain/document_reupload.dart';
 import 'package:massdrive/features/document_registration/presentation/controllers/rejected_documents_provider.dart';
-import 'package:massdrive/features/home/presentation/widgets/home_card.dart';
 
-/// Home, approved driver: documents the admin sent back. Red "มีเอกสาร
-/// ต้องอัปโหลดใหม่" while any is rejected; once all were sent again, a neutral
-/// "เอกสารรอตรวจสอบ" until they are reviewed; nothing after that. Taps open
-/// the checklist, which lists them.
-class ReuploadBanner extends ConsumerWidget {
-  const ReuploadBanner({super.key});
+/// What home says about documents the admin sent back.
+enum DocumentAlert { none, rejected, waiting }
+
+/// Rejected wins: while any document is rejected the driver has something to
+/// do. Once all were sent again they only wait for the review.
+({DocumentAlert alert, int rejected}) documentAlertOf(List<ReuploadItem> open) {
+  final rejected = open.where((d) => d.state == ReuploadState.rejected).length;
+  if (rejected > 0) return (alert: DocumentAlert.rejected, rejected: rejected);
+  if (open.isNotEmpty) return (alert: DocumentAlert.waiting, rejected: 0);
+  return (alert: DocumentAlert.none, rejected: 0);
+}
+
+/// Home's document alert, from GET /api/driver/documents (one row per type).
+({DocumentAlert alert, int rejected}) watchDocumentAlert(WidgetRef ref) =>
+    documentAlertOf(ref.watch(reuploadDocumentsProvider).value ?? const []);
+
+/// The status card's second line while a document is open: red "มีเอกสาร
+/// ต้องอัปโหลดใหม่ ›" or neutral "เอกสารรอตรวจสอบ ›". Taps open the checklist.
+class DocumentAlertLine extends StatelessWidget {
+  const DocumentAlertLine({super.key, required this.alert});
+
+  final DocumentAlert alert;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final open = ref.watch(reuploadDocumentsProvider).value ?? const [];
-    final rejected = [
-      for (final d in open)
-        if (d.state == ReuploadState.rejected) d,
-    ];
-    final shown = rejected.isNotEmpty ? rejected : open;
-    if (shown.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ReuploadBannerCard(
-        documents: shown,
-        waiting: rejected.isEmpty,
-        onTap: () =>
-            context.push(AppRoutes.documentRegistrationChecklistNamedPage),
+  Widget build(BuildContext context) {
+    final rejected = alert == DocumentAlert.rejected;
+    final color = rejected
+        ? AppColors.semanticErrorBgHigh
+        : AppColors.foundationOrange500;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () =>
+          context.push(AppRoutes.documentRegistrationChecklistNamedPage),
+      child: Row(
+        children: [
+          Icon(
+            rejected
+                ? Icons.error_outline_rounded
+                : Icons.hourglass_top_rounded,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              rejected ? 'มีเอกสารต้องอัปโหลดใหม่' : 'เอกสารรอตรวจสอบ',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption5.copyWith(color: color),
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, size: 16, color: color),
+        ],
       ),
     );
   }
 }
 
-@visibleForTesting
-class ReuploadBannerCard extends StatelessWidget {
-  const ReuploadBannerCard({
+/// On the profile menu icon: a red count of rejected documents, or a small
+/// neutral dot while documents wait for review. Nothing otherwise.
+class DocumentMenuBadge extends StatelessWidget {
+  const DocumentMenuBadge({
     super.key,
-    required this.documents,
-    required this.onTap,
-    this.waiting = false,
+    required this.alert,
+    required this.rejected,
   });
 
-  final List<ReuploadItem> documents;
-
-  /// All of them were sent again and wait for review: neutral, not red.
-  final bool waiting;
-  final VoidCallback onTap;
+  final DocumentAlert alert;
+  final int rejected;
 
   @override
   Widget build(BuildContext context) {
-    final accent = waiting
-        ? AppColors.foundationOrange500
-        : AppColors.semanticErrorBgHigh;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: HomeCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              waiting ? Icons.hourglass_top_rounded : Icons.upload_file_rounded,
-              size: 22,
-              color: accent,
+    switch (alert) {
+      case DocumentAlert.none:
+        return const SizedBox.shrink();
+      case DocumentAlert.waiting:
+        return Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.foundationOrange500,
+            border: Border.all(color: context.palette.bg, width: 1.5),
+          ),
+        );
+      case DocumentAlert.rejected:
+        return Container(
+          constraints: const BoxConstraints(minWidth: 18),
+          height: 18,
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.semanticErrorBgHigh,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: context.palette.bg, width: 1.5),
+          ),
+          child: Text(
+            '$rejected',
+            style: AppTypography.caption5.copyWith(
+              color: Colors.white,
+              height: 1,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    waiting ? 'เอกสารรอตรวจสอบ' : 'มีเอกสารต้องอัปโหลดใหม่',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.label2.copyWith(color: accent),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    documents.map((d) => documentTitle(d.type)).join(', '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption5.copyWith(
-                      color: context.palette.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: context.palette.textSecondary,
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
+    }
   }
 }
