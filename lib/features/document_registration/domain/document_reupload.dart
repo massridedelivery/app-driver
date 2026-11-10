@@ -87,6 +87,14 @@ List<ReuploadItem> openReuploads(
       (type: type, state: state, reason: _reason(docs[type]!.rejectionReason)),
 ];
 
+/// The approved documents in checklist order, for the "all approved" screen.
+List<DocumentType> approvedDocuments(
+  Map<DocumentType, DriverDocumentModel> docs,
+) => [
+  for (final type in DocumentType.values)
+    if (reuploadStateOf(docs, type) == ReuploadState.approved) type,
+];
+
 /// "บัตรประชาชน, ใบขับขี่" — the names for a one-line summary.
 String rejectedNames(List<RejectedDocument> docs) =>
     docs.map((d) => documentTitle(d.type)).join(', ');

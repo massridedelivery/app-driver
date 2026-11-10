@@ -157,19 +157,25 @@ class RegistrationScaffold extends StatelessWidget {
                 showBack: showBack,
               ),
             ),
+            // Full width: in this Column the sheet's width is otherwise its
+            // content's, so a narrow child (the approved screen's centred
+            // result) drew a narrow, off-centre sheet outline.
             Expanded(
-              child: CustomPaint(
-                foregroundPainter: _TopHairlinePainter(
-                  color: brand.line,
-                  radius: 22,
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(22),
+              child: SizedBox(
+                width: double.infinity,
+                child: CustomPaint(
+                  foregroundPainter: _TopHairlinePainter(
+                    color: brand.line,
+                    radius: 22,
                   ),
-                  child: bottom == null
-                      ? SafeArea(top: false, child: content)
-                      : content,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(22),
+                    ),
+                    child: bottom == null
+                        ? SafeArea(top: false, child: content)
+                        : content,
+                  ),
                 ),
               ),
             ),
