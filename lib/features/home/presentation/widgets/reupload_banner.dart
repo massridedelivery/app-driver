@@ -9,19 +9,27 @@ import 'package:massdrive/features/document_registration/domain/document_reuploa
 import 'package:massdrive/features/document_registration/presentation/controllers/rejected_documents_provider.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_card.dart';
 
-/// Home, approved driver: documents the admin sent back for a re-upload.
-/// Nothing when there are none. Taps open the checklist, which lists them.
+/// Home, approved driver: documents the admin sent back. Red "มีเอกสาร
+/// ต้องอัปโหลดใหม่" while any is rejected; once all were sent again, a neutral
+/// "เอกสารรอตรวจสอบ" until they are reviewed; nothing after that. Taps open
+/// the checklist, which lists them.
 class ReuploadBanner extends ConsumerWidget {
   const ReuploadBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rejected = ref.watch(rejectedDocumentsProvider).value ?? const [];
-    if (rejected.isEmpty) return const SizedBox.shrink();
+    final open = ref.watch(reuploadDocumentsProvider).value ?? const [];
+    final rejected = [
+      for (final d in open)
+        if (d.state == ReuploadState.rejected) d,
+    ];
+    final shown = rejected.isNotEmpty ? rejected : open;
+    if (shown.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: ReuploadBannerCard(
-        rejected: rejected,
+        documents: shown,
+        waiting: rejected.isEmpty,
         onTap: () =>
             context.push(AppRoutes.documentRegistrationChecklistNamedPage),
       ),
@@ -33,15 +41,22 @@ class ReuploadBanner extends ConsumerWidget {
 class ReuploadBannerCard extends StatelessWidget {
   const ReuploadBannerCard({
     super.key,
-    required this.rejected,
+    required this.documents,
     required this.onTap,
+    this.waiting = false,
   });
 
-  final List<RejectedDocument> rejected;
+  final List<ReuploadItem> documents;
+
+  /// All of them were sent again and wait for review: neutral, not red.
+  final bool waiting;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final accent = waiting
+        ? AppColors.foundationOrange500
+        : AppColors.semanticErrorBgHigh;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -49,10 +64,10 @@ class ReuploadBannerCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
-            const Icon(
-              Icons.upload_file_rounded,
+            Icon(
+              waiting ? Icons.hourglass_top_rounded : Icons.upload_file_rounded,
               size: 22,
-              color: AppColors.semanticErrorBgHigh,
+              color: accent,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -61,16 +76,14 @@ class ReuploadBannerCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'มีเอกสารต้องอัปโหลดใหม่',
+                    waiting ? 'เอกสารรอตรวจสอบ' : 'มีเอกสารต้องอัปโหลดใหม่',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.label2.copyWith(
-                      color: AppColors.semanticErrorBgHigh,
-                    ),
+                    style: AppTypography.label2.copyWith(color: accent),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    rejectedNames(rejected),
+                    documents.map((d) => documentTitle(d.type)).join(', '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.caption5.copyWith(

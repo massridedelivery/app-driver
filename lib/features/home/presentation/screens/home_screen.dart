@@ -12,6 +12,7 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/services/connectivity_monitor.dart';
+import 'package:massdrive/features/document_registration/presentation/controllers/rejected_documents_provider.dart';
 import 'package:massdrive/features/home/presentation/widgets/home_offline_card.dart';
 import 'package:massdrive/features/inbox/presentation/widgets/inbox_bell_button.dart';
 import 'package:massdrive/core/constants/map_constants.dart';
@@ -319,6 +320,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (_popupsArmed && mounted) {
           unawaited(AppPopups.instance.maybeShow(context));
         }
+        // A document may have been reviewed while the app was away.
+        if (mounted) ref.invalidate(reuploadDocumentsProvider);
       },
     );
 

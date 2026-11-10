@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,14 +36,7 @@ class _RegistrationChecklistScreenState
 
   /// Documents the re-upload view has shown since this screen opened.
   final Set<DocumentType> _tracked = {};
-
-  /// Approved while the driver watched: green "ผ่านแล้ว" for a moment, then
-  /// dropped from the list.
-  final Set<DocumentType> _justApproved = {};
-  final List<Timer> _timers = [];
   bool _left = false;
-
-  static const _approvedShownFor = Duration(seconds: 2);
 
   @override
   void initState() {
@@ -61,9 +52,6 @@ class _RegistrationChecklistScreenState
   void dispose() {
     ProfileUpdates.instance.removeListener(_refresh);
     _lifecycle?.dispose();
-    for (final t in _timers) {
-      t.cancel();
-    }
     super.dispose();
   }
 
@@ -74,35 +62,13 @@ class _RegistrationChecklistScreenState
 
   void _onState(RegistrationState? prev, RegistrationState next) {
     if (next.overallStatus != RegistrationStateStatus.approved) return;
-    final docs = next.remoteDocuments;
-    _tracked.addAll(openReuploads(docs).map((d) => d.type));
-    final approvedNow = [
-      for (final type in _tracked)
-        if (!_justApproved.contains(type) &&
-            reuploadStateOf(docs, type) == ReuploadState.approved &&
-            reuploadStateOf(prev?.remoteDocuments ?? const {}, type) !=
-                ReuploadState.approved)
-          type,
-    ];
-    if (approvedNow.isEmpty) {
-      _maybeLeave();
-      return;
-    }
-    setState(() => _justApproved.addAll(approvedNow));
-    _timers.add(
-      Timer(_approvedShownFor, () {
-        if (!mounted) return;
-        setState(() => _justApproved.removeAll(approvedNow));
-        _maybeLeave();
-      }),
-    );
+    _tracked.addAll(openReuploads(next.remoteDocuments).map((d) => d.type));
+    _maybeLeave();
   }
 
   /// Every document sent back has been approved: say so and go home.
   void _maybeLeave() {
-    if (_left || _tracked.isEmpty || _justApproved.isNotEmpty || !mounted) {
-      return;
-    }
+    if (_left || _tracked.isEmpty || !mounted) return;
     final state = ref.read(registrationControllerProvider);
     if (state.overallStatus != RegistrationStateStatus.approved ||
         openReuploads(state.remoteDocuments).isNotEmpty) {
@@ -121,18 +87,6 @@ class _RegistrationChecklistScreenState
         backgroundColor: brand.text1,
       ),
     );
-  }
-
-  /// Rows of the re-upload view: open documents, plus the ones approved a
-  /// moment ago, in checklist order.
-  List<ReuploadItem> _reuploadRows(RegistrationState state) {
-    final docs = state.remoteDocuments;
-    return [
-      for (final type in DocumentType.values)
-        if (reuploadStateOf(docs, type) case final s?)
-          if (s != ReuploadState.approved || _justApproved.contains(type))
-            (type: type, state: s, reason: docs[type]?.rejectionReason),
-    ];
   }
 
   /// Where a document is (re)uploaded: the vehicle and bank steps are forms
@@ -259,7 +213,8 @@ class _RegistrationChecklistScreenState
     // Sent back documents stay on this screen until they are approved:
     // rejected (tap to upload again), then "รอตรวจสอบ" once sent.
     if (state.overallStatus == RegistrationStateStatus.approved) {
-      final rows = _reuploadRows(state);
+      // Approved documents are not shown: only rejected and pending ones.
+      final rows = openReuploads(state.remoteDocuments);
       if (rows.isEmpty) return const _ApprovedView();
       return _ReuploadView(
         rows: rows,
@@ -397,8 +352,8 @@ class _InReviewView extends StatelessWidget {
 }
 
 /// An approved account with documents sent back: only those rows. A rejected
-/// one is re-uploaded from here; once sent it waits as "รอตรวจสอบ", and an
-/// approval shows "ผ่านแล้ว" before the row drops. The driver keeps taking
+/// one is re-uploaded from here; once sent it waits as "รอตรวจสอบ" until it is
+/// reviewed (approved → gone, rejected → red again). The driver keeps taking
 /// jobs meanwhile.
 class _ReuploadView extends StatelessWidget {
   const _ReuploadView({
@@ -456,13 +411,8 @@ class _ReuploadView extends StatelessWidget {
         statusLines: const ['รอตรวจสอบ'],
         onTap: () => _toast(context, 'ส่งแล้ว รอเจ้าหน้าที่ตรวจ'),
       ),
-      ReuploadState.approved => RegistrationStatusRow(
-        number: number,
-        title: title,
-        status: RegistrationRowStatus.done,
-        statusLines: const ['ผ่านแล้ว'],
-        onTap: () {},
-      ),
+      // Never listed: openReuploads drops approved documents.
+      ReuploadState.approved => const SizedBox.shrink(),
     };
   }
 
