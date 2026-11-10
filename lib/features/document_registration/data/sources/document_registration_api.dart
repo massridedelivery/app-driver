@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/constants/media_category.dart';
 import 'package:massdrive/core/data/sources/api_error.dart';
+import 'package:massdrive/features/document_registration/domain/document_expiry.dart';
 import 'package:massdrive/features/document_registration/domain/document_photo.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
@@ -180,6 +181,7 @@ class DocumentRegistrationApi {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
     String? docTypeOverride,
+    DateTime? expiryDate,
   }) async {
     // Map DocumentType to required API string format
     String documentTypeStr = docTypeOverride ?? '';
@@ -225,6 +227,8 @@ class DocumentRegistrationApi {
         "type": documentTypeStr,
         "file_key": fileKey,
         "doc_number": docNumber ?? "",
+        // Optional; the backend wants a Gregorian YYYY-MM-DD.
+        if (expiryDate != null) "expiry_date": apiDate(expiryDate),
       },
     );
 

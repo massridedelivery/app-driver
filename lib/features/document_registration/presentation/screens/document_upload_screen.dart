@@ -10,9 +10,11 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../features/dependency_injection.dart';
+import '../../domain/document_expiry.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/repositories/document_registration_repository.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/expiry_date_field.dart';
 import '../widgets/registration_ui.dart';
 
 class DocumentUploadScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
   final _docNumberController = TextEditingController();
+
+  /// Optional; sent with a new photo of a document that expires.
+  DateTime? _expiryDate;
+  bool get _hasExpiry => expiringDocumentTypes.contains(widget.type);
 
   String? _remoteImageUrl;
   bool _isLoadingRemoteImage = false;
@@ -148,6 +154,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           _selectedImage!,
           widget.type,
           docNumber: _needsDocNumber ? _docNumberController.text.trim() : null,
+          expiryDate: _hasExpiry ? _expiryDate : null,
         );
 
     if (!mounted) return;
@@ -273,6 +280,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     return null;
                   },
                 ),
+              ),
+            if (_hasExpiry)
+              ExpiryDateField(
+                value: _expiryDate,
+                onChanged: (d) => setState(() => _expiryDate = d),
               ),
           ],
         ),

@@ -41,6 +41,7 @@ class DocumentRegistrationRepositoryImpl
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
     String? docTypeOverride,
+    DateTime? expiryDate,
   }) async {
     final response = await _api.uploadDocument(
       file,
@@ -48,6 +49,7 @@ class DocumentRegistrationRepositoryImpl
       category: category,
       docNumber: docNumber,
       docTypeOverride: docTypeOverride,
+      expiryDate: expiryDate,
     );
     return DriverDocumentModel.fromJson(response);
   }

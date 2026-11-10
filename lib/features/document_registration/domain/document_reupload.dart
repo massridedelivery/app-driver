@@ -1,4 +1,6 @@
 import 'package:massdrive/features/document_registration/domain/models/driver_document_model.dart';
+import 'package:massdrive/core/utils/thai_date.dart';
+import 'package:massdrive/features/document_registration/domain/document_expiry.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 
 /// The app's [DocumentType] for a backend `doc_type`, or null if unknown.
@@ -49,43 +51,105 @@ String? _reason(String? raw) {
   return text == null || text.isEmpty ? null : text;
 }
 
-/// Where a document sent back for a re-upload stands.
-enum ReuploadState { rejected, pending, approved }
+/// Where a document on the re-upload screen stands.
+enum ReuploadState {
+  /// Sent back: rejected on review, or a new copy asked for.
+  rejected,
+
+  /// Sent again, waiting for review.
+  pending,
+
+  /// Approved, but runs out within [expirySoonDays]: a new copy may be sent
+  /// early (it replaces this one once approved).
+  expiring,
+
+  approved,
+}
 
 /// One row of the re-upload screen.
 typedef ReuploadItem = ({
   DocumentType type,
   ReuploadState state,
   String? reason,
+  DateTime? expiry,
+
+  /// [ReuploadState.rejected] because the back office asked for a new copy
+  /// (expired, or a push said so) rather than on review.
+  bool newCopy,
 });
 
-/// The re-upload screen's state of [type] in [docs], or null when that row is
-/// missing or has a status this screen does not show.
+/// The re-upload screen's state of [type] in [docs] on [today], or null when
+/// that row is missing or has a status this screen does not show.
 ReuploadState? reuploadStateOf(
   Map<DocumentType, DriverDocumentModel> docs,
-  DocumentType type,
-) => switch (docs[type]?.status) {
-  'rejected' => ReuploadState.rejected,
-  'pending' => ReuploadState.pending,
-  'approved' => ReuploadState.approved,
-  _ => null,
-};
+  DocumentType type, {
+  DateTime? today,
+}) {
+  final doc = docs[type];
+  switch (doc?.status) {
+    case 'rejected':
+      return ReuploadState.rejected;
+    case 'pending':
+      return ReuploadState.pending;
+    case 'approved':
+      final expiry = doc!.expiryDay;
+      if (expiry != null &&
+          daysUntil(expiry, today ?? DateTime.now()) <= expirySoonDays) {
+        return ReuploadState.expiring;
+      }
+      return ReuploadState.approved;
+    default:
+      return null;
+  }
+}
 
-/// The documents still open on the re-upload screen — sent back or sent
-/// again and waiting for review — in checklist order.
+/// The documents still to act on — sent back, sent again and waiting, or
+/// approved but expiring — in checklist order.
 ///
 /// [docs] is GET /api/driver/documents keyed by type: the backend returns only
 /// the newest upload of each doc_type, so each type has exactly one row and
-/// nothing is grouped or picked here. Reading the oldest of several rows is
-/// what kept a re-uploaded document red after the back office approved it.
+/// nothing is grouped or picked here.
 List<ReuploadItem> openReuploads(
-  Map<DocumentType, DriverDocumentModel> docs,
-) => [
-  for (final type in DocumentType.values)
-    if (reuploadStateOf(docs, type) case final state?
-        when state != ReuploadState.approved)
-      (type: type, state: state, reason: _reason(docs[type]!.rejectionReason)),
-];
+  Map<DocumentType, DriverDocumentModel> docs, {
+  DateTime? today,
+}) {
+  final now = today ?? DateTime.now();
+  return [
+    for (final type in DocumentType.values)
+      if (reuploadStateOf(docs, type, today: now) case final state?
+          when state != ReuploadState.approved)
+        _item(docs[type]!, type, state, now),
+  ];
+}
+
+ReuploadItem _item(
+  DriverDocumentModel doc,
+  DocumentType type,
+  ReuploadState state,
+  DateTime today,
+) {
+  final expiry = doc.expiryDay;
+  final newCopy =
+      state == ReuploadState.rejected &&
+      (RequestedDocuments.ids.contains(doc.id) ||
+          (expiry != null && daysUntil(expiry, today) < 0));
+  return (
+    type: type,
+    state: state,
+    reason: _reason(doc.rejectionReason),
+    expiry: expiry,
+    newCopy: newCopy,
+  );
+}
+
+/// The red line of a sent-back row.
+String rejectedLine(ReuploadItem item) => item.newCopy
+    ? 'ขอเอกสารฉบับใหม่: ${item.reason ?? 'กรุณาอัปโหลดฉบับใหม่'}'
+    : 'ถูกปฏิเสธ: ${item.reason ?? 'กรุณาอัปโหลดใหม่'}';
+
+/// The amber line of an expiring row.
+String expiringLine(ReuploadItem item) =>
+    'หมดอายุ ${formatThaiDate(item.expiry!)} · อัปโหลดฉบับใหม่ได้เลย';
 
 /// The approved documents in checklist order, for the "all approved" screen.
 List<DocumentType> approvedDocuments(

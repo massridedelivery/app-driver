@@ -35,6 +35,7 @@ class _Repo implements DocumentRegistrationRepository {
     MediaCategory category = MediaCategory.driverDoc,
     String? docNumber,
     String? docTypeOverride,
+    DateTime? expiryDate,
   }) async => registered;
 
   @override
@@ -61,11 +62,15 @@ void main() {
             type: DocumentType.idCard,
             state: ReuploadState.rejected,
             reason: 'ภาพเบลอ',
+            expiry: null,
+            newCopy: false,
           ),
           (
             type: DocumentType.insurance,
             state: ReuploadState.pending,
             reason: null,
+            expiry: null,
+            newCopy: false,
           ),
         ]);
       },
@@ -123,7 +128,13 @@ void main() {
       final state = await uploadAndPeek(_doc('id_card', 'pending'));
       expect(state.remoteDocuments[DocumentType.idCard]!.status, 'pending');
       expect(openReuploads(state.remoteDocuments), [
-        (type: DocumentType.idCard, state: ReuploadState.pending, reason: null),
+        (
+          type: DocumentType.idCard,
+          state: ReuploadState.pending,
+          reason: null,
+          expiry: null,
+          newCopy: false,
+        ),
       ]);
     });
 

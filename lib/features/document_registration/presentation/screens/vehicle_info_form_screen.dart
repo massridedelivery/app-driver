@@ -12,6 +12,7 @@ import 'package:massdrive/features/document_registration/domain/models/registrat
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../controllers/registration_controller.dart';
+import '../widgets/expiry_date_field.dart';
 import '../widgets/registration_ui.dart';
 import '../widgets/vehicle_fields.dart';
 
@@ -29,6 +30,9 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
 
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+
+  /// Optional expiry of the registration, sent with a new book photo.
+  DateTime? _registrationExpiry;
 
   @override
   void initState() {
@@ -106,7 +110,11 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
 
       final success = await ref
           .read(registrationControllerProvider.notifier)
-          .submitVehicleDetails(info, _selectedImage);
+          .submitVehicleDetails(
+            info,
+            _selectedImage,
+            registrationExpiry: _registrationExpiry,
+          );
 
       if (mounted) {
         if (success) {
@@ -170,6 +178,10 @@ class _VehicleInfoFormScreenState extends ConsumerState<VehicleInfoFormScreen> {
                   : null,
               previewHeight: 150,
               onTap: _chooseAndPickImage,
+            ),
+            ExpiryDateField(
+              value: _registrationExpiry,
+              onChanged: (d) => setState(() => _registrationExpiry = d),
             ),
           ],
         ),

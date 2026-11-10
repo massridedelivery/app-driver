@@ -156,23 +156,38 @@ void main() {
     type: DocumentType.idCard,
     state: ReuploadState.pending,
     reason: null,
+    expiry: null,
+    newCopy: false,
   );
   const rejected = (
     type: DocumentType.insurance,
     state: ReuploadState.rejected,
     reason: 'x',
+    expiry: null,
+    newCopy: false,
+  );
+  final expiring = (
+    type: DocumentType.drivingLicense,
+    state: ReuploadState.expiring,
+    reason: null,
+    expiry: DateTime(2026, 12, 1),
+    newCopy: false,
   );
 
-  test('home alert: rejected wins, then waiting, then nothing', () {
-    expect(documentAlertOf(const [pending, rejected]), (
+  test('home alert: rejected wins, then expiring, then waiting', () {
+    expect(documentAlertOf([pending, expiring, rejected]), (
       alert: DocumentAlert.rejected,
-      rejected: 1,
+      count: 1,
+    ));
+    expect(documentAlertOf([pending, expiring]), (
+      alert: DocumentAlert.expiring,
+      count: 1,
     ));
     expect(documentAlertOf(const [pending]), (
       alert: DocumentAlert.waiting,
-      rejected: 0,
+      count: 1,
     ));
-    expect(documentAlertOf(const []), (alert: DocumentAlert.none, rejected: 0));
+    expect(documentAlertOf(const []), (alert: DocumentAlert.none, count: 0));
   });
 
   Future<void> pumpAlert(WidgetTester tester, Widget child) =>
@@ -193,6 +208,12 @@ void main() {
 
     await pumpAlert(
       tester,
+      const DocumentAlertLine(alert: DocumentAlert.expiring),
+    );
+    expect(find.text('เอกสารใกล้หมดอายุ'), findsOneWidget);
+
+    await pumpAlert(
+      tester,
       const DocumentAlertLine(alert: DocumentAlert.waiting),
     );
     expect(find.text('เอกสารรอตรวจสอบ'), findsOneWidget);
@@ -203,20 +224,20 @@ void main() {
   ) async {
     await pumpAlert(
       tester,
-      const DocumentMenuBadge(alert: DocumentAlert.rejected, rejected: 2),
+      const DocumentMenuBadge(alert: DocumentAlert.rejected, count: 2),
     );
     expect(find.text('2'), findsOneWidget);
 
     await pumpAlert(
       tester,
-      const DocumentMenuBadge(alert: DocumentAlert.waiting, rejected: 0),
+      const DocumentMenuBadge(alert: DocumentAlert.waiting, count: 1),
     );
     expect(find.text('2'), findsNothing);
     expect(find.byType(Container), findsOneWidget);
 
     await pumpAlert(
       tester,
-      const DocumentMenuBadge(alert: DocumentAlert.none, rejected: 0),
+      const DocumentMenuBadge(alert: DocumentAlert.none, count: 0),
     );
     expect(find.byType(Container), findsNothing);
   });
