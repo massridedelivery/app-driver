@@ -842,7 +842,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ReuploadBanner(),
             const _OnlineAndStatus(),
             const SizedBox(height: 8),
             _buildMenuRow(),
@@ -867,9 +866,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _circleMenu(Icons.directions_car, "ประเภทบริการ", key: HomeCoachMarks.serviceMenu, () {
             context.push(AppRoutes.serviceTypeNamedPage);
           }),
-          _circleMenu(Icons.person_sharp, "โปรไฟล์", () {
-            context.push(AppRoutes.profileNamedPage);
-          }),
+          _circleMenu(
+            Icons.person_sharp,
+            "โปรไฟล์",
+            () => context.push(AppRoutes.profileNamedPage),
+            badge: Consumer(
+              builder: (context, ref, _) {
+                final doc = watchDocumentAlert(ref);
+                return DocumentMenuBadge(
+                  alert: doc.alert,
+                  rejected: doc.rejected,
+                );
+              },
+            ),
+          ),
           _circleMenu(Icons.settings_sharp, "การตั้งค่า", () {
             context.push(AppRoutes.settingNamedPage);
           }),
@@ -883,6 +893,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     String text,
     VoidCallback onTap, {
     Key? key,
+    Widget? badge,
   }) {
     return Expanded(
       child: InkWell(
@@ -891,14 +902,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       borderRadius: BorderRadius.circular(50),
       child: Column(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.palette.surfaceAlt,
-            ),
-            child: Icon(icon, color: AppColors.foundationOrange700),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.palette.surfaceAlt,
+                ),
+                child: Icon(icon, color: AppColors.foundationOrange700),
+              ),
+              if (badge != null) Positioned(top: -2, right: -4, child: badge),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -1062,6 +1079,8 @@ class _StatusCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(onlineStatusProvider).isOnline;
+    // A document the admin sent back takes the second line.
+    final doc = watchDocumentAlert(ref).alert;
     return HomeCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -1087,16 +1106,19 @@ class _StatusCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  isOnline
-                      ? 'งานใหม่จะเด้งขึ้นมาเอง'
-                      : 'กดเริ่มรับงานเมื่อพร้อม',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.caption5.copyWith(
-                    color: context.palette.textSecondary,
+                if (doc != DocumentAlert.none)
+                  DocumentAlertLine(alert: doc)
+                else
+                  Text(
+                    isOnline
+                        ? 'งานใหม่จะเด้งขึ้นมาเอง'
+                        : 'กดเริ่มรับงานเมื่อพร้อม',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption5.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
