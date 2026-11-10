@@ -100,6 +100,9 @@ class RegistrationScaffold extends StatelessWidget {
   /// Pinned bottom area, normally a [RegistrationPrimaryButton].
   final Widget? bottom;
 
+  /// Pull-to-refresh on the scrolling content; off when null.
+  final Future<void> Function()? onRefresh;
+
   const RegistrationScaffold({
     super.key,
     required this.icon,
@@ -112,6 +115,7 @@ class RegistrationScaffold extends StatelessWidget {
     this.showBack = true,
     this.scrollable = true,
     this.bottom,
+    this.onRefresh,
   });
 
   static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(16, 18, 16, 18);
@@ -119,9 +123,19 @@ class RegistrationScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    final content = scrollable
+    final refresh = onRefresh;
+    final Widget content = !scrollable
+        ? Padding(padding: contentPadding, child: child)
+        : refresh == null
         ? SingleChildScrollView(padding: contentPadding, child: child)
-        : Padding(padding: contentPadding, child: child);
+        : RefreshIndicator(
+            onRefresh: refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: contentPadding,
+              child: child,
+            ),
+          );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: brand.isDark

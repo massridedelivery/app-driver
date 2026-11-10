@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import 'package:massdrive/features/profile/domain/profile_updates.dart';
 import '../../domain/document_reupload.dart';
 import '../../domain/models/registration_status.dart';
 import '../controllers/registration_controller.dart';
@@ -31,12 +34,105 @@ typedef _StepSpec = ({
 
 class _RegistrationChecklistScreenState
     extends ConsumerState<RegistrationChecklistScreen> {
+  AppLifecycleListener? _lifecycle;
+
+  /// Documents the re-upload view has shown since this screen opened.
+  final Set<DocumentType> _tracked = {};
+
+  /// Approved while the driver watched: green "ผ่านแล้ว" for a moment, then
+  /// dropped from the list.
+  final Set<DocumentType> _justApproved = {};
+  final List<Timer> _timers = [];
+  bool _left = false;
+
+  static const _approvedShownFor = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(registrationControllerProvider.notifier).fetchStatus();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    // Read again when the driver comes back to the app, and when a review
+    // lands (`document_status` push → ProfileUpdates).
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
+    ProfileUpdates.instance.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    ProfileUpdates.instance.removeListener(_refresh);
+    _lifecycle?.dispose();
+    for (final t in _timers) {
+      t.cancel();
+    }
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    if (!mounted) return;
+    await ref.read(registrationControllerProvider.notifier).fetchStatus();
+  }
+
+  void _onState(RegistrationState? prev, RegistrationState next) {
+    if (next.overallStatus != RegistrationStateStatus.approved) return;
+    final docs = next.remoteDocuments;
+    _tracked.addAll(openReuploads(docs).map((d) => d.type));
+    final approvedNow = [
+      for (final type in _tracked)
+        if (!_justApproved.contains(type) &&
+            reuploadStateOf(docs, type) == ReuploadState.approved &&
+            reuploadStateOf(prev?.remoteDocuments ?? const {}, type) !=
+                ReuploadState.approved)
+          type,
+    ];
+    if (approvedNow.isEmpty) {
+      _maybeLeave();
+      return;
+    }
+    setState(() => _justApproved.addAll(approvedNow));
+    _timers.add(
+      Timer(_approvedShownFor, () {
+        if (!mounted) return;
+        setState(() => _justApproved.removeAll(approvedNow));
+        _maybeLeave();
+      }),
+    );
+  }
+
+  /// Every document sent back has been approved: say so and go home.
+  void _maybeLeave() {
+    if (_left || _tracked.isEmpty || _justApproved.isNotEmpty || !mounted) {
+      return;
+    }
+    final state = ref.read(registrationControllerProvider);
+    if (state.overallStatus != RegistrationStateStatus.approved ||
+        openReuploads(state.remoteDocuments).isNotEmpty) {
+      return;
+    }
+    _left = true;
+    final messenger = ScaffoldMessenger.of(context);
+    final brand = context.brand;
+    _goHome(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'เอกสารครบแล้ว',
+          style: AppTypography.label2.copyWith(color: brand.bg),
+        ),
+        backgroundColor: brand.text1,
+      ),
+    );
+  }
+
+  /// Rows of the re-upload view: open documents, plus the ones approved a
+  /// moment ago, in checklist order.
+  List<ReuploadItem> _reuploadRows(RegistrationState state) {
+    final docs = state.remoteDocuments;
+    return [
+      for (final type in DocumentType.values)
+        if (reuploadStateOf(docs, type) case final s?)
+          if (s != ReuploadState.approved || _justApproved.contains(type))
+            (type: type, state: s, reason: docs[type]?.rejectionReason),
+    ];
   }
 
   /// Where a document is (re)uploaded: the vehicle and bank steps are forms
@@ -152,6 +248,7 @@ class _RegistrationChecklistScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(registrationControllerProvider);
+    ref.listen(registrationControllerProvider, _onState);
 
     // Only show the approved screen when the backend has confirmed is_verified = true.
     // For all other statuses (inReview, pending, rejected), show the checklist
@@ -159,12 +256,15 @@ class _RegistrationChecklistScreenState
     // An approved driver can still have documents sent back (the admin asks
     // for a re-upload, the account stays verified): show those, or the push
     // "เอกสารถูกปฏิเสธ" would open a screen with no way to fix them.
+    // Sent back documents stay on this screen until they are approved:
+    // rejected (tap to upload again), then "รอตรวจสอบ" once sent.
     if (state.overallStatus == RegistrationStateStatus.approved) {
-      final rejected = rejectedDocuments(state.remoteDocuments.values);
-      if (rejected.isEmpty) return const _ApprovedView();
+      final rows = _reuploadRows(state);
+      if (rows.isEmpty) return const _ApprovedView();
       return _ReuploadView(
-        rejected: rejected,
+        rows: rows,
         onOpen: (type) => _openDocument(context, type),
+        onRefresh: _refresh,
       );
     }
 
@@ -200,6 +300,7 @@ class _RegistrationChecklistScreenState
                   : null,
             ),
       scrollable: !loading,
+      onRefresh: _refresh,
       child: loading
           ? const SizedBox.expand(child: Center(child: MassLoadingM(size: 72)))
           : Column(
@@ -295,21 +396,32 @@ class _InReviewView extends StatelessWidget {
   }
 }
 
-/// An approved account with documents sent back: only those rows, each
-/// re-uploadable. The driver keeps taking jobs meanwhile.
+/// An approved account with documents sent back: only those rows. A rejected
+/// one is re-uploaded from here; once sent it waits as "รอตรวจสอบ", and an
+/// approval shows "ผ่านแล้ว" before the row drops. The driver keeps taking
+/// jobs meanwhile.
 class _ReuploadView extends StatelessWidget {
-  const _ReuploadView({required this.rejected, required this.onOpen});
+  const _ReuploadView({
+    required this.rows,
+    required this.onOpen,
+    required this.onRefresh,
+  });
 
-  final List<RejectedDocument> rejected;
+  final List<ReuploadItem> rows;
   final void Function(DocumentType type) onOpen;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
+    final anyRejected = rows.any((r) => r.state == ReuploadState.rejected);
     return RegistrationScaffold(
       icon: Icons.upload_file_rounded,
       title: 'อัปโหลดเอกสารใหม่',
-      subtitle: 'บัญชีของคุณยังรับงานได้ตามปกติ กรุณาอัปโหลดเอกสารต่อไปนี้ใหม่',
+      subtitle: anyRejected
+          ? 'บัญชีของคุณยังรับงานได้ตามปกติ กรุณาอัปโหลดเอกสารต่อไปนี้ใหม่'
+          : 'ส่งเอกสารแล้ว รอเจ้าหน้าที่ตรวจสอบ บัญชีของคุณยังรับงานได้ตามปกติ',
       onBack: () => _goHome(context),
+      onRefresh: onRefresh,
       bottom: RegistrationPrimaryButton(
         label: 'ไปหน้ารับงาน',
         onPressed: () => _goHome(context),
@@ -317,21 +429,62 @@ class _ReuploadView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < rejected.length; i++)
-            RegistrationStatusRow(
-              number: i + 1,
-              title: documentTitle(rejected[i].type),
-              status: RegistrationRowStatus.rejected,
-              statusLines: [
-                'ถูกปฏิเสธ: ${rejected[i].reason ?? "กรุณาอัปโหลดใหม่"}',
-                'แตะเพื่ออัปโหลดใหม่',
-              ],
-              underlineLine: 1,
-              onTap: () => onOpen(rejected[i].type),
-            ),
+          for (var i = 0; i < rows.length; i++) _row(context, i + 1, rows[i]),
         ],
       ),
     );
+  }
+
+  Widget _row(BuildContext context, int number, ReuploadItem item) {
+    final title = documentTitle(item.type);
+    return switch (item.state) {
+      ReuploadState.rejected => RegistrationStatusRow(
+        number: number,
+        title: title,
+        status: RegistrationRowStatus.rejected,
+        statusLines: [
+          'ถูกปฏิเสธ: ${_reasonText(item.reason)}',
+          'แตะเพื่ออัปโหลดใหม่',
+        ],
+        underlineLine: 1,
+        onTap: () => onOpen(item.type),
+      ),
+      ReuploadState.pending => RegistrationStatusRow(
+        number: number,
+        title: title,
+        status: RegistrationRowStatus.review,
+        statusLines: const ['รอตรวจสอบ'],
+        onTap: () => _toast(context, 'ส่งแล้ว รอเจ้าหน้าที่ตรวจ'),
+      ),
+      ReuploadState.approved => RegistrationStatusRow(
+        number: number,
+        title: title,
+        status: RegistrationRowStatus.done,
+        statusLines: const ['ผ่านแล้ว'],
+        onTap: () {},
+      ),
+    };
+  }
+
+  static String _reasonText(String? raw) {
+    final text = raw?.trim();
+    return text == null || text.isEmpty ? 'กรุณาอัปโหลดใหม่' : text;
+  }
+
+  static void _toast(BuildContext context, String message) {
+    final brand = context.brand;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(
+            message,
+            style: AppTypography.label2.copyWith(color: brand.bg),
+          ),
+          backgroundColor: brand.text1,
+        ),
+      );
   }
 }
 

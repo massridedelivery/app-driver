@@ -8,7 +8,10 @@ import '../models/driver_document_model.dart';
 
 abstract class DocumentRegistrationRepository {
   Future<void> updateProfile(DriverProfileInfo info);
-  Future<String> uploadDocument(
+
+  /// Uploads [file] and registers it (POST /api/driver/documents). Returns
+  /// the registered row — a fresh upload comes back `pending`.
+  Future<DriverDocumentModel> uploadDocument(
     File file,
     DocumentType type, {
     MediaCategory category = MediaCategory.driverDoc,

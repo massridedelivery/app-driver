@@ -48,6 +48,8 @@ class RegistrationController extends _$RegistrationController {
       await profileNotifier.fetchProfile();
       final profile = ref.read(profileControllerProvider).profile;
 
+      // One row per doc_type: the backend returns only each type's newest
+      // upload, so this is a lookup by type — nothing to group or pick.
       final Map<DocumentType, DriverDocumentModel> remoteDocs = {};
       for (final doc in docList) {
         final type = documentTypeFromApi(doc.docType);
@@ -169,7 +171,7 @@ class RegistrationController extends _$RegistrationController {
       // category's 2 MB instead of the 5 MB documents are allowed.
       const category = MediaCategory.driverDoc;
 
-      await _repository.uploadDocument(
+      final row = await _repository.uploadDocument(
         file,
         type,
         category: category,
@@ -183,6 +185,7 @@ class RegistrationController extends _$RegistrationController {
 
       state = state.copyWith(
         uploadedDocuments: updatedDocs,
+        remoteDocuments: _withRegistered(type, row),
       );
 
       await fetchStatus();
@@ -198,6 +201,26 @@ class RegistrationController extends _$RegistrationController {
     }
   }
 
+  /// The documents with [row] — what POST /api/driver/documents returned —
+  /// in place of [type]'s old row, so a re-uploaded document shows
+  /// "รอตรวจสอบ" at once instead of staying red until the list is read again.
+  Map<DocumentType, DriverDocumentModel> _withRegistered(
+    DocumentType type,
+    DriverDocumentModel row,
+  ) {
+    final registered = row.status.isNotEmpty
+        ? row
+        : DriverDocumentModel(
+            id: row.id,
+            docType: row.docType,
+            imageUrl: row.imageUrl,
+            status: 'pending',
+            docNumber: row.docNumber,
+            uploadedAt: row.uploadedAt,
+          );
+    return {...state.remoteDocuments, type: registered};
+  }
+
   Future<bool> submitVehicleDetails(
     VehicleInfo info,
     File? greenBookFile,
@@ -205,11 +228,17 @@ class RegistrationController extends _$RegistrationController {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (greenBookFile != null) {
-        await _repository.uploadDocument(
+        final row = await _repository.uploadDocument(
           greenBookFile,
           DocumentType.vehicleRegistration,
           category: MediaCategory.driverDoc,
           docNumber: info.licensePlate,
+        );
+        state = state.copyWith(
+          remoteDocuments: _withRegistered(
+            DocumentType.vehicleRegistration,
+            row,
+          ),
         );
       }
       await _repository.submitVehicleDetails(info);
