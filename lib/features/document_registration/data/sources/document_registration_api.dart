@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:massdrive/core/constants/media_category.dart';
+import 'package:massdrive/core/data/sources/api_error.dart';
+import 'package:massdrive/features/document_registration/domain/document_photo.dart';
 import 'package:massdrive/features/document_registration/domain/models/registration_status.dart';
 import 'package:massdrive/features/document_registration/domain/models/bank_account_info.dart';
 
@@ -23,6 +25,119 @@ class DocumentRegistrationApi {
           receiveTimeout: const Duration(seconds: 30),
         ),
       );
+
+  /// Steps 1–3 of a media upload: presigned URL, PUT, confirm. Returns the
+  /// confirmed `file_key`.
+  ///
+  /// A photo is shrunk first ([docPhotoTargetBytes]) so it goes up quickly on
+  /// mobile data, and again if it is still over the `max_bytes` the upload URL
+  /// allows — compressing before the PUT instead of failing at confirm. A
+  /// confirm 422 `file_too_large` becomes [DocumentFileTooLargeException]
+  /// with the backend's text.
+  Future<String> _uploadMedia(
+    File file,
+    MediaCategory category, {
+    required String tag,
+  }) async {
+    final ext = file.path.split('.').last.toLowerCase();
+    var contentType = switch (ext) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'pdf' => 'application/pdf',
+      _ => 'image/jpeg',
+    };
+    var bytes = await file.readAsBytes();
+    final isPhoto = contentType != 'application/pdf';
+
+    Future<bool> shrinkTo(int maxBytes) async {
+      final out = await compute(shrinkDocumentPhoto, (
+        source: bytes,
+        maxBytes: maxBytes,
+      ));
+      if (out == null) return false; // not a readable image: send as is
+      debugPrint('[$tag] photo ${bytes.length} → ${out.length} bytes');
+      bytes = out;
+      contentType = 'image/jpeg';
+      return true;
+    }
+
+    if (isPhoto && (bytes.length > docPhotoTargetBytes || !isJpeg(bytes))) {
+      await shrinkTo(docPhotoTargetBytes);
+    }
+
+    if (!category.isMimeTypeAllowed(contentType)) {
+      throw Exception(
+        'File type "$contentType" is not allowed for category "${category.purpose}". '
+        'Allowed types: ${category.allowedMimeTypes.join(", ")}',
+      );
+    }
+
+    // Step 1: presigned upload URL for this content type (room_id is for
+    // chat only). Its max_bytes is the size the backend will confirm.
+    Future<Map<String, dynamic>> requestUrl() async {
+      debugPrint('[$tag] Step1: GET upload URL | category=${category.purpose} content_type=$contentType');
+      final response = await dio.get(
+        Endpoints.documentUploadUrl,
+        queryParameters: {
+          'category': category.purpose,
+          'content_type': contentType,
+          if (category == MediaCategory.chat) 'room_id': '',
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    }
+
+    var urlData = await requestUrl();
+    final maxBytes = (urlData['max_bytes'] as num?)?.toInt();
+    if (isPhoto && maxBytes != null && bytes.length > maxBytes) {
+      final wasJpeg = contentType == 'image/jpeg';
+      if (await shrinkTo(maxBytes) && !wasJpeg) {
+        // The URL was signed for the old content type.
+        urlData = await requestUrl();
+      }
+    }
+    final uploadUrl = urlData['upload_url'] as String;
+    final fileKey = urlData['file_key'] as String;
+
+    // Step 2: raw binary PUT — no FormData, no stream (MinIO rejects chunked
+    // encoding); Content-Type must match step 1.
+    debugPrint('[$tag] Step2: PUT | bytes=${bytes.length} content_type=$contentType');
+    await newStorageDio().put(
+      uploadUrl,
+      data: bytes,
+      options: Options(
+        contentType: contentType,
+        headers: {'Content-Length': bytes.length},
+      ),
+    );
+
+    // Step 3: POST /api/media/confirm makes the file permanent.
+    debugPrint('[$tag] Step3: POST media/confirm | file_key=$fileKey');
+    final Response<dynamic> confirm;
+    try {
+      confirm = await dio.post(
+        Endpoints.mediaConfirm,
+        data: {'file_key': fileKey},
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (e.response?.statusCode == 422 &&
+          data is Map &&
+          data['code'] == 'file_too_large') {
+        throw DocumentFileTooLargeException(
+          ApiError.serverMessage(e) ??
+              'ไฟล์มีขนาดใหญ่เกินไป กรุณาถ่ายรูปใหม่อีกครั้ง',
+        );
+      }
+      rethrow;
+    }
+    final confirmed =
+        (confirm.data as Map<String, dynamic>)['confirmed'] as bool? ?? false;
+    if (!confirmed) {
+      throw Exception('Media confirmation failed for file_key: $fileKey');
+    }
+    return fileKey;
+  }
 
   Future<List<dynamic>> fetchDocuments() async {
     final response = await dio.get(Endpoints.documentConfirm);
@@ -66,21 +181,6 @@ class DocumentRegistrationApi {
     String? docNumber,
     String? docTypeOverride,
   }) async {
-    // Determine content type based on file extension
-    final ext = file.path.split('.').last.toLowerCase();
-    String contentType = 'image/jpeg';
-    if (ext == 'png') contentType = 'image/png';
-    if (ext == 'webp') contentType = 'image/webp';
-    if (ext == 'pdf') contentType = 'application/pdf';
-
-    // Validate MIME type is allowed for the given category
-    if (!category.isMimeTypeAllowed(contentType)) {
-      throw Exception(
-        'File type "$contentType" is not allowed for category "${category.purpose}". '
-        'Allowed types: ${category.allowedMimeTypes.join(", ")}',
-      );
-    }
-
     // Map DocumentType to required API string format
     String documentTypeStr = docTypeOverride ?? '';
     if (documentTypeStr.isEmpty) {
@@ -112,64 +212,7 @@ class DocumentRegistrationApi {
       }
     }
 
-    // Step 1: Request Presigned Upload URL
-    // Query params per API spec: category, content_type (room_id only for chat)
-    final queryParams = <String, dynamic>{
-      'category': category.purpose,
-      'content_type': contentType,
-    };
-    if (category == MediaCategory.chat) {
-      // room_id must be supplied externally if needed; skip for driver docs
-      queryParams['room_id'] = '';
-    }
-
-    debugPrint('[Upload] Step1: GET upload URL | category=${category.purpose} content_type=$contentType');
-    final requestUrlResponse = await dio.get(
-      Endpoints.documentUploadUrl,
-      queryParameters: queryParams,
-    );
-
-    final uploadUrlData = requestUrlResponse.data as Map<String, dynamic>;
-    final String uploadUrl = uploadUrlData['upload_url'] as String;
-    final String fileKey = uploadUrlData['file_key'] as String;
-    debugPrint('[Upload] Step1 OK | file_key=$fileKey upload_url=${uploadUrl.substring(0, 60)}...');
-    // max_bytes and expires_at are available if needed in future:
-    // final int maxBytes = uploadUrlData['max_bytes'] as int? ?? category.maxSizeBytes;
-    // final String expiresAt = uploadUrlData['expires_at'] as String? ?? '';
-
-
-    // Step 2: Direct Binary Upload to presigned URL
-    // Must use raw binary body — NO FormData, NO Stream (MinIO rejects chunked encoding).
-    // Content-Type header must exactly match what was sent in Step 1.
-    final storageDio = newStorageDio();
-    final fileBytes = await file.readAsBytes();
-
-    debugPrint('[Upload] Step2: PUT to MinIO | bytes=${fileBytes.length} content_type=$contentType');
-    await storageDio.put(
-      uploadUrl,
-      data: fileBytes,
-      options: Options(
-        contentType: contentType,
-        headers: {
-          'Content-Length': fileBytes.length,
-        },
-      ),
-    );
-    debugPrint('[Upload] Step2 OK: Binary upload to MinIO succeeded');
-
-    // Step 3: Server Confirmation — POST /api/media/confirm
-    // Must be called after a successful PUT so the server marks the file as permanent.
-    debugPrint('[Upload] Step3: POST media/confirm | file_key=$fileKey');
-    final confirmMediaResponse = await dio.post(
-      Endpoints.mediaConfirm,
-      data: {'file_key': fileKey},
-    );
-    final confirmData = confirmMediaResponse.data as Map<String, dynamic>;
-    final bool confirmed = confirmData['confirmed'] as bool? ?? false;
-    debugPrint('[Upload] Step3 result: confirmed=$confirmed');
-    if (!confirmed) {
-      throw Exception('Media confirmation failed for file_key: $fileKey');
-    }
+    final fileKey = await _uploadMedia(file, category, tag: 'Upload');
 
     // Step 4: Register the document — POST /api/driver/documents, for a first
     // upload and a re-upload alike. The backend replaces the driver's document
@@ -192,67 +235,11 @@ class DocumentRegistrationApi {
     File file,
     BankAccountInfo info,
   ) async {
-    // Determine content type based on file extension
-    final ext = file.path.split('.').last.toLowerCase();
-    String contentType = 'image/jpeg';
-    if (ext == 'png') contentType = 'image/png';
-    if (ext == 'webp') contentType = 'image/webp';
-    if (ext == 'pdf') contentType = 'application/pdf';
-
-    final category = MediaCategory.driverDoc;
-
-    // Step 1: Request Presigned Upload URL
-    final queryParams = <String, dynamic>{
-      'category': category.purpose,
-      'content_type': contentType,
-    };
-
-    debugPrint('[Upload Passbook] Step1: GET upload URL');
-    final requestUrlResponse = await dio.get(
-      Endpoints.documentUploadUrl,
-      queryParameters: queryParams,
+    final fileKey = await _uploadMedia(
+      file,
+      MediaCategory.driverDoc,
+      tag: 'Upload Passbook',
     );
-
-    final uploadUrlData = requestUrlResponse.data as Map<String, dynamic>;
-    final String uploadUrl = uploadUrlData['upload_url'] as String;
-    final String fileKey = uploadUrlData['file_key'] as String;
-    debugPrint('[Upload Passbook] Step1 OK | file_key=$fileKey');
-
-    // Step 2: Direct Binary Upload to presigned URL
-    final storageDio = Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 120),
-        receiveTimeout: const Duration(seconds: 30),
-      ),
-    );
-    final fileBytes = await file.readAsBytes();
-
-    debugPrint('[Upload Passbook] Step2: PUT to MinIO');
-    await storageDio.put(
-      uploadUrl,
-      data: fileBytes,
-      options: Options(
-        contentType: contentType,
-        headers: {
-          'Content-Length': fileBytes.length,
-        },
-      ),
-    );
-    debugPrint('[Upload Passbook] Step2 OK');
-
-    // Step 3: Server Confirmation — POST /api/media/confirm
-    debugPrint('[Upload Passbook] Step3: POST media/confirm | file_key=$fileKey');
-    final confirmMediaResponse = await dio.post(
-      Endpoints.mediaConfirm,
-      data: {'file_key': fileKey},
-    );
-    final confirmData = confirmMediaResponse.data as Map<String, dynamic>;
-    final bool confirmed = confirmData['confirmed'] as bool? ?? false;
-    if (!confirmed) {
-      throw Exception('Media confirmation failed for file_key: $fileKey');
-    }
-    debugPrint('[Upload Passbook] Step3 OK');
 
     // Step 4: Update Payout Method — PUT /api/driver/payouts/method
     debugPrint('[Upload Passbook] Step4: PUT payouts/method | file_key=$fileKey');

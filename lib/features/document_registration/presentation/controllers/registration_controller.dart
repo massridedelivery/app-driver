@@ -11,6 +11,7 @@ import '../../domain/models/profile_update_error.dart';
 import '../../domain/models/registration_status.dart';
 import '../../domain/models/vehicle_info.dart';
 import '../../domain/models/driver_document_model.dart';
+import '../../domain/document_photo.dart';
 import '../../domain/document_reupload.dart';
 import 'rejected_documents_provider.dart';
 import '../../domain/repositories/document_registration_repository.dart';
@@ -21,6 +22,10 @@ part 'registration_controller.g.dart';
 @riverpod
 class RegistrationController extends _$RegistrationController {
   late final DocumentRegistrationRepository _repository;
+
+  /// The last upload failed because the backend found the file too large
+  /// (`file_too_large`): the screen drops the photo so it is taken again.
+  bool lastUploadTooLarge = false;
 
   @override
   RegistrationState build() {
@@ -160,6 +165,7 @@ class RegistrationController extends _$RegistrationController {
   }
 
   Future<bool> uploadDocument(File file, DocumentType type, {String? docNumber}) async {
+    lastUploadTooLarge = false;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       // Everything uploaded here is a driver verification document, including
@@ -191,6 +197,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
+      lastUploadTooLarge = e is DocumentFileTooLargeException;
       state = state.copyWith(
         isLoading: false,
         errorMessage: type == DocumentType.profilePhoto
@@ -227,6 +234,7 @@ class RegistrationController extends _$RegistrationController {
     VehicleInfo info,
     File? greenBookFile,
   ) async {
+    lastUploadTooLarge = false;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       if (greenBookFile != null) {
@@ -261,6 +269,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
+      lastUploadTooLarge = e is DocumentFileTooLargeException;
       state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }
@@ -270,6 +279,7 @@ class RegistrationController extends _$RegistrationController {
     BankAccountInfo info,
     File? passbookFile,
   ) async {
+    lastUploadTooLarge = false;
     if (passbookFile == null) {
       final remoteDoc = state.remoteDocuments[DocumentType.bankPassbook];
       if (remoteDoc == null || remoteDoc.imageUrl.isEmpty) {
@@ -301,6 +311,7 @@ class RegistrationController extends _$RegistrationController {
       await fetchStatus();
       return true;
     } catch (e) {
+      lastUploadTooLarge = e is DocumentFileTooLargeException;
       state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
       return false;
     }

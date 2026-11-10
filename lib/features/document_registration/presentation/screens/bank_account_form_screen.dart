@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:massdrive/features/document_registration/domain/document_photo.dart';
 import 'package:massdrive/common/widgets/image_source_sheet.dart';
 import 'package:massdrive/common/widgets/indicator/mass_loading_m.dart';
 import 'package:massdrive/common/widgets/bank_logo_avatar.dart';
@@ -117,7 +118,14 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
   Future<void> _chooseAndPickImage() async {
     final source = await showImageSourceSheet(context);
     if (source == null) return;
-    final pickedFile = await _picker.pickImage(source: source);
+    // Shrunk on pick (see docPhotoMaxSide): fast on mobile data, still
+    // readable; also turns an iPhone HEIC into a JPEG.
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      maxWidth: docPhotoMaxSide.toDouble(),
+      maxHeight: docPhotoMaxSide.toDouble(),
+      imageQuality: docPhotoQuality,
+    );
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -166,6 +174,10 @@ class _BankAccountFormScreenState extends ConsumerState<BankAccountFormScreen> {
           context.pop();
         } else {
           final error = ref.read(registrationControllerProvider).errorMessage;
+          // Refused as too large: drop the photo so the driver takes it again.
+          if (ref.read(registrationControllerProvider.notifier).lastUploadTooLarge) {
+            setState(() => _selectedImage = null);
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: AppColors.foundationRed800,
