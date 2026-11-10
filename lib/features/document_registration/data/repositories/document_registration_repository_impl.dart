@@ -35,7 +35,7 @@ class DocumentRegistrationRepositoryImpl
   }
 
   @override
-  Future<String> uploadDocument(
+  Future<DriverDocumentModel> uploadDocument(
     File file,
     DocumentType type, {
     MediaCategory category = MediaCategory.driverDoc,
@@ -49,7 +49,7 @@ class DocumentRegistrationRepositoryImpl
       docNumber: docNumber,
       docTypeOverride: docTypeOverride,
     );
-    return response['image_url'] as String? ?? response['media_url'] as String? ?? '';
+    return DriverDocumentModel.fromJson(response);
   }
 
   @override

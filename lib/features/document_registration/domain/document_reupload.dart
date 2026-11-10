@@ -49,6 +49,44 @@ String? _reason(String? raw) {
   return text == null || text.isEmpty ? null : text;
 }
 
+/// Where a document sent back for a re-upload stands.
+enum ReuploadState { rejected, pending, approved }
+
+/// One row of the re-upload screen.
+typedef ReuploadItem = ({
+  DocumentType type,
+  ReuploadState state,
+  String? reason,
+});
+
+/// The re-upload screen's state of [type] in [docs], or null when that row is
+/// missing or has a status this screen does not show.
+ReuploadState? reuploadStateOf(
+  Map<DocumentType, DriverDocumentModel> docs,
+  DocumentType type,
+) => switch (docs[type]?.status) {
+  'rejected' => ReuploadState.rejected,
+  'pending' => ReuploadState.pending,
+  'approved' => ReuploadState.approved,
+  _ => null,
+};
+
+/// The documents still open on the re-upload screen — sent back or sent
+/// again and waiting for review — in checklist order.
+///
+/// [docs] is GET /api/driver/documents keyed by type: the backend returns only
+/// the newest upload of each doc_type, so each type has exactly one row and
+/// nothing is grouped or picked here. Reading the oldest of several rows is
+/// what kept a re-uploaded document red after the back office approved it.
+List<ReuploadItem> openReuploads(
+  Map<DocumentType, DriverDocumentModel> docs,
+) => [
+  for (final type in DocumentType.values)
+    if (reuploadStateOf(docs, type) case final state?
+        when state != ReuploadState.approved)
+      (type: type, state: state, reason: _reason(docs[type]!.rejectionReason)),
+];
+
 /// "บัตรประชาชน, ใบขับขี่" — the names for a one-line summary.
 String rejectedNames(List<RejectedDocument> docs) =>
     docs.map((d) => documentTitle(d.type)).join(', ');
