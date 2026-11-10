@@ -132,7 +132,7 @@ class RegistrationController extends _$RegistrationController {
         vehicleInfo: savedVehicle,
       );
       // The home banner shows what is still sent back.
-      ref.invalidate(rejectedDocumentsProvider);
+      ref.invalidate(reuploadDocumentsProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: friendlyErrorMessage(e));
     }
@@ -218,6 +218,8 @@ class RegistrationController extends _$RegistrationController {
             docNumber: row.docNumber,
             uploadedAt: row.uploadedAt,
           );
+    // The home banner turns from "ต้องอัปโหลดใหม่" to "รอตรวจสอบ" now too.
+    ref.invalidate(reuploadDocumentsProvider);
     return {...state.remoteDocuments, type: registered};
   }
 
