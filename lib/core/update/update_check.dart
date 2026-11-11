@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_update/in_app_update.dart';
+import 'package:massdrive/core/utils/app_client.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -224,6 +225,7 @@ class LiveUpdateSources implements UpdateSources {
       headers: {
         'Accept-Language': deviceLanguageTag(),
         'X-Lang': deviceLangCode(),
+        ...AppClient.headers,
       },
     ),
   );
