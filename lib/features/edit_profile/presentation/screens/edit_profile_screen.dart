@@ -19,6 +19,7 @@ import 'package:massdrive/features/document_registration/domain/models/driver_pr
 import 'package:massdrive/features/document_registration/domain/models/vehicle_info.dart';
 import 'package:massdrive/features/document_registration/presentation/widgets/vehicle_fields.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
+import 'package:massdrive/core/utils/thai_phone.dart';
 import 'package:massdrive/features/chat/domain/chat_image_processing.dart';
 import 'package:massdrive/features/document_registration/domain/models/profile_photo_error.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
@@ -280,7 +281,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     WidgetRef ref,
     String currentPhone,
   ) {
-    final phoneController = TextEditingController(text: currentPhone);
+    final phoneController = TextEditingController(
+      text: thaiPhoneForDisplay(currentPhone),
+    );
 
     showModalBottomSheet(
       context: context,
@@ -306,45 +309,67 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                style: TextStyle(color: context.palette.textPrimary),
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: "หมายเลขโทรศัพท์มือถือ",
-                  labelStyle: TextStyle(color: context.palette.textSecondary),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: context.palette.border),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foundationGreen600,
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final success = await ref
-                        .read(profileControllerProvider.notifier)
-                        .updateProfile({
-                      "phone": phoneController.text,
-                    });
-                    if (success) {
-                      ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
-                    } else {
-                      ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
-                    }
-                  },
-                  child: Text(
-                    "บันทึก",
-                    style: AppTypography.heading5.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+              // Save stays disabled until the number is a full mobile
+              // number; the hint shows while it is half typed.
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: phoneController,
+                builder: (context, value, _) {
+                  final digits = thaiPhoneDigits(value.text);
+                  final valid = isValidThaiPhone(digits);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: phoneController,
+                        style: TextStyle(color: context.palette.textPrimary),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: const [ThaiPhoneInputFormatter()],
+                        decoration: InputDecoration(
+                          labelText: "หมายเลขโทรศัพท์มือถือ",
+                          labelStyle: TextStyle(
+                            color: context.palette.textSecondary,
+                          ),
+                          errorText: digits.isNotEmpty && !valid
+                              ? thaiPhoneHint
+                              : null,
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: context.palette.border,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.foundationGreen600,
+                        ),
+                        onPressed: !valid
+                            ? null
+                            : () async {
+                                Navigator.pop(context);
+                                final success = await ref
+                                    .read(profileControllerProvider.notifier)
+                                    .updateProfile({
+                                  // E.164, never the local form.
+                                  "phone": toThaiE164(digits),
+                                });
+                                if (success) {
+                                  ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
+                                } else {
+                                  ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
+                                }
+                              },
+                        child: Text(
+                          "บันทึก",
+                          style: AppTypography.heading5.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
             ],

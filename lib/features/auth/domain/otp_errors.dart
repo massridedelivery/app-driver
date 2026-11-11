@@ -57,3 +57,29 @@ OtpRateLimitedException? otpRateLimitFrom(DioException e) {
         : null,
   );
 }
+
+/// OTP send refused because the number can't be an SMS destination (400
+/// `INVALID_PHONE`, e.g. a digit missing). [message] is the backend's Thai
+/// `error`, shown under the phone field.
+class InvalidPhoneException implements Exception {
+  const InvalidPhoneException(this.message);
+
+  static const defaultMessage = 'เบอร์โทรไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+
+  final String message;
+
+  @override
+  String toString() => 'Exception: $message';
+}
+
+/// The typed error for a 400 `INVALID_PHONE`, or null otherwise.
+InvalidPhoneException? invalidPhoneFrom(DioException e) {
+  final data = e.response?.data;
+  if (data is! Map || data['code']?.toString() != 'INVALID_PHONE') {
+    return null;
+  }
+  final message = data['error']?.toString() ?? '';
+  return InvalidPhoneException(
+    message.isEmpty ? InvalidPhoneException.defaultMessage : message,
+  );
+}

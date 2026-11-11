@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
 
+export 'package:massdrive/core/utils/thai_phone.dart'
+    show normalizeThaiPhone, isValidThaiPhone;
+
 /// Auth flow palette: white body + charcoal header, the MassCustomer layout in
 /// the driver app's black-logo colours.
 class AuthColors {
@@ -19,19 +22,6 @@ class AuthColors {
   static const charcoal = Color(0xFF3A3B40);
   static const charcoalDeep = Color(0xFF1D1E22);
 }
-
-/// Normalises what the driver typed after the `+66` prefix to the local
-/// `0XXXXXXXXX` form the OTP endpoint expects. Both `812345678` and
-/// `0812345678` give `0812345678`; empty stays empty.
-String normalizeThaiPhone(String input) {
-  final digits = input.replaceAll(RegExp(r'\D'), '');
-  if (digits.isEmpty) return '';
-  return digits.startsWith('0') ? digits : '0$digits';
-}
-
-/// A Thai mobile number in local form: 10 digits starting with 0.
-bool isValidThaiPhone(String normalized) =>
-    RegExp(r'^0\d{9}$').hasMatch(normalized);
 
 /// The white M and "MASS DRIVE" on their own — no tile behind them.
 class MassDriveLogo extends StatelessWidget {
