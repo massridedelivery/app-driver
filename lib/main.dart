@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:massdrive/core/utils/app_client.dart';
 import 'package:massdrive/core/auth/first_run_guard.dart';
 import 'package:massdrive/core/configs/environment_config.dart';
 import 'package:massdrive/core/services/crash_reporting.dart';
@@ -50,6 +51,10 @@ Future<void> main() async {
   } catch (e, s) {
     debugPrint('main: dotenv.load failed: $e\n$s');
   }
+
+  // The build sent as X-App-Version on every request: read once, before
+  // anything can call the API.
+  await AppClient.load();
 
   // Firebase options come from --dart-define (see firebase_options.dart /
   // config/mass_*.json). A build without those defines leaves every field
