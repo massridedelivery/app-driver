@@ -1,12 +1,12 @@
 import 'package:massdrive/core/auth/account_status_notifier.dart';
 import 'package:massdrive/features/account_restricted/presentation/widgets/account_restricted_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/core/constants/app_typography.dart';
+import 'package:massdrive/core/utils/thai_phone.dart';
 import 'package:massdrive/features/auth/presentation/controllers/login_controller.dart';
 import 'package:massdrive/features/auth/presentation/widgets/auth_style.dart';
 
@@ -25,6 +25,11 @@ class LoginScreen extends ConsumerWidget {
     final state = ref.watch(loginControllerProvider);
     final controller = ref.read(loginControllerProvider.notifier);
     final bool isPhoneValid = isValidThaiPhone(state.phoneNumber);
+    // Under the field: the server's refusal (INVALID_PHONE), else the length
+    // hint while a number is half typed.
+    final phoneError =
+        state.phoneError ??
+        (state.phoneNumber.isNotEmpty && !isPhoneValid ? thaiPhoneHint : null);
     final error = (state.errorMessage?.isEmpty ?? true)
         ? null
         : state.errorMessage;
@@ -48,13 +53,19 @@ class LoginScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  _PhoneField(onChanged: controller.updatePhone),
+                  _PhoneField(
+                    onChanged: controller.updatePhone,
+                    error: phoneError != null,
+                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 10, 4, 16),
                     child: Text(
-                      'เราจะส่งรหัส OTP 6 หลักทาง SMS',
+                      phoneError ?? 'เราจะส่งรหัส OTP 6 หลักทาง SMS',
+                      key: const ValueKey('phone-helper'),
                       style: AppTypography.caption4.copyWith(
-                        color: AuthColors.textSecondary,
+                        color: phoneError != null
+                            ? AppColors.semanticErrorFgHigh
+                            : AuthColors.textSecondary,
                       ),
                     ),
                   ),
@@ -122,11 +133,14 @@ class LoginScreen extends ConsumerWidget {
 }
 
 /// Outlined phone input with a floating "เบอร์โทรศัพท์" label and a fixed
-/// `+66` prefix. Reports the number in local `0XXXXXXXXX` form.
+/// `+66` prefix. Takes "812345678", "0812345678", "081-234-5678" or a pasted
+/// "+66812345678" (at most 10 digits) and reports the local `0XXXXXXXXX`
+/// form. Red border when [error].
 class _PhoneField extends StatelessWidget {
   final ValueChanged<String> onChanged;
+  final bool error;
 
-  const _PhoneField({required this.onChanged});
+  const _PhoneField({required this.onChanged, this.error = false});
 
   @override
   Widget build(BuildContext context) {
@@ -136,10 +150,7 @@ class _PhoneField extends StatelessWidget {
     );
     return TextField(
       keyboardType: TextInputType.phone,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
-      ],
+      inputFormatters: const [ThaiPhoneInputFormatter()],
       onChanged: (v) => onChanged(normalizeThaiPhone(v)),
       style: AppTypography.heading4.copyWith(
         color: AuthColors.textPrimary,
@@ -174,8 +185,12 @@ class _PhoneField extends StatelessWidget {
           vertical: 18,
         ),
         border: border(AuthColors.fieldBorder),
-        enabledBorder: border(AuthColors.fieldBorder),
-        focusedBorder: border(AuthColors.accent),
+        enabledBorder: border(
+          error ? AppColors.semanticErrorFgHigh : AuthColors.fieldBorder,
+        ),
+        focusedBorder: border(
+          error ? AppColors.semanticErrorFgHigh : AuthColors.accent,
+        ),
       ),
     );
   }

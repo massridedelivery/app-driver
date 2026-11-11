@@ -2,6 +2,7 @@ import 'package:massdrive/core/utils/friendly_error.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:massdrive/core/utils/thai_phone.dart';
 import 'package:massdrive/features/auth/domain/otp_errors.dart';
 import 'package:massdrive/features/auth/domain/usecase/login_with_phone_usecase.dart';
 import 'package:massdrive/features/auth/presentation/states/login_state.dart';
@@ -16,16 +17,21 @@ class LoginController extends _$LoginController {
   LoginState build() => const LoginState();
 
   void updatePhone(String phone) {
-    state = state.copyWith(phoneNumber: phone, errorMessage: '');
+    state = state.copyWith(
+      phoneNumber: phone,
+      errorMessage: '',
+      clearPhoneError: true,
+    );
   }
 
   Future<bool> loginWithPhone() async {
     debugPrint(
       'LoginController.loginWithPhone called with: ${state.phoneNumber}',
     );
-    if (state.phoneNumber.isEmpty || state.phoneNumber.length < 9) {
-      debugPrint('LoginController: Phone number invalid');
-      state = state.copyWith(errorMessage: 'Please enter a valid phone number');
+    // The button stays disabled until the number is valid; never send one
+    // that isn't.
+    if (!isValidThaiPhone(state.phoneNumber)) {
+      state = state.copyWith(phoneError: thaiPhoneHint);
       return false;
     }
 
@@ -33,6 +39,7 @@ class LoginController extends _$LoginController {
       isLoading: true,
       errorMessage: '',
       clearRetryAfter: true,
+      clearPhoneError: true,
     );
     try {
       debugPrint('LoginController: Calling use case...');
@@ -72,6 +79,11 @@ class LoginController extends _$LoginController {
         isRegistered: otpResponse.isRegistered,
       );
       return true; // Navigate to OTP
+    } on InvalidPhoneException catch (e) {
+      // Stay on this screen with the number editable; the text goes under
+      // the field, not in a generic message.
+      state = state.copyWith(isLoading: false, phoneError: e.message);
+      return false;
     } catch (e) {
       debugPrint('LoginController: Error $e');
       state = state.copyWith(

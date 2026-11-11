@@ -1,4 +1,5 @@
 import 'package:massdrive/core/auth/account_status_notifier.dart';
+import 'package:massdrive/core/utils/thai_phone.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:massdrive/core/constants/endpoints.dart';
@@ -19,10 +20,8 @@ class AuthApiServiceImpl implements AuthApiService {
     required String deviceId,
   }) async {
     try {
-      // Normalize phone to E.164 format: replace leading 0 with +66
-      final normalizedPhone = phone.startsWith('0')
-          ? '+66${phone.substring(1)}'
-          : phone;
+      // E.164 (+66…), never the local form or one with spaces/dashes.
+      final normalizedPhone = toThaiE164(phone);
 
       final response = await _dio.post(
         Endpoints.otpPhoneRequest,
@@ -48,6 +47,9 @@ class AuthApiServiceImpl implements AuthApiService {
       }
       final limited = otpRateLimitFrom(e);
       if (limited != null) throw limited;
+      // A number the SMS gateway can't take: shown under the phone field.
+      final invalid = invalidPhoneFrom(e);
+      if (invalid != null) throw invalid;
       if (e.response?.data != null && e.response?.data['error'] != null) {
         throw Exception(e.response?.data['error']);
       }
@@ -62,10 +64,8 @@ class AuthApiServiceImpl implements AuthApiService {
     String refId = '',
   }) async {
     try {
-      // Normalize phone to E.164 format: replace leading 0 with +66
-      final normalizedPhone = phone.startsWith('0')
-          ? '+66${phone.substring(1)}'
-          : phone;
+      // E.164 (+66…), never the local form or one with spaces/dashes.
+      final normalizedPhone = toThaiE164(phone);
 
       final verifyResponse = await _dio.post(
         Endpoints.phoneVerify,

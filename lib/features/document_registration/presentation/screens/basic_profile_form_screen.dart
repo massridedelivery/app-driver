@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
+import 'package:massdrive/core/utils/thai_phone.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../domain/models/driver_profile_info.dart';
@@ -62,7 +63,9 @@ class _BasicProfileFormScreenState
         _firstNameController.text = profileInfo.firstName;
         _lastNameController.text = profileInfo.lastName;
         _emailController.text = profileInfo.email;
-        _emergencyController.text = profileInfo.emergencyContact;
+        _emergencyController.text = thaiPhoneForDisplay(
+          profileInfo.emergencyContact,
+        );
         setState(() => _dateOfBirth = profileInfo.dateOfBirth);
       }
     });
@@ -120,7 +123,10 @@ class _BasicProfileFormScreenState
       lastName: _lastNameController.text.trim(),
       dateOfBirth: _dateOfBirth,
       email: _emailController.text.trim(),
-      emergencyContact: _emergencyController.text.trim(),
+      // E.164, like every phone number sent to the API.
+      emergencyContact: _emergencyController.text.trim().isEmpty
+          ? ''
+          : toThaiE164(_emergencyController.text),
     );
 
     final error = await ref
@@ -209,13 +215,7 @@ class _BasicProfileFormScreenState
               keyboardType: TextInputType.emailAddress,
               hint: 'เช่น somchai@email.com',
             ),
-            _buildOptionalField(
-              'เบอร์ติดต่อฉุกเฉิน (Emergency Contact)',
-              _emergencyController,
-              keyboardType: TextInputType.number,
-              hint: 'เช่น 0812345678',
-              maxLength: 10,
-            ),
+            _buildEmergencyField(),
           ],
         ),
       ),
@@ -343,6 +343,30 @@ class _BasicProfileFormScreenState
             return 'กรุณากรอกให้ครบ $maxLength หลัก';
           }
           return null;
+        },
+      ),
+    );
+  }
+
+  /// Optional; when filled it must be a full mobile number. Takes
+  /// "081-234-5678", "081 234 5678" or "+66812345678".
+  Widget _buildEmergencyField() {
+    return RegistrationField(
+      label: 'เบอร์ติดต่อฉุกเฉิน (Emergency Contact)',
+      child: TextFormField(
+        controller: _emergencyController,
+        keyboardType: TextInputType.phone,
+        inputFormatters: const [ThaiPhoneInputFormatter()],
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        style: registrationInputStyle(context),
+        decoration: registrationInputDecoration(
+          context,
+          hint: 'เช่น 0812345678',
+        ),
+        validator: (value) {
+          final digits = thaiPhoneDigits(value ?? '');
+          if (digits.isEmpty || isValidThaiPhone(digits)) return null;
+          return thaiPhoneHint;
         },
       ),
     );
