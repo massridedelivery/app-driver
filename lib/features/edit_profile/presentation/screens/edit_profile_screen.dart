@@ -24,6 +24,7 @@ import 'package:massdrive/features/chat/domain/chat_image_processing.dart';
 import 'package:massdrive/features/document_registration/domain/models/profile_photo_error.dart';
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:massdrive/features/edit_profile/presentation/widgets/change_phone_sheet.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -182,13 +183,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
             _InfoTile(
               title: "หมายเลขโทรศัพท์มือถือ",
-              value: profile.phone != null
-                  ? profile.phone!
+              value: (profile.phone?.isNotEmpty ?? false)
+                  ? thaiPhoneForDisplay(profile.phone!)
                   : "ยังไม่ได้กรอกข้อมูล",
               showArrow: true,
-              onTap: () {
-                _showUpdatePhoneSheet(context, ref, profile.phone ?? "");
-              },
+              onTap: () => _changePhone(context, ref, profile.phone ?? ''),
             ),
 
             _InfoTile(
@@ -276,107 +275,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  void _showUpdatePhoneSheet(
+  /// The number changes only with an SMS code to the new one
+  /// (/auth/phone/send + verify): PUT /api/driver/profile ignores `phone`, so
+  /// saving it there looked done and changed nothing.
+  Future<void> _changePhone(
     BuildContext context,
     WidgetRef ref,
     String currentPhone,
-  ) {
-    final phoneController = TextEditingController(
-      text: thaiPhoneForDisplay(currentPhone),
+  ) async {
+    final saved = await showChangePhoneSheet(
+      context,
+      currentPhone: currentPhone,
     );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.sheet,
-      builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            // Keyboard when it's up, otherwise the Android nav bar —
-            // padding.bottom drops to 0 under the keyboard, so they never stack.
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
-                MediaQuery.paddingOf(sheetContext).bottom,
-            left: 24,
-            right: 24,
-            top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "อัปเดตหมายเลขโทรศัพท์มือถือ",
-                style: AppTypography.heading3.copyWith(color: context.palette.textPrimary),
-              ),
-              const SizedBox(height: 16),
-              // Save stays disabled until the number is a full mobile
-              // number; the hint shows while it is half typed.
-              ValueListenableBuilder<TextEditingValue>(
-                valueListenable: phoneController,
-                builder: (context, value, _) {
-                  final digits = thaiPhoneDigits(value.text);
-                  final valid = isValidThaiPhone(digits);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: phoneController,
-                        style: TextStyle(color: context.palette.textPrimary),
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: const [ThaiPhoneInputFormatter()],
-                        decoration: InputDecoration(
-                          labelText: "หมายเลขโทรศัพท์มือถือ",
-                          labelStyle: TextStyle(
-                            color: context.palette.textSecondary,
-                          ),
-                          errorText: digits.isNotEmpty && !valid
-                              ? thaiPhoneHint
-                              : null,
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: context.palette.border,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.foundationGreen600,
-                        ),
-                        onPressed: !valid
-                            ? null
-                            : () async {
-                                Navigator.pop(context);
-                                final success = await ref
-                                    .read(profileControllerProvider.notifier)
-                                    .updateProfile({
-                                  // E.164, never the local form.
-                                  "phone": toThaiE164(digits),
-                                });
-                                if (success) {
-                                  ToastUtil.showSuccessToast("อัปเดตข้อมูลสำเร็จ");
-                                } else {
-                                  ToastUtil.showErrorToast("ไม่สามารถอัปเดตข้อมูลได้");
-                                }
-                              },
-                        child: Text(
-                          "บันทึก",
-                          style: AppTypography.heading5.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
+    if (saved == null) return;
+    ToastUtil.showSuccessToast('เปลี่ยนเบอร์โทรศัพท์แล้ว');
+    await ref
+        .read(profileControllerProvider.notifier)
+        .fetchProfile(silent: true);
   }
 }
 
