@@ -2,17 +2,22 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:massdrive/core/managers/api/api_exception.dart';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
 
 /// A ride / food job the backend says is cancelled (BE #191), from any of:
 /// the `job_status` WS frame, the `job_cancelled` push, or a 409
 /// `job_cancelled` answer to a status update.
 class JobCancelEvent {
-  const JobCancelEvent(this.jobId, {this.cancelledBy});
+  const JobCancelEvent(this.jobId, {this.cancelledBy, this.message});
 
   final String jobId;
 
   /// `customer` | `admin` | `system`; null when the source doesn't say.
   final String? cancelledBy;
+
+  /// What to tell the driver, when the source knows better than
+  /// [jobCancelledMessage] (a food order that ended without delivery).
+  final String? message;
 }
 
 /// What the driver reads when the job they're on is cancelled.
@@ -26,12 +31,18 @@ String jobCancelledMessage(String? cancelledBy, {bool food = false}) =>
 
 /// A WS frame cancelling a job: `job_status` (or food's
 /// `ORDER_STATUS_UPDATED`) with status CANCELLED, fields top-level or under
-/// `data`. Null for anything else.
+/// `data`; or a food order ending under the driver (BE v1.6.26:
+/// `order_cancelled` with CANCELLED / FAILED_DELIVERY / …, the back office's
+/// `externally_dispatched` or `status_updated`). Null for anything else.
 JobCancelEvent? jobCancelFromSocket(
   String type,
   Map<String, dynamic> raw,
   Map<String, dynamic>? data,
 ) {
+  if (foodFrameOf(type, raw, data) case final f?
+      when isFoodOrderEndedFrame(type, f.status)) {
+    return JobCancelEvent(f.orderId, message: foodOrderEndedMessage(f.status));
+  }
   if (type != 'job_status' && type != 'ORDER_STATUS_UPDATED') return null;
   Object? read(String k) => raw[k] ?? data?[k];
   if (read('status')?.toString().toUpperCase() != 'CANCELLED') return null;

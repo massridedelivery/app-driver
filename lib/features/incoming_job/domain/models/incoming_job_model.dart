@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:massdrive/core/utils/thai_date.dart';
 import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.dart';
 
 part 'incoming_job_model.freezed.dart';
@@ -100,6 +101,18 @@ sealed class IncomingJobModel with _$IncomingJobModel {
           commission: driverCommission,
           commissionRate: driverCommissionRate,
         );
+
+  /// "งานล่วงหน้า · รับ 14:30 น. 12 พ.ย. 2569" for a ride booked for later
+  /// (scheduled_job_offer, BE v1.6.26), in the phone's time zone; null for a
+  /// ride now or an unreadable time.
+  String? get scheduledPickupLine {
+    if (!isScheduled) return null;
+    final at = DateTime.tryParse(scheduledAt ?? '')?.toLocal();
+    if (at == null) return null;
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'งานล่วงหน้า · รับ ${two(at.hour)}:${two(at.minute)} น. '
+        '${formatThaiDate(at)}';
+  }
 
   bool get isFood =>
       serviceType.toLowerCase().contains('food') || orderItems.isNotEmpty;

@@ -17,6 +17,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/incoming_job/domain/accept_outcome.dart';
 import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
 import 'package:flutter/material.dart';
 import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
 
@@ -36,8 +37,10 @@ class IncomingJobController extends _$IncomingJobController {
         debugPrint('IncomingJobController Received Message: type=${msg.type}');
       }
 
-      if (msg.type == 'job_offer') {
-        if (kDebugMode) debugPrint('IncomingJobController: 📥 RECEIVED job_offer message');
+      if (msg.type == 'job_offer' || msg.type == 'scheduled_job_offer') {
+        // A ride booked for later (BE v1.6.26) comes as scheduled_job_offer
+        // with the same {job} body and is accepted the same way.
+        if (kDebugMode) debugPrint('IncomingJobController: 📥 RECEIVED ${msg.type} message');
         _handleJobOffer(msg.raw, msg.data);
       } else if (msg.type == 'food_delivery_offer') {
         if (kDebugMode) {
@@ -62,6 +65,12 @@ class IncomingJobController extends _$IncomingJobController {
           }
         } catch (e) {
           if (kDebugMode) debugPrint('IncomingJobController Parse Error (job_accepted): $e');
+        }
+      } else if (msg.type == 'driver_assigned') {
+        // The back office gave this driver a food order (BE v1.6.26): open
+        // it as if they had accepted it.
+        if (foodFrameOf(msg.type, msg.raw, msg.data) case final f?) {
+          unawaited(openAssignedFoodOrder(f.orderId, frameOrder: f.order));
         }
       } else if (jobCancelFromSocket(msg.type, msg.raw, msg.data)
           case final cancel?) {
@@ -127,11 +136,9 @@ class IncomingJobController extends _$IncomingJobController {
       }
 
       if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
-        // Ensure service_type marks it as food if not already set
-        final enrichedData = Map<String, dynamic>.from(jobData);
-        enrichedData['service_type'] ??= 'MassFood';
-
-        final job = IncomingJobModel.fromJson(enrichedData);
+        // The offer names its stops after the restaurant and the delivery
+        // point (restaurant_lat, delivery_lat, …), not a ride's.
+        final job = IncomingJobModel.fromJson(foodOrderAsJobJson(jobData));
         if (kDebugMode) {
           debugPrint(
             'IncomingJobController: 🍔 Food Job parsed. ID=${job.jobId}, '
@@ -197,7 +204,16 @@ class IncomingJobController extends _$IncomingJobController {
   ///   ไปแล้ว" — never "งานถูกยกเลิก".
   /// - Anything else / timeout → ask GET /api/driver/jobs/active whether we hold
   ///   it after all; if not, the driver can try again.
-  Future<AcceptOutcome> acceptJob() async {
+  Future<AcceptOutcome> acceptJob() =>
+      _inFlightAccept ??= _acceptJob().whenComplete(
+        () => _inFlightAccept = null,
+      );
+
+  /// The accept being sent, so a second tap (or auto-accept racing a tap)
+  /// waits for the same answer instead of sending another request.
+  Future<AcceptOutcome>? _inFlightAccept;
+
+  Future<AcceptOutcome> _acceptJob() async {
     // Stop the ~10s job-alert notification sound the moment the driver acts.
     PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
@@ -218,6 +234,9 @@ class IncomingJobController extends _$IncomingJobController {
         outcome = AcceptOutcome.taken;
       } else if (isCashJobBlockedError(e)) {
         outcome = AcceptOutcome.cashBlocked;
+      } else if (isOfferGoneError(e)) {
+        // 403 "this job was not offered to you" (or another 409): no retry.
+        outcome = AcceptOutcome.unavailable;
       } else {
         // Timeout / network error: GET /api/driver/jobs/active decides.
         final held = await refreshActiveJob();
@@ -233,6 +252,7 @@ class IncomingJobController extends _$IncomingJobController {
         final isFood = job.serviceType.toLowerCase().contains('food');
         AppRouter.router.go(isFood ? AppRoutes.foodLiveNamedPage : '/job-live');
       case AcceptOutcome.taken:
+      case AcceptOutcome.unavailable:
         dismissModal();
         _toast(acceptFailureMessage(outcome, error));
       case AcceptOutcome.cashBlocked:
@@ -263,36 +283,111 @@ class IncomingJobController extends _$IncomingJobController {
     );
   }
 
-  /// Accept a food delivery job via REST API. A 403 for the cash-job limit
-  /// closes the offer and explains; any other failure lets the driver retry.
-  Future<AcceptOutcome> acceptFoodJob() async {
+  /// Accept the food order on offer via POST /api/food/driver/orders/:id/
+  /// accept (BE v1.6.26):
+  ///
+  /// - 200 → ours (a repeat or double tap by this driver is 200 too).
+  /// - 409 → taken by another driver, or "this order is no longer available"
+  ///   (cancelled as they accepted): close the offer, show the message.
+  /// - 403 → the cash-job limit (close, "เติมเครดิต") or "not offered to you"
+  ///   (close, show the message).
+  /// - Anything else / timeout → ask GET .../orders/active whether we hold it
+  ///   after all; if not, the driver can try again.
+  Future<AcceptOutcome> acceptFoodJob() =>
+      _inFlightAccept ??= _acceptFoodJob().whenComplete(
+        () => _inFlightAccept = null,
+      );
+
+  Future<AcceptOutcome> _acceptFoodJob() async {
     PushNotificationService.instance.cancelJobAlerts();
     final job = state.currentJob;
     if (job == null) return AcceptOutcome.failed;
 
+    Object? error;
+    var outcome = AcceptOutcome.failed;
     try {
-      final apiService = getIt<FoodDeliveryApiService>();
-      await apiService.acceptOrder(job.jobId);
-      if (kDebugMode) {
-        debugPrint(
-          'IncomingJobController: 🍔 Food job accepted via REST API: ${job.jobId}',
-        );
-      }
-      _sendLocationUpdate();
-      
-      state = state.copyWith(isModalVisible: false);
-      AppRouter.router.go(AppRoutes.foodLiveNamedPage);
-      return AcceptOutcome.accepted;
+      await getIt<FoodDeliveryApiService>().acceptOrder(job.jobId);
+      outcome = AcceptOutcome.accepted;
     } catch (e) {
-      if (kDebugMode) debugPrint('IncomingJobController: ❌ Failed to accept food job: $e');
-      if (isCashJobBlockedError(e)) {
+      error = e;
+      if (kDebugMode) debugPrint('IncomingJobController: food accept failed: $e');
+      outcome = foodAcceptOutcomeOf(e);
+      if (outcome == AcceptOutcome.failed) {
+        final held = await _activeFoodOrder();
+        if (held?.json['id']?.toString() == job.jobId) {
+          outcome = AcceptOutcome.accepted;
+        }
+      }
+    }
+
+    switch (outcome) {
+      case AcceptOutcome.accepted:
+        _sendLocationUpdate();
+        state = state.copyWith(isModalVisible: false);
+        // The offer carries no customer and no status: take the order as the
+        // backend now holds it (restaurant still preparing, or ready).
+        final held = await _activeFoodOrder();
+        if (held != null && held.json['id']?.toString() == job.jobId) {
+          resumeJob(IncomingJobModel.fromJson(held.json));
+        }
+        AppRouter.router.go(AppRoutes.foodLiveNamedPage, extra: held?.status);
+      case AcceptOutcome.taken:
+      case AcceptOutcome.unavailable:
+        dismissModal();
+        AppRouter.router.go(AppRoutes.homeNamedPage);
+        _toast(acceptFailureMessage(outcome, error));
+      case AcceptOutcome.cashBlocked:
         dismissModal();
         _showCashBlocked();
-        return AcceptOutcome.cashBlocked;
-      }
-      _toast(acceptFailureMessage(AcceptOutcome.failed, e));
-      return AcceptOutcome.failed;
+      case AcceptOutcome.failed:
+        _toast(acceptFailureMessage(outcome, error));
     }
+    return outcome;
+  }
+
+  /// The order the backend has this driver on, or null (none, or offline).
+  Future<({Map<String, dynamic> json, String? status})?>
+  _activeFoodOrder() async {
+    try {
+      return activeFoodOrderFrom(
+        await getIt<JobLiveRepository>().getActiveFoodOrder(),
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('IncomingJobController: food active failed: $e');
+      return null;
+    }
+  }
+
+  /// `driver_assigned` (BE v1.6.26): the back office assigned [orderId] to
+  /// this driver. Opens the live screen as after an accept — with the order
+  /// from GET .../orders/active (the frame's copy has no restaurant), or the
+  /// frame's own when that read fails. A repeat for the order already open
+  /// is ignored.
+  Future<void> openAssignedFoodOrder(
+    String orderId, {
+    Map<String, dynamic>? frameOrder,
+  }) async {
+    final path = AppRouter.router.routerDelegate.currentConfiguration.uri.path;
+    if (state.currentJob?.jobId == orderId &&
+        path == AppRoutes.foodLiveNamedPage) {
+      return;
+    }
+    PushNotificationService.instance.cancelJobAlerts();
+    final held = await _activeFoodOrder();
+    final json = held != null && held.json['id']?.toString() == orderId
+        ? held.json
+        : (frameOrder != null ? foodOrderAsJobJson(frameOrder) : null);
+    if (json == null) return;
+    try {
+      resumeJob(IncomingJobModel.fromJson(json));
+    } catch (e) {
+      if (kDebugMode) debugPrint('IncomingJobController: driver_assigned parse: $e');
+      return;
+    }
+    AppRouter.router.go(
+      AppRoutes.foodLiveNamedPage,
+      extra: held?.status ?? frameOrder?['status']?.toString(),
+    );
   }
 
   void declineJob() {

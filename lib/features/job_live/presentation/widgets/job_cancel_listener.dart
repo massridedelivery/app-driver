@@ -71,7 +71,7 @@ class _JobCancelListenerState extends ConsumerState<JobCancelListener>
         builder: (d) => AlertDialog(
           title: const Text('งานถูกยกเลิก'),
           content: Text(
-            '${jobCancelledMessage(e.cancelledBy, food: food)}\n'
+            '${e.message ?? jobCancelledMessage(e.cancelledBy, food: food)}\n'
             'กลับไปรอรับงานใหม่ได้เลย',
           ),
           actions: [
