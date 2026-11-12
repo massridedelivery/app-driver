@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:massdrive/core/theme/brand_colors.dart';
 import 'package:massdrive/core/utils/thai_date.dart';
-import 'package:massdrive/core/utils/thai_phone.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../domain/models/driver_profile_info.dart';
@@ -34,7 +33,6 @@ class _BasicProfileFormScreenState
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _emergencyController = TextEditingController();
 
   DateTime? _dateOfBirth;
   bool _dobTouched = false;
@@ -63,9 +61,6 @@ class _BasicProfileFormScreenState
         _firstNameController.text = profileInfo.firstName;
         _lastNameController.text = profileInfo.lastName;
         _emailController.text = profileInfo.email;
-        _emergencyController.text = thaiPhoneForDisplay(
-          profileInfo.emergencyContact,
-        );
         setState(() => _dateOfBirth = profileInfo.dateOfBirth);
       }
     });
@@ -76,7 +71,6 @@ class _BasicProfileFormScreenState
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
-    _emergencyController.dispose();
     super.dispose();
   }
 
@@ -123,10 +117,6 @@ class _BasicProfileFormScreenState
       lastName: _lastNameController.text.trim(),
       dateOfBirth: _dateOfBirth,
       email: _emailController.text.trim(),
-      // E.164, like every phone number sent to the API.
-      emergencyContact: _emergencyController.text.trim().isEmpty
-          ? ''
-          : toThaiE164(_emergencyController.text),
     );
 
     final error = await ref
@@ -215,7 +205,8 @@ class _BasicProfileFormScreenState
               keyboardType: TextInputType.emailAddress,
               hint: 'เช่น somchai@email.com',
             ),
-            _buildEmergencyField(),
+            // No emergency contact: the backend has no field for drivers yet
+            // and drops it silently (v1.6.26). Back when it exists.
           ],
         ),
       ),
@@ -343,30 +334,6 @@ class _BasicProfileFormScreenState
             return 'กรุณากรอกให้ครบ $maxLength หลัก';
           }
           return null;
-        },
-      ),
-    );
-  }
-
-  /// Optional; when filled it must be a full mobile number. Takes
-  /// "081-234-5678", "081 234 5678" or "+66812345678".
-  Widget _buildEmergencyField() {
-    return RegistrationField(
-      label: 'เบอร์ติดต่อฉุกเฉิน (Emergency Contact)',
-      child: TextFormField(
-        controller: _emergencyController,
-        keyboardType: TextInputType.phone,
-        inputFormatters: const [ThaiPhoneInputFormatter()],
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-        style: registrationInputStyle(context),
-        decoration: registrationInputDecoration(
-          context,
-          hint: 'เช่น 0812345678',
-        ),
-        validator: (value) {
-          final digits = thaiPhoneDigits(value ?? '');
-          if (digits.isEmpty || isValidThaiPhone(digits)) return null;
-          return thaiPhoneHint;
         },
       ),
     );

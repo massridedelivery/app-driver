@@ -198,15 +198,14 @@ void main() {
         await initializeDateFormatting('th_TH');
         final i = make(_RefreshAdapter(200));
         await t.pumpWidget(
-          MaterialApp(home: Scaffold(body: SessionQaSheet(interceptor: i))),
+          MaterialApp(
+            home: Scaffold(body: SessionQaSheet(interceptor: i)),
+          ),
         );
         await t.pump();
         await t.tap(find.text('Refresh ตอนนี้'));
         await t.pumpAndSettle();
-        expect(
-          find.textContaining('สำเร็จ — ได้ token ใหม่'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('สำเร็จ — ได้ token ใหม่'), findsOneWidget);
         expect(find.textContaining('new-access'), findsNothing);
         expect(find.textContaining('new-refresh'), findsNothing);
       });
@@ -299,15 +298,14 @@ void main() {
     expect(options.headers.containsKey('Authorization'), isFalse);
   });
 
-  test(
-    'a wrong OTP (401 on /auth/otp/verify) never wipes the session',
-    () async {
+  for (final path in ['/auth/otp/verify', '/auth/phone/verify']) {
+    test('a wrong OTP (401 on $path) never wipes the session', () async {
       final storage = _StubStorage({SecureStorageKey.accessToken: 'kept'});
       final guarded = AppDioRefreshTokenInterceptor(
         secureStorage: storage,
         dio: Dio(),
       );
-      final options = RequestOptions(path: '/auth/otp/verify');
+      final options = RequestOptions(path: path);
       final err = DioException(
         requestOptions: options,
         response: Response(
@@ -331,6 +329,6 @@ void main() {
 
       expect(await passedOn, isTrue);
       expect(await storage.read(SecureStorageKey.accessToken), 'kept');
-    },
-  );
+    });
+  }
 }

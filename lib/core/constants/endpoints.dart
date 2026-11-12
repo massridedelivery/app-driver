@@ -12,6 +12,11 @@ abstract class Endpoints {
   // MARK: Auth
   static const otpPhoneRequest = '/auth/otp/send';
   static const phoneVerify = '/auth/otp/verify';
+  // Add/change the signed-in account's number (BE v1.6.26): an SMS code,
+  // then verify. The only way to change the driver's phone —
+  // PUT /api/driver/profile ignores `phone`.
+  static const phoneLinkSend = '/auth/phone/send';
+  static const phoneLinkVerify = '/auth/phone/verify';
   static const login = '/auth/login';
   static const register = '/auth/register';
 

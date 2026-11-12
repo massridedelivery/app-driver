@@ -6,14 +6,12 @@ class DriverProfileInfo {
   /// the driver in Thai Buddhist-era form.
   final DateTime? dateOfBirth;
   final String email;
-  final String emergencyContact;
 
   DriverProfileInfo({
     required this.firstName,
     required this.lastName,
     this.dateOfBirth,
     this.email = '',
-    this.emergencyContact = '',
   });
 
   /// Step 1 is complete once first name, last name and date of birth are set.
@@ -27,14 +25,12 @@ class DriverProfileInfo {
     String? lastName,
     DateTime? dateOfBirth,
     String? email,
-    String? emergencyContact,
   }) {
     return DriverProfileInfo(
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       email: email ?? this.email,
-      emergencyContact: emergencyContact ?? this.emergencyContact,
     );
   }
 
