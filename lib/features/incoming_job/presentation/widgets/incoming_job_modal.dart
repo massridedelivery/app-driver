@@ -159,6 +159,15 @@ class _IncomingJobModalState extends ConsumerState<IncomingJobModal> {
                 ),
               ],
             ),
+            // A ride booked for later: when to be at the pickup.
+            if (job.scheduledPickupLine case final pickupAt?) ...[
+              const SizedBox(height: 8),
+              Text(
+                pickupAt,
+                key: const ValueKey('scheduled-pickup'),
+                style: AppTypography.caption4.copyWith(color: p.textPrimary),
+              ),
+            ],
             Divider(height: 20, color: card.line),
             RideStopsTimeline(
               stops: [

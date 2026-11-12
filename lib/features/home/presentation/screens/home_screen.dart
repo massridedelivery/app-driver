@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
 
 import 'package:dio/dio.dart' as dio_client;
 import 'package:flutter/foundation.dart';
@@ -156,6 +157,25 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
         return;
       }
 
+      // Food: {batch, orders}, held from the restaurant's accept on (BE
+      // v1.6.26); the screen opens at the order's stage.
+      if (item.type == ActiveJobType.food) {
+        final food = activeFoodOrderFrom(
+          await repo.getActiveFoodOrder(lat: lat, lng: lng),
+        );
+        if (food == null) return;
+        ref
+            .read(incomingJobControllerProvider.notifier)
+            .resumeJob(IncomingJobModel.fromJson(food.json));
+        if (context.mounted) {
+          context.go(
+            AppRoutes.foodLiveNamedPage,
+            extra: food.status ?? item.status,
+          );
+        }
+        return;
+      }
+
       // 2. Fetch full detail from the endpoint matching the item's vertical.
       dynamic detail;
       switch (item.type) {
@@ -163,8 +183,6 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
           detail = await repo.getActiveJob(lat: lat, lng: lng);
           break;
         case ActiveJobType.food:
-          detail = await repo.getActiveFoodOrder(lat: lat, lng: lng);
-          break;
         case ActiveJobType.messenger:
         case ActiveJobType.unknown:
           if (kDebugMode) {
@@ -185,13 +203,9 @@ class OnlineStatus extends Notifier<OnlineStatusState> {
       ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
 
       if (!context.mounted) return;
-      if (item.type == ActiveJobType.food) {
-        context.go(AppRoutes.foodLiveNamedPage);
-      } else {
-        // Phase 3: hand the vertical status to the live screen so it resumes
-        // at the correct trip stage instead of restarting at pickup.
-        context.go('/job-live', extra: item.status);
-      }
+      // Phase 3: hand the vertical status to the live screen so it resumes
+      // at the correct trip stage instead of restarting at pickup.
+      context.go('/job-live', extra: item.status);
     } catch (e) {
       if (kDebugMode) debugPrint('OnlineStatus: Error checking active job: $e');
     }

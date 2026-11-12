@@ -22,6 +22,8 @@ import 'package:massdrive/features/chat/domain/entities/chat_vertical.dart';
 import 'package:massdrive/features/chat/presentation/screens/chat_screen.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
+import 'package:massdrive/features/job_live/domain/repositories/job_live_repository.dart';
 
 /// Driver's active food delivery screen using REST API for state transitions.
 ///
@@ -29,18 +31,28 @@ import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dar
 ///   1. heading_to_restaurant → "ถึงร้านแล้ว" → arrive API
 ///   2. at_restaurant → "รับอาหารแล้ว" → POST /api/food/driver/orders/:id/picked-up
 ///   3. delivering → "ส่งอาหารสำเร็จ" → POST /api/food/driver/orders/:id/delivered
-
-enum FoodLiveState { headingToRestaurant, atRestaurant, delivering }
+///
+/// The driver holds the order from the restaurant's accept on (BE v1.6.26):
+/// while it is RESTAURANT_ACCEPTED / PREPARING the screen says
+/// "ร้านกำลังเตรียมอาหาร", and the pick-up waits until the food is ready.
 
 class FoodLiveScreen extends ConsumerStatefulWidget {
-  const FoodLiveScreen({super.key});
+  const FoodLiveScreen({super.key, this.initialStatus});
+
+  /// The order's backend status when known (resume, accept, assignment).
+  final String? initialStatus;
 
   @override
   ConsumerState<FoodLiveScreen> createState() => _FoodLiveScreenState();
 }
 
 class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
-  FoodLiveState _currentState = FoodLiveState.headingToRestaurant;
+  late FoodLiveState _currentState = foodLiveStateFor(widget.initialStatus);
+
+  /// The restaurant is still cooking (RESTAURANT_ACCEPTED / PREPARING);
+  /// cleared by the `order_ready` frame or a re-check before pick-up.
+  late bool _preparing = isRestaurantPreparing(widget.initialStatus);
+  StreamSubscription<dynamic>? _statusSub;
   bool _isLoading = false;
   final DirectionsService _directionsService = DirectionsService();
   Set<Polyline> _polylines = {};
@@ -61,6 +73,16 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Status frames for this order (order_ready, status_updated, …) keep the
+    // "preparing" line current. Cancellations are the JobCancelListener's.
+    _statusSub = ref.read(socketServiceProvider).messages.listen((msg) {
+      final f = foodFrameOf(msg.type, msg.raw, msg.data);
+      final id = ref.read(incomingJobControllerProvider).currentJob?.jobId;
+      if (f == null || f.orderId != id || f.status == null || !mounted) return;
+      if (isFoodOrderEndedFrame(f.type, f.status)) return;
+      setState(() => _preparing = isRestaurantPreparing(f.status));
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
@@ -124,6 +146,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
 
   @override
   void dispose() {
+    _statusSub?.cancel();
     _sheetController.dispose();
     super.dispose();
   }
@@ -311,7 +334,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         badgeColor = AppColors.foundationOrange600;
         break;
       case FoodLiveState.atRestaurant:
-        badgeText = '2. ถึงร้านแล้ว';
+        badgeText = _preparing ? '2. รอร้านเตรียมอาหาร' : '2. ถึงร้านแล้ว';
         badgeColor = AppColors.foundationAmber400;
         break;
       case FoodLiveState.delivering:
@@ -402,7 +425,7 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         headerColor = AppColors.foundationOrange500;
         break;
       case FoodLiveState.atRestaurant:
-        headerText = '2. รอรับอาหารที่ร้าน';
+        headerText = _preparing ? '2. รอร้านเตรียมอาหาร' : '2. รอรับอาหารที่ร้าน';
         headerColor = AppColors.foundationAmber400;
         break;
       case FoodLiveState.delivering:
@@ -423,6 +446,10 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           currentJob?.serviceType ?? 'MassFood',
           style: AppTypography.body2.copyWith(color: Colors.white70),
         ),
+        if (_preparing && _currentState != FoodLiveState.delivering) ...[
+          const SizedBox(height: 8),
+          const FoodPreparingNote(),
+        ],
         const SizedBox(height: 12),
         // Timeline bar
         Row(
@@ -821,6 +848,18 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
           break;
 
         case FoodLiveState.atRestaurant:
+          // Still cooking: the backend refuses a pick-up before
+          // READY_FOR_PICKUP. Ask again in case the ready frame was missed.
+          if (_preparing && await _stillPreparing(jobId)) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('ร้านยังเตรียมอาหารไม่เสร็จ รอสักครู่'),
+                ),
+              );
+            }
+            break;
+          }
           // Driver picked up food → REST API
           await apiService.pickedUpOrder(jobId);
           setState(() {
@@ -851,5 +890,54 @@ class _FoodLiveScreenState extends ConsumerState<FoodLiveScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// Re-reads the order; true while the restaurant is still cooking it.
+  /// Unknown (offline) counts as ready, so the backend decides.
+  Future<bool> _stillPreparing(String jobId) async {
+    try {
+      final held = activeFoodOrderFrom(
+        await getIt<JobLiveRepository>().getActiveFoodOrder(),
+      );
+      if (held == null || held.json['id']?.toString() != jobId) return false;
+      final preparing = isRestaurantPreparing(held.status);
+      if (mounted) setState(() => _preparing = preparing);
+      return preparing;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+/// "ร้านกำลังเตรียมอาหาร" under the step header while the restaurant cooks.
+class FoodPreparingNote extends StatelessWidget {
+  const FoodPreparingNote({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.foundationAmber400.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.soup_kitchen_outlined,
+            size: 16,
+            color: AppColors.foundationAmber400,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'ร้านกำลังเตรียมอาหาร',
+            style: AppTypography.caption4.copyWith(
+              color: AppColors.foundationAmber400,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

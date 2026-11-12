@@ -329,8 +329,17 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.foodLiveNamedPage,
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: ActiveJobTracking(child: FoodLiveScreen()),
+        // extra: the order's status when known (resume / accept), so the
+        // screen opens at the right stage and says if the restaurant is
+        // still preparing.
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: ActiveJobTracking(
+            child: FoodLiveScreen(
+              initialStatus: state.extra is String
+                  ? state.extra as String
+                  : null,
+            ),
+          ),
         ),
       ),
       GoRoute(

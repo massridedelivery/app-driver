@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
 import 'package:massdrive/features/dependency_injection.dart';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
 import 'package:massdrive/features/incoming_job/domain/models/incoming_job_model.dart';
 import 'package:massdrive/features/incoming_job/presentation/controllers/incoming_job_controller.dart';
 import 'package:massdrive/features/job_live/domain/models/active_item.dart';
@@ -69,28 +70,29 @@ Future<ActiveJobResume?> resolveActiveJob(Ref ref) async {
     return const ActiveJobResume('/messenger-live');
   }
 
-  dynamic detail;
-  switch (item.type) {
-    case ActiveJobType.ride:
-      detail = await repo.getActiveJob(lat: lat, lng: lng);
-      break;
-    case ActiveJobType.food:
-      detail = await repo.getActiveFoodOrder(lat: lat, lng: lng);
-      break;
-    case ActiveJobType.messenger:
-    case ActiveJobType.unknown:
-      return null;
+  // Food: {batch, orders: [...]}, held from the restaurant's accept on
+  // (BE v1.6.26) — the screen opens at the order's stage.
+  if (item.type == ActiveJobType.food) {
+    final food = activeFoodOrderFrom(
+      await repo.getActiveFoodOrder(lat: lat, lng: lng),
+    );
+    if (food == null) return null;
+    ref
+        .read(incomingJobControllerProvider.notifier)
+        .resumeJob(IncomingJobModel.fromJson(food.json));
+    return ActiveJobResume(
+      AppRoutes.foodLiveNamedPage,
+      extra: food.status ?? item.status,
+    );
   }
 
-  final jobJson = extractJobJson(detail);
+  if (item.type != ActiveJobType.ride) return null;
+  final jobJson = extractJobJson(await repo.getActiveJob(lat: lat, lng: lng));
   if (jobJson == null) return null;
 
   final job = IncomingJobModel.fromJson(jobJson);
   ref.read(incomingJobControllerProvider.notifier).resumeJob(job);
 
-  if (item.type == ActiveJobType.food) {
-    return const ActiveJobResume(AppRoutes.foodLiveNamedPage);
-  }
   // Hand the vertical status to the live screen so it resumes at the correct
   // trip stage instead of restarting at pickup.
   return ActiveJobResume('/job-live', extra: item.status);
@@ -124,7 +126,11 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
       map['ride'] ??
       map['food'] ??
       map;
-  final json = extractJobJson(vertical);
+  var json = extractJobJson(vertical);
+  // A food offer names its stops after the restaurant and delivery point.
+  if (json != null && (type == 'food' || map['food'] != null)) {
+    json = foodOrderAsJobJson(json);
+  }
   if (json != null) {
     ref
         .read(incomingJobControllerProvider.notifier)

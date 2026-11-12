@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:massdrive/features/food_live/domain/food_order.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_colors.dart';
@@ -66,14 +67,22 @@ class _ActiveJobBannerState extends ConsumerState<ActiveJobBanner> {
       }
 
       final repo = getIt<JobLiveRepository>();
-      dynamic detail;
-      if (item.type == ActiveJobType.ride) {
-        detail = await repo.getActiveJob();
-      } else if (item.type == ActiveJobType.food) {
-        detail = await repo.getActiveFoodOrder();
-      } else {
+      if (item.type == ActiveJobType.food) {
+        final food = activeFoodOrderFrom(await repo.getActiveFoodOrder());
+        if (food == null) return;
+        ref
+            .read(incomingJobControllerProvider.notifier)
+            .resumeJob(IncomingJobModel.fromJson(food.json));
+        if (mounted) {
+          context.go(
+            AppRoutes.foodLiveNamedPage,
+            extra: food.status ?? item.status,
+          );
+        }
         return;
       }
+      if (item.type != ActiveJobType.ride) return;
+      final detail = await repo.getActiveJob();
 
       final json = _extractJobJson(detail);
       if (json == null) return;
@@ -81,12 +90,7 @@ class _ActiveJobBannerState extends ConsumerState<ActiveJobBanner> {
           .read(incomingJobControllerProvider.notifier)
           .resumeJob(IncomingJobModel.fromJson(json));
 
-      if (!mounted) return;
-      if (item.type == ActiveJobType.food) {
-        context.go(AppRoutes.foodLiveNamedPage);
-      } else {
-        context.go('/job-live', extra: item.status);
-      }
+      if (mounted) context.go('/job-live', extra: item.status);
     } finally {
       if (mounted) setState(() => _resuming = false);
     }
