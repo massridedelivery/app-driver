@@ -377,10 +377,50 @@ void main() {
       () async {
         ui.active = [const SystemCall(incoming, accepted: true)];
         await boot();
-        expect(api.calls, ['accept:call-1']);
+        // Still ringing on the backend: the answer wasn't sent yet.
+        expect(api.calls, ['get:call-1', 'accept:call-1']);
         expect(state().phase, CallPhase.connecting);
       },
     );
+
+    test(
+      'answered by another run of the app: no second accept, call left on',
+      () async {
+        // A07 2026-11-12: a second accept for a connected call went out
+        // without a token, got 401 and hung up the live call.
+        ui.active = [const SystemCall(incoming, accepted: true)];
+        api.getCallResult = CallView.fromJson(
+          callViewJson(status: 'accepted', withIce: false),
+        );
+        await boot();
+        expect(api.calls, ['get:call-1']);
+        expect(ui.ended, isEmpty);
+        expect(state().phase, CallPhase.idle);
+      },
+    );
+
+    test(
+      'answered in the system UI but already over: closed, no accept',
+      () async {
+        ui.active = [const SystemCall(incoming, accepted: true)];
+        api.getCallResult = CallView.fromJson(
+          callViewJson(status: 'ended', endReason: 'cancelled', withIce: false),
+        );
+        await boot();
+        expect(api.calls, ['get:call-1']);
+        expect(ui.ended, ['call-1']);
+      },
+    );
+
+    test('a 401 on accept never hangs up the system call', () async {
+      api.acceptError = const CallError(status: 401);
+      await boot();
+      await uiEvent(CallUiAction.incoming, call: incoming);
+      await uiEvent(CallUiAction.accepted, call: incoming);
+      expect(api.calls.where((c) => c.startsWith('end:')), isEmpty);
+      expect(ui.ended, isEmpty);
+      expect(state().phase, CallPhase.ended);
+    });
 
     test('the call_ended push stops the ring', () async {
       await boot();
