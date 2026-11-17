@@ -321,10 +321,16 @@ class CallController extends _$CallController {
       );
     } on CallError catch (e) {
       if (session != _session) return;
+      CallTrail.step(call.callId, 'accept refused ${e.status} ${e.code}');
       // 409 CALL_ENDED: it stopped ringing meanwhile — just dismiss.
       _teardown(
         e.code == 'CALL_ENDED' ? CallEndReason.missed : CallEndReason.failed,
         showEnded: e.code != 'CALL_ENDED',
+        // 401: our session's problem, not the call's. The system call may be
+        // live in another run of the app (A07, 2026-11-12: a second accept
+        // without a token got 401 and hung up a connected call), so leave
+        // the system UI alone.
+        endSystemCall: e.status != 401,
       );
       return;
     }
@@ -484,11 +490,33 @@ class CallController extends _$CallController {
         unawaited(_ui.end(c.call.callId));
         unawaited(_quietly(() => _api.end(c.call.callId)));
       } else if (c.accepted) {
-        await _answer(c.call);
+        await _resumeAnswered(c.call);
       } else {
         await _onIncoming(c.call, verified: false, shown: true);
       }
     }
+  }
+
+  /// Answered in the system UI before this controller was listening. The
+  /// backend tells whether that answer was sent: still ringing → accept it
+  /// here (answered on the lock screen, app just started); already accepted
+  /// → another run of the app accepted it and runs the audio, so accepting
+  /// again would only be refused and end a live call; ended → close the UI.
+  /// No answer (offline, 401): leave the call alone.
+  Future<void> _resumeAnswered(CallInfo call) async {
+    final CallView view;
+    try {
+      view = await _api.getCall(call.callId);
+    } on CallError catch (e) {
+      if (e.status == 404) unawaited(_ui.end(call.callId));
+      CallTrail.step(call.callId, 'resume: get ${e.status}, left alone');
+      return;
+    } catch (_) {
+      return;
+    }
+    if (view.isRinging) return _answer(call);
+    CallTrail.step(call.callId, 'resume: already ${view.status}, no accept');
+    if (view.status == 'ended') unawaited(_ui.end(call.callId));
   }
 
   // MARK: - Session
@@ -562,7 +590,11 @@ class CallController extends _$CallController {
 
   /// Closes the audio and the system call UI. An ended call whose screen was
   /// showing stays [CallPhase.ended] (the screen says why) until dismissed.
-  void _teardown(CallEndReason reason, {bool showEnded = true}) {
+  void _teardown(
+    CallEndReason reason, {
+    bool showEnded = true,
+    bool endSystemCall = true,
+  }) {
     if (!state.isBusy) return;
     final call = state.call;
     final hadScreen = state.hasScreen;
@@ -575,7 +607,7 @@ class CallController extends _$CallController {
     unawaited(_session?.close());
     _session = null;
     _iceServers = const [];
-    if (call != null) unawaited(_ui.end(call.callId));
+    if (call != null && endSystemCall) unawaited(_ui.end(call.callId));
     _transport.release();
     state = hadScreen && showEnded
         ? state.copyWith(phase: CallPhase.ended, endReason: reason)
