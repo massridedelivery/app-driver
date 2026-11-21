@@ -102,7 +102,7 @@ sealed class IncomingJobModel with _$IncomingJobModel {
           commissionRate: driverCommissionRate,
         );
 
-  /// "งานล่วงหน้า · รับ 14:30 น. 12 พ.ย. 2569" for a ride booked for later
+  /// "งานจองล่วงหน้า · รับ 14:30 น. 12 พ.ย. 2569" for a ride booked for later
   /// (scheduled_job_offer, BE v1.6.26), in the phone's time zone; null for a
   /// ride now or an unreadable time.
   String? get scheduledPickupLine {
@@ -110,7 +110,7 @@ sealed class IncomingJobModel with _$IncomingJobModel {
     final at = DateTime.tryParse(scheduledAt ?? '')?.toLocal();
     if (at == null) return null;
     String two(int n) => n.toString().padLeft(2, '0');
-    return 'งานล่วงหน้า · รับ ${two(at.hour)}:${two(at.minute)} น. '
+    return 'งานจองล่วงหน้า · รับ ${two(at.hour)}:${two(at.minute)} น. '
         '${formatThaiDate(at)}';
   }
 
@@ -120,6 +120,15 @@ sealed class IncomingJobModel with _$IncomingJobModel {
   factory IncomingJobModel.fromJson(Map<String, dynamic> json) =>
       _$IncomingJobModelFromJson(json);
 }
+
+/// A back-to-back offer (BE `job_offer_next`, and a `job_offer` re-sent after
+/// a reconnect): the next ride, offered while the driver is still on a trip.
+/// It carries `next_offer` {after_job_id, eta_to_dropoff_min,
+/// eta_to_pickup_min}. The app has no next-ride card yet, so such an offer
+/// must never open the full incoming-job screen over the current trip:
+/// accepting it would only queue the ride (`queued: true`).
+bool isNextRideOffer(Object? jobJson) =>
+    jobJson is Map && jobJson['next_offer'] is Map;
 
 /// The route's encoded polyline (pickup→drop-off). BE ships it under a few
 /// keys across offer/active-job endpoints (SCRUM-66) — accept any so the offer

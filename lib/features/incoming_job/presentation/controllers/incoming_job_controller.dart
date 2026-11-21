@@ -97,6 +97,12 @@ class IncomingJobController extends _$IncomingJobController {
       final jobData = raw['job'] ?? data?['job'] ?? data ?? raw;
       if (kDebugMode) debugPrint('IncomingJobController: Job Data extracted: $jobData');
 
+      if (isNextRideOffer(jobData)) {
+        // Back-to-back ride offered over the current trip: not supported yet;
+        // the server's offer window lets it lapse.
+        if (kDebugMode) debugPrint('IncomingJobController: next-ride offer ignored');
+        return;
+      }
       if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
         final job = IncomingJobModel.fromJson(jobData);
         if (kDebugMode) {

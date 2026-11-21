@@ -584,6 +584,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           paymentOverrideReason: _overrideReason,
         );
       } else {
+        // The job_status COMPLETED frame this sends back is ours, not the
+        // back office closing the ride.
+        JobCancellations.instance.markOwnCompletion(_orderId);
         await getIt<JobLiveRepository>().updateJobStatus(_orderId, {
           'status': 'COMPLETED',
           if (_overrideReason != null)
@@ -593,6 +596,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return true;
     } catch (e) {
       if (kDebugMode) debugPrint('PaymentScreen.complete: $e');
+      if (!_isMessenger) JobCancellations.instance.clearOwnCompletion(_orderId);
       // Cancelled meanwhile (409 job_cancelled): leave, don't offer a retry.
       if (isJobCancelledError(e)) {
         JobCancellations.instance.report(JobCancelEvent(_orderId));

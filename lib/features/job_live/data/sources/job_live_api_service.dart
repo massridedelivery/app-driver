@@ -10,6 +10,7 @@ abstract class JobLiveApiService {
   Future<Response> updateJobStatus(String jobId, Map<String, dynamic> data);
   Future<Response> acceptJob(String jobId);
   Future<Response> getActiveSummary();
+  Future<Response> getJob(String jobId);
   Future<Response> getActiveJob({double? lat, double? lng});
   Future<Response> getActiveOffer({double? lat, double? lng});
   Future<Response> getActiveFoodOrder({double? lat, double? lng});
@@ -58,6 +59,11 @@ class JobLiveApiServiceImpl extends BaseApiService implements JobLiveApiService 
   @override
   Future<Response> getActiveSummary() async {
     return await get(Endpoints.driverActive);
+  }
+
+  @override
+  Future<Response> getJob(String jobId) async {
+    return await get(Endpoints.driverJob.replaceAll(':id', jobId));
   }
 
   @override

@@ -127,6 +127,8 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
       map['food'] ??
       map;
   var json = extractJobJson(vertical);
+  // A back-to-back ride offered over a trip has no full-screen offer yet.
+  if (isNextRideOffer(json)) return null;
   // A food offer names its stops after the restaurant and delivery point.
   if (json != null && (type == 'food' || map['food'] != null)) {
     json = foodOrderAsJobJson(json);

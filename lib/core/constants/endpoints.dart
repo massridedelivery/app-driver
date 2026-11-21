@@ -129,6 +129,9 @@ abstract class Endpoints {
   // too), 409 {"code":"job_taken"} when another driver got it.
   static const driverJobsAccept = '/api/driver/jobs/:id/accept';
   static const driverJobsActive = '/api/driver/jobs/active';
+  // One ride the driver is or was on: its `status` tells a ride the back
+  // office closed (COMPLETED) from one cancelled while the app was away.
+  static const driverJob = '/api/driver/jobs/:id';
   // Cross-vertical pending-offer recovery (dev15). Replaces the ride-only
   // /api/driver/jobs/active_offer, which spoke for one vertical and deleted the
   // shared Redis offer lock. Response: { type: ride|food|messenger, <type>: {…} }.

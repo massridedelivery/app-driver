@@ -295,7 +295,7 @@ void main() {
         String two(int n) => n.toString().padLeft(2, '0');
         expect(
           job.scheduledPickupLine,
-          'งานล่วงหน้า · รับ ${two(at.hour)}:${two(at.minute)} น. '
+          'งานจองล่วงหน้า · รับ ${two(at.hour)}:${two(at.minute)} น. '
           '${at.day} พ.ย. 2569',
         );
       },

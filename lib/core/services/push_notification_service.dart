@@ -23,6 +23,7 @@ import 'package:massdrive/core/services/fcm_debug_log.dart';
 import 'package:massdrive/features/income/domain/models/payout.dart';
 import 'package:massdrive/router/app_routes.dart';
 import 'package:massdrive/core/services/job_cancellation.dart';
+import 'package:massdrive/features/messenger/domain/messenger_status_override.dart';
 import 'package:massdrive/features/document_registration/domain/document_expiry.dart';
 import 'package:massdrive/features/profile/domain/profile_updates.dart';
 
@@ -356,10 +357,18 @@ class PushNotificationService {
       RequestedDocuments.addFromPush(message.data);
       ProfileUpdates.instance.notifyChanged();
     }
-    // The job was cancelled (customer / admin / system): the app-root
-    // listener closes the job screen and shows its own dialog.
+    // The job was cancelled (customer / admin / system) or closed by the
+    // back office: the app-root listener closes the job screen and shows its
+    // own dialog.
     if (jobCancelFromPush(message.data) case final cancel?) {
       JobCancellations.instance.report(cancel);
+      return;
+    }
+    // The back office forced the parcel's status: the messenger controller
+    // leaves the live screen (or re-reads the order) with its own dialog.
+    if (messengerStatusOverrideOf(message.data['type']?.toString(),
+        message.data) case final o?) {
+      MessengerStatusOverrides.instance.report(o);
       return;
     }
 
@@ -504,6 +513,10 @@ class PushNotificationService {
       JobCancellations.instance.report(cancel);
       return;
     }
+    if (messengerStatusOverrideOf(type, message.data) case final o?) {
+      MessengerStatusOverrides.instance.report(o);
+      return;
+    }
     if (type == 'held_fare_approved' || type == 'held_fare_rejected') {
       _navigateTo('/held-fares');
       return;
@@ -584,6 +597,13 @@ class PushNotificationService {
     final target = resolveNotificationRoute(route, AppRouter.isKnownLocation);
     if (target == null) {
       FcmDebugLog.log('Notification route ignored (unknown): $route');
+      return;
+    }
+    // An offer push while the driver is on a job can only be a back-to-back
+    // ride; the app has no next-ride card yet, and the full offer screen over
+    // the trip would hide it.
+    if (target == AppRoutes.incomingJobNamedPage && AppRouter.isOnAcceptedJob) {
+      FcmDebugLog.log('Offer push ignored: on an accepted job');
       return;
     }
     if (target == AppRoutes.documentRegistrationChecklistNamedPage) {
