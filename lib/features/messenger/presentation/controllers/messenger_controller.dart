@@ -9,6 +9,8 @@ import 'package:massdrive/core/services/push_notification_service.dart';
 import 'package:massdrive/core/services/socket_service.dart';
 import 'package:massdrive/features/dependency_injection.dart';
 import 'package:massdrive/features/home/presentation/screens/home_screen.dart';
+import 'package:massdrive/features/job_live/presentation/widgets/job_cancel_listener.dart';
+import 'package:massdrive/features/messenger/domain/messenger_status_override.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_offer.dart';
 import 'package:massdrive/features/messenger/domain/models/messenger_order.dart';
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart';
@@ -28,6 +30,7 @@ class MessengerController extends _$MessengerController {
   static const _offerWindow = Duration(seconds: 16);
 
   StreamSubscription? _socketSub;
+  StreamSubscription<MessengerStatusOverride>? _overrideSub;
   Timer? _offerTimeout;
 
   MessengerRepository get _repo => getIt<MessengerRepository>();
@@ -37,6 +40,10 @@ class MessengerController extends _$MessengerController {
     final socket = ref.watch(socketServiceProvider);
 
     _socketSub?.cancel();
+    _overrideSub?.cancel();
+    _overrideSub = MessengerStatusOverrides.instance.events.listen(
+      _onStatusOverride,
+    );
     _socketSub = socket.messages.listen((msg) {
       if (msg.type == 'messenger_offer') {
         final orderJson = msg.raw['order'] ?? msg.data?['order'];
@@ -52,6 +59,9 @@ class MessengerController extends _$MessengerController {
           state = state.copyWith(activeOrder: null);
           AppRouter.router.go('/home');
         }
+      } else if (messengerStatusOverrideOf(msg.type, msg.raw, msg.data)
+          case final o?) {
+        MessengerStatusOverrides.instance.report(o);
       } else if (msg.type == 'payment_paid') {
         // Customer scanned the rider's QR and paid — re-fetch the authoritative
         // order (now PAID) so the live screen hides the QR button and shows the
@@ -92,6 +102,7 @@ class MessengerController extends _$MessengerController {
 
     ref.onDispose(() {
       _socketSub?.cancel();
+      _overrideSub?.cancel();
       _offerTimeout?.cancel();
     });
 
@@ -362,6 +373,51 @@ class MessengerController extends _$MessengerController {
     } finally {
       state = state.copyWith(isSubmitting: false);
     }
+  }
+
+  /// The back office forced the status of the parcel on screen: an end
+  /// (CANCELLED / DELIVERED) sends the driver home, who is free again; any
+  /// other status just re-reads the order.
+  void _onStatusOverride(MessengerStatusOverride o) {
+    if (state.activeOrder?.id != o.orderId) return;
+    if (!o.ended) {
+      _refreshActive();
+      return;
+    }
+    _leaveEndedOrder(
+      o.status == 'DELIVERED'
+          ? 'งานถูกปิดโดยผู้ดูแลระบบ'
+          : 'งานถูกยกเลิกโดยผู้ดูแลระบบ',
+      messengerOverrideEndedMessage(o.status),
+    );
+  }
+
+  /// Back from the background on the live screen: the parcel may have ended
+  /// while the socket was down. A failed read keeps the order.
+  Future<void> recheckActive() async {
+    final current = state.activeOrder;
+    if (current == null) return;
+    try {
+      final fresh = await _repo.getActiveOrder();
+      if (state.activeOrder?.id != current.id) return;
+      if (fresh != null && fresh.id == current.id) {
+        state = state.copyWith(activeOrder: fresh);
+        return;
+      }
+      _leaveEndedOrder(
+        'งานนี้จบแล้ว',
+        'งานส่งพัสดุนี้ไม่อยู่ในงานของคุณแล้ว กลับไปรอรับงานใหม่ได้เลย',
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('MessengerController: recheck failed $e');
+    }
+  }
+
+  void _leaveEndedOrder(String title, String message) {
+    state = state.copyWith(activeOrder: null);
+    PushNotificationService.instance.cancelJobAlerts();
+    AppRouter.router.go('/home');
+    showJobEndedDialog(title, message);
   }
 
   Future<void> _refreshActive() async {
