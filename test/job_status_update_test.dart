@@ -27,6 +27,8 @@ class _FakeRepo implements JobLiveRepository {
   @override
   Future<List<ActiveItem>> getActiveSummary() async => [];
   @override
+  Future<String?> getJobStatus(String jobId) async => null;
+  @override
   Future<dynamic> getActiveJob({double? lat, double? lng}) async => null;
   @override
   Future<dynamic> getActiveOffer({double? lat, double? lng}) async => null;

@@ -95,6 +95,14 @@ class AppRouter {
     return config.isEmpty ? '' : config.uri.path;
   }
 
+  /// On an accepted job (live screen or collecting the fare), not an offer.
+  static bool get isOnAcceptedJob => const {
+    '/job-live',
+    AppRoutes.foodLiveNamedPage,
+    '/messenger-live',
+    '/payment',
+  }.contains(_currentPath);
+
   /// Nothing the driver is in the middle of: a fine time for the "update
   /// available" dialog.
   static bool get isQuietMoment {

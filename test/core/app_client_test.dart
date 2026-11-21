@@ -33,7 +33,10 @@ class _Adapter implements HttpClientAdapter {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  tearDown(() => AppClient.debugVersion = null);
+  tearDown(() {
+    AppClient.debugVersion = null;
+    AppClient.debugDeviceId = null;
+  });
 
   group('appVersionHeaderOf', () {
     test('version + build', () {
@@ -47,6 +50,27 @@ void main() {
       expect(appVersionHeaderOf('1.0.ไทย', '1'), isNull);
       expect(appVersionHeaderOf('1.${'0' * 70}', '1'), isNull);
       expect(appVersionHeaderOf('', ''), isNull);
+    });
+  });
+
+  group('deviceIdHeaderOf', () {
+    test('the id as sent at sign-in, trimmed', () {
+      expect(deviceIdHeaderOf(' UP1A.231005.007 '), 'UP1A.231005.007');
+      expect(
+        deviceIdHeaderOf('6F9619FF-8B86-D011-B42D-00C04FC964FF'),
+        '6F9619FF-8B86-D011-B42D-00C04FC964FF',
+      );
+    });
+
+    test('cut to the 128 characters the server keeps', () {
+      expect(deviceIdHeaderOf('a' * 200), 'a' * 128);
+    });
+
+    test('nothing usable: not sent', () {
+      expect(deviceIdHeaderOf(null), isNull);
+      expect(deviceIdHeaderOf('   '), isNull);
+      expect(deviceIdHeaderOf('ไอดี'), isNull);
+      expect(deviceIdHeaderOf('a\nb'), isNull);
     });
   });
 
@@ -85,7 +109,14 @@ void main() {
     test('no version known yet: only the platform', () async {
       final headers = await headersOf();
       expect(headers.containsKey('X-App-Version'), isFalse);
+      expect(headers.containsKey('X-Device-ID'), isFalse);
       expect(headers['X-App-Platform'], isNotNull);
+    });
+
+    test('carries X-Device-ID once known (loan evidence)', () async {
+      AppClient.debugDeviceId = 'UP1A.231005.007';
+      final headers = await headersOf();
+      expect(headers['X-Device-ID'], 'UP1A.231005.007');
     });
   });
 }

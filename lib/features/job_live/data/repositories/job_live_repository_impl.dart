@@ -61,6 +61,18 @@ class JobLiveRepositoryImpl implements JobLiveRepository {
   }
 
   @override
+  Future<String?> getJobStatus(String jobId) async {
+    try {
+      final data = (await _apiService.getJob(jobId)).data;
+      final job = data is Map && data['job'] is Map ? data['job'] : data;
+      return job is Map ? job['status']?.toString().toUpperCase() : null;
+    } catch (e) {
+      if (kDebugMode) debugPrint('JobLiveRepository.getJobStatus error: $e');
+      return null;
+    }
+  }
+
+  @override
   Future<dynamic> getActiveJob({double? lat, double? lng}) async {
     try {
       final response = await _apiService.getActiveJob(lat: lat, lng: lng);
