@@ -25,6 +25,8 @@ import 'package:massdrive/features/document_registration/domain/models/profile_p
 import 'package:massdrive/features/profile/domain/entities/driver_profile_entity.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/edit_profile/presentation/widgets/change_phone_sheet.dart';
+import 'package:massdrive/features/edit_profile/data/emergency_contact_api.dart';
+import 'package:massdrive/features/edit_profile/presentation/widgets/emergency_contact_sheet.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -195,6 +197,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               value: (profile.email?.isNotEmpty ?? false) ? profile.email! : '-',
             ),
 
+            _InfoTile(
+              key: const ValueKey('emergency-contact-tile'),
+              title: "ผู้ติดต่อฉุกเฉิน",
+              value:
+                  emergencyContactSummary(profile.savedEmergencyContact) ??
+                  "ยังไม่ได้เพิ่ม แตะเพื่อเพิ่ม",
+              showArrow: true,
+              onTap: () => _editEmergencyContact(
+                context,
+                ref,
+                profile.savedEmergencyContact,
+              ),
+            ),
+
             SizedBox(height: 24),
 
             _SectionHeader(title: "ข้อมูลของยานพาหนะ"),
@@ -289,6 +305,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
     if (saved == null) return;
     ToastUtil.showSuccessToast('เปลี่ยนเบอร์โทรศัพท์แล้ว');
+    await ref
+        .read(profileControllerProvider.notifier)
+        .fetchProfile(silent: true);
+  }
+
+  /// Add, edit or remove ผู้ติดต่อฉุกเฉิน (PUT /api/driver/profile
+  /// `emergency_contact`), then re-read the profile.
+  Future<void> _editEmergencyContact(
+    BuildContext context,
+    WidgetRef ref,
+    EmergencyContactEntity? current,
+  ) async {
+    final outcome = await showEmergencyContactSheet(context, current: current);
+    if (outcome == null) return;
+    ToastUtil.showSuccessToast(
+      outcome == EmergencyContactOutcome.cleared
+          ? 'ลบผู้ติดต่อฉุกเฉินแล้ว'
+          : 'บันทึกผู้ติดต่อฉุกเฉินแล้ว',
+    );
     await ref
         .read(profileControllerProvider.notifier)
         .fetchProfile(silent: true);
@@ -388,6 +423,7 @@ class _InfoTile extends StatelessWidget {
   final bool locked;
 
   const _InfoTile({
+    super.key,
     required this.title,
     required this.value,
     this.showArrow = false,
