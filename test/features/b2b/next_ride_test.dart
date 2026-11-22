@@ -198,24 +198,49 @@ void main() {
       expect(q.pickupAddress, 'สยามพารากอน');
       expect(q.bannerTitle, 'งานถัดไป: รับที่ สยามพารากอน');
       expect(q.arriveBy, DateTime.utc(2026, 11, 22, 3, 15));
-      expect(q.arriveByLine, startsWith('ไปถึงจุดรับภายใน '));
+      // A deadline, in Bangkok time (UTC+7) whatever the phone's zone.
+      expect(q.arriveByLine, 'ไปให้ถึงจุดรับก่อน 10:15');
+      expect(q.etaMin, isNull);
       expect(queuedFromFrame({'type': 'job_queued'}, null), isNull);
     });
 
-    test('GET /jobs/next: the ride with queued_next.arrive_by', () {
-      final q = queuedFromNextRide(
-        rideJson(
-          'B',
-          queuedNext: {
-            'driver_id': 'D',
-            'eta_min': 7,
-            'arrive_by': '2026-11-22T03:15:00.123Z',
-          },
-        ),
-      )!;
-      expect(q.jobId, 'B');
-      expect(q.arriveBy?.toUtc().minute, 15);
-      expect(queuedFromNextRide(null), isNull);
+    test(
+      'GET /jobs/next: the bare job with queued_next{arrive_by, eta_min}',
+      () {
+        // As internal/job/matching/backtoback.go NextRide answers (c.JSON(j)).
+        final q = queuedFromNextRide(
+          rideJson(
+            'B',
+            queuedNext: {
+              'driver_id': 'D',
+              'eta_min': 7,
+              'arrive_by': '2026-11-22T03:15:42.123456Z',
+            },
+          ),
+        )!;
+        expect(q.jobId, 'B');
+        expect(q.arriveBy, DateTime.utc(2026, 11, 22, 3, 15, 42, 123, 456));
+        expect(q.etaMin, 7);
+        expect(q.arriveByLine, 'ไปให้ถึงจุดรับก่อน 10:15');
+        expect(q.bannerTitle, 'งานถัดไป: รับที่ สยามพารากอน');
+        expect(queuedFromNextRide(null), isNull);
+      },
+    );
+
+    test('arrive_by with a +07:00 offset reads the same deadline', () {
+      final q = queuedFromFrame({
+        'job_id': 'B',
+        'job': rideJson('B'),
+        'arrive_by': '2026-11-22T10:15:00+07:00',
+      }, null)!;
+      expect(q.arriveBy?.toUtc(), DateTime.utc(2026, 11, 22, 3, 15));
+      expect(q.arriveByLine, 'ไปให้ถึงจุดรับก่อน 10:15');
+    });
+
+    test('no arrive_by: no deadline line', () {
+      final q = queuedFromFrame({'job_id': 'B', 'job': rideJson('B')}, null)!;
+      expect(q.arriveBy, isNull);
+      expect(q.arriveByLine, isNull);
     });
 
     test('job_unqueued {job_id, reason}', () {
@@ -575,6 +600,8 @@ void main() {
         );
         await ctl().refresh(onTripJobId: 'A');
         expect(st().queued?.jobId, 'B');
+        // After a restart the banner is rebuilt from queued_next.arrive_by.
+        expect(st().queued?.arriveByLine, 'ไปให้ถึงจุดรับก่อน 10:15');
         api.next = null;
         await ctl().refresh(onTripJobId: 'A');
         expect(st().queued, isNull);
@@ -654,9 +681,11 @@ void main() {
       c.read(nextRideControllerProvider.notifier).onQueued({
         'job_id': 'B',
         'job': rideJson('B'),
+        'arrive_by': '2026-11-22T03:15:00Z',
       }, null);
       await tester.pump();
       expect(find.text('งานถัดไป: รับที่ สยามพารากอน'), findsOneWidget);
+      expect(find.text('ไปให้ถึงจุดรับก่อน 10:15'), findsOneWidget);
       await tester.tap(find.text('ยกเลิกงานถัดไป'));
       await tester.pumpAndSettle();
       expect(find.text('ยกเลิกงานถัดไป?'), findsOneWidget);
