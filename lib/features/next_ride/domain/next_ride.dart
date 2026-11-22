@@ -88,6 +88,7 @@ class QueuedNextRide {
     required this.pickupAddress,
     this.job,
     this.arriveBy,
+    this.etaMin,
   });
 
   final String jobId;
@@ -97,8 +98,15 @@ class QueuedNextRide {
   /// it starts).
   final IncomingJobModel? job;
 
-  /// When the ride goes back to dispatch if the driver has not come.
+  /// The deadline (not an ETA): not at the pickup by then, the ride goes
+  /// back to dispatch. Accept time + the offered eta_to_pickup_min + the
+  /// admin's b2b_queue_grace_min. From `job_queued.arrive_by` or
+  /// `queued_next.arrive_by` (RFC 3339 with offset, maybe fractional seconds).
   final DateTime? arriveBy;
+
+  /// `queued_next.eta_min`: minutes to the pickup, the current trip included
+  /// (GET /jobs/next only; job_queued carries none).
+  final int? etaMin;
 
   QueuedNextRide merge(QueuedNextRide other) => QueuedNextRide(
     jobId: jobId,
@@ -107,17 +115,19 @@ class QueuedNextRide {
         : pickupAddress,
     job: other.job ?? job,
     arriveBy: other.arriveBy ?? arriveBy,
+    etaMin: other.etaMin ?? etaMin,
   );
 
   /// "งานถัดไป: รับที่ …".
   String get bannerTitle => 'งานถัดไป: รับที่ $pickupAddress';
 
-  /// "ไปถึงจุดรับภายใน 14:32 น." in the phone's time zone; null without it.
+  /// "ไปให้ถึงจุดรับก่อน 14:32" in Bangkok time, whatever the phone's zone;
+  /// null without a deadline.
   String? get arriveByLine {
-    final at = arriveBy?.toLocal();
+    final at = arriveBy?.toUtc().add(const Duration(hours: 7));
     if (at == null) return null;
     String two(int n) => n.toString().padLeft(2, '0');
-    return 'ไปถึงจุดรับภายใน ${two(at.hour)}:${two(at.minute)} น.';
+    return 'ไปให้ถึงจุดรับก่อน ${two(at.hour)}:${two(at.minute)}';
   }
 
   /// From the accepted offer, before `job_queued` arrives.
@@ -204,10 +214,20 @@ QueuedNextRide? queuedFromNextRide(Object? body) {
   final id = job['id']?.toString();
   if (id == null || id.isEmpty) return null;
   final qn = job['queued_next'];
-  return _queued(id, job, qn is Map ? qn['arrive_by'] : null);
+  return _queued(
+    id,
+    job,
+    qn is Map ? qn['arrive_by'] : null,
+    etaMin: qn is Map ? _int(qn['eta_min']) : null,
+  );
 }
 
-QueuedNextRide _queued(String id, Object? job, Object? arriveBy) {
+QueuedNextRide _queued(
+  String id,
+  Object? job,
+  Object? arriveBy, {
+  int? etaMin,
+}) {
   IncomingJobModel? model;
   if (job is Map) {
     try {
@@ -223,6 +243,7 @@ QueuedNextRide _queued(String id, Object? job, Object? arriveBy) {
     pickupAddress: pickup,
     job: model,
     arriveBy: DateTime.tryParse(arriveBy?.toString() ?? ''),
+    etaMin: etaMin,
   );
 }
 
