@@ -20,6 +20,8 @@ import 'package:massdrive/features/job_live/domain/repositories/job_live_reposit
 import 'package:massdrive/features/food_live/domain/food_order.dart';
 import 'package:flutter/material.dart';
 import 'package:massdrive/features/job_live/domain/services/active_job_resolver.dart';
+import 'package:massdrive/features/next_ride/domain/next_ride.dart';
+import 'package:massdrive/features/next_ride/presentation/next_ride_controller.dart';
 
 part 'incoming_job_controller.g.dart';
 
@@ -37,11 +39,22 @@ class IncomingJobController extends _$IncomingJobController {
         debugPrint('IncomingJobController Received Message: type=${msg.type}');
       }
 
-      if (msg.type == 'job_offer' || msg.type == 'scheduled_job_offer') {
+      if (msg.type == 'job_offer' ||
+          msg.type == 'scheduled_job_offer' ||
+          msg.type == nextOfferFrameType) {
         // A ride booked for later (BE v1.6.26) comes as scheduled_job_offer
-        // with the same {job} body and is accepted the same way.
+        // with the same {job} body and is accepted the same way; a
+        // back-to-back ride as job_offer_next.
         if (kDebugMode) debugPrint('IncomingJobController: 📥 RECEIVED ${msg.type} message');
-        _handleJobOffer(msg.raw, msg.data);
+        _handleJobOffer(msg.type, msg.raw, msg.data);
+      } else if (msg.type == jobQueuedFrameType) {
+        ref
+            .read(nextRideControllerProvider.notifier)
+            .onQueued(msg.raw, msg.data);
+      } else if (msg.type == jobUnqueuedFrameType) {
+        ref
+            .read(nextRideControllerProvider.notifier)
+            .onUnqueued(msg.raw, msg.data);
       } else if (msg.type == 'food_delivery_offer') {
         if (kDebugMode) {
           debugPrint(
@@ -56,6 +69,18 @@ class IncomingJobController extends _$IncomingJobController {
               msg.raw['job'] ?? msg.data?['job'] ?? msg.data ?? msg.raw;
           if (jobData is Map<String, dynamic>) {
             final job = IncomingJobModel.fromJson(jobData);
+            if (isNextRideStart(
+              acceptedJobId: job.jobId,
+              queued: ref
+                  .read(nextRideControllerProvider.notifier)
+                  .isQueued(job.jobId),
+              collecting: AppRouter.currentPath == '/payment',
+              currentJobId: state.currentJob?.jobId,
+            )) {
+              // The ride queued after this trip started as it completed.
+              _onQueuedRideStarted(job);
+              return;
+            }
             state = state.copyWith(currentJob: job);
             if (kDebugMode) {
               debugPrint(
@@ -83,6 +108,7 @@ class IncomingJobController extends _$IncomingJobController {
 
     ref.onDispose(() {
       _socketSubscription?.cancel();
+      _handOverTimer?.cancel();
     });
 
     return const IncomingJobState();
@@ -90,17 +116,19 @@ class IncomingJobController extends _$IncomingJobController {
 
   /// Handle ride job_offer event
   void _handleJobOffer(
+    String type,
     Map<String, dynamic> raw,
     Map<String, dynamic>? data,
   ) {
     try {
-      final jobData = raw['job'] ?? data?['job'] ?? data ?? raw;
+      final jobData = offerJobJson(raw, data);
       if (kDebugMode) debugPrint('IncomingJobController: Job Data extracted: $jobData');
 
-      if (isNextRideOffer(jobData)) {
-        // Back-to-back ride offered over the current trip: not supported yet;
-        // the server's offer window lets it lapse.
-        if (kDebugMode) debugPrint('IncomingJobController: next-ride offer ignored');
+      if (offerPresentationOf(type, jobData) ==
+          OfferPresentation.nextRideCard) {
+        // A back-to-back ride, offered over the current trip: the compact
+        // card on the live screen (which rings), never the full offer screen.
+        ref.read(nextRideControllerProvider.notifier).receiveOffer(jobData);
         return;
       }
       if (jobData is Map<String, dynamic> && jobData.containsKey('id')) {
@@ -171,6 +199,47 @@ class IncomingJobController extends _$IncomingJobController {
         );
       }
     }
+  }
+
+  /// The queued next ride's `job_accepted` (BE: sent as the trip before it
+  /// completes). On the collect screen the trip is still being completed
+  /// there: it opens the ride once its COMPLETED goes through
+  /// ([PaymentScreen] → [NextRideController.handOverAfterTrip]). Anywhere
+  /// else (the back office closed the trip, the app was away) it opens now.
+  void _onQueuedRideStarted(IncomingJobModel job) {
+    final next = ref.read(nextRideControllerProvider.notifier);
+    next.onQueuedRideStarted(job);
+    if (AppRouter.currentPath != '/payment') {
+      if (next.takeStarted() case final started?) openStartedNextRide(started);
+      return;
+    }
+    // Should the collect screen go without taking it (its COMPLETED failed,
+    // the trip was closed under it), open it once the driver is off it.
+    _handOverTimer?.cancel();
+    var ticks = 0;
+    _handOverTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (ref.read(nextRideControllerProvider).started?.jobId != job.jobId ||
+          ++ticks > 60) {
+        t.cancel();
+        return;
+      }
+      if (AppRouter.currentPath == '/payment') return;
+      t.cancel();
+      if (next.takeStarted() case final started?) openStartedNextRide(started);
+    });
+  }
+
+  Timer? _handOverTimer;
+
+  /// Open the queued ride that started in place of the trip just completed:
+  /// straight to the live screen, heading to its pickup. The trip's customer
+  /// review is skipped — the next passenger is waiting.
+  void openStartedNextRide(IncomingJobModel job) {
+    _handOverTimer?.cancel();
+    PushNotificationService.instance.cancelJobAlerts();
+    state = state.copyWith(currentJob: job, isModalVisible: false);
+    AppRouter.router.go('/job-live', extra: 'ACCEPTED');
+    _toast('เริ่มงานถัดไปแล้ว · ไปรับที่ ${job.pickupAddress}');
   }
 
   void receiveJob(IncomingJobModel job) {

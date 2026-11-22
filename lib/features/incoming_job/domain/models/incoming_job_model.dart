@@ -124,9 +124,9 @@ sealed class IncomingJobModel with _$IncomingJobModel {
 /// A back-to-back offer (BE `job_offer_next`, and a `job_offer` re-sent after
 /// a reconnect): the next ride, offered while the driver is still on a trip.
 /// It carries `next_offer` {after_job_id, eta_to_dropoff_min,
-/// eta_to_pickup_min}. The app has no next-ride card yet, so such an offer
-/// must never open the full incoming-job screen over the current trip:
-/// accepting it would only queue the ride (`queued: true`).
+/// eta_to_pickup_min}. Such an offer shows as the compact next-ride card over
+/// the trip (lib/features/next_ride) and never opens the full incoming-job
+/// screen: accepting it queues the ride (`queued: true`).
 bool isNextRideOffer(Object? jobJson) =>
     jobJson is Map && jobJson['next_offer'] is Map;
 

@@ -30,6 +30,7 @@ import 'package:massdrive/features/incoming_job/domain/models/driver_earnings.da
 import 'package:massdrive/features/messenger/presentation/controllers/messenger_controller.dart';
 import 'package:massdrive/features/call/domain/call_kind.dart';
 import 'package:massdrive/features/call/presentation/widgets/call_customer_button.dart';
+import 'package:massdrive/features/next_ride/presentation/next_ride_controller.dart';
 
 enum PaymentMethod { cash, qr }
 
@@ -700,6 +701,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return;
     }
     if (!mounted) return;
+
+    // A ride queued after this one (back-to-back) started as it completed:
+    // go straight to its pickup. The driver stays busy on the backend, so no
+    // reconnect / ONLINE refresh, and this customer's review is skipped.
+    if (!_isMessenger && widget.gateCompletion) {
+      final next = await ref
+          .read(nextRideControllerProvider.notifier)
+          .handOverAfterTrip();
+      if (next != null) {
+        ref.read(incomingJobControllerProvider.notifier).openStartedNextRide(next);
+        return;
+      }
+      if (!mounted) return;
+    }
 
     // Capture the review context BEFORE clearing the job state below.
     final job = ref.read(incomingJobControllerProvider).currentJob;
