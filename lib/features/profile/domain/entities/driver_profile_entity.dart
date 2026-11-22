@@ -33,6 +33,10 @@ sealed class DriverProfileEntity with _$DriverProfileEntity {
     @JsonKey(name: 'vehicle_model') String? vehicleModel,
     @JsonKey(name: 'vehicle_year') int? vehicleYear,
     @JsonKey(name: 'vehicle_province') String? vehicleProvince,
+    // Who to call if something happens to the driver; null when not given.
+    // Phone is E.164 (+66…).
+    @JsonKey(name: 'emergency_contact')
+    EmergencyContactEntity? emergencyContact,
     @Default(0.0) double balance,
     @JsonKey(name: 'commission_rate') @Default(0.0) double commissionRate,
     @JsonKey(name: 'incentive_tier') String? incentiveTier,
@@ -56,6 +60,30 @@ extension DriverProfilePhoto on DriverProfileEntity {
     final avatar = avatarUrl?.trim();
     if (avatar != null && avatar.startsWith('http')) return avatar;
     return null;
+  }
+}
+
+/// GET /api/driver/profile `emergency_contact`: `{name, phone, relationship}`.
+/// `relationship` is left out when not given.
+@freezed
+sealed class EmergencyContactEntity with _$EmergencyContactEntity {
+  const factory EmergencyContactEntity({
+    @Default('') String name,
+    @Default('') String phone,
+    @Default('') String relationship,
+  }) = _EmergencyContactEntity;
+
+  factory EmergencyContactEntity.fromJson(Map<String, dynamic> json) =>
+      _$EmergencyContactEntityFromJson(json);
+}
+
+extension DriverEmergencyContact on DriverProfileEntity {
+  /// The emergency contact on file, or null when there's none (a blank phone
+  /// means cleared).
+  EmergencyContactEntity? get savedEmergencyContact {
+    final c = emergencyContact;
+    if (c == null || c.phone.trim().isEmpty) return null;
+    return c;
   }
 }
 

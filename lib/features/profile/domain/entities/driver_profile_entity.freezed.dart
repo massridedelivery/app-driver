@@ -20,7 +20,9 @@ mixin _$DriverProfileEntity {
 // who haven't filled Step 1 yet.
 @JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName;@JsonKey(name: 'date_of_birth') String? get dateOfBirth; String? get phone; String? get email;// Public URL of the profile photo (the backend turns its stored file key
 // into a full URL). Omitted when the driver has none yet.
-@JsonKey(name: 'avatar_url') String? get avatarUrl; double get rating;@JsonKey(name: 'total_trips') int get totalTrips;@JsonKey(name: 'is_verified') bool get isVerified; List<DocumentEntity> get documents;@JsonKey(name: 'vehicle_type_ids') List<String> get vehicleTypeIds;@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> get vehicleTypes;@JsonKey(name: 'vehicle_plate') String? get vehiclePlate;@JsonKey(name: 'vehicle_color') String? get vehicleColor;@JsonKey(name: 'vehicle_model') String? get vehicleModel;@JsonKey(name: 'vehicle_year') int? get vehicleYear;@JsonKey(name: 'vehicle_province') String? get vehicleProvince; double get balance;@JsonKey(name: 'commission_rate') double get commissionRate;@JsonKey(name: 'incentive_tier') String? get incentiveTier;@JsonKey(name: 'loyalty_points') int get loyaltyPoints;@JsonKey(name: 'acceptance_rate') double get acceptanceRate;@JsonKey(name: 'cancellation_rate') double get cancellationRate;@JsonKey(name: 'weekly_completed_jobs') int get weeklyCompletedJobs; String get status;
+@JsonKey(name: 'avatar_url') String? get avatarUrl; double get rating;@JsonKey(name: 'total_trips') int get totalTrips;@JsonKey(name: 'is_verified') bool get isVerified; List<DocumentEntity> get documents;@JsonKey(name: 'vehicle_type_ids') List<String> get vehicleTypeIds;@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> get vehicleTypes;@JsonKey(name: 'vehicle_plate') String? get vehiclePlate;@JsonKey(name: 'vehicle_color') String? get vehicleColor;@JsonKey(name: 'vehicle_model') String? get vehicleModel;@JsonKey(name: 'vehicle_year') int? get vehicleYear;@JsonKey(name: 'vehicle_province') String? get vehicleProvince;// Who to call if something happens to the driver; null when not given.
+// Phone is E.164 (+66…).
+@JsonKey(name: 'emergency_contact') EmergencyContactEntity? get emergencyContact; double get balance;@JsonKey(name: 'commission_rate') double get commissionRate;@JsonKey(name: 'incentive_tier') String? get incentiveTier;@JsonKey(name: 'loyalty_points') int get loyaltyPoints;@JsonKey(name: 'acceptance_rate') double get acceptanceRate;@JsonKey(name: 'cancellation_rate') double get cancellationRate;@JsonKey(name: 'weekly_completed_jobs') int get weeklyCompletedJobs; String get status;
 /// Create a copy of DriverProfileEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +35,16 @@ $DriverProfileEntityCopyWith<DriverProfileEntity> get copyWith => _$DriverProfil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DriverProfileEntity&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.totalTrips, totalTrips) || other.totalTrips == totalTrips)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&const DeepCollectionEquality().equals(other.documents, documents)&&const DeepCollectionEquality().equals(other.vehicleTypeIds, vehicleTypeIds)&&const DeepCollectionEquality().equals(other.vehicleTypes, vehicleTypes)&&(identical(other.vehiclePlate, vehiclePlate) || other.vehiclePlate == vehiclePlate)&&(identical(other.vehicleColor, vehicleColor) || other.vehicleColor == vehicleColor)&&(identical(other.vehicleModel, vehicleModel) || other.vehicleModel == vehicleModel)&&(identical(other.vehicleYear, vehicleYear) || other.vehicleYear == vehicleYear)&&(identical(other.vehicleProvince, vehicleProvince) || other.vehicleProvince == vehicleProvince)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.incentiveTier, incentiveTier) || other.incentiveTier == incentiveTier)&&(identical(other.loyaltyPoints, loyaltyPoints) || other.loyaltyPoints == loyaltyPoints)&&(identical(other.acceptanceRate, acceptanceRate) || other.acceptanceRate == acceptanceRate)&&(identical(other.cancellationRate, cancellationRate) || other.cancellationRate == cancellationRate)&&(identical(other.weeklyCompletedJobs, weeklyCompletedJobs) || other.weeklyCompletedJobs == weeklyCompletedJobs)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DriverProfileEntity&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.totalTrips, totalTrips) || other.totalTrips == totalTrips)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&const DeepCollectionEquality().equals(other.documents, documents)&&const DeepCollectionEquality().equals(other.vehicleTypeIds, vehicleTypeIds)&&const DeepCollectionEquality().equals(other.vehicleTypes, vehicleTypes)&&(identical(other.vehiclePlate, vehiclePlate) || other.vehiclePlate == vehiclePlate)&&(identical(other.vehicleColor, vehicleColor) || other.vehicleColor == vehicleColor)&&(identical(other.vehicleModel, vehicleModel) || other.vehicleModel == vehicleModel)&&(identical(other.vehicleYear, vehicleYear) || other.vehicleYear == vehicleYear)&&(identical(other.vehicleProvince, vehicleProvince) || other.vehicleProvince == vehicleProvince)&&(identical(other.emergencyContact, emergencyContact) || other.emergencyContact == emergencyContact)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.incentiveTier, incentiveTier) || other.incentiveTier == incentiveTier)&&(identical(other.loyaltyPoints, loyaltyPoints) || other.loyaltyPoints == loyaltyPoints)&&(identical(other.acceptanceRate, acceptanceRate) || other.acceptanceRate == acceptanceRate)&&(identical(other.cancellationRate, cancellationRate) || other.cancellationRate == cancellationRate)&&(identical(other.weeklyCompletedJobs, weeklyCompletedJobs) || other.weeklyCompletedJobs == weeklyCompletedJobs)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,userId,fullName,firstName,lastName,dateOfBirth,phone,email,avatarUrl,rating,totalTrips,isVerified,const DeepCollectionEquality().hash(documents),const DeepCollectionEquality().hash(vehicleTypeIds),const DeepCollectionEquality().hash(vehicleTypes),vehiclePlate,vehicleColor,vehicleModel,vehicleYear,vehicleProvince,balance,commissionRate,incentiveTier,loyaltyPoints,acceptanceRate,cancellationRate,weeklyCompletedJobs,status]);
+int get hashCode => Object.hashAll([runtimeType,userId,fullName,firstName,lastName,dateOfBirth,phone,email,avatarUrl,rating,totalTrips,isVerified,const DeepCollectionEquality().hash(documents),const DeepCollectionEquality().hash(vehicleTypeIds),const DeepCollectionEquality().hash(vehicleTypes),vehiclePlate,vehicleColor,vehicleModel,vehicleYear,vehicleProvince,emergencyContact,balance,commissionRate,incentiveTier,loyaltyPoints,acceptanceRate,cancellationRate,weeklyCompletedJobs,status]);
 
 @override
 String toString() {
-  return 'DriverProfileEntity(userId: $userId, fullName: $fullName, firstName: $firstName, lastName: $lastName, dateOfBirth: $dateOfBirth, phone: $phone, email: $email, avatarUrl: $avatarUrl, rating: $rating, totalTrips: $totalTrips, isVerified: $isVerified, documents: $documents, vehicleTypeIds: $vehicleTypeIds, vehicleTypes: $vehicleTypes, vehiclePlate: $vehiclePlate, vehicleColor: $vehicleColor, vehicleModel: $vehicleModel, vehicleYear: $vehicleYear, vehicleProvince: $vehicleProvince, balance: $balance, commissionRate: $commissionRate, incentiveTier: $incentiveTier, loyaltyPoints: $loyaltyPoints, acceptanceRate: $acceptanceRate, cancellationRate: $cancellationRate, weeklyCompletedJobs: $weeklyCompletedJobs, status: $status)';
+  return 'DriverProfileEntity(userId: $userId, fullName: $fullName, firstName: $firstName, lastName: $lastName, dateOfBirth: $dateOfBirth, phone: $phone, email: $email, avatarUrl: $avatarUrl, rating: $rating, totalTrips: $totalTrips, isVerified: $isVerified, documents: $documents, vehicleTypeIds: $vehicleTypeIds, vehicleTypes: $vehicleTypes, vehiclePlate: $vehiclePlate, vehicleColor: $vehicleColor, vehicleModel: $vehicleModel, vehicleYear: $vehicleYear, vehicleProvince: $vehicleProvince, emergencyContact: $emergencyContact, balance: $balance, commissionRate: $commissionRate, incentiveTier: $incentiveTier, loyaltyPoints: $loyaltyPoints, acceptanceRate: $acceptanceRate, cancellationRate: $cancellationRate, weeklyCompletedJobs: $weeklyCompletedJobs, status: $status)';
 }
 
 
@@ -53,11 +55,11 @@ abstract mixin class $DriverProfileEntityCopyWith<$Res>  {
   factory $DriverProfileEntityCopyWith(DriverProfileEntity value, $Res Function(DriverProfileEntity) _then) = _$DriverProfileEntityCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'full_name') String fullName,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'date_of_birth') String? dateOfBirth, String? phone, String? email,@JsonKey(name: 'avatar_url') String? avatarUrl, double rating,@JsonKey(name: 'total_trips') int totalTrips,@JsonKey(name: 'is_verified') bool isVerified, List<DocumentEntity> documents,@JsonKey(name: 'vehicle_type_ids') List<String> vehicleTypeIds,@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> vehicleTypes,@JsonKey(name: 'vehicle_plate') String? vehiclePlate,@JsonKey(name: 'vehicle_color') String? vehicleColor,@JsonKey(name: 'vehicle_model') String? vehicleModel,@JsonKey(name: 'vehicle_year') int? vehicleYear,@JsonKey(name: 'vehicle_province') String? vehicleProvince, double balance,@JsonKey(name: 'commission_rate') double commissionRate,@JsonKey(name: 'incentive_tier') String? incentiveTier,@JsonKey(name: 'loyalty_points') int loyaltyPoints,@JsonKey(name: 'acceptance_rate') double acceptanceRate,@JsonKey(name: 'cancellation_rate') double cancellationRate,@JsonKey(name: 'weekly_completed_jobs') int weeklyCompletedJobs, String status
+@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'full_name') String fullName,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'date_of_birth') String? dateOfBirth, String? phone, String? email,@JsonKey(name: 'avatar_url') String? avatarUrl, double rating,@JsonKey(name: 'total_trips') int totalTrips,@JsonKey(name: 'is_verified') bool isVerified, List<DocumentEntity> documents,@JsonKey(name: 'vehicle_type_ids') List<String> vehicleTypeIds,@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> vehicleTypes,@JsonKey(name: 'vehicle_plate') String? vehiclePlate,@JsonKey(name: 'vehicle_color') String? vehicleColor,@JsonKey(name: 'vehicle_model') String? vehicleModel,@JsonKey(name: 'vehicle_year') int? vehicleYear,@JsonKey(name: 'vehicle_province') String? vehicleProvince,@JsonKey(name: 'emergency_contact') EmergencyContactEntity? emergencyContact, double balance,@JsonKey(name: 'commission_rate') double commissionRate,@JsonKey(name: 'incentive_tier') String? incentiveTier,@JsonKey(name: 'loyalty_points') int loyaltyPoints,@JsonKey(name: 'acceptance_rate') double acceptanceRate,@JsonKey(name: 'cancellation_rate') double cancellationRate,@JsonKey(name: 'weekly_completed_jobs') int weeklyCompletedJobs, String status
 });
 
 
-
+$EmergencyContactEntityCopyWith<$Res>? get emergencyContact;
 
 }
 /// @nodoc
@@ -70,7 +72,7 @@ class _$DriverProfileEntityCopyWithImpl<$Res>
 
 /// Create a copy of DriverProfileEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? fullName = null,Object? firstName = freezed,Object? lastName = freezed,Object? dateOfBirth = freezed,Object? phone = freezed,Object? email = freezed,Object? avatarUrl = freezed,Object? rating = null,Object? totalTrips = null,Object? isVerified = null,Object? documents = null,Object? vehicleTypeIds = null,Object? vehicleTypes = null,Object? vehiclePlate = freezed,Object? vehicleColor = freezed,Object? vehicleModel = freezed,Object? vehicleYear = freezed,Object? vehicleProvince = freezed,Object? balance = null,Object? commissionRate = null,Object? incentiveTier = freezed,Object? loyaltyPoints = null,Object? acceptanceRate = null,Object? cancellationRate = null,Object? weeklyCompletedJobs = null,Object? status = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? fullName = null,Object? firstName = freezed,Object? lastName = freezed,Object? dateOfBirth = freezed,Object? phone = freezed,Object? email = freezed,Object? avatarUrl = freezed,Object? rating = null,Object? totalTrips = null,Object? isVerified = null,Object? documents = null,Object? vehicleTypeIds = null,Object? vehicleTypes = null,Object? vehiclePlate = freezed,Object? vehicleColor = freezed,Object? vehicleModel = freezed,Object? vehicleYear = freezed,Object? vehicleProvince = freezed,Object? emergencyContact = freezed,Object? balance = null,Object? commissionRate = null,Object? incentiveTier = freezed,Object? loyaltyPoints = null,Object? acceptanceRate = null,Object? cancellationRate = null,Object? weeklyCompletedJobs = null,Object? status = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
@@ -91,7 +93,8 @@ as String?,vehicleColor: freezed == vehicleColor ? _self.vehicleColor : vehicleC
 as String?,vehicleModel: freezed == vehicleModel ? _self.vehicleModel : vehicleModel // ignore: cast_nullable_to_non_nullable
 as String?,vehicleYear: freezed == vehicleYear ? _self.vehicleYear : vehicleYear // ignore: cast_nullable_to_non_nullable
 as int?,vehicleProvince: freezed == vehicleProvince ? _self.vehicleProvince : vehicleProvince // ignore: cast_nullable_to_non_nullable
-as String?,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable
+as String?,emergencyContact: freezed == emergencyContact ? _self.emergencyContact : emergencyContact // ignore: cast_nullable_to_non_nullable
+as EmergencyContactEntity?,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable
 as double,commissionRate: null == commissionRate ? _self.commissionRate : commissionRate // ignore: cast_nullable_to_non_nullable
 as double,incentiveTier: freezed == incentiveTier ? _self.incentiveTier : incentiveTier // ignore: cast_nullable_to_non_nullable
 as String?,loyaltyPoints: null == loyaltyPoints ? _self.loyaltyPoints : loyaltyPoints // ignore: cast_nullable_to_non_nullable
@@ -102,7 +105,19 @@ as int,status: null == status ? _self.status : status // ignore: cast_nullable_t
 as String,
   ));
 }
+/// Create a copy of DriverProfileEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EmergencyContactEntityCopyWith<$Res>? get emergencyContact {
+    if (_self.emergencyContact == null) {
+    return null;
+  }
 
+  return $EmergencyContactEntityCopyWith<$Res>(_self.emergencyContact!, (value) {
+    return _then(_self.copyWith(emergencyContact: value));
+  });
+}
 }
 
 
@@ -181,10 +196,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince, @JsonKey(name: 'emergency_contact')  EmergencyContactEntity? emergencyContact,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DriverProfileEntity() when $default != null:
-return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);case _:
+return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.emergencyContact,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);case _:
   return orElse();
 
 }
@@ -202,10 +217,10 @@ return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince, @JsonKey(name: 'emergency_contact')  EmergencyContactEntity? emergencyContact,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)  $default,) {final _that = this;
 switch (_that) {
 case _DriverProfileEntity():
-return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);}
+return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.emergencyContact,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -219,10 +234,10 @@ return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'full_name')  String fullName, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'date_of_birth')  String? dateOfBirth,  String? phone,  String? email, @JsonKey(name: 'avatar_url')  String? avatarUrl,  double rating, @JsonKey(name: 'total_trips')  int totalTrips, @JsonKey(name: 'is_verified')  bool isVerified,  List<DocumentEntity> documents, @JsonKey(name: 'vehicle_type_ids')  List<String> vehicleTypeIds, @JsonKey(name: 'vehicle_types')  List<VehicleTypeEntity> vehicleTypes, @JsonKey(name: 'vehicle_plate')  String? vehiclePlate, @JsonKey(name: 'vehicle_color')  String? vehicleColor, @JsonKey(name: 'vehicle_model')  String? vehicleModel, @JsonKey(name: 'vehicle_year')  int? vehicleYear, @JsonKey(name: 'vehicle_province')  String? vehicleProvince, @JsonKey(name: 'emergency_contact')  EmergencyContactEntity? emergencyContact,  double balance, @JsonKey(name: 'commission_rate')  double commissionRate, @JsonKey(name: 'incentive_tier')  String? incentiveTier, @JsonKey(name: 'loyalty_points')  int loyaltyPoints, @JsonKey(name: 'acceptance_rate')  double acceptanceRate, @JsonKey(name: 'cancellation_rate')  double cancellationRate, @JsonKey(name: 'weekly_completed_jobs')  int weeklyCompletedJobs,  String status)?  $default,) {final _that = this;
 switch (_that) {
 case _DriverProfileEntity() when $default != null:
-return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);case _:
+return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that.dateOfBirth,_that.phone,_that.email,_that.avatarUrl,_that.rating,_that.totalTrips,_that.isVerified,_that.documents,_that.vehicleTypeIds,_that.vehicleTypes,_that.vehiclePlate,_that.vehicleColor,_that.vehicleModel,_that.vehicleYear,_that.vehicleProvince,_that.emergencyContact,_that.balance,_that.commissionRate,_that.incentiveTier,_that.loyaltyPoints,_that.acceptanceRate,_that.cancellationRate,_that.weeklyCompletedJobs,_that.status);case _:
   return null;
 
 }
@@ -234,7 +249,7 @@ return $default(_that.userId,_that.fullName,_that.firstName,_that.lastName,_that
 @JsonSerializable()
 
 class _DriverProfileEntity implements DriverProfileEntity {
-  const _DriverProfileEntity({@JsonKey(name: 'user_id') required this.userId, @JsonKey(name: 'full_name') required this.fullName, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, @JsonKey(name: 'date_of_birth') this.dateOfBirth, this.phone, this.email, @JsonKey(name: 'avatar_url') this.avatarUrl, this.rating = 0.0, @JsonKey(name: 'total_trips') this.totalTrips = 0, @JsonKey(name: 'is_verified') this.isVerified = false, final  List<DocumentEntity> documents = const [], @JsonKey(name: 'vehicle_type_ids') final  List<String> vehicleTypeIds = const [], @JsonKey(name: 'vehicle_types') final  List<VehicleTypeEntity> vehicleTypes = const [], @JsonKey(name: 'vehicle_plate') this.vehiclePlate, @JsonKey(name: 'vehicle_color') this.vehicleColor, @JsonKey(name: 'vehicle_model') this.vehicleModel, @JsonKey(name: 'vehicle_year') this.vehicleYear, @JsonKey(name: 'vehicle_province') this.vehicleProvince, this.balance = 0.0, @JsonKey(name: 'commission_rate') this.commissionRate = 0.0, @JsonKey(name: 'incentive_tier') this.incentiveTier, @JsonKey(name: 'loyalty_points') this.loyaltyPoints = 0, @JsonKey(name: 'acceptance_rate') this.acceptanceRate = 0.0, @JsonKey(name: 'cancellation_rate') this.cancellationRate = 0.0, @JsonKey(name: 'weekly_completed_jobs') this.weeklyCompletedJobs = 0, this.status = 'offline'}): _documents = documents,_vehicleTypeIds = vehicleTypeIds,_vehicleTypes = vehicleTypes;
+  const _DriverProfileEntity({@JsonKey(name: 'user_id') required this.userId, @JsonKey(name: 'full_name') required this.fullName, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, @JsonKey(name: 'date_of_birth') this.dateOfBirth, this.phone, this.email, @JsonKey(name: 'avatar_url') this.avatarUrl, this.rating = 0.0, @JsonKey(name: 'total_trips') this.totalTrips = 0, @JsonKey(name: 'is_verified') this.isVerified = false, final  List<DocumentEntity> documents = const [], @JsonKey(name: 'vehicle_type_ids') final  List<String> vehicleTypeIds = const [], @JsonKey(name: 'vehicle_types') final  List<VehicleTypeEntity> vehicleTypes = const [], @JsonKey(name: 'vehicle_plate') this.vehiclePlate, @JsonKey(name: 'vehicle_color') this.vehicleColor, @JsonKey(name: 'vehicle_model') this.vehicleModel, @JsonKey(name: 'vehicle_year') this.vehicleYear, @JsonKey(name: 'vehicle_province') this.vehicleProvince, @JsonKey(name: 'emergency_contact') this.emergencyContact, this.balance = 0.0, @JsonKey(name: 'commission_rate') this.commissionRate = 0.0, @JsonKey(name: 'incentive_tier') this.incentiveTier, @JsonKey(name: 'loyalty_points') this.loyaltyPoints = 0, @JsonKey(name: 'acceptance_rate') this.acceptanceRate = 0.0, @JsonKey(name: 'cancellation_rate') this.cancellationRate = 0.0, @JsonKey(name: 'weekly_completed_jobs') this.weeklyCompletedJobs = 0, this.status = 'offline'}): _documents = documents,_vehicleTypeIds = vehicleTypeIds,_vehicleTypes = vehicleTypes;
   factory _DriverProfileEntity.fromJson(Map<String, dynamic> json) => _$DriverProfileEntityFromJson(json);
 
 @override@JsonKey(name: 'user_id') final  String userId;
@@ -279,6 +294,9 @@ class _DriverProfileEntity implements DriverProfileEntity {
 @override@JsonKey(name: 'vehicle_model') final  String? vehicleModel;
 @override@JsonKey(name: 'vehicle_year') final  int? vehicleYear;
 @override@JsonKey(name: 'vehicle_province') final  String? vehicleProvince;
+// Who to call if something happens to the driver; null when not given.
+// Phone is E.164 (+66…).
+@override@JsonKey(name: 'emergency_contact') final  EmergencyContactEntity? emergencyContact;
 @override@JsonKey() final  double balance;
 @override@JsonKey(name: 'commission_rate') final  double commissionRate;
 @override@JsonKey(name: 'incentive_tier') final  String? incentiveTier;
@@ -301,16 +319,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DriverProfileEntity&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.totalTrips, totalTrips) || other.totalTrips == totalTrips)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&const DeepCollectionEquality().equals(other._documents, _documents)&&const DeepCollectionEquality().equals(other._vehicleTypeIds, _vehicleTypeIds)&&const DeepCollectionEquality().equals(other._vehicleTypes, _vehicleTypes)&&(identical(other.vehiclePlate, vehiclePlate) || other.vehiclePlate == vehiclePlate)&&(identical(other.vehicleColor, vehicleColor) || other.vehicleColor == vehicleColor)&&(identical(other.vehicleModel, vehicleModel) || other.vehicleModel == vehicleModel)&&(identical(other.vehicleYear, vehicleYear) || other.vehicleYear == vehicleYear)&&(identical(other.vehicleProvince, vehicleProvince) || other.vehicleProvince == vehicleProvince)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.incentiveTier, incentiveTier) || other.incentiveTier == incentiveTier)&&(identical(other.loyaltyPoints, loyaltyPoints) || other.loyaltyPoints == loyaltyPoints)&&(identical(other.acceptanceRate, acceptanceRate) || other.acceptanceRate == acceptanceRate)&&(identical(other.cancellationRate, cancellationRate) || other.cancellationRate == cancellationRate)&&(identical(other.weeklyCompletedJobs, weeklyCompletedJobs) || other.weeklyCompletedJobs == weeklyCompletedJobs)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DriverProfileEntity&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.totalTrips, totalTrips) || other.totalTrips == totalTrips)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&const DeepCollectionEquality().equals(other._documents, _documents)&&const DeepCollectionEquality().equals(other._vehicleTypeIds, _vehicleTypeIds)&&const DeepCollectionEquality().equals(other._vehicleTypes, _vehicleTypes)&&(identical(other.vehiclePlate, vehiclePlate) || other.vehiclePlate == vehiclePlate)&&(identical(other.vehicleColor, vehicleColor) || other.vehicleColor == vehicleColor)&&(identical(other.vehicleModel, vehicleModel) || other.vehicleModel == vehicleModel)&&(identical(other.vehicleYear, vehicleYear) || other.vehicleYear == vehicleYear)&&(identical(other.vehicleProvince, vehicleProvince) || other.vehicleProvince == vehicleProvince)&&(identical(other.emergencyContact, emergencyContact) || other.emergencyContact == emergencyContact)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.incentiveTier, incentiveTier) || other.incentiveTier == incentiveTier)&&(identical(other.loyaltyPoints, loyaltyPoints) || other.loyaltyPoints == loyaltyPoints)&&(identical(other.acceptanceRate, acceptanceRate) || other.acceptanceRate == acceptanceRate)&&(identical(other.cancellationRate, cancellationRate) || other.cancellationRate == cancellationRate)&&(identical(other.weeklyCompletedJobs, weeklyCompletedJobs) || other.weeklyCompletedJobs == weeklyCompletedJobs)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,userId,fullName,firstName,lastName,dateOfBirth,phone,email,avatarUrl,rating,totalTrips,isVerified,const DeepCollectionEquality().hash(_documents),const DeepCollectionEquality().hash(_vehicleTypeIds),const DeepCollectionEquality().hash(_vehicleTypes),vehiclePlate,vehicleColor,vehicleModel,vehicleYear,vehicleProvince,balance,commissionRate,incentiveTier,loyaltyPoints,acceptanceRate,cancellationRate,weeklyCompletedJobs,status]);
+int get hashCode => Object.hashAll([runtimeType,userId,fullName,firstName,lastName,dateOfBirth,phone,email,avatarUrl,rating,totalTrips,isVerified,const DeepCollectionEquality().hash(_documents),const DeepCollectionEquality().hash(_vehicleTypeIds),const DeepCollectionEquality().hash(_vehicleTypes),vehiclePlate,vehicleColor,vehicleModel,vehicleYear,vehicleProvince,emergencyContact,balance,commissionRate,incentiveTier,loyaltyPoints,acceptanceRate,cancellationRate,weeklyCompletedJobs,status]);
 
 @override
 String toString() {
-  return 'DriverProfileEntity(userId: $userId, fullName: $fullName, firstName: $firstName, lastName: $lastName, dateOfBirth: $dateOfBirth, phone: $phone, email: $email, avatarUrl: $avatarUrl, rating: $rating, totalTrips: $totalTrips, isVerified: $isVerified, documents: $documents, vehicleTypeIds: $vehicleTypeIds, vehicleTypes: $vehicleTypes, vehiclePlate: $vehiclePlate, vehicleColor: $vehicleColor, vehicleModel: $vehicleModel, vehicleYear: $vehicleYear, vehicleProvince: $vehicleProvince, balance: $balance, commissionRate: $commissionRate, incentiveTier: $incentiveTier, loyaltyPoints: $loyaltyPoints, acceptanceRate: $acceptanceRate, cancellationRate: $cancellationRate, weeklyCompletedJobs: $weeklyCompletedJobs, status: $status)';
+  return 'DriverProfileEntity(userId: $userId, fullName: $fullName, firstName: $firstName, lastName: $lastName, dateOfBirth: $dateOfBirth, phone: $phone, email: $email, avatarUrl: $avatarUrl, rating: $rating, totalTrips: $totalTrips, isVerified: $isVerified, documents: $documents, vehicleTypeIds: $vehicleTypeIds, vehicleTypes: $vehicleTypes, vehiclePlate: $vehiclePlate, vehicleColor: $vehicleColor, vehicleModel: $vehicleModel, vehicleYear: $vehicleYear, vehicleProvince: $vehicleProvince, emergencyContact: $emergencyContact, balance: $balance, commissionRate: $commissionRate, incentiveTier: $incentiveTier, loyaltyPoints: $loyaltyPoints, acceptanceRate: $acceptanceRate, cancellationRate: $cancellationRate, weeklyCompletedJobs: $weeklyCompletedJobs, status: $status)';
 }
 
 
@@ -321,11 +339,11 @@ abstract mixin class _$DriverProfileEntityCopyWith<$Res> implements $DriverProfi
   factory _$DriverProfileEntityCopyWith(_DriverProfileEntity value, $Res Function(_DriverProfileEntity) _then) = __$DriverProfileEntityCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'full_name') String fullName,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'date_of_birth') String? dateOfBirth, String? phone, String? email,@JsonKey(name: 'avatar_url') String? avatarUrl, double rating,@JsonKey(name: 'total_trips') int totalTrips,@JsonKey(name: 'is_verified') bool isVerified, List<DocumentEntity> documents,@JsonKey(name: 'vehicle_type_ids') List<String> vehicleTypeIds,@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> vehicleTypes,@JsonKey(name: 'vehicle_plate') String? vehiclePlate,@JsonKey(name: 'vehicle_color') String? vehicleColor,@JsonKey(name: 'vehicle_model') String? vehicleModel,@JsonKey(name: 'vehicle_year') int? vehicleYear,@JsonKey(name: 'vehicle_province') String? vehicleProvince, double balance,@JsonKey(name: 'commission_rate') double commissionRate,@JsonKey(name: 'incentive_tier') String? incentiveTier,@JsonKey(name: 'loyalty_points') int loyaltyPoints,@JsonKey(name: 'acceptance_rate') double acceptanceRate,@JsonKey(name: 'cancellation_rate') double cancellationRate,@JsonKey(name: 'weekly_completed_jobs') int weeklyCompletedJobs, String status
+@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'full_name') String fullName,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'date_of_birth') String? dateOfBirth, String? phone, String? email,@JsonKey(name: 'avatar_url') String? avatarUrl, double rating,@JsonKey(name: 'total_trips') int totalTrips,@JsonKey(name: 'is_verified') bool isVerified, List<DocumentEntity> documents,@JsonKey(name: 'vehicle_type_ids') List<String> vehicleTypeIds,@JsonKey(name: 'vehicle_types') List<VehicleTypeEntity> vehicleTypes,@JsonKey(name: 'vehicle_plate') String? vehiclePlate,@JsonKey(name: 'vehicle_color') String? vehicleColor,@JsonKey(name: 'vehicle_model') String? vehicleModel,@JsonKey(name: 'vehicle_year') int? vehicleYear,@JsonKey(name: 'vehicle_province') String? vehicleProvince,@JsonKey(name: 'emergency_contact') EmergencyContactEntity? emergencyContact, double balance,@JsonKey(name: 'commission_rate') double commissionRate,@JsonKey(name: 'incentive_tier') String? incentiveTier,@JsonKey(name: 'loyalty_points') int loyaltyPoints,@JsonKey(name: 'acceptance_rate') double acceptanceRate,@JsonKey(name: 'cancellation_rate') double cancellationRate,@JsonKey(name: 'weekly_completed_jobs') int weeklyCompletedJobs, String status
 });
 
 
-
+@override $EmergencyContactEntityCopyWith<$Res>? get emergencyContact;
 
 }
 /// @nodoc
@@ -338,7 +356,7 @@ class __$DriverProfileEntityCopyWithImpl<$Res>
 
 /// Create a copy of DriverProfileEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? fullName = null,Object? firstName = freezed,Object? lastName = freezed,Object? dateOfBirth = freezed,Object? phone = freezed,Object? email = freezed,Object? avatarUrl = freezed,Object? rating = null,Object? totalTrips = null,Object? isVerified = null,Object? documents = null,Object? vehicleTypeIds = null,Object? vehicleTypes = null,Object? vehiclePlate = freezed,Object? vehicleColor = freezed,Object? vehicleModel = freezed,Object? vehicleYear = freezed,Object? vehicleProvince = freezed,Object? balance = null,Object? commissionRate = null,Object? incentiveTier = freezed,Object? loyaltyPoints = null,Object? acceptanceRate = null,Object? cancellationRate = null,Object? weeklyCompletedJobs = null,Object? status = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? fullName = null,Object? firstName = freezed,Object? lastName = freezed,Object? dateOfBirth = freezed,Object? phone = freezed,Object? email = freezed,Object? avatarUrl = freezed,Object? rating = null,Object? totalTrips = null,Object? isVerified = null,Object? documents = null,Object? vehicleTypeIds = null,Object? vehicleTypes = null,Object? vehiclePlate = freezed,Object? vehicleColor = freezed,Object? vehicleModel = freezed,Object? vehicleYear = freezed,Object? vehicleProvince = freezed,Object? emergencyContact = freezed,Object? balance = null,Object? commissionRate = null,Object? incentiveTier = freezed,Object? loyaltyPoints = null,Object? acceptanceRate = null,Object? cancellationRate = null,Object? weeklyCompletedJobs = null,Object? status = null,}) {
   return _then(_DriverProfileEntity(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
@@ -359,7 +377,8 @@ as String?,vehicleColor: freezed == vehicleColor ? _self.vehicleColor : vehicleC
 as String?,vehicleModel: freezed == vehicleModel ? _self.vehicleModel : vehicleModel // ignore: cast_nullable_to_non_nullable
 as String?,vehicleYear: freezed == vehicleYear ? _self.vehicleYear : vehicleYear // ignore: cast_nullable_to_non_nullable
 as int?,vehicleProvince: freezed == vehicleProvince ? _self.vehicleProvince : vehicleProvince // ignore: cast_nullable_to_non_nullable
-as String?,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable
+as String?,emergencyContact: freezed == emergencyContact ? _self.emergencyContact : emergencyContact // ignore: cast_nullable_to_non_nullable
+as EmergencyContactEntity?,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable
 as double,commissionRate: null == commissionRate ? _self.commissionRate : commissionRate // ignore: cast_nullable_to_non_nullable
 as double,incentiveTier: freezed == incentiveTier ? _self.incentiveTier : incentiveTier // ignore: cast_nullable_to_non_nullable
 as String?,loyaltyPoints: null == loyaltyPoints ? _self.loyaltyPoints : loyaltyPoints // ignore: cast_nullable_to_non_nullable
@@ -367,6 +386,281 @@ as int,acceptanceRate: null == acceptanceRate ? _self.acceptanceRate : acceptanc
 as double,cancellationRate: null == cancellationRate ? _self.cancellationRate : cancellationRate // ignore: cast_nullable_to_non_nullable
 as double,weeklyCompletedJobs: null == weeklyCompletedJobs ? _self.weeklyCompletedJobs : weeklyCompletedJobs // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+/// Create a copy of DriverProfileEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EmergencyContactEntityCopyWith<$Res>? get emergencyContact {
+    if (_self.emergencyContact == null) {
+    return null;
+  }
+
+  return $EmergencyContactEntityCopyWith<$Res>(_self.emergencyContact!, (value) {
+    return _then(_self.copyWith(emergencyContact: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$EmergencyContactEntity {
+
+ String get name; String get phone; String get relationship;
+/// Create a copy of EmergencyContactEntity
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$EmergencyContactEntityCopyWith<EmergencyContactEntity> get copyWith => _$EmergencyContactEntityCopyWithImpl<EmergencyContactEntity>(this as EmergencyContactEntity, _$identity);
+
+  /// Serializes this EmergencyContactEntity to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EmergencyContactEntity&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.relationship, relationship) || other.relationship == relationship));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,name,phone,relationship);
+
+@override
+String toString() {
+  return 'EmergencyContactEntity(name: $name, phone: $phone, relationship: $relationship)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $EmergencyContactEntityCopyWith<$Res>  {
+  factory $EmergencyContactEntityCopyWith(EmergencyContactEntity value, $Res Function(EmergencyContactEntity) _then) = _$EmergencyContactEntityCopyWithImpl;
+@useResult
+$Res call({
+ String name, String phone, String relationship
+});
+
+
+
+
+}
+/// @nodoc
+class _$EmergencyContactEntityCopyWithImpl<$Res>
+    implements $EmergencyContactEntityCopyWith<$Res> {
+  _$EmergencyContactEntityCopyWithImpl(this._self, this._then);
+
+  final EmergencyContactEntity _self;
+  final $Res Function(EmergencyContactEntity) _then;
+
+/// Create a copy of EmergencyContactEntity
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? phone = null,Object? relationship = null,}) {
+  return _then(_self.copyWith(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [EmergencyContactEntity].
+extension EmergencyContactEntityPatterns on EmergencyContactEntity {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _EmergencyContactEntity value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _EmergencyContactEntity() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _EmergencyContactEntity value)  $default,){
+final _that = this;
+switch (_that) {
+case _EmergencyContactEntity():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _EmergencyContactEntity value)?  $default,){
+final _that = this;
+switch (_that) {
+case _EmergencyContactEntity() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String phone,  String relationship)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _EmergencyContactEntity() when $default != null:
+return $default(_that.name,_that.phone,_that.relationship);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String phone,  String relationship)  $default,) {final _that = this;
+switch (_that) {
+case _EmergencyContactEntity():
+return $default(_that.name,_that.phone,_that.relationship);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String phone,  String relationship)?  $default,) {final _that = this;
+switch (_that) {
+case _EmergencyContactEntity() when $default != null:
+return $default(_that.name,_that.phone,_that.relationship);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _EmergencyContactEntity implements EmergencyContactEntity {
+  const _EmergencyContactEntity({this.name = '', this.phone = '', this.relationship = ''});
+  factory _EmergencyContactEntity.fromJson(Map<String, dynamic> json) => _$EmergencyContactEntityFromJson(json);
+
+@override@JsonKey() final  String name;
+@override@JsonKey() final  String phone;
+@override@JsonKey() final  String relationship;
+
+/// Create a copy of EmergencyContactEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$EmergencyContactEntityCopyWith<_EmergencyContactEntity> get copyWith => __$EmergencyContactEntityCopyWithImpl<_EmergencyContactEntity>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$EmergencyContactEntityToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EmergencyContactEntity&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.relationship, relationship) || other.relationship == relationship));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,name,phone,relationship);
+
+@override
+String toString() {
+  return 'EmergencyContactEntity(name: $name, phone: $phone, relationship: $relationship)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$EmergencyContactEntityCopyWith<$Res> implements $EmergencyContactEntityCopyWith<$Res> {
+  factory _$EmergencyContactEntityCopyWith(_EmergencyContactEntity value, $Res Function(_EmergencyContactEntity) _then) = __$EmergencyContactEntityCopyWithImpl;
+@override @useResult
+$Res call({
+ String name, String phone, String relationship
+});
+
+
+
+
+}
+/// @nodoc
+class __$EmergencyContactEntityCopyWithImpl<$Res>
+    implements _$EmergencyContactEntityCopyWith<$Res> {
+  __$EmergencyContactEntityCopyWithImpl(this._self, this._then);
+
+  final _EmergencyContactEntity _self;
+  final $Res Function(_EmergencyContactEntity) _then;
+
+/// Create a copy of EmergencyContactEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? phone = null,Object? relationship = null,}) {
+  return _then(_EmergencyContactEntity(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

@@ -40,6 +40,11 @@ _DriverProfileEntity _$DriverProfileEntityFromJson(
   vehicleModel: json['vehicle_model'] as String?,
   vehicleYear: (json['vehicle_year'] as num?)?.toInt(),
   vehicleProvince: json['vehicle_province'] as String?,
+  emergencyContact: json['emergency_contact'] == null
+      ? null
+      : EmergencyContactEntity.fromJson(
+          json['emergency_contact'] as Map<String, dynamic>,
+        ),
   balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
   commissionRate: (json['commission_rate'] as num?)?.toDouble() ?? 0.0,
   incentiveTier: json['incentive_tier'] as String?,
@@ -72,6 +77,7 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
   'vehicle_model': instance.vehicleModel,
   'vehicle_year': instance.vehicleYear,
   'vehicle_province': instance.vehicleProvince,
+  'emergency_contact': instance.emergencyContact,
   'balance': instance.balance,
   'commission_rate': instance.commissionRate,
   'incentive_tier': instance.incentiveTier,
@@ -80,6 +86,22 @@ Map<String, dynamic> _$DriverProfileEntityToJson(
   'cancellation_rate': instance.cancellationRate,
   'weekly_completed_jobs': instance.weeklyCompletedJobs,
   'status': instance.status,
+};
+
+_EmergencyContactEntity _$EmergencyContactEntityFromJson(
+  Map<String, dynamic> json,
+) => _EmergencyContactEntity(
+  name: json['name'] as String? ?? '',
+  phone: json['phone'] as String? ?? '',
+  relationship: json['relationship'] as String? ?? '',
+);
+
+Map<String, dynamic> _$EmergencyContactEntityToJson(
+  _EmergencyContactEntity instance,
+) => <String, dynamic>{
+  'name': instance.name,
+  'phone': instance.phone,
+  'relationship': instance.relationship,
 };
 
 _DocumentEntity _$DocumentEntityFromJson(Map<String, dynamic> json) =>
