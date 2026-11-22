@@ -12,11 +12,13 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_eligibility.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_errors.dart';
+import 'package:massdrive/features/advance_booking/domain/advance_pushes.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_ride.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_time.dart';
 import 'package:massdrive/features/advance_booking/presentation/advance_booking_providers.dart';
 import 'package:massdrive/features/advance_booking/presentation/advance_start.dart';
 import 'package:massdrive/features/advance_booking/presentation/widgets/advance_ride_card.dart';
+import 'package:massdrive/features/income/presentation/controllers/wallet_controller.dart';
 
 enum AdvanceJobsTab { board, mine }
 
@@ -24,9 +26,17 @@ enum AdvanceJobsTab { board, mine }
 /// (งานว่าง) and the ones this driver holds (งานของฉัน). Pushes about the
 /// driver's rides open the second tab (`/advance-jobs`).
 class AdvanceJobsScreen extends ConsumerStatefulWidget {
-  const AdvanceJobsScreen({super.key, this.initialTab = AdvanceJobsTab.mine});
+  const AdvanceJobsScreen({
+    super.key,
+    this.initialTab = AdvanceJobsTab.mine,
+    this.highlightJobId,
+  });
 
   final AdvanceJobsTab initialTab;
+
+  /// The ride a tapped push is about (`?job=`): "งานของฉัน" scrolls to it
+  /// and marks it — when it is still in the list.
+  final String? highlightJobId;
 
   @override
   ConsumerState<AdvanceJobsScreen> createState() => _AdvanceJobsScreenState();
@@ -37,8 +47,12 @@ class _AdvanceJobsScreenState extends ConsumerState<AdvanceJobsScreen>
   late final TabController _tabs = TabController(
     length: 2,
     vsync: this,
-    initialIndex: widget.initialTab.index,
+    initialIndex: widget.highlightJobId != null
+        ? AdvanceJobsTab.mine.index
+        : widget.initialTab.index,
   );
+
+  late String? _highlight = widget.highlightJobId;
 
   /// Rules times compare against this; ticks so "กำลังไป" opens on time.
   DateTime _now = DateTime.now();
@@ -50,13 +64,24 @@ class _AdvanceJobsScreenState extends ConsumerState<AdvanceJobsScreen>
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
+    AdvanceBookingUpdates.instance.addListener(_onPush);
   }
 
   @override
   void dispose() {
+    AdvanceBookingUpdates.instance.removeListener(_onPush);
     _ticker?.cancel();
     _tabs.dispose();
     super.dispose();
+  }
+
+  /// A push tapped while this is open (the providers re-read by
+  /// themselves): show "งานของฉัน" with its ride marked.
+  void _onPush() {
+    final id = AdvanceBookingUpdates.instance.highlightJobId;
+    if (!mounted || id == null) return;
+    setState(() => _highlight = id);
+    _tabs.animateTo(AdvanceJobsTab.mine.index);
   }
 
   void _toast(String text) {
@@ -106,6 +131,12 @@ class _AdvanceJobsScreenState extends ConsumerState<AdvanceJobsScreen>
     try {
       final out = await ref.read(advanceBookingApiProvider).release(ride.id);
       invalidateAdvanceLists(ref);
+      // The late fee left the wallet at once.
+      if (out.penalty > 0) {
+        unawaited(
+          ref.read(walletControllerProvider.notifier).fetchAll(silent: true),
+        );
+      }
       _toast(out.message);
     } catch (e) {
       _toast(advanceErrorMessage(e, ride: ride));
@@ -141,6 +172,7 @@ class _AdvanceJobsScreenState extends ConsumerState<AdvanceJobsScreen>
     setState(() => _starting = true);
     try {
       await ref.read(advanceBookingApiProvider).start(ride.id);
+      // The ride is live now and has left "งานของฉัน".
       invalidateAdvanceLists(ref);
       final opened = await openStartedAdvanceRide(ref, ride.id);
       if (!opened) _toast('เริ่มงานแล้ว ดูงานได้ที่หน้าหลัก');
@@ -181,6 +213,7 @@ class _AdvanceJobsScreenState extends ConsumerState<AdvanceJobsScreen>
                     _BoardTab(now: _now, onClaim: _claim),
                     _MineTab(
                       now: _now,
+                      highlightJobId: _highlight,
                       onRelease: _release,
                       onStart: _start,
                       onBrowse: () =>
@@ -472,21 +505,55 @@ class _NotEligible extends ConsumerWidget {
 
 // ── งานของฉัน ───────────────────────────────────────────────────────────
 
-class _MineTab extends ConsumerWidget {
+class _MineTab extends ConsumerStatefulWidget {
   const _MineTab({
     required this.now,
     required this.onRelease,
     required this.onStart,
     required this.onBrowse,
+    this.highlightJobId,
   });
 
   final DateTime now;
   final Future<void> Function(AdvanceRide ride) onRelease;
   final Future<void> Function(AdvanceRide ride) onStart;
   final VoidCallback onBrowse;
+  final String? highlightJobId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MineTab> createState() => _MineTabState();
+}
+
+class _MineTabState extends ConsumerState<_MineTab> {
+  final _highlightKey = GlobalKey();
+
+  /// The highlight already scrolled to, so a refresh doesn't jump again.
+  String? _scrolledTo;
+
+  DateTime get now => widget.now;
+
+  /// Bring the marked ride into view once it is laid out. A ride no longer
+  /// in the list (released, cancelled, unassigned) is simply not there.
+  void _scrollToHighlight(List<AdvanceRide> rides) {
+    final id = widget.highlightJobId;
+    if (id == null || id == _scrolledTo || !rides.any((r) => r.id == id)) {
+      return;
+    }
+    _scrolledTo = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _highlightKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.1,
+        duration: const Duration(milliseconds: 300),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final onBrowse = widget.onBrowse;
     final mine = ref.watch(advanceMineProvider);
     Future<void> refresh() async {
       ref.invalidate(advanceMineProvider);
@@ -517,18 +584,31 @@ class _MineTab extends ConsumerWidget {
                 onRetry: onBrowse,
                 scrollable: true,
               )
-            : ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  12,
-                  16,
-                  24 + MediaQuery.viewPaddingOf(context).bottom,
-                ),
-                itemCount: rides.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, i) => _mineCard(context, rides[i]),
-              ),
+            : _mineList(context, rides),
+      ),
+    );
+  }
+
+  /// Every card built at once (a driver holds a few rides at most), so the
+  /// marked one can be scrolled to.
+  Widget _mineList(BuildContext context, List<AdvanceRide> rides) {
+    _scrollToHighlight(rides);
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        24 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < rides.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _mineCard(context, rides[i]),
+          ],
+        ],
       ),
     );
   }
@@ -537,9 +617,12 @@ class _MineTab extends ConsumerWidget {
     final rules = ride.rules;
     final window = startWindowAt(rules, now);
     final p = context.palette;
+    final marked = ride.id == widget.highlightJobId;
     return AdvanceRideCard(
+      key: marked ? _highlightKey : null,
       ride: ride,
       now: now,
+      highlighted: marked,
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -559,7 +642,7 @@ class _MineTab extends ConsumerWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => onRelease(ride),
+                  onPressed: () => widget.onRelease(ride),
                   child: const Text('คืนงาน'),
                 ),
               ),
@@ -568,7 +651,7 @@ class _MineTab extends ConsumerWidget {
                 child: FilledButton(
                   onPressed: window == StartWindow.notYet
                       ? null
-                      : () => onStart(ride),
+                      : () => widget.onStart(ride),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.foundationMint600,
                   ),
@@ -603,7 +686,7 @@ class _RulesLines extends StatelessWidget {
                     '${terms.fee > 0 ? ' · หลังจากนั้นค่าปรับ ${formatBaht(terms.fee)}' : ''}')
         : (terms.fee > 0
               ? 'เลยเวลาคืนฟรีแล้ว · คืนตอนนี้ค่าปรับ ${formatBaht(terms.fee)}'
-              : 'เลยเวลาคืนฟรีแล้ว');
+              : 'เลยเวลาคืนฟรีแล้ว · ไม่มีค่าปรับ');
     final style = AppTypography.caption5.copyWith(color: p.textSecondary);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -772,9 +855,9 @@ class _ReleaseSheet extends StatelessWidget {
             Text(
               terms.headline,
               style: AppTypography.caption2.copyWith(
-                color: terms.free
-                    ? AppColors.foundationMint600
-                    : AppColors.foundationRed700,
+                color: terms.chargesFee
+                    ? AppColors.foundationRed700
+                    : AppColors.foundationMint600,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -795,9 +878,9 @@ class _ReleaseSheet extends StatelessWidget {
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: FilledButton.styleFrom(
-                backgroundColor: terms.free
-                    ? AppColors.foundationOrange700
-                    : AppColors.foundationRed700,
+                backgroundColor: terms.chargesFee
+                    ? AppColors.foundationRed700
+                    : AppColors.foundationOrange700,
               ),
               child: Text(terms.confirmLabel),
             ),

@@ -16,10 +16,14 @@ class AdvanceRideCard extends StatelessWidget {
     required this.ride,
     required this.now,
     this.footer,
+    this.highlighted = false,
   });
 
   final AdvanceRide ride;
   final DateTime now;
+
+  /// The ride a tapped push is about: an orange frame and a tag.
+  final bool highlighted;
 
   /// Rules lines and buttons under the ride.
   final Widget? footer;
@@ -37,13 +41,32 @@ class AdvanceRideCard extends StatelessWidget {
     final card = Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: p.surface,
+        color: highlighted
+            ? Color.alphaBlend(
+                AppColors.foundationOrange700.withValues(alpha: 0.06),
+                p.surface,
+              )
+            : p.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: p.border),
+        border: Border.all(
+          color: highlighted ? AppColors.foundationOrange700 : p.border,
+          width: highlighted ? 2 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (highlighted)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                'งานจากการแจ้งเตือน',
+                style: AppTypography.caption5.copyWith(
+                  color: AppColors.foundationOrange700,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

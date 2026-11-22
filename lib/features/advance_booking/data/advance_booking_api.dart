@@ -5,6 +5,9 @@ import 'package:massdrive/features/advance_booking/domain/advance_errors.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_ride.dart';
 import 'package:massdrive/features/advance_booking/domain/advance_time.dart';
 
+/// The server caps the board's `radius_km` at 100 km.
+const double advanceBoardMaxRadiusKm = 100;
+
 /// The driver's advance booking endpoints (backend `advanceboard`). A
 /// refusal with a body is thrown as [AdvanceBookingException].
 class AdvanceBookingApi {
@@ -46,7 +49,8 @@ class AdvanceBookingApi {
       queryParameters: {
         if (lat != null && lng != null) 'lat': lat,
         if (lat != null && lng != null) 'lng': lng,
-        if (radiusKm != null) 'radius_km': radiusKm,
+        if (radiusKm != null)
+          'radius_km': radiusKm.clamp(0, advanceBoardMaxRadiusKm),
         if (day != null) 'date': bangkokDateParam(day),
       },
     );

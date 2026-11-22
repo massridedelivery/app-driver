@@ -566,11 +566,11 @@ class PushNotificationService {
       AppRouter.router.push(AppRoutes.payoutHistoryNamedPage);
       return;
     }
-    // A ride booked ahead → "งานของฉัน". The older advance_booking_drv_*
-    // reminders pointed at /live/{job_id}, which is no driver route.
+    // A ride booked ahead → "งานของฉัน", highlighting the ride while it is
+    // still the driver's. The older advance_booking_drv_* reminders pointed
+    // at /live/{job_id}, which is no driver route.
     if (isAdvanceBookingPush(message.data)) {
-      AdvanceBookingUpdates.instance.notifyChanged();
-      _openAdvanceJobs();
+      _openAdvanceJobs(advanceJobsLocation(message.data));
       return;
     }
     final route = message.data['route'];
@@ -628,8 +628,8 @@ class PushNotificationService {
       AppRouter.router.push(target);
       return;
     }
-    if (target == AppRoutes.advanceJobsNamedPage) {
-      _openAdvanceJobs();
+    if (Uri.tryParse(target)?.path == AppRoutes.advanceJobsNamedPage) {
+      _openAdvanceJobs(target);
       return;
     }
     AppRouter.router.go(target);
@@ -637,17 +637,20 @@ class PushNotificationService {
 
   /// The local notification's tap target for an advance booking push.
   String? _advanceJobsPayload(Map<String, dynamic> data) =>
-      isAdvanceBookingPush(data) ? AppRoutes.advanceJobsNamedPage : null;
+      isAdvanceBookingPush(data) ? advanceJobsLocation(data) : null;
 
-  /// "งานของฉัน" on top of home — or on top of the live job screen when the
-  /// driver is on a trip, so back returns to it. Already open: it re-reads.
-  void _openAdvanceJobs() {
+  /// "งานของฉัน" ([location], `?job=` for the ride to highlight) on top of
+  /// home — or on top of the live job screen when the driver is on a trip,
+  /// so back returns to it. Already open: it re-reads and highlights there.
+  void _openAdvanceJobs(String location) {
+    final jobId = Uri.tryParse(location)?.queryParameters['job'];
+    AdvanceBookingUpdates.instance.notifyChanged(highlightJobId: jobId);
     final path = AppRouter.router.routerDelegate.currentConfiguration.uri.path;
     if (path == AppRoutes.advanceJobsNamedPage) return;
     if (path != '/job-live' && path != AppRoutes.foodLiveNamedPage) {
       AppRouter.router.go(AppRoutes.homeNamedPage);
     }
-    AppRouter.router.push(AppRoutes.advanceJobsNamedPage);
+    AppRouter.router.push(location);
   }
 }
 

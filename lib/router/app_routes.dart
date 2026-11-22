@@ -264,7 +264,8 @@ class AppRouter {
             const NoTransitionPage(child: ReferralScreen()),
       ),
       // Advance booking (งานจองล่วงหน้า): "งานของฉัน", or the board with
-      // ?tab=board. Pushes about the driver's rides open it.
+      // ?tab=board. Pushes about the driver's rides open it, ?job= marking
+      // the ride.
       GoRoute(
         path: AppRoutes.advanceJobsNamedPage,
         pageBuilder: (context, state) => NoTransitionPage(
@@ -272,6 +273,7 @@ class AppRouter {
             initialTab: state.uri.queryParameters['tab'] == 'board'
                 ? AdvanceJobsTab.board
                 : AdvanceJobsTab.mine,
+            highlightJobId: state.uri.queryParameters['job'],
           ),
         ),
       ),

@@ -199,7 +199,7 @@ class AdvanceReleaseResult {
   /// The snackbar after giving a ride back.
   String get message {
     final fee = !free && penalty > 0
-        ? 'คืนงานแล้ว หักค่าปรับ ${formatBaht(penalty)}'
+        ? 'คืนงานแล้ว หักค่าปรับ ${formatBaht(penalty)} จากกระเป๋าเงินแล้ว'
         : 'คืนงานแล้ว ไม่มีค่าปรับ';
     final where = backOnBoard
         ? 'งานกลับไปอยู่บนบอร์ดให้คนขับคนอื่น'
@@ -216,9 +216,17 @@ class AdvanceReleaseResult {
 class ReleaseTerms {
   const ReleaseTerms({required this.free, required this.fee, this.freeUntil});
 
+  /// Still inside the free-release window.
   final bool free;
+
+  /// `rules.late_release_fee`: always sent, 0 when the vehicle type sets
+  /// none — then a late release costs nothing.
   final double fee;
   final DateTime? freeUntil;
+
+  /// A release now takes money from the wallet (at once, as a negative
+  /// ADVANCE_CANCEL_PENALTY row).
+  bool get chargesFee => !free && fee > 0;
 
   /// The sheet's main line.
   String get headline {
@@ -227,9 +235,9 @@ class ReleaseTerms {
           ? 'คืนงานตอนนี้ไม่มีค่าปรับ'
           : 'คืนฟรีถึง ${formatBangkokDateTime(freeUntil!)}';
     }
-    return fee > 0
+    return chargesFee
         ? 'คืนตอนนี้มีค่าปรับ ${formatBaht(fee)}'
-        : 'เลยเวลาคืนฟรีแล้ว';
+        : 'คืนตอนนี้ไม่มีค่าปรับ';
   }
 
   /// The line under it.
@@ -238,15 +246,17 @@ class ReleaseTerms {
     final since = freeUntil == null
         ? 'เลยเวลาคืนฟรีแล้ว'
         : 'เลยเวลาคืนฟรี (${formatBangkokDateTime(freeUntil!)}) แล้ว';
-    final money = fee > 0
-        ? ' ค่าปรับ ${formatBaht(fee)} หักจากกระเป๋าเงิน'
-        : '';
-    return '$since$money และนับเป็นการคืนงานช้า';
+    // A release past the free time counts towards a suspension even
+    // without a fee (the backend records it either way).
+    return chargesFee
+        ? '$since หักค่าปรับ ${formatBaht(fee)} จากกระเป๋าเงินทันที '
+              'และนับเป็นการคืนงานช้า'
+        : '$since ไม่มีค่าปรับ แต่นับเป็นการคืนงานช้า';
   }
 
   /// The confirm button.
   String get confirmLabel =>
-      !free && fee > 0 ? 'คืนงาน (ค่าปรับ ${formatBaht(fee)})' : 'คืนงาน';
+      chargesFee ? 'คืนงาน (ค่าปรับ ${formatBaht(fee)})' : 'คืนงาน';
 }
 
 ReleaseTerms releaseTermsAt(AdvanceRules? rules, DateTime now) {

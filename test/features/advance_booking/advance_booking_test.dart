@@ -261,9 +261,33 @@ void main() {
       final t = releaseTermsAt(withUntil, DateTime.utc(2026, 11, 22, 18));
       expect(t.free, isFalse);
       expect(t.headline, 'คืนตอนนี้มีค่าปรับ ฿50');
-      expect(t.detail, contains('฿50'));
-      expect(t.detail, contains('คืนงานช้า'));
+      expect(t.chargesFee, isTrue);
+      expect(
+        t.detail,
+        'เลยเวลาคืนฟรี (23 พ.ย. 00:30 น.) แล้ว หักค่าปรับ ฿50 '
+        'จากกระเป๋าเงินทันที และนับเป็นการคืนงานช้า',
+      );
       expect(t.confirmLabel, 'คืนงาน (ค่าปรับ ฿50)');
+    });
+
+    test('a 0 fee: a late release costs nothing, no ฿0 line', () {
+      final t = releaseTermsAt(
+        AdvanceRules(freeReleaseUntil: until, lateReleaseFee: 0),
+        DateTime.utc(2026, 11, 22, 18),
+      );
+      expect(t.free, isFalse);
+      expect(t.chargesFee, isFalse);
+      expect(t.headline, 'คืนตอนนี้ไม่มีค่าปรับ');
+      expect(t.detail, isNot(contains('฿')));
+      expect(t.confirmLabel, 'คืนงาน');
+      expect(
+        AdvanceReleaseResult.fromJson({
+          'free': false,
+          'penalty': 0,
+          'back_on_board': true,
+        }).message,
+        isNot(contains('฿')),
+      );
     });
 
     test('no free time in the rules reads as free', () {
@@ -285,7 +309,8 @@ void main() {
           'penalty': 33.5,
           'back_on_board': false,
         }).message,
-        'คืนงานแล้ว หักค่าปรับ ฿33.50 · ระบบกำลังหาคนขับคนอื่นให้ลูกค้า',
+        'คืนงานแล้ว หักค่าปรับ ฿33.50 จากกระเป๋าเงินแล้ว · '
+        'ระบบกำลังหาคนขับคนอื่นให้ลูกค้า',
       );
     });
   });
@@ -391,6 +416,33 @@ void main() {
       expect(isAdvanceBookingPush({'type': 'job_cancelled'}), isFalse);
       expect(isAdvanceBookingPush({'type': 'advance_booking_t60'}), isFalse);
       expect(isAdvanceBookingPush({}), isFalse);
+    });
+
+    test('the ride is highlighted only while it is still the driver\'s', () {
+      for (final t in [
+        'drv_free_release',
+        'drv_t60',
+        'drv_set_off',
+        'advance_job_assigned',
+      ]) {
+        final data = {'type': t, 'job_id': 'job-9', 'route': '/advance-jobs'};
+        expect(advancePushHighlight(data), 'job-9', reason: t);
+        expect(advanceJobsLocation(data), '/advance-jobs?job=job-9');
+      }
+      for (final t in [
+        'advance_job_released',
+        'advance_job_cancelled',
+        'advance_job_unassigned',
+      ]) {
+        final data = {'type': t, 'job_id': 'job-9'};
+        expect(advancePushHighlight(data), isNull, reason: t);
+        expect(advanceJobsLocation(data), '/advance-jobs');
+      }
+      expect(advancePushHighlight({'type': 'drv_t60'}), isNull);
+      expect(
+        advancePushHighlight({'type': 'job_cancelled', 'job_id': 'x'}),
+        isNull,
+      );
     });
   });
 }
