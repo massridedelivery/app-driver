@@ -129,6 +129,11 @@ abstract class Endpoints {
   // too), 409 {"code":"job_taken"} when another driver got it.
   static const driverJobsAccept = '/api/driver/jobs/:id/accept';
   static const driverJobsActive = '/api/driver/jobs/active';
+  // Back-to-back rides (b2b_dispatch_enabled): the ride queued as the
+  // driver's next one while they finish a trip (404 {"code":"no_next_ride"}
+  // when none), and giving it up (404 no_next_ride when it isn't theirs).
+  static const driverJobsNext = '/api/driver/jobs/next';
+  static const driverJobsUnqueue = '/api/driver/jobs/:id/unqueue';
   // One ride the driver is or was on: its `status` tells a ride the back
   // office closed (COMPLETED) from one cancelled while the app was away.
   static const driverJob = '/api/driver/jobs/:id';

@@ -95,6 +95,9 @@ class AppRouter {
     return config.isEmpty ? '' : config.uri.path;
   }
 
+  /// The path on screen now ('' before the first route).
+  static String get currentPath => _currentPath;
+
   /// On an accepted job (live screen or collecting the fare), not an offer.
   static bool get isOnAcceptedJob => const {
     '/job-live',

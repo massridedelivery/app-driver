@@ -103,6 +103,8 @@ import 'package:massdrive/features/messenger/data/sources/messenger_api_service.
     as _i251;
 import 'package:massdrive/features/messenger/domain/repositories/messenger_repository.dart'
     as _i41;
+import 'package:massdrive/features/next_ride/data/next_ride_api_service.dart'
+    as _i842;
 import 'package:massdrive/features/profile/data/repositories/profile_repository_impl.dart'
     as _i448;
 import 'package:massdrive/features/profile/data/repositories/vehicle_repository_impl.dart'
@@ -211,6 +213,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i872.DocumentApiService>(
       () => _i872.DocumentApiServiceImpl(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i842.NextRideApiService>(
+      () => _i842.NextRideApiServiceImpl(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i412.QuestRepository>(
       () => _i82.QuestRepositoryImpl(gh<_i425.QuestApiService>()),

@@ -127,7 +127,9 @@ String? applyRecoveredOffer(Ref ref, dynamic offer) {
       map['food'] ??
       map;
   var json = extractJobJson(vertical);
-  // A back-to-back ride offered over a trip has no full-screen offer yet.
+  // A back-to-back ride is never a full-screen offer. It only means anything
+  // over a trip, where the live screen recovers it as the next-ride card
+  // (NextRideController.refresh); here, with no trip, it lapses.
   if (isNextRideOffer(json)) return null;
   // A food offer names its stops after the restaurant and delivery point.
   if (json != null && (type == 'food' || map['food'] != null)) {

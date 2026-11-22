@@ -30,6 +30,7 @@ import 'package:massdrive/core/theme/app_palette.dart';
 import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widgets.dart';
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
+import 'package:massdrive/features/next_ride/presentation/widgets/next_ride_overlay.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -58,7 +59,39 @@ class JobLiveScreen extends ConsumerStatefulWidget {
   ConsumerState<JobLiveScreen> createState() => _JobLiveScreenState();
 }
 
+/// One view per ride: when a queued next ride starts in place of the trip on
+/// screen (back-to-back), the same /job-live route shows a fresh view for it,
+/// heading to its pickup — not the old trip's stage, route or sheet.
 class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
+  String? _firstJobId;
+  String? _lastJobId;
+
+  @override
+  Widget build(BuildContext context) {
+    final jobId = ref.watch(
+      incomingJobControllerProvider.select((s) => s.currentJob?.jobId),
+    );
+    _firstJobId ??= jobId;
+    // Keep the view while the job is cleared on the way out.
+    if (jobId != null) _lastJobId = jobId;
+    final key = _lastJobId;
+    return _JobLiveView(
+      key: ValueKey('job-live-$key'),
+      initialStatus: key == _firstJobId ? widget.initialStatus : null,
+    );
+  }
+}
+
+class _JobLiveView extends ConsumerStatefulWidget {
+  const _JobLiveView({super.key, this.initialStatus});
+
+  final String? initialStatus;
+
+  @override
+  ConsumerState<_JobLiveView> createState() => _JobLiveViewState();
+}
+
+class _JobLiveViewState extends ConsumerState<_JobLiveView> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
@@ -265,6 +298,8 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
           _buildNavBanner(),
           _buildRightFloatingButtons(),
           _buildBottomSheet(bottomInset),
+          // Back-to-back: the next-ride card / banner, over everything.
+          _buildNextRide(),
         ],
       ),
     );
@@ -604,16 +639,47 @@ class _JobLiveScreenState extends ConsumerState<JobLiveScreen> {
         _distanceText(),
       ),
     };
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureNavBanner());
     return Positioned(
       top: MediaQuery.paddingOf(context).top + 8,
       left: 12,
       right: 12,
-      child: RideNavBanner(
-        step: step,
-        address: address,
-        headline: headline,
-        onNavigate: _openGoogleMapsNavigation,
+      child: KeyedSubtree(
+        key: _navBannerKey,
+        child: RideNavBanner(
+          step: step,
+          address: address,
+          headline: headline,
+          onNavigate: _openGoogleMapsNavigation,
+        ),
       ),
+    );
+  }
+
+  final GlobalKey _navBannerKey = GlobalKey();
+
+  /// The green bar's height, so the next-ride card sits right under it.
+  double _navBannerHeight = 104;
+
+  void _measureNavBanner() {
+    if (!mounted) return;
+    final h = _navBannerKey.currentContext?.size?.height;
+    if (h != null && (h - _navBannerHeight).abs() > 0.5) {
+      setState(() => _navBannerHeight = h);
+    }
+  }
+
+  /// The next-ride offer card or the queued-ride banner, under the green bar
+  /// and above the sheet (it is drawn last).
+  Widget _buildNextRide() {
+    final jobId = ref.watch(
+      incomingJobControllerProvider.select((s) => s.currentJob?.jobId),
+    );
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 8 + _navBannerHeight + 8,
+      left: 12,
+      right: 12,
+      child: NextRideOverlay(onTripJobId: jobId),
     );
   }
 

@@ -600,9 +600,9 @@ class PushNotificationService {
       return;
     }
     // An offer push while the driver is on a job can only be a back-to-back
-    // ride; the app has no next-ride card yet, and the full offer screen over
-    // the trip would hide it.
-    if (target == AppRoutes.incomingJobNamedPage && AppRouter.isOnAcceptedJob) {
+    // ride: it shows as the next-ride card on the live screen (from the WS
+    // job_offer_next), and the full offer screen over the trip would hide it.
+    if (offerPushBlocked(target, onAcceptedJob: AppRouter.isOnAcceptedJob)) {
       FcmDebugLog.log('Offer push ignored: on an accepted job');
       return;
     }
@@ -617,6 +617,12 @@ class PushNotificationService {
     AppRouter.router.go(target);
   }
 }
+
+/// A tapped offer push (route /incoming-job) is not followed while the driver
+/// is on an accepted job: there it can only be a back-to-back ride, shown as
+/// the next-ride card over the trip.
+bool offerPushBlocked(String target, {required bool onAcceptedJob}) =>
+    target == AppRoutes.incomingJobNamedPage && onAcceptedJob;
 
 /// Backend notification routes that aren't app routes, mapped to the screen
 /// that handles them. Document-review notifications send `/documents`.
