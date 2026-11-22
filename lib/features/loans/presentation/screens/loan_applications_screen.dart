@@ -255,32 +255,37 @@ Future<bool> confirmCancelApplication(
 /// Screens 7 (waiting, 7E), 8 (approved, 8A), 9 (rejected, 9E), and the
 /// record page of a declined or cancelled application — one page by status.
 class LoanApplicationScreen extends ConsumerWidget {
-  const LoanApplicationScreen({super.key, required this.id});
+  const LoanApplicationScreen({super.key, required this.id, this.initial});
 
   final String id;
+
+  /// The `POST /loans` 202 body (same shape as a list row): shown at once,
+  /// and kept while the list hasn't caught up with it yet.
+  final LoanApplication? initial;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final v = ref.watch(loanApplicationsProvider);
+    final listed = v.asData?.value.where((a) => a.id == id).firstOrNull;
+    final app = listed ?? (initial?.id == id ? initial : null);
+    if (app != null) {
+      return switch (app.status) {
+        LoanApplicationStatus.approved => _ApprovedView(app: app),
+        LoanApplicationStatus.rejected => _RejectedView(app: app),
+        _ => _RecordView(app: app),
+      };
+    }
     return LoanAsync<List<LoanApplication>>(
       value: v,
       onRetry: () => ref.invalidate(loanApplicationsProvider),
       builder: (apps) {
-        final app = apps.where((a) => a.id == id).firstOrNull;
-        if (app == null) {
-          // A stale push or link: the list shows where things stand.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              context.pushReplacement(LoanPaths.applications);
-            }
-          });
-          return const SizedBox.shrink();
-        }
-        return switch (app.status) {
-          LoanApplicationStatus.approved => _ApprovedView(app: app),
-          LoanApplicationStatus.rejected => _RejectedView(app: app),
-          _ => _RecordView(app: app),
-        };
+        // A stale push or link: the list shows where things stand.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            context.pushReplacement(LoanPaths.applications);
+          }
+        });
+        return const SizedBox.shrink();
       },
     ).wrapPage(
       context,
@@ -493,6 +498,9 @@ class _ApprovedView extends ConsumerWidget {
           final p = context.palette;
           final today = bangkokDay(DateTime.now());
           final start = l.scheduleStart;
+          // Asked (the application row) vs paid out (the loan, which is
+          // also what approved_principal says).
+          final lower = app.approvedLower || l.principal < app.principal;
           final tomorrow =
               start != null &&
               sameDay(start, today.add(const Duration(days: 1)));
@@ -540,13 +548,13 @@ class _ApprovedView extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (app.approvedLower)
+              if (lower)
                 LoanBanner(
                   symbol: '!',
                   title: 'อนุมัติน้อยกว่าที่ขอ',
                   tone: LoanTone.warning,
                   lines: [
-                    'คุณขอ ${bahtWords(app.principal)} ได้รับอนุมัติ ${bahtWords(app.approvedPrincipal!)}',
+                    'คุณขอ ${bahtWords(app.principal)} ได้รับอนุมัติ ${bahtWords(l.principal)}',
                     'ค่างวดใหม่ วันละ ${baht2(l.dailyInstalment)} (เดิม ${baht2(app.dailyInstalment)})',
                     if (app.reviewNote != null)
                       'หมายเหตุจากเจ้าหน้าที่: ${app.reviewNote}',

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:massdrive/features/loans/domain/loan_models.dart';
 import 'package:massdrive/features/loans/domain/loan_paths.dart';
 import 'package:massdrive/features/loans/presentation/screens/loan_applications_screen.dart';
 import 'package:massdrive/features/loans/presentation/screens/loan_apply_screen.dart';
@@ -18,7 +19,10 @@ final List<RouteBase> loanRoutes = [
   _route(LoanPaths.applications, (s) => const LoanApplicationsScreen()),
   _route(
     '/loans/applications/:id',
-    (s) => LoanApplicationScreen(id: s.pathParameters['id']!),
+    (s) => LoanApplicationScreen(
+      id: s.pathParameters['id']!,
+      initial: s.extra is LoanApplication ? s.extra! as LoanApplication : null,
+    ),
   ),
   _route(
     '/loans/applications/:id/documents',

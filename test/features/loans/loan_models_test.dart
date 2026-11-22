@@ -187,6 +187,35 @@ void main() {
     expect(d.events.first.day, DateTime(2026, 11, 19));
   });
 
+  test('money accepts JSON ints and doubles (baht, ≤2 decimals)', () {
+    final j = loanJson()
+      ..['principal'] = 3000
+      ..['due_today'] = 100
+      ..['payoff_amount'] = 33.97
+      ..['daily_instalment'] = 33.97
+      ..['arrears'] = 0;
+    final l = Loan.fromJson(j);
+    expect(l.principal, 3000.0);
+    expect(l.dueToday, 100.0);
+    expect(l.payoffAmount, 33.97);
+    expect(l.dailyInstalment, 33.97);
+    expect(l.annualRateBps, 1500);
+    expect(
+      LoanQuote.fromJson({
+        'can_apply': true,
+        'scheduled_total': 3019,
+      }).scheduledTotal,
+      3019.0,
+    );
+  });
+
+  test('POST /loans 202 body parses as a pending application row', () {
+    final a = LoanApplication.fromJson(applicationJson());
+    expect(a.status, LoanApplicationStatus.pending);
+    expect(a.id, 'A1');
+    expect(a.dailyInstalment, 100.64);
+  });
+
   group('format', () {
     test('money', () {
       expect(baht2(3019.2), '฿3,019.20');

@@ -310,7 +310,7 @@ class _LoanApplyScreenState extends ConsumerState<LoanApplyScreen> {
     if (!mounted) return;
     LoanUpdates.instance.notifyChanged();
     showLoanSnack(context, 'ส่งคำขอแล้ว รอเจ้าหน้าที่อนุมัติ');
-    context.pushReplacement(LoanPaths.application(app.id));
+    context.pushReplacement(LoanPaths.application(app.id), extra: app);
   }
 
   // ── Navigation ───────────────────────────────────────────────────────

@@ -201,6 +201,46 @@ void main() {
     expect(find.textContaining('INACTIVE_MONTHS'), findsNothing);
   });
 
+  testWidgets('LENDING_CLOSED, no loan: the closed line, no apply button', (
+    t,
+  ) async {
+    // As the backend answers it: term range and rate filled, no limit, no
+    // sample.
+    final closed = {
+      'eligible': false,
+      'decline_reason': 'LENDING_CLOSED',
+      'max_principal': 0,
+      'max_daily_instalment': 0,
+      'min_principal': 500,
+      'annual_rate_bps': 1500,
+      'deduction_rate_bps': 3000,
+      'min_term_days': 30,
+      'max_term_days': 180,
+      'consent_version': 'loan-terms-v3',
+      'paid_off_loans': 0,
+    };
+    final r = _routes()..['GET /api/driver/loans/offer'] = (200, closed);
+    await _pump(t, LoanPaths.offer, r);
+    expect(find.text('ขณะนี้ยังไม่เปิดให้ขอสินเชื่อ'), findsOneWidget);
+    expect(find.text('เริ่มขอสินเชื่อ'), findsNothing);
+    expect(find.textContaining('LENDING_CLOSED'), findsNothing);
+    // A deep link into the apply flow lands on the same line.
+    await _pump(t, LoanPaths.apply, r);
+    expect(find.text('ขณะนี้ยังไม่เปิดให้ขอสินเชื่อ'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('LENDING_CLOSED keeps an existing loan serviced', (t) async {
+    final r = _routes()
+      ..['GET /api/driver/loans/offer'] = (
+        200,
+        offerJson(eligible: false, reason: 'LENDING_CLOSED'),
+      );
+    await _pump(t, LoanPaths.loan('L1'), r);
+    expect(find.text('฿1,905.04'), findsOneWidget);
+    expect(find.text('จ่ายเงิน / ปิดยอด'), findsOneWidget);
+  });
+
   testWidgets('lending off (404): back home, no message', (t) async {
     await _pump(t, LoanPaths.offer, {});
     expect(find.text('HOME'), findsOneWidget);
@@ -209,7 +249,8 @@ void main() {
   testWidgets('apply: quote → key facts → documents gated → review → submit', (
     t,
   ) async {
-    final r = _routes()
+    // The list hasn't caught up yet: the 202 body alone opens the page.
+    final r = _routes(apps: [])
       ..['POST /api/driver/loans'] = (
         202,
         applicationJson(createdAt: DateTime.now().toUtc().toIso8601String()),
@@ -250,6 +291,7 @@ void main() {
     await t.tap(find.text('ยืนยันส่งคำขอ'));
     await t.pumpAndSettle();
     expect(a.calls, contains('POST /api/driver/loans'));
+    expect(find.text('ตัวเลขที่ขอ'), findsOneWidget);
     expect(find.text('รอเจ้าหน้าที่อนุมัติ'), findsWidgets);
   });
 
@@ -264,11 +306,26 @@ void main() {
   });
 
   testWidgets('approved lower (8A) highlights the new instalment', (t) async {
+    // The push carries only ids: the asked amount comes from the
+    // application row, the paid-out figures from GET /loans/:id.
+    final loan = loanJson()
+      ..['principal'] = 2000
+      ..['daily_instalment'] = 67.09
+      ..['term_days'] = 30
+      ..['scheduled_total'] = 2012.7;
     final r = _routes(
+      loan: loan,
       apps: [applicationJson(status: 'APPROVED', approved: 2000, loanId: 'L1')],
     );
     await _pump(t, LoanPaths.application('A1'), r);
     expect(find.textContaining('อนุมัติน้อยกว่าที่ขอ'), findsOneWidget);
+    expect(
+      find.text('คุณขอ 3,000 บาท ได้รับอนุมัติ 2,000 บาท'),
+      findsOneWidget,
+    );
+    expect(find.text('ค่างวดใหม่ วันละ ฿67.09 (เดิม ฿100.64)'), findsOneWidget);
+    expect(find.text('฿2,000 เข้ากระเป๋าเงินแล้ว'), findsOneWidget);
+    expect(find.text('฿2,012.70'), findsOneWidget);
     expect(find.text('ถอนเงิน'), findsOneWidget);
   });
 
@@ -382,6 +439,9 @@ void main() {
     await _pump(t, LoanPaths.documents('L1'), _routes());
     expect(find.text('หลักฐานการยอมรับ'), findsOneWidget);
     expect(find.text('9f2c…e41a'), findsOneWidget);
-    expect(find.textContaining('เอกสารนี้แสดงยอดที่คุณขอกู้ 3,000 บาท'), findsOneWidget);
+    expect(
+      find.textContaining('เอกสารนี้แสดงยอดที่คุณขอกู้ 3,000 บาท'),
+      findsOneWidget,
+    );
   });
 }
