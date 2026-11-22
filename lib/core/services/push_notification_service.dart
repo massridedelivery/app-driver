@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:massdrive/features/referral/domain/driver_referral.dart';
+import 'package:massdrive/features/advance_booking/domain/advance_pushes.dart';
 import 'package:massdrive/features/call/data/call_pushes.dart';
 import 'package:massdrive/features/call/data/callkit_system_ui.dart';
 import 'package:massdrive/features/call/domain/call_kind.dart';
@@ -349,6 +350,11 @@ class PushNotificationService {
     if (isDriverReferralBonusPush(message.data)) {
       ReferralUpdates.instance.notifyChanged();
     }
+    // A ride booked ahead changed (reminder, released, cancelled, assigned,
+    // unassigned): the board and "งานของฉัน" re-read.
+    if (isAdvanceBookingPush(message.data)) {
+      AdvanceBookingUpdates.instance.notifyChanged();
+    }
     // A document was reviewed, asked for again or is about to expire
     // (document_status / document_expiring): an approved selfie is now the
     // avatar, and verification may have changed — re-read the profile and
@@ -414,6 +420,7 @@ class PushNotificationService {
       payload:
           chatTargetFromPush(message.data)?.payload ??
           campaign?.payload ??
+          _advanceJobsPayload(message.data) ??
           message.data['route'] as String?,
     );
   }
@@ -559,6 +566,13 @@ class PushNotificationService {
       AppRouter.router.push(AppRoutes.payoutHistoryNamedPage);
       return;
     }
+    // A ride booked ahead → "งานของฉัน". The older advance_booking_drv_*
+    // reminders pointed at /live/{job_id}, which is no driver route.
+    if (isAdvanceBookingPush(message.data)) {
+      AdvanceBookingUpdates.instance.notifyChanged();
+      _openAdvanceJobs();
+      return;
+    }
     final route = message.data['route'];
     if (route is String) {
       _navigateTo(route);
@@ -614,7 +628,26 @@ class PushNotificationService {
       AppRouter.router.push(target);
       return;
     }
+    if (target == AppRoutes.advanceJobsNamedPage) {
+      _openAdvanceJobs();
+      return;
+    }
     AppRouter.router.go(target);
+  }
+
+  /// The local notification's tap target for an advance booking push.
+  String? _advanceJobsPayload(Map<String, dynamic> data) =>
+      isAdvanceBookingPush(data) ? AppRoutes.advanceJobsNamedPage : null;
+
+  /// "งานของฉัน" on top of home — or on top of the live job screen when the
+  /// driver is on a trip, so back returns to it. Already open: it re-reads.
+  void _openAdvanceJobs() {
+    final path = AppRouter.router.routerDelegate.currentConfiguration.uri.path;
+    if (path == AppRoutes.advanceJobsNamedPage) return;
+    if (path != '/job-live' && path != AppRoutes.foodLiveNamedPage) {
+      AppRouter.router.go(AppRoutes.homeNamedPage);
+    }
+    AppRouter.router.push(AppRoutes.advanceJobsNamedPage);
   }
 }
 

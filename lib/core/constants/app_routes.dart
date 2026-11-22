@@ -25,6 +25,9 @@ class AppRoutes {
   static const cashWalletNamedPage = '/cash-wallet';
   static const questsNamedPage = '/quests';
   static const referralNamedPage = '/referral';
+
+  /// Rides booked ahead: "งานของฉัน" (`?tab=board` opens the board).
+  static const advanceJobsNamedPage = '/advance-jobs';
   static const tripCalendarNamedPage = '/trip-calendar';
   static const topupHistoryNamedPage = '/topup-history';
   static const transactionsNamedPage = '/transactions';

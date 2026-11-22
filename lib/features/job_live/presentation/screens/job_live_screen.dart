@@ -31,6 +31,7 @@ import 'package:massdrive/features/job_live/presentation/widgets/ride_flow_widge
 import 'package:massdrive/features/payment/domain/collection_amounts.dart';
 import 'package:massdrive/features/incoming_job/domain/models/offer_headline.dart';
 import 'package:massdrive/features/next_ride/presentation/widgets/next_ride_overlay.dart';
+import 'package:massdrive/features/advance_booking/presentation/widgets/advance_no_show_action.dart';
 
 enum JobLiveState { headingToPickup, arrivedAtPickup, headingToDropoff }
 
@@ -434,6 +435,7 @@ class _JobLiveViewState extends ConsumerState<_JobLiveView> {
                           _buildThenLine(),
                           const SizedBox(height: 10),
                           _buildPassengerInfo(),
+                          _buildAdvanceNoShow(),
                           const SizedBox(height: 12),
                           _buildArrivedButton(),
                         ],
@@ -918,6 +920,24 @@ class _JobLiveViewState extends ConsumerState<_JobLiveView> {
           ),
         ],
       ),
+    );
+  }
+
+  /// "ลูกค้าไม่มา" at the pickup of a ride booked ahead, once its wait is
+  /// over (the widget reads the rules; nothing for other rides).
+  Widget _buildAdvanceNoShow() {
+    final job = ref.watch(incomingJobControllerProvider).currentJob;
+    if (job == null || _currentState != JobLiveState.arrivedAtPickup) {
+      return const SizedBox.shrink();
+    }
+    return AdvanceNoShowAction(
+      jobId: job.jobId,
+      isScheduled: job.isScheduled || job.scheduledAt != null,
+      // The sheet fits its content on rebuild; a driver standing at the
+      // pickup sends no GPS ticks to trigger one.
+      onLayoutChanged: () {
+        if (mounted) setState(() {});
+      },
     );
   }
 

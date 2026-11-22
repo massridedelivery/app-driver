@@ -44,6 +44,7 @@ import 'package:massdrive/features/inbox/presentation/screens/inbox_detail_scree
 import 'package:massdrive/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:massdrive/features/history/presentation/screens/history_screen.dart';
 import 'package:massdrive/features/referral/presentation/screens/referral_screen.dart';
+import 'package:massdrive/features/advance_booking/presentation/screens/advance_jobs_screen.dart';
 import 'package:massdrive/features/quests/presentation/screens/quests_screen.dart';
 import 'package:massdrive/features/profile/presentation/screens/trip_calendar_screen.dart';
 import 'package:massdrive/features/income/presentation/screens/topup_history_screen.dart';
@@ -261,6 +262,18 @@ class AppRouter {
         path: AppRoutes.referralNamedPage,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ReferralScreen()),
+      ),
+      // Advance booking (งานจองล่วงหน้า): "งานของฉัน", or the board with
+      // ?tab=board. Pushes about the driver's rides open it.
+      GoRoute(
+        path: AppRoutes.advanceJobsNamedPage,
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: AdvanceJobsScreen(
+            initialTab: state.uri.queryParameters['tab'] == 'board'
+                ? AdvanceJobsTab.board
+                : AdvanceJobsTab.mine,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.tripCalendarNamedPage,
