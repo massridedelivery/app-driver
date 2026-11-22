@@ -177,6 +177,23 @@ abstract class Endpoints {
   /// HTTP fallback for the socket's `location_update` (backgrounded app or
   /// socket down): `{"lat","lng"}` → `{"status":"location updated"}`.
   static const driverLocation = '/api/driver/location';
+  // MARK: Advance booking — the driver board (งานจองล่วงหน้า)
+  /// `{enabled}`: show the advance booking section (advance_driver_enabled).
+  static const driverAdvanceBookingConfig =
+      '/api/driver/advance-booking/config';
+  static const driverAdvanceJobs = '/api/driver/advance-jobs';
+  static const driverAdvanceJobsEligibility =
+      '/api/driver/advance-jobs/eligibility';
+  static const driverAdvanceJobsMine = '/api/driver/advance-jobs/mine';
+  static String driverAdvanceJobClaim(String id) =>
+      '/api/driver/advance-jobs/$id/claim';
+  static String driverAdvanceJobRelease(String id) =>
+      '/api/driver/advance-jobs/$id/release';
+  static String driverAdvanceJobStart(String id) =>
+      '/api/driver/advance-jobs/$id/start';
+  /// "ลูกค้าไม่มา" on a ride booked ahead, after the wait.
+  static String driverJobNoShow(String id) => '/api/driver/jobs/$id/no-show';
+
   // Refer a driver (ชวนเพื่อนมาขับ).
   static const driverReferral = '/api/driver/referral';
   static const driverReferralApply = '/api/driver/referral/apply';

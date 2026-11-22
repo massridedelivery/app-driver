@@ -43,6 +43,7 @@ import 'package:massdrive/features/document_registration/domain/models/registrat
 import 'package:massdrive/features/document_registration/presentation/controllers/registration_controller.dart';
 import 'package:massdrive/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:massdrive/features/setting/presentation/screens/setting_screen.dart';
+import 'package:massdrive/features/advance_booking/presentation/advance_booking_providers.dart';
 import 'package:shimmer/shimmer.dart';
 
 class OnlineStatusState {
@@ -880,6 +881,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _circleMenu(Icons.directions_car, "ประเภทบริการ", key: HomeCoachMarks.serviceMenu, () {
             context.push(AppRoutes.serviceTypeNamedPage);
           }),
+          // Advance booking: only while the admin switch is on.
+          Consumer(
+            builder: (context, ref, _) {
+              final on =
+                  ref.watch(advanceBookingEnabledProvider).asData?.value ??
+                  false;
+              if (!on) return const SizedBox.shrink();
+              return _circleMenu(
+                Icons.event_available,
+                'งานจองล่วงหน้า',
+                () => context.push(
+                  '${AppRoutes.advanceJobsNamedPage}?tab=board',
+                ),
+              );
+            },
+          ),
           _circleMenu(
             Icons.person_sharp,
             "โปรไฟล์",
