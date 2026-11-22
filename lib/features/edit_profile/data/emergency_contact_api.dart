@@ -110,12 +110,14 @@ class EmergencyContactApi {
 
 /// Maps a refused PUT to a Thai message under the right field.
 ///
-/// The backend answers a bad contact with 400
+/// A bad contact is a 400
 /// `{"error": "invalid profile: emergency_contact.phone is not a mobile number"}`
-/// (or `.name` / `.relationship`) and no `code` (v1.6.x). A `code`, when one
-/// is sent, wins; otherwise the field is read from the `emergency_contact.*`
-/// key in the error — the field name, never the English wording, which is not
-/// shown. [name] is what was sent, to tell "missing" from "too long".
+/// (or `.name` / `.relationship`): no `code` today, `"code": "INVALID_PROFILE"`
+/// once backend PR #137 is live. Both are read the same way. The code says
+/// only "a field was refused", not which, so the field is a best-effort hint
+/// from the `emergency_contact.*` key in the error (the field name, never the
+/// English wording, which is not shown); without one, a generic Thai line.
+/// [name] is what was sent, to tell "missing" from "too long".
 EmergencyContactException emergencyContactErrorOf(
   DioException e, {
   String name = '',
@@ -130,16 +132,17 @@ EmergencyContactException emergencyContactErrorOf(
   final code = body['code']?.toString() ?? '';
   final text = '${body['error'] ?? body['message'] ?? ''}';
 
-  final field = switch (code) {
-    'INVALID_PHONE' => EmergencyContactField.phone,
-    _ when text.contains('emergency_contact.phone') =>
-      EmergencyContactField.phone,
-    _ when text.contains('emergency_contact.name') =>
-      EmergencyContactField.name,
-    _ when text.contains('emergency_contact.relationship') =>
-      EmergencyContactField.relationship,
-    _ => null,
-  };
+  // Any other code (e.g. INVALID_FILE_KEY) isn't about the contact.
+  final validation = code.isEmpty || code == 'INVALID_PROFILE';
+  final field = !validation
+      ? null
+      : text.contains('emergency_contact.phone')
+      ? EmergencyContactField.phone
+      : text.contains('emergency_contact.name')
+      ? EmergencyContactField.name
+      : text.contains('emergency_contact.relationship')
+      ? EmergencyContactField.relationship
+      : null;
   return switch (field) {
     EmergencyContactField.phone => const EmergencyContactException(
       thaiPhoneHint,

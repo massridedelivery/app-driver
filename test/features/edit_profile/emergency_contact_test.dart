@@ -260,13 +260,51 @@ void main() {
       expect(e.message, emergencyRelationshipTooLong);
     });
 
-    test('a code, when sent, wins over the text', () async {
-      final e = await _refusal(
+    test('INVALID_PROFILE (BE PR #137) reads like the code-less 400', () async {
+      final phone = await _refusal(
         () => _api(
-          _Server(400, {'code': 'INVALID_PHONE', 'error': 'bad'}),
+          _Server(400, {
+            'code': 'INVALID_PROFILE',
+            'error':
+                'invalid profile: emergency_contact.phone is not a mobile number',
+          }),
         ).save(name: 'ก', phone: '0812345678'),
       );
-      expect(e.field, EmergencyContactField.phone);
+      expect(phone.field, EmergencyContactField.phone);
+      expect(phone.message, thaiPhoneHint);
+
+      final name = await _refusal(
+        () => _api(
+          _Server(400, {
+            'code': 'INVALID_PROFILE',
+            'error': 'invalid profile: emergency_contact.name is required',
+          }),
+        ).save(name: '', phone: '0812345678'),
+      );
+      expect(name.field, EmergencyContactField.name);
+      expect(name.message, emergencyNameRequired);
+
+      // No field in the text: the generic Thai line.
+      final unknown = await _refusal(
+        () => _api(
+          _Server(400, {'code': 'INVALID_PROFILE', 'error': 'invalid profile'}),
+        ).save(name: 'ก', phone: '0812345678'),
+      );
+      expect(unknown.field, isNull);
+      expect(unknown.message, EmergencyContactException.fallback);
+    });
+
+    test('another code is not read as a contact field', () async {
+      final e = await _refusal(
+        () => _api(
+          _Server(400, {
+            'code': 'INVALID_FILE_KEY',
+            'error': 'emergency_contact.phone',
+          }),
+        ).save(name: 'ก', phone: '0812345678'),
+      );
+      expect(e.field, isNull);
+      expect(e.message, EmergencyContactException.fallback);
     });
 
     test('another 400 → the form-wide fallback, never English', () async {
