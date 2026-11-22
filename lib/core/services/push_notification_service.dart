@@ -27,6 +27,9 @@ import 'package:massdrive/core/services/job_cancellation.dart';
 import 'package:massdrive/features/messenger/domain/messenger_status_override.dart';
 import 'package:massdrive/features/document_registration/domain/document_expiry.dart';
 import 'package:massdrive/features/profile/domain/profile_updates.dart';
+// Driver loans (สินเชื่อไรเดอร์) pushes.
+import 'package:massdrive/features/loans/domain/loan_paths.dart';
+import 'package:massdrive/features/loans/presentation/loan_providers.dart';
 
 /// Requests notification permission and returns the resulting iOS/Firebase
 /// [AuthorizationStatus] name for display. Shared by app startup and the FCM
@@ -305,6 +308,11 @@ class PushNotificationService {
           _openCampaign(campaign);
           return;
         }
+        // Driver loans: the payload is the loan screen's location.
+        if (route != null && route.startsWith('${LoanPaths.offer}/')) {
+          _openLoan(route);
+          return;
+        }
         if (route != null) _navigateTo(route);
       },
     );
@@ -355,6 +363,10 @@ class PushNotificationService {
     if (isAdvanceBookingPush(message.data)) {
       AdvanceBookingUpdates.instance.notifyChanged();
     }
+    // Driver loans: a decision or the morning notice — open loan screens
+    // and the profile row re-read.
+    final loanRoute = loanPushRoute(message.data);
+    if (loanRoute != null) LoanUpdates.instance.notifyChanged();
     // A document was reviewed, asked for again or is about to expire
     // (document_status / document_expiring): an approved selfie is now the
     // avatar, and verification may have changed — re-read the profile and
@@ -421,6 +433,7 @@ class PushNotificationService {
           chatTargetFromPush(message.data)?.payload ??
           campaign?.payload ??
           _advanceJobsPayload(message.data) ??
+          loanRoute ??
           message.data['route'] as String?,
     );
   }
@@ -478,6 +491,29 @@ class PushNotificationService {
       AppRoutes.inboxNamedPage,
       extra: campaign.notificationId,
     );
+  }
+
+  /// Opens a loan screen on top of home, once the session is restored and
+  /// the splash is gone (a cold start from the push). The screen loads its
+  /// own data; a server without lending (404) sends it back home.
+  void _openLoan(String route, [int tries = 0]) {
+    final path = AppRouter.router.routerDelegate.currentConfiguration.uri.path;
+    final ready =
+        SessionNotifier.instance.isAuthenticated &&
+        path.isNotEmpty &&
+        path != AppRoutes.splashNamedPage;
+    if (!ready) {
+      if (tries < 40) {
+        Future.delayed(
+          const Duration(milliseconds: 250),
+          () => _openLoan(route, tries + 1),
+        );
+      }
+      return;
+    }
+    FcmDebugLog.log('Loan push tapped: $route');
+    AppRouter.router.go(AppRoutes.homeNamedPage);
+    AppRouter.router.push(route);
   }
 
   /// A call's order: nothing to do when it is the job on screen (the live
@@ -557,6 +593,13 @@ class PushNotificationService {
       ReferralUpdates.instance.notifyChanged();
       AppRouter.router.go(AppRoutes.homeNamedPage);
       AppRouter.router.push(AppRoutes.incomeNamedPage);
+      return;
+    }
+    // Driver loans: loan_approved / loan_rejected → that application;
+    // loan_daily_notice → that loan's day.
+    if (loanPushRoute(message.data) case final loanRoute?) {
+      LoanUpdates.instance.notifyChanged();
+      _openLoan(loanRoute);
       return;
     }
     // Payout status push → open the withdrawal history on top of home.

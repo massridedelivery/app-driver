@@ -197,6 +197,25 @@ abstract class Endpoints {
   // Refer a driver (ชวนเพื่อนมาขับ).
   static const driverReferral = '/api/driver/referral';
   static const driverReferralApply = '/api/driver/referral/apply';
+
+  // MARK: Driver loans (สินเชื่อไรเดอร์). The routes exist only while the
+  // backend has LENDING_ENABLED; a 404 means lending is off.
+  static const loans = '/api/driver/loans';
+  static const loanOffer = '/api/driver/loans/offer';
+  static const loanEligibility = '/api/driver/loans/eligibility';
+  static const loanQuote = '/api/driver/loans/quote';
+  static const loanTerms = '/api/driver/loans/terms';
+  static const loanApplications = '/api/driver/loans/applications';
+  static String loanApplicationCancel(String id) =>
+      '/api/driver/loans/applications/$id/cancel';
+  static String loanApplicationTerms(String id) =>
+      '/api/driver/loans/applications/$id/terms';
+  static String loan(String id) => '/api/driver/loans/$id';
+  static String loanTermsOf(String id) => '/api/driver/loans/$id/terms';
+  static String loanRepay(String id) => '/api/driver/loans/$id/repay';
+  static String loanRevokeConsent(String id) =>
+      '/api/driver/loans/$id/revoke-consent';
+
   /// App launch pop-ups (driver token): `{items:[…], server_time}`.
   static const driverPopupsActive = '/api/driver/popups/active';
   static const driverPayouts = '/api/driver/payouts';
