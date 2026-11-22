@@ -12,6 +12,8 @@ import 'package:massdrive/features/quests/domain/entities/driver_quest.dart';
 import 'package:massdrive/features/quests/presentation/controllers/quests_provider.dart';
 import 'package:massdrive/features/quests/presentation/widgets/quest_progress_bar.dart';
 import 'package:massdrive/features/referral/presentation/referral_providers.dart';
+import 'package:massdrive/features/loans/presentation/loan_providers.dart';
+import 'package:massdrive/features/loans/presentation/widgets/loan_entry_row.dart';
 import 'package:massdrive/core/utils/baht.dart';
 import 'package:go_router/go_router.dart';
 import 'package:massdrive/core/constants/app_routes.dart';
@@ -44,6 +46,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(questsTabProvider(QuestTab.today));
     ref.invalidate(tierProvider);
     ref.invalidate(driverReferralProvider);
+    ref.invalidate(loanEntryProvider);
     await Future.wait([
       ref.read(profileControllerProvider.notifier).fetchProfile(),
       ref.read(walletControllerProvider.notifier).fetchAll(silent: true),
@@ -80,7 +83,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _WeeklyRates(profile: profile),
                 const SizedBox(height: 12),
                 const _CurrentQuestCard(),
-                const _ReferralEntry(),
+                const _OtherServices(),
               ],
             ],
           ),
@@ -383,61 +386,101 @@ class _CurrentQuestCard extends ConsumerWidget {
   }
 }
 
-/// "ชวนเพื่อนมาขับ": only while the backend has the program on.
-class _ReferralEntry extends ConsumerWidget {
-  const _ReferralEntry();
+/// "บริการอื่น" (loan design 1H): one list card under the quest card with
+/// สินเชื่อคนขับ first, then ชวนเพื่อนมาขับ. Each row hides on its own (loans:
+/// lending off on the server; referral: program off); the section goes
+/// when both are hidden.
+class _OtherServices extends ConsumerWidget {
+  const _OtherServices();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref.watch(referralEnabledProvider);
-    if (info == null) return const SizedBox.shrink();
+    final referral = ref.watch(referralEnabledProvider);
+    final showLoan = loanEntryShown(ref.watch(loanEntryProvider));
+    if (!showLoan && referral == null) return const SizedBox.shrink();
     final p = context.palette;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Material(
-        color: questSurface(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: p.border),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push(AppRoutes.referralNamedPage),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-            child: Row(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              'บริการอื่น',
+              style: AppTypography.caption4.copyWith(
+                color: p.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Material(
+            color: questSurface(context),
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: p.border),
+            ),
+            child: Column(
               children: [
-                const Icon(
-                  Icons.group_add_rounded,
-                  color: AppColors.semanticSupportMintBgHigh,
-                  size: 22,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ชวนเพื่อนมาขับ',
-                        style: AppTypography.caption3.copyWith(
-                          color: p.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        info.ruleText,
-                        style: AppTypography.caption5.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: p.textSecondary),
+                if (showLoan) const LoanEntryRow(),
+                if (showLoan && referral != null)
+                  Divider(height: 1, color: p.border),
+                if (referral != null)
+                  _ReferralEntry(ruleText: referral.ruleText),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "ชวนเพื่อนมาขับ": only while the backend has the program on.
+class _ReferralEntry extends StatelessWidget {
+  const _ReferralEntry({required this.ruleText});
+
+  final String ruleText;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return InkWell(
+      onTap: () => context.push(AppRoutes.referralNamedPage),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.group_add_rounded,
+              color: AppColors.semanticSupportMintBgHigh,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ชวนเพื่อนมาขับ',
+                    style: AppTypography.caption3.copyWith(
+                      color: p.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    ruleText,
+                    style: AppTypography.caption5.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: p.textSecondary),
+          ],
         ),
       ),
     );

@@ -51,6 +51,9 @@ import 'package:massdrive/features/income/presentation/screens/topup_history_scr
 import 'package:massdrive/features/income/presentation/screens/transaction_history_screen.dart';
 import 'package:massdrive/features/income/presentation/statement_entries.dart';
 
+// Driver loans (สินเชื่อไรเดอร์).
+import 'package:massdrive/features/loans/presentation/loan_routes.dart';
+
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -468,6 +471,9 @@ class AppRouter {
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: FcmDebugScreen()),
       ),
+
+      // ── Driver loans (สินเชื่อไรเดอร์): paths in LoanPaths. ──
+      ...loanRoutes,
     ],
     // An unknown location (a stale restored route, or a notification `route`
     // the app doesn't define) used to render HomeScreen via errorBuilder. That
