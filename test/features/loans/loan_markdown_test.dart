@@ -54,6 +54,56 @@ void main() {
     expect(bold.style!.fontWeight, FontWeight.w700);
   });
 
+  test('> lines are one quote holding parsed blocks; > is not literal', () {
+    const md = '''
+ก่อนหน้า
+> **หมายเหตุ:** ดอกเบี้ยคิดเป็นรายวัน
+> บรรทัดที่สอง
+>
+> - ข้อแรก
+>> ซ้อนอีกชั้น
+
+หลัง 5 > 3
+''';
+    final b = parseMarkdown(md);
+    expect(b.map((e) => e.kind), [
+      MdKind.paragraph,
+      MdKind.quote,
+      MdKind.paragraph,
+    ]);
+    final q = b[1].children;
+    expect(q.map((e) => e.kind), [
+      MdKind.paragraph,
+      MdKind.bullet,
+      MdKind.quote,
+    ]);
+    expect(q[0].text, '**หมายเหตุ:** ดอกเบี้ยคิดเป็นรายวัน\nบรรทัดที่สอง');
+    expect(q[1].text, 'ข้อแรก');
+    expect(q[2].children.single.text, 'ซ้อนอีกชั้น');
+    // A `>` mid-line is text.
+    expect(b[2].text, 'หลัง 5 > 3');
+  });
+
+  test('a quote ends at the first line without >', () {
+    final b = parseMarkdown('> ก\nข\n> ค');
+    expect(b.map((e) => e.kind), [
+      MdKind.quote,
+      MdKind.paragraph,
+      MdKind.quote,
+    ]);
+  });
+
+  testWidgets('a quote renders its words without the > marker', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: LoanMarkdown('> ข้อควร **ระวัง**\n> - หักวันละ')),
+      ),
+    );
+    expect(find.textContaining('ระวัง', findRichText: true), findsOneWidget);
+    expect(find.text('หักวันละ'), findsOneWidget);
+    expect(find.textContaining('>', findRichText: true), findsNothing);
+  });
+
   testWidgets('renders every word of the body', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
